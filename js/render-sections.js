@@ -495,6 +495,7 @@ async function renderChallenges(){
 
 /* ── SEGMENTS ── */
 let segMaps = []; // {m, line} — re-fitted when the section becomes visible (maps build hidden)
+const segDetailCache = {}; // segment id → detailed segment (has map.polyline)
 async function renderSegments(){
   const el=document.getElementById('segmentsGrid');
   el.innerHTML='<p style="color:var(--muted);padding:8px">Loading starred segments…</p>';
@@ -582,10 +583,18 @@ async function renderSegments(){
     // init mini maps
     if(!window.L) return;
     segMaps = [];
-    segs.forEach(s=>{
+    segs.forEach(async s=>{
       const mapEl=document.getElementById(`segmap-${s.id}`);
       if(!mapEl) return;
-      const poly=s.map&&(s.map.polyline||s.map.summary_polyline);
+      // starred segments are summaries without a route polyline — fetch the
+      // detailed segment (cached) so we draw the real path, not a straight line
+      let poly=s.map&&(s.map.polyline||s.map.summary_polyline);
+      if(!poly){
+        try{
+          const det=segDetailCache[s.id]||(segDetailCache[s.id]=await api(`/segments/${s.id}`));
+          poly=det&&det.map&&(det.map.polyline||det.map.summary_polyline);
+        }catch{}
+      }
       let coords=[];
       if(poly) try{coords=decodePolyline(poly);}catch{}
       if(!coords.length&&s.start_latlng&&s.end_latlng) coords=[s.start_latlng,s.end_latlng];
