@@ -873,16 +873,13 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.shadowBlur = 0;
       }
 
-      // ── top stat pill row ──
+      // ── top stat pill row (driven by the checked stats) ──
       const isCycE = isRide(act);
-      const topStats = [
-        { lbl: 'D+', val: Math.round(elevVal(act.total_elevation_gain || 0)) + elevUnit() },
-        { lbl: 'Distance', val: fmtD(act.distance || 0) },
-        isCycE
-          ? { lbl: 'Avg Speed', val: act.average_speed ? kmh(act.average_speed) + ' ' + speedUnit() : '—' }
-          : { lbl: 'Avg HR', val: act.average_heartrate ? Math.round(act.average_heartrate) + 'bpm' : '—' },
-        { lbl: 'Time', val: fmtT(act.moving_time || 0) },
-      ];
+      const exDefault = STAT_DEFS.filter(s => ['total_elevation_gain', 'distance', isCycE ? 'average_speed' : 'average_heartrate', 'moving_time'].includes(s.key));
+      const topStats = (selected.length ? selected : exDefault).slice(0, 5).map(s => {
+        const { num, unit } = statVal(s, act);
+        return { lbl: s.label, val: num + (unit ? ' ' + unit : '') };
+      });
       const pillH = Math.round(72 * S), pillY = Math.round(64 * S);
       // pill background
       ctx.fillStyle = 'rgba(0,0,0,0.62)';
@@ -895,10 +892,14 @@ function drawLayout(canvas, act, selected, sc, layout) {
           ctx.fillStyle = 'rgba(255,255,255,0.15)';
           ctx.fillRect(Math.round(44 * S) + i * pW, pillY + Math.round(12 * S), Math.round(1 * S), pillH - Math.round(24 * S));
         }
-        ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = `600 ${Math.round(12 * S)}px -apple-system,sans-serif`;
-        ctx.textAlign = 'center'; ctx.letterSpacing = '0.06em';
-        ctx.fillText(st.lbl.toUpperCase(), px, pillY + Math.round(24 * S));
-        ctx.fillStyle = '#fff'; ctx.font = `800 ${Math.round(22 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '-0.5px';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.textAlign = 'center'; ctx.letterSpacing = '0.06em';
+        let lf = Math.round(12 * S); ctx.font = `600 ${lf}px -apple-system,sans-serif`;
+        const lbl = st.lbl.toUpperCase();
+        while (lf > Math.round(8 * S) && ctx.measureText(lbl).width > pW * 0.92) { lf--; ctx.font = `600 ${lf}px -apple-system,sans-serif`; }
+        ctx.fillText(lbl, px, pillY + Math.round(24 * S));
+        ctx.fillStyle = '#fff'; ctx.letterSpacing = '-0.5px';
+        let vf = Math.round(22 * S); ctx.font = `800 ${vf}px -apple-system,sans-serif`;
+        while (vf > Math.round(11 * S) && ctx.measureText(st.val).width > pW * 0.88) { vf--; ctx.font = `800 ${vf}px -apple-system,sans-serif`; }
         ctx.fillText(st.val, px, pillY + Math.round(52 * S));
       });
 
@@ -1235,14 +1236,17 @@ function drawLayout(canvas, act, selected, sc, layout) {
       }
 
       const isCycF = isRide(act);
-      const dist = fmtD(act.distance || 0);
-      const elev = '+' + Math.round(elevVal(act.total_elevation_gain || 0)) + elevUnit();
-      const time = fmtT(act.moving_time || 0);
-      const avgSpd = act.average_speed ? kmh(act.average_speed) + ' ' + speedUnit() : '—';
-      const maxSpd = act.max_speed ? kmh(act.max_speed) + ' ' + speedUnit() : '—';
-      const pwr = act.average_watts ? Math.round(act.average_watts) + ' W' : '—';
-      const cad = act.average_cadence ? Math.round(act.average_cadence) + ' rpm' : '—';
-      const hr = act.average_heartrate ? Math.round(act.average_heartrate) + ' bpm' : '—';
+      // stats driven by the checked toggles, placed into fixed field slots
+      const fieldDefault = STAT_DEFS.filter(s => ['distance', 'total_elevation_gain', isCycF ? 'average_speed' : 'average_heartrate', 'average_watts', 'average_cadence', 'moving_time'].includes(s.key));
+      const fieldStats = (selected.length ? selected : fieldDefault).slice(0, 6);
+      const fieldSlots = [
+        { x: P, y: Math.round(H * 0.12), a: 'left' },
+        { x: W - P, y: Math.round(H * 0.12), a: 'right' },
+        { x: P, y: Math.round(H * 0.50), a: 'left' },
+        { x: P, y: Math.round(H * 0.76), a: 'left' },
+        { x: W / 2, y: Math.round(H * 0.76), a: 'center' },
+        { x: W - P, y: Math.round(H * 0.76), a: 'right' },
+      ];
 
       // route — large, right half, slightly offset up
       if (polyline && polyline.length > 1 && !hideRoute) {
@@ -1253,30 +1257,12 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.globalAlpha = 1; ctx.shadowBlur = 0;
       }
 
-      // TOP: distance (left) + elevation (right)
-      statBlock(isCycF ? 'Distance' : 'Distance', dist, P, Math.round(H * 0.12));
-      statBlock('Elevation', elev, W - P, Math.round(H * 0.12), 'right');
-
-      // MIDDLE-LEFT: speed (cycling) or pace (running)
-      if (isCycF) {
-        statBlock('Avg Speed', avgSpd, P, Math.round(H * 0.50));
-      } else {
-        const pace = act.moving_time && act.distance ? (() => { const s = Math.round(act.moving_time / kmVal(act.distance)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}/${distUnit()}`; })() : '—';
-        statBlock('Avg Pace', pace, P, Math.round(H * 0.50));
-      }
-
-      // BOTTOM ROW: 3 stats spread across
-      const b1x = P, b2x = W / 2, b3x = W - P;
-      const bY = Math.round(H * 0.76);
-      if (isCycF) {
-        statBlock('Avg Power', pwr, b1x, bY);
-        statBlock('Cadence', cad, b2x, bY, 'center');
-        statBlock('Ride Time', time, b3x, bY, 'right');
-      } else {
-        statBlock('Avg HR', hr, b1x, bY);
-        statBlock('Cadence', cad, b2x, bY, 'center');
-        statBlock('Run Time', time, b3x, bY, 'right');
-      }
+      // place the checked stats into the field slots
+      fieldStats.forEach((s, i) => {
+        const slot = fieldSlots[i]; if (!slot) return;
+        const { num, unit } = statVal(s, act);
+        statBlock(s.label, num + (unit ? ' ' + unit : ''), slot.x, slot.y, slot.a);
+      });
 
       // activity name + date — very bottom
       if (!hideTitle) {
