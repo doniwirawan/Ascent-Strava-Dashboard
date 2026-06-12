@@ -72,6 +72,7 @@ async function apiPut(ep, body, retry = false) {
 async function loadData(forceRefresh = false) {
   const btn = document.getElementById('mainBtn');
   btn.disabled = true; btn.textContent = 'Loading…';
+  if (forceRefresh) { _segsData = null; _photosLoaded = false; } // refetch segments/photos on explicit refresh
   try {
     const cachedAthleteId = localStorage.getItem('strava_athlete_id');
 

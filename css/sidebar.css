@@ -23,6 +23,16 @@
 
 .sidebar::-webkit-scrollbar { display: none; }
 
+/* mobile drawer action footer (hidden on desktop) */
+.sidebar-actions { display: none; flex-direction: column; gap: 8px; padding: 14px; margin-top: auto; border-top: 1px solid var(--border); }
+.sidebar-act { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 600; padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; text-align: left; transition: background .15s, border-color .15s; }
+.sidebar-act:hover { border-color: var(--border-hover); background: var(--surface3); }
+.sidebar-act.danger { color: #f87171; }
+
+/* off-canvas backdrop (used on mobile) */
+.sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 90; }
+.sidebar-backdrop.open { opacity: 1; pointer-events: auto; }
+
 .sidebar-user {
   padding: 18px 14px 16px;
   display: flex;

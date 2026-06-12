@@ -623,11 +623,12 @@ async function renderChallenges(){
 /* ── SEGMENTS ── */
 let segMaps = []; // {m, line} — re-fitted when the section becomes visible (maps build hidden)
 const segDetailCache = {}; // segment id → detailed segment (has map.polyline)
+let _segsData = null; // cached starred segments — re-rendered (not refetched) on unit toggle
 async function renderSegments(){
   const el=document.getElementById('segmentsGrid');
   el.innerHTML='<p style="color:var(--muted);padding:8px">Loading starred segments…</p>';
   try{
-    const segs=await api('/segments/starred?per_page=50');
+    const segs=_segsData||(_segsData=await api('/segments/starred?per_page=50'));
     if(!segs||!segs.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No starred segments.</p>';return;}
 
     // compute segment records
@@ -847,8 +848,11 @@ async function scanSegments(){
 
 /* ── PHOTOS ── */
 let photoItems = [], photoIdx = 0; // backing data for the lightbox
+let _photosLoaded = false; // photos don't depend on units — don't refetch on unit toggle
 async function renderPhotos(){
   const el=document.getElementById('photosGrid');
+  if(_photosLoaded) return;
+  _photosLoaded=true;
   el.innerHTML='<p style="color:var(--muted);padding:8px">Loading photos…</p>';
   const withPhotos=acts.filter(a=>a.total_photo_count>0).slice(0,24);
   if(!withPhotos.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No photos found in recent activities.</p>';return;}

@@ -23,62 +23,20 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   location.reload();
 });
 
-/* ── HAMBURGER MENU ── */
+/* ── MOBILE SIDEBAR DRAWER ── */
 (function(){
   const btn=document.getElementById('hamburgerBtn');
-  const menu=document.getElementById('mobileMenu');
-  if(!btn||!menu) return;
-  const links=document.getElementById('navLinks');
-  function close(){menu.classList.remove('open');btn.classList.remove('open');}
-  function syncMenu(){
-    menu.innerHTML='';
-    // nav links
-    links.querySelectorAll('.nav-link').forEach(l=>{
-      const cl=l.cloneNode(true);
-      cl.addEventListener('click',close);
-      menu.appendChild(cl);
-    });
-    // divider
-    const hr=document.createElement('div');
-    hr.style.cssText='border-top:1px solid var(--border);margin:6px 0 2px;';
-    menu.appendChild(hr);
-    // profile badge
-    const badge=document.getElementById('badge');
-    if(badge&&badge.style.display==='flex'){
-      const bc=document.createElement('div');
-      bc.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--text);font-size:13px;font-weight:600;';
-      const img=badge.querySelector('img');
-      if(img){const i=img.cloneNode(true);i.style.width='28px';i.style.height='28px';bc.appendChild(i);}
-      const nm=badge.querySelector('span');
-      if(nm){const n=nm.cloneNode(true);n.style.display='';bc.appendChild(n);}
-      menu.appendChild(bc);
-    }
-    // action buttons
-    [
-      {id:'shareBtn'},
-      {id:'logoutBtn'},
-      {id:'mainBtn'},
-    ].forEach(({id,muted})=>{
-      const orig=document.getElementById(id);
-      if(!orig||orig.style.display==='none') return;
-      const b=document.createElement('button');
-      b.className='nav-link';
-      b.textContent=orig.textContent;
-      b.disabled=orig.disabled;
-      if(muted) b.style.color='var(--muted)';
-      b.addEventListener('click',()=>{close();orig.click();});
-      menu.appendChild(b);
-    });
-  }
-  btn.addEventListener('click',()=>{
-    const opening=!menu.classList.contains('open');
-    if(opening) syncMenu();
-    btn.classList.toggle('open');
-    menu.classList.toggle('open');
-  });
-  document.addEventListener('click',e=>{
-    if(!btn.contains(e.target)&&!menu.contains(e.target)) close();
-  });
+  const sidebar=document.getElementById('sidebar');
+  if(!btn||!sidebar) return;
+  const backdrop=document.createElement('div');
+  backdrop.className='sidebar-backdrop';
+  document.body.appendChild(backdrop);
+  const open=()=>{ sidebar.classList.add('open'); backdrop.classList.add('open'); btn.classList.add('open'); document.body.classList.add('drawer-open'); };
+  const close=()=>{ sidebar.classList.remove('open'); backdrop.classList.remove('open'); btn.classList.remove('open'); document.body.classList.remove('drawer-open'); };
+  btn.addEventListener('click',()=>{ sidebar.classList.contains('open')?close():open(); });
+  backdrop.addEventListener('click',close);
+  // tapping a section link (or an action) closes the drawer
+  sidebar.addEventListener('click',e=>{ if(e.target.closest('.nav-link,.sidebar-act')) close(); });
 })();
 
 /* ── INIT ── */
