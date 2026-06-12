@@ -60,6 +60,10 @@
 
 .type-pill.ride { color: var(--orange); background: var(--orange-dim); }
 
+/* Contain Leaflet's internal z-index (panes/controls up to ~1000) so a map can
+   never paint above the mobile sidebar drawer or modals */
+.leaflet-container { isolation: isolate; }
+
 /* Calendar heatmap */
 .cal-grid {
   display: grid;

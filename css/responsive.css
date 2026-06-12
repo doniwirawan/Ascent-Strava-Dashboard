@@ -68,16 +68,24 @@
 
   .modal-body { grid-template-columns: 1fr; gap: 12px; }
 
+  /* preview on top so edits are visible while scrolling the controls */
   .story-preview {
-    height: 55vw !important;
+    order: -1;
+    height: 46vh !important;
     width: auto !important;
     aspect-ratio: 9/16;
     margin: 0 auto;
   }
 
   .layout-grid { grid-template-columns: repeat(5, 1fr); }
-  .color-swatch { width: 24px; height: 24px; }
+  .color-swatch { width: 26px; height: 26px; }
   .modal-actions { flex-direction: row; }
+  #statToggles { grid-template-columns: 1fr 1fr !important; }
+}
+
+@media (max-width: 420px) {
+  .layout-grid { grid-template-columns: repeat(4, 1fr); }
+  .story-preview { height: 40vh !important; }
 }
 
 /* wide data table scrolls horizontally instead of squishing */
