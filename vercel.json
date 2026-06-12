@@ -2,6 +2,8 @@
   "outputDirectory": "dist",
   "buildCommand": "npm install && node build.js",
   "rewrites": [
-    { "source": "/callback", "destination": "/callback.html" }
+    { "source": "/callback", "destination": "/callback.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" }
   ]
 }
