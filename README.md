@@ -38,12 +38,20 @@ A personal Strava activity dashboard with an Instagram/TikTok-style story card g
 2. Run this SQL in the Supabase SQL editor:
 
 ```sql
+-- One row per athlete; `id` is the Strava athlete id (multi-user)
 CREATE TABLE IF NOT EXISTS strava_cache (
-  id          BIGINT PRIMARY KEY DEFAULT 1,
+  id          BIGINT PRIMARY KEY,
   activities  JSONB NOT NULL,
   synced_at   TIMESTAMPTZ DEFAULT NOW()
 );
 ```
+
+> **Privacy note:** the browser uses the public **anon key**, so by default any
+> visitor could read any row. Each athlete's data is keyed by their Strava id,
+> but to truly isolate users you should enable Row Level Security on
+> `strava_cache`. Without a backend, full per-user isolation isn't possible from
+> the anon key alone — the localStorage cache keeps each browser's data local
+> regardless.
 
 3. Note your **Project URL** and **anon/public key**
 

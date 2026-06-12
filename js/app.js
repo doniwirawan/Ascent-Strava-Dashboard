@@ -14,6 +14,9 @@ document.getElementById('downloadBtn').addEventListener('click', ()=>{
 /* ── MAIN BUTTON EVENTS ── */
 document.getElementById('mainBtn').addEventListener('click', () => loadData(true));
 document.getElementById('logoutBtn').addEventListener('click', () => {
+  const aid = localStorage.getItem('strava_athlete_id');
+  if (aid) localStorage.removeItem('strava_acts_' + aid);
+  localStorage.removeItem('strava_athlete_id');
   localStorage.removeItem('strava_access_token');
   localStorage.removeItem('strava_refresh_token');
   localStorage.removeItem('strava_expires_at');

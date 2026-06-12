@@ -61,10 +61,11 @@ async function loadData(forceRefresh = false) {
   const btn = document.getElementById('mainBtn');
   btn.disabled = true; btn.textContent = 'Loading…';
   try {
-    // Try Supabase cache first (unless forced refresh)
-    if (!forceRefresh) {
+    // Try cache first (localStorage → Supabase), keyed by the logged-in athlete
+    const cachedAthleteId = localStorage.getItem('strava_athlete_id');
+    if (!forceRefresh && cachedAthleteId) {
       setStatus('Checking cache…', 'loading');
-      const cached = await cacheLoad();
+      const cached = await cacheLoad(cachedAthleteId);
       if (cached && cached.length) {
         acts = cached;
         renderAll();
@@ -105,6 +106,7 @@ async function loadData(forceRefresh = false) {
 /* ── RENDER ATHLETE ── */
 function renderAthlete(a) {
   currentAthlete = a;
+  if (a.id) localStorage.setItem('strava_athlete_id', a.id);
   document.getElementById('av').src    = a.profile_medium||a.profile||'';
   document.getElementById('aname').textContent = a.firstname+' '+a.lastname;
   document.getElementById('badge').style.display = 'flex';

@@ -14,26 +14,55 @@ const _sb = (typeof supabase !== 'undefined' && _sbUrl && !_sbUrl.startsWith('__
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-async function cacheLoad() {
+// ── localStorage cache (per athlete, survives offline / no Supabase) ──
+function _lsKey(athleteId) { return 'strava_acts_' + athleteId; }
+
+function lsCacheLoad(athleteId) {
+  try {
+    const raw = localStorage.getItem(_lsKey(athleteId));
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (Date.now() - new Date(o.synced_at).getTime() > CACHE_TTL_MS) return null;
+    return o.activities;
+  } catch { return null; }
+}
+
+function lsCacheSave(athleteId, activities, syncedAt) {
+  try {
+    localStorage.setItem(_lsKey(athleteId), JSON.stringify({
+      activities, synced_at: syncedAt || new Date().toISOString()
+    }));
+  } catch { /* quota / private mode — non-fatal */ }
+}
+
+async function cacheLoad(athleteId) {
+  if (!athleteId) return null;
+  // Fast path: local copy for this athlete
+  const local = lsCacheLoad(athleteId);
+  if (local && local.length) return local;
   if (!_sb) return null;
   try {
     const { data, error } = await _sb
       .from('strava_cache')
       .select('activities, synced_at')
-      .limit(1)
-      .single();
+      .eq('id', athleteId)
+      .maybeSingle();
     if (error || !data) return null;
     const age = Date.now() - new Date(data.synced_at).getTime();
     if (age > CACHE_TTL_MS) return null; // stale
+    lsCacheSave(athleteId, data.activities, data.synced_at); // warm local copy
     return data.activities;
   } catch { return null; }
 }
 
 async function cacheSave(activities, athleteId) {
+  if (!athleteId) return;
+  const syncedAt = new Date().toISOString();
+  lsCacheSave(athleteId, activities, syncedAt);
   if (!_sb) return;
   try {
     await _sb.from('strava_cache').upsert(
-      { id: athleteId, activities, synced_at: new Date().toISOString() },
+      { id: athleteId, activities, synced_at: syncedAt },
       { onConflict: 'id' }
     );
   } catch { /* non-fatal */ }
