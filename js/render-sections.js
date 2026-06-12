@@ -614,14 +614,34 @@ async function renderSegments(){
       </div>`).join('')}
     </div>`:'';
 
-    el.innerHTML=recHtml+`<div class="seg-grid">`+segs.map(s=>{
+    const controlsHtml=`<div class="seg-controls">
+      <div class="seg-chips">
+        <button class="seg-chip-btn active" data-filter="all">All</button>
+        <button class="seg-chip-btn" data-filter="ride">Rides</button>
+        <button class="seg-chip-btn" data-filter="run">Runs</button>
+        <button class="seg-chip-btn" data-filter="climb">Climbs</button>
+        <button class="seg-chip-btn" data-filter="kom">KOMs</button>
+        <button class="seg-chip-btn" data-filter="pr">With PR</button>
+      </div>
+      <select class="seg-sort" id="segSort">
+        <option value="default">Sort: Default</option>
+        <option value="fastest">Fastest PR</option>
+        <option value="longest">Longest</option>
+        <option value="steepest">Steepest</option>
+        <option value="ridden">Most ridden</option>
+        <option value="name">Name A–Z</option>
+      </select>
+    </div>`;
+
+    el.innerHTML=recHtml+controlsHtml+`<div class="seg-grid" id="segGrid">`+segs.map(s=>{
       const dist    =kmVal(s.distance).toFixed(2);
       const gradeNum=s.average_grade!=null?parseFloat(s.average_grade):null;
       const gradeStr=gradeNum!=null?gradeNum.toFixed(1)+'%':null;
       const climb   =s.total_elevation_gain!=null?Math.round(elevVal(s.total_elevation_gain)):null;
       const pr      =s.athlete_pr_effort;
       const prTime  =pr?fmtT(pr.elapsed_time):null;
-      const prSpeed =pr&&s.distance&&pr.elapsed_time?kmh(s.distance/pr.elapsed_time).toFixed(1):null;
+      const prSpeedNum=pr&&s.distance&&pr.elapsed_time?(s.distance/pr.elapsed_time):0;
+      const prSpeed =prSpeedNum?kmh(prSpeedNum).toFixed(1):null;
       const kom     =s.xoms&&s.xoms.kom?s.xoms.kom:null;
       const efforts =s.effort_count?s.effort_count.toLocaleString():null;
       const location=[s.city,s.state,s.country].filter(Boolean).join(', ');
@@ -633,7 +653,11 @@ async function renderSegments(){
         :gradeNum<8?'#fb923c'
         :'#f87171';
 
-      return `<article class="seg-card${isKom?' is-kom':''}">
+      return `<article class="seg-card${isKom?' is-kom':''}"
+        data-sport="${(s.activity_type||'').toLowerCase()}" data-climb="${(s.climb_category||0)>0?1:0}"
+        data-kom="${isKom?1:0}" data-pr="${pr?1:0}" data-speed="${prSpeedNum||0}"
+        data-dist="${s.distance||0}" data-grade="${gradeNum!=null?gradeNum:-99}"
+        data-efforts="${s.effort_count||0}" data-segname="${(s.name||'').toLowerCase().replace(/"/g,'')}">
         <div class="seg-map-wrap">
           <div class="seg-map" id="segmap-${s.id}"></div>
           <div class="seg-badges">
@@ -694,6 +718,38 @@ async function renderSegments(){
         setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}},300);
       }catch{}
     });
+
+    // category filter + sort
+    const grid=document.getElementById('segGrid');
+    function applySeg(){
+      if(!grid) return;
+      const filter=grid._filter||'all';
+      const sort=(document.getElementById('segSort')||{}).value||'default';
+      const cards=[...grid.querySelectorAll('.seg-card')];
+      cards.forEach(c=>{
+        const d=c.dataset;
+        let show=true;
+        if(filter==='ride') show=d.sport==='ride';
+        else if(filter==='run') show=d.sport==='run';
+        else if(filter==='climb') show=d.climb==='1';
+        else if(filter==='kom') show=d.kom==='1';
+        else if(filter==='pr') show=d.pr==='1';
+        c.style.display=show?'':'none';
+      });
+      if(sort!=='default'){
+        const key={fastest:'speed',longest:'dist',steepest:'grade',ridden:'efforts'}[sort];
+        const ordered=sort==='name'
+          ? cards.sort((a,b)=>a.dataset.segname.localeCompare(b.dataset.segname))
+          : cards.sort((a,b)=>parseFloat(b.dataset[key])-parseFloat(a.dataset[key]));
+        ordered.forEach(c=>grid.appendChild(c));
+        setTimeout(()=>segMaps.forEach(({m,line})=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}}),60);
+      }
+    }
+    el.querySelectorAll('.seg-chip-btn').forEach(b=>b.onclick=()=>{
+      el.querySelectorAll('.seg-chip-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); if(grid) grid._filter=b.dataset.filter; applySeg();
+    });
+    const sortSel=document.getElementById('segSort'); if(sortSel) sortSel.onchange=applySeg;
   }catch(e){
     el.innerHTML=`<p style="color:var(--muted);padding:8px">Segments unavailable (${e.message}).</p>`;
   }
