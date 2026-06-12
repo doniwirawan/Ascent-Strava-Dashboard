@@ -56,6 +56,10 @@
     <div class="badge" id="badge">
       <img id="av" src="" alt="" /><span id="aname"></span>
     </div>
+    <div class="unit-toggle mode-toggle" id="modeToggle" style="display:none">
+      <button data-mode="ride" title="Cyclist" onclick="setSportMode('ride')">🚴</button>
+      <button data-mode="run" title="Runner" onclick="setSportMode('run')">🏃</button>
+    </div>
     <div class="unit-toggle" id="unitToggle" style="display:none">
       <button data-unit="km" onclick="setUnits(false)">km</button>
       <button data-unit="mi" onclick="setUnits(true)">mi</button>

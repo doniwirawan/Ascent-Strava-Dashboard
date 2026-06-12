@@ -73,3 +73,24 @@
   .color-swatch { width: 24px; height: 24px; }
   .modal-actions { flex-direction: row; }
 }
+
+/* wide data table scrolls horizontally instead of squishing */
+.month-table { min-width: 560px; }
+
+/* new components — small screens */
+@media (max-width: 600px) {
+  .seg-grid, .mst-grid { grid-template-columns: 1fr; }
+  .seg-controls { flex-direction: column; align-items: stretch; }
+  .seg-sort { width: 100%; }
+  .gr-apply { flex-wrap: wrap; }
+  .gr-apply .btn { flex: 1; }
+  .lb-bar { padding: 12px 14px; gap: 10px; }
+  .ms-switch button { padding: 8px 13px; }
+}
+
+/* keep the nav toggles compact so they never overflow the bar */
+@media (max-width: 480px) {
+  .nav-right { gap: 4px; }
+  .unit-toggle button { padding: 5px 8px; font-size: 11px; }
+  .mode-toggle button { padding: 5px 9px; font-size: 13px; }
+}

@@ -250,8 +250,13 @@ function renderHeatmap(){
 }
 
 /* ── MILESTONES ── */
-let milestoneMode=null; // 'ride' | 'run'
+let milestoneMode=null; // 'ride' | 'run' — global sport mode (navbar toggle)
 function setMilestoneMode(m){ milestoneMode=m; renderMilestones(); }
+function setSportMode(m){
+  milestoneMode=m;
+  document.querySelectorAll('#modeToggle [data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  renderMilestones();
+}
 function _pace(speed){ if(!speed) return '—'; const sec=Math.round((useImperial?1609.34:1000)/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
 function renderMilestones(){
   const el=document.getElementById('milestonesGrid');
@@ -306,12 +311,6 @@ function renderMilestones(){
   ];
 
   el.innerHTML=`
-    <div class="ms-modebar">
-      <div class="ms-switch">
-        <button class="${mode==='ride'?'active':''}" onclick="setMilestoneMode('ride')">🚴 Cyclist</button>
-        <button class="${mode==='run'?'active':''}" onclick="setMilestoneMode('run')">🏃 Runner</button>
-      </div>
-    </div>
     <div class="mst-banner">
       ${totals.map(t=>`<div class="mst-cell"><div class="mst-cv">${t.v}</div><div class="mst-cl">${t.l}</div></div>`).join('')}
     </div>

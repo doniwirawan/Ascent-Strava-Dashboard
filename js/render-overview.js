@@ -23,6 +23,8 @@ function renderAll() {
   document.getElementById('logoutBtn').style.display = '';
   const ut=document.getElementById('unitToggle');
   if(ut){ ut.style.display=''; ut.querySelectorAll('[data-unit]').forEach(b=>b.classList.toggle('active',(b.dataset.unit==='mi')===useImperial)); }
+  const mt=document.getElementById('modeToggle');
+  if(mt){ mt.style.display=''; mt.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===milestoneMode)); }
   const nl = document.getElementById('navLinks');
   nl.style.opacity = '1';
   nl.style.pointerEvents = '';
