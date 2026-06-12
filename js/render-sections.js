@@ -358,7 +358,24 @@ function renderRewind(filterYear){
   const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const busyDay=DAYS[dow.indexOf(Math.max(...dow))];
 
-  el.innerHTML=`
+  // ── side-by-side comparison: selected year vs the year before ──
+  const prevYr=yr-1;
+  const ys=y=>{const a=acts.filter(x=>new Date(x.start_date).getFullYear()===y);return{n:a.length,dist:a.reduce((s,x)=>s+(x.distance||0),0),elev:a.reduce((s,x)=>s+(x.total_elevation_gain||0),0),time:a.reduce((s,x)=>s+(x.moving_time||0),0)};};
+  const A=ys(yr), B=ys(prevYr), hasB=B.n>0;
+  const dlt=(da,db)=>{ if(!hasB||db===0) return '<span class="ryc-d">—</span>'; const pct=(da-db)/db*100, up=pct>=0; return `<span class="ryc-d ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(pct).toFixed(0)}%</span>`; };
+  const cmpRows=[
+    {l:'Activities', a:A.n.toLocaleString(), b:hasB?B.n.toLocaleString():'—', da:A.n, db:B.n},
+    {l:'Distance', a:fmtKm(A.dist)+' '+distUnit(), b:hasB?fmtKm(B.dist)+' '+distUnit():'—', da:A.dist, db:B.dist},
+    {l:'Elevation', a:Math.round(elevVal(A.elev)).toLocaleString()+' '+elevUnit(), b:hasB?Math.round(elevVal(B.elev)).toLocaleString()+' '+elevUnit():'—', da:A.elev, db:B.elev},
+    {l:'Moving Time', a:fmtT(A.time), b:hasB?fmtT(B.time):'—', da:A.time, db:B.time},
+  ];
+  const cmpHtml=`
+    <div class="ryc">
+      <div class="ryc-row ryc-head"><span></span><span>${yr}</span><span>${prevYr}</span><span>YoY</span></div>
+      ${cmpRows.map(r=>`<div class="ryc-row"><span class="ryc-l">${r.l}</span><span class="ryc-a">${r.a}</span><span class="ryc-b">${r.b}</span>${dlt(r.da,r.db)}</div>`).join('')}
+    </div>`;
+
+  el.innerHTML=cmpHtml+`
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px">
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Activities</div><div style="font-size:32px;font-weight:800;color:var(--orange)">${ya.length}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Distance</div><div style="font-size:32px;font-weight:800;color:var(--text)">${Number(totalDist).toLocaleString()}<span style="font-size:14px;color:var(--muted)"> ${distUnit()}</span></div></div>
