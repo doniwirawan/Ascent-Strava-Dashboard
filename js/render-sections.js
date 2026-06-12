@@ -250,54 +250,81 @@ function renderHeatmap(){
 }
 
 /* ── MILESTONES ── */
+let milestoneMode=null; // 'ride' | 'run'
+function setMilestoneMode(m){ milestoneMode=m; renderMilestones(); }
+function _pace(speed){ if(!speed) return '—'; const sec=Math.round((useImperial?1609.34:1000)/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
 function renderMilestones(){
   const el=document.getElementById('milestonesGrid');
   if(!acts.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No data.</p>';return;}
   const rides=acts.filter(isRide);
   const runs=acts.filter(a=>a.type==='Run'||a.type==='VirtualRun');
-  const all=acts;
+  if(milestoneMode===null) milestoneMode = runs.length>rides.length ? 'run' : 'ride';
+  if(milestoneMode==='run' && !runs.length && rides.length) milestoneMode='ride';
+  if(milestoneMode==='ride' && !rides.length && runs.length) milestoneMode='run';
+  const mode=milestoneMode;
+  const set = mode==='run' ? runs : rides;
 
-  const longestRide=rides.reduce((m,a)=>a.distance>m.distance?a:m,rides[0]||{distance:0});
-  const mostElevRide=rides.reduce((m,a)=>(a.total_elevation_gain||0)>(m.total_elevation_gain||0)?a:m,rides[0]||{total_elevation_gain:0});
-  const fastestRide=rides.filter(a=>a.average_speed>0).reduce((m,a)=>a.average_speed>m.average_speed?a:m,rides[0]||{average_speed:0});
-  const longestRun=runs.reduce((m,a)=>a.distance>m.distance?a:m,runs[0]||{distance:0});
-  const longestMove=all.reduce((m,a)=>a.moving_time>m.moving_time?a:m,all[0]||{moving_time:0});
-  const bestHR=all.filter(a=>a.average_heartrate>0).reduce((m,a)=>a.average_heartrate>m.average_heartrate?a:m,{average_heartrate:0});
+  // longest activity streak (all activities)
+  const days=new Set(acts.map(a=>a.start_date?a.start_date.slice(0,10):null).filter(Boolean));
+  let best=0,cur=0,d=new Date();
+  for(let i=0;i<730;i++){ const k=d.toISOString().slice(0,10); if(days.has(k)){cur++;best=Math.max(best,cur);}else cur=0; d.setDate(d.getDate()-1); }
+  const streak=best;
 
-  // longest activity streak
-  const days=new Set(all.map(a=>a.start_date?a.start_date.slice(0,10):null).filter(Boolean));
-  let streak=0,best=0,cur=0,d=new Date();
-  for(let i=0;i<730;i++){
-    const k=d.toISOString().slice(0,10);
-    if(days.has(k)){cur++;best=Math.max(best,cur);}else cur=0;
-    d.setDate(d.getDate()-1);
-  }
-  streak=best;
-
-  // total stats
-  const totalDist=kmVal(all.reduce((s,a)=>s+(a.distance||0),0)).toFixed(0);
-  const totalElev=Math.round(elevVal(all.reduce((s,a)=>s+(a.total_elevation_gain||0),0)));
-  const totalTime=all.reduce((s,a)=>s+(a.moving_time||0),0);
-  const totalActs=all.length;
-
-  const milestones=[
-    {icon:'🏅',label:'Total Activities',val:totalActs,unit:'',desc:'All recorded activities',total:true},
-    {icon:'🌍',label:'Total Distance',val:Number(totalDist).toLocaleString(),unit:distUnit(),desc:'All activities combined',total:true},
-    {icon:'⛰️',label:'Total Elevation',val:totalElev.toLocaleString(),unit:elevUnit(),desc:'All activities combined',total:true},
-    {icon:'⏱️',label:'Total Moving Time',val:fmtT(totalTime),unit:'',desc:'All activities combined',total:true},
-    {icon:'🚴',label:'Longest Ride',val:longestRide.distance?fmtKm(longestRide.distance):'—',unit:distUnit(),desc:longestRide.name||''},
-    {icon:'🏔️',label:'Most Elevation',val:mostElevRide.total_elevation_gain?Math.round(elevVal(mostElevRide.total_elevation_gain)):'—',unit:elevUnit(),desc:mostElevRide.name||''},
-    {icon:'⚡',label:'Fastest Ride',val:fastestRide.average_speed?kmh(fastestRide.average_speed).toFixed(1):'—',unit:speedUnit(),desc:fastestRide.name||''},
-    {icon:'🏃',label:'Longest Run',val:longestRun.distance?fmtKm(longestRun.distance):'—',unit:distUnit(),desc:longestRun.name||''},
-    {icon:'💓',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.name||''},
-    {icon:'🔥',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days active'},
+  // totals for the selected mode
+  const tDist=kmVal(set.reduce((s,a)=>s+(a.distance||0),0)).toFixed(0);
+  const tElev=Math.round(elevVal(set.reduce((s,a)=>s+(a.total_elevation_gain||0),0)));
+  const tTime=set.reduce((s,a)=>s+(a.moving_time||0),0);
+  const totals=[
+    {v:set.length.toLocaleString(), l:mode==='run'?'Runs':'Rides'},
+    {v:Number(tDist).toLocaleString(), l:'Distance ('+distUnit()+')'},
+    {v:tElev.toLocaleString(), l:'Elevation ('+elevUnit()+')'},
+    {v:fmtT(tTime), l:'Moving Time'},
   ];
-  el.innerHTML=milestones.map(m=>`
-    <div class="ms-card${m.total?' is-total':''}">
-      <div class="ms-top"><span class="ms-icon">${m.icon}</span><span class="ms-label">${m.label}</span></div>
-      <div class="ms-val">${m.val}${m.unit?`<span class="ms-unit">${m.unit}</span>`:''}</div>
-      <div class="ms-desc">${m.desc||'&nbsp;'}</div>
-    </div>`).join('');
+
+  // records within the mode
+  const longest=set.reduce((m,a)=>(a.distance||0)>(m.distance||0)?a:m,set[0]||{});
+  const mostElev=set.reduce((m,a)=>(a.total_elevation_gain||0)>(m.total_elevation_gain||0)?a:m,set[0]||{});
+  const fastest=set.filter(a=>a.average_speed>0).reduce((m,a)=>a.average_speed>(m.average_speed||0)?a:m,{});
+  const topSpd=set.filter(a=>a.max_speed>0).reduce((m,a)=>a.max_speed>(m.max_speed||0)?a:m,{});
+  const longDur=set.reduce((m,a)=>(a.moving_time||0)>(m.moving_time||0)?a:m,set[0]||{});
+  const bestHR=set.filter(a=>a.average_heartrate>0).reduce((m,a)=>a.average_heartrate>(m.average_heartrate||0)?a:m,{});
+
+  const records = mode==='run' ? [
+    {icon:'🏃',c:'#fc4c02',label:'Longest Run',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
+    {icon:'⚡',c:'#4da8ff',label:'Best Pace',val:fastest.average_speed?_pace(fastest.average_speed):'—',unit:'/'+distUnit(),desc:fastest.name},
+    {icon:'⛰️',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
+    {icon:'⏱️',c:'#00cc88',label:'Longest Duration',val:longDur.moving_time?fmtT(longDur.moving_time):'—',unit:'',desc:longDur.name},
+    {icon:'💓',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.name},
+    {icon:'🔥',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
+  ] : [
+    {icon:'🚴',c:'#fc4c02',label:'Longest Ride',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
+    {icon:'🏔️',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
+    {icon:'⚡',c:'#4da8ff',label:'Fastest Avg',val:fastest.average_speed?kmh(fastest.average_speed).toFixed(1):'—',unit:speedUnit(),desc:fastest.name},
+    {icon:'🚀',c:'#facc15',label:'Top Speed',val:topSpd.max_speed?kmh(topSpd.max_speed).toFixed(1):'—',unit:speedUnit(),desc:topSpd.name},
+    {icon:'💓',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.name},
+    {icon:'🔥',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
+  ];
+
+  el.innerHTML=`
+    <div class="ms-modebar">
+      <div class="ms-switch">
+        <button class="${mode==='ride'?'active':''}" onclick="setMilestoneMode('ride')">🚴 Cyclist</button>
+        <button class="${mode==='run'?'active':''}" onclick="setMilestoneMode('run')">🏃 Runner</button>
+      </div>
+    </div>
+    <div class="mst-banner">
+      ${totals.map(t=>`<div class="mst-cell"><div class="mst-cv">${t.v}</div><div class="mst-cl">${t.l}</div></div>`).join('')}
+    </div>
+    <div class="mst-grid">
+      ${records.map(r=>`<div class="mst-card">
+        <div class="mst-ic" style="--c:${r.c}">${r.icon}</div>
+        <div class="mst-info">
+          <div class="mst-lbl">${r.label}</div>
+          <div class="mst-val">${r.val}${r.unit?`<span>${r.unit}</span>`:''}</div>
+          <div class="mst-sub">${r.desc||'&nbsp;'}</div>
+        </div>
+      </div>`).join('')}
+    </div>`;
 }
 
 /* ── REWIND ── */

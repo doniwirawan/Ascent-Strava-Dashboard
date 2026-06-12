@@ -343,35 +343,28 @@
 .seg-link { color: var(--orange); font-weight: 700; text-decoration: none; font-size: 10px; }
 .seg-link:hover { text-decoration: underline; }
 
-/* ── Milestones — sleek dark/minimal ── */
-.ms-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 14px;
-}
-.ms-card {
-  position: relative;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  overflow: hidden;
-  transition: border-color .2s, box-shadow .2s, transform .18s;
-}
-.ms-card:hover { border-color: var(--border-hover); box-shadow: 0 12px 34px rgba(0,0,0,.45); transform: translateY(-3px); }
-/* aggregate totals get a subtle accent edge */
-.ms-card.is-total { background: linear-gradient(160deg, var(--orange-dim), var(--surface) 55%); }
-.ms-card.is-total::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--orange); }
+/* ── Milestones — runner / cyclist ── */
+.ms-modebar { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.ms-switch { display: inline-flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.ms-switch button { background: transparent; border: none; color: var(--muted); font-size: 13px; font-weight: 700; padding: 8px 16px; cursor: pointer; transition: background .15s, color .15s; }
+.ms-switch button.active { background: var(--orange); color: #fff; }
+.ms-switch button:not(.active):hover { color: var(--text); }
 
-.ms-top { display: flex; align-items: center; gap: 8px; }
-.ms-icon { font-size: 17px; line-height: 1; filter: saturate(.9); }
-.ms-label { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
-.ms-val { font-size: 30px; font-weight: 900; color: var(--text); line-height: 1; letter-spacing: -1px; }
-.ms-unit { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 5px; letter-spacing: 0; }
-.ms-desc { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mst-banner { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
+.mst-cell { background: linear-gradient(160deg, var(--orange-dim), var(--surface) 60%); padding: 20px 18px; text-align: center; }
+.mst-cv { font-size: 30px; font-weight: 900; color: var(--text); line-height: 1; letter-spacing: -1px; }
+.mst-cl { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+
+.mst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.mst-card { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: border-color .2s, transform .18s, box-shadow .2s; }
+.mst-card:hover { border-color: var(--border-hover); transform: translateY(-3px); box-shadow: 0 12px 34px rgba(0,0,0,.45); }
+.mst-ic { flex-shrink: 0; width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; background: color-mix(in srgb, var(--c) 16%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); }
+.mst-info { min-width: 0; }
+.mst-lbl { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.mst-val { font-size: 26px; font-weight: 900; color: var(--text); line-height: 1.1; letter-spacing: -.5px; }
+.mst-val span { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+.mst-sub { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 560px) { .mst-banner { grid-template-columns: repeat(2, 1fr); } }
 
 /* ── Cycling — Top 5 fastest leaderboard ── */
 .ctop-title { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--text-2); margin: 20px 0 10px; }
