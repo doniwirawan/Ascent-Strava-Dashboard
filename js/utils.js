@@ -70,7 +70,7 @@ function chartOpts(unit='', legend=false) {
   };
 }
 
-const _ALL_SECTIONS=['statRow','cyclingSection','trendsSection','actSection','calSection',
+const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','trendsSection','actSection','calSection',
   'eddySection','monthlySection','bestSection','gearSection','heatSection',
   'segmentsSection','milestonesSection','rewindSection','challengesSection','photosSection','helpSection'];
 

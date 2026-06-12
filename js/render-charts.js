@@ -95,6 +95,83 @@ function renderCycling() {
   });
 }
 
+/* ── RUNNING ── */
+function renderRunning() {
+  const runs = acts.filter(a => ['Run','VirtualRun','TrailRun'].includes(a.type));
+  const sec = document.getElementById('runningSection');
+  if (!runs.length) { if (sec) sec.style.display = 'none'; return; }
+
+  const withPace = runs.filter(r => r.average_speed > 0);
+  const fastest = withPace.length ? withPace.reduce((a, r) => r.average_speed > a.average_speed ? r : a) : null;
+  const longest = runs.reduce((a, r) => (r.distance||0) > (a.distance||0) ? r : a, runs[0]);
+  const totDist = runs.reduce((s, r) => s + (r.distance||0), 0);
+  const totTime = runs.reduce((s, r) => s + (r.moving_time||0), 0);
+  const hrRuns = runs.filter(r => r.average_heartrate > 0);
+  const avgHR = hrRuns.length ? Math.round(hrRuns.reduce((s, r) => s + r.average_heartrate, 0) / hrRuns.length) : 0;
+
+  const subline = (r, extra) => r ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
+      <a href="https://www.strava.com/activities/${r.id}" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);">${r.name}</a> &nbsp;·&nbsp; ${fmtDt(r.start_date)} &nbsp;·&nbsp; ${extra}</div>` : '';
+
+  document.getElementById('runningHero').innerHTML = `
+    <div class="hero-box hi">
+      <div class="hero-label">Best Pace</div>
+      <div class="hero-value">${fastest ? _pace(fastest.average_speed) : '—'} <span class="hero-unit">/${distUnit()}</span></div>
+      ${subline(fastest, fastest ? fmtD(fastest.distance) : '')}
+    </div>
+    <div class="hero-box hi">
+      <div class="hero-label">Longest Run</div>
+      <div class="hero-value">${fmtD(longest.distance)}</div>
+      ${subline(longest, fmtT(longest.moving_time||0))}
+    </div>
+    <div class="hero-box"><div class="hero-label">Total Runs</div><div class="hero-value">${runs.length}</div></div>
+    <div class="hero-box"><div class="hero-label">Total Distance</div><div class="hero-value">${fmtD(totDist)}</div></div>
+    <div class="hero-box"><div class="hero-label">Total Time</div><div class="hero-value">${Math.round(totTime/3600)} <span class="hero-unit">h</span></div></div>
+    <div class="hero-box"><div class="hero-label">Avg Heart Rate</div><div class="hero-value">${avgHR||'—'} <span class="hero-unit">bpm</span></div></div>
+  `;
+
+  // Top 5 fastest pace
+  const top5 = [...withPace].sort((a, b) => b.average_speed - a.average_speed).slice(0, 5);
+  const top5max = top5.length ? top5[0].average_speed : 1;
+  document.getElementById('runningTop5').innerHTML = top5.length ? `
+    <div class="ctop-title">Top 5 Fastest Pace</div>
+    <div class="ctop-list">
+      ${top5.map((r, i) => `
+        <a class="ctop-row" href="https://www.strava.com/activities/${r.id}" target="_blank" rel="noopener">
+          <span class="ctop-rank">${i+1}</span>
+          <span class="ctop-info"><span class="ctop-name">${r.name}</span><span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)}</span></span>
+          <span class="ctop-bar"><span class="ctop-bar-fill" style="width:${(r.average_speed/top5max*100).toFixed(0)}%"></span></span>
+          <span class="ctop-val">${_pace(r.average_speed)}<i>/${distUnit()}</i></span>
+        </a>`).join('')}
+    </div>` : '';
+
+  // Pace trend (last 20 runs) — y is min/unit, faster at top
+  const fmtP = v => { if (v == null) return ''; const m = Math.floor(v); const s = Math.round((v - m) * 60); return m + ':' + String(s).padStart(2, '0'); };
+  const paceMin = r => r.average_speed ? +(((useImperial?1609.34:1000) / r.average_speed) / 60).toFixed(2) : null;
+  const last20 = [...runs].slice(0, 20).reverse();
+  destroyChart('rPaceChart');
+  charts['rPaceChart'] = new Chart(document.getElementById('rPaceChart').getContext('2d'), {
+    type: 'line',
+    data: { labels: last20.map(r => fmtDt(r.start_date)),
+      datasets: [{ data: last20.map(paceMin), borderColor: '#FC4C02', backgroundColor: 'rgba(252,76,2,.07)', tension: .35, fill: true, pointRadius: 3, pointBackgroundColor: '#FC4C02', spanGaps: true }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a1a', borderColor: '#2a2a2a', borderWidth: 1, titleColor: '#fff', bodyColor: '#aaa', callbacks: { label: ctx => ' ' + fmtP(ctx.parsed.y) + ' /' + distUnit() } } },
+      scales: { x: { grid: { color: '#1c1c1c' }, ticks: { color: '#555', font: { size: 10 }, maxRotation: 45 } },
+        y: { reverse: true, grid: { color: '#1c1c1c' }, ticks: { color: '#555', font: { size: 10 }, callback: fmtP } } } }
+  });
+
+  // Distance distribution
+  const buckets = [0, 5, 10, 15, 21, 30, 42, 999];
+  const labels2 = ['<5', '5–10', '10–15', '15–21', '21–30', '30–42', '42+'];
+  const counts = new Array(labels2.length).fill(0);
+  runs.forEach(r => { const km = (r.distance||0) / 1000; for (let i = 0; i < buckets.length - 1; i++) { if (km >= buckets[i] && km < buckets[i+1]) { counts[i]++; break; } } });
+  destroyChart('rDistChart');
+  charts['rDistChart'] = new Chart(document.getElementById('rDistChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: labels2, datasets: [{ data: counts, backgroundColor: 'rgba(252,76,2,.7)', borderRadius: 4, hoverBackgroundColor: '#FC4C02' }] },
+    options: chartOpts('runs', false)
+  });
+}
+
 /* ── TRENDS ── */
 function renderTrends() {
   // Weekly

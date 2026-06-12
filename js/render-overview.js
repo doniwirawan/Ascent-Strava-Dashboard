@@ -5,6 +5,7 @@ function renderAll() {
 
   renderStats();
   renderCycling();
+  renderRunning();
   renderTrends();
   renderActivities();
   renderCalendar();
