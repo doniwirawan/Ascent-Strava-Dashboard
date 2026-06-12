@@ -12,9 +12,36 @@ function decodePolyline(enc) {
   }
   return pts;
 }
-const kmh   = ms  => +(ms * 3.6).toFixed(1);
-const fmtD  = m   => m >= 1000 ? (m/1000).toFixed(1)+' km' : Math.round(m)+' m';
-const fmtKm = m   => (m/1000).toFixed(1);
+/* ── UNITS (km / mi toggle) ── */
+let useImperial = localStorage.getItem('units') === 'mi';
+const _MI = 1.60934, _FT = 3.28084;
+const distUnit  = () => useImperial ? 'mi' : 'km';
+const elevUnit  = () => useImperial ? 'ft' : 'm';
+const speedUnit = () => useImperial ? 'mph' : 'km/h';
+const kmVal   = m  => useImperial ? (m/1000)/_MI : (m/1000);   // metres → km/mi value
+const kmDisp  = km => useImperial ? km/_MI : km;               // km value → km/mi value
+const elevVal = m  => useImperial ? m*_FT : m;                 // elevation value in m/ft
+const kmh     = ms => +(ms * (useImperial ? 2.23694 : 3.6)).toFixed(1); // speed value
+const fmtSpeed= ms => kmh(ms) + ' ' + speedUnit();
+const fmtKm   = m  => kmVal(m).toFixed(1);                     // distance value, 1 dp (unit implied)
+const fmtD    = m  => {
+  if (useImperial) { const mi=(m/1000)/_MI; return mi>=0.1 ? mi.toFixed(1)+' mi' : Math.round(m*_FT)+' ft'; }
+  return m >= 1000 ? (m/1000).toFixed(1)+' km' : Math.round(m)+' m';
+};
+const fmtElev = m  => Math.round(elevVal(m)).toLocaleString() + ' ' + elevUnit();
+
+function setUnits(imperial){
+  useImperial = !!imperial;
+  localStorage.setItem('units', useImperial ? 'mi' : 'km');
+  document.querySelectorAll('[data-unit]').forEach(b=>b.classList.toggle('active',(b.dataset.unit==='mi')===useImperial));
+  if (typeof acts==='undefined' || !acts.length) return;
+  const cur = _ALL_SECTIONS.find(id=>{const e=document.getElementById(id);return e&&e.style.display!=='none';}) || 'statRow';
+  renderAll();
+  const navBtn = document.querySelector('#sidebarNav .nav-link[onclick*="'+cur+'"]') || document.querySelector('.nav-link[onclick*="'+cur+'"]');
+  navScrollTo(cur, navBtn);
+  try{ if(document.getElementById('storyModal')&&document.getElementById('storyModal').classList.contains('open')) drawStoryCanvas(); }catch{}
+}
+
 const fmtT  = s   => { const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h>0?`${h}h ${m}m`:`${m}m`; };
 const fmtDt = d   => new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 const isRide= a   => ['Ride','VirtualRide','EBikeRide','GravelRide','MountainBikeRide'].includes(a.type);
@@ -51,6 +78,7 @@ function navScrollTo(id, btn) {
   _ALL_SECTIONS.forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
   const el=document.getElementById(id);
   if(el) el.style.display='';
+  try{ localStorage.setItem('lastSection', id); }catch{}
   window.scrollTo({top:0,behavior:'smooth'});
   document.querySelectorAll('.nav-link').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');

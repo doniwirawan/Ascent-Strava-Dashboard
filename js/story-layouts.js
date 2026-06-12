@@ -825,10 +825,10 @@ function drawLayout(canvas, act, selected, sc, layout) {
           ctx.font = `600 ${Math.round(10 * S)}px -apple-system,sans-serif`;
           ctx.letterSpacing = '0';
           if (streamKey === 'altitude') {
-            ctx.textAlign = 'left'; ctx.fillText(Math.round(dmin) + 'm', cx, cy3 + miniH + Math.round(13 * S));
-            ctx.textAlign = 'right'; ctx.fillText(Math.round(dmax) + 'm', cx + cInnerW, cy3 + miniH + Math.round(13 * S));
+            ctx.textAlign = 'left'; ctx.fillText(Math.round(elevVal(dmin)) + elevUnit(), cx, cy3 + miniH + Math.round(13 * S));
+            ctx.textAlign = 'right'; ctx.fillText(Math.round(elevVal(dmax)) + elevUnit(), cx + cInnerW, cy3 + miniH + Math.round(13 * S));
           } else if (streamKey === 'velocity_smooth') {
-            ctx.textAlign = 'right'; ctx.fillText((dmax * 3.6).toFixed(1) + ' km/h max', cx + cInnerW, cy3 + miniH + Math.round(13 * S));
+            ctx.textAlign = 'right'; ctx.fillText(kmh(dmax) + ' ' + speedUnit() + ' max', cx + cInnerW, cy3 + miniH + Math.round(13 * S));
           } else if (streamKey === 'heartrate') {
             ctx.textAlign = 'left'; ctx.fillText(Math.round(dmin) + ' bpm', cx, cy3 + miniH + Math.round(13 * S));
             ctx.textAlign = 'right'; ctx.fillText(Math.round(dmax) + ' bpm max', cx + cInnerW, cy3 + miniH + Math.round(13 * S));
@@ -876,10 +876,10 @@ function drawLayout(canvas, act, selected, sc, layout) {
       // ── top stat pill row ──
       const isCycE = isRide(act);
       const topStats = [
-        { lbl: 'D+', val: Math.round(act.total_elevation_gain || 0) + 'm' },
+        { lbl: 'D+', val: Math.round(elevVal(act.total_elevation_gain || 0)) + elevUnit() },
         { lbl: 'Distance', val: fmtD(act.distance || 0) },
         isCycE
-          ? { lbl: 'Avg Speed', val: act.average_speed ? kmh(act.average_speed) + ' km/h' : '—' }
+          ? { lbl: 'Avg Speed', val: act.average_speed ? kmh(act.average_speed) + ' ' + speedUnit() : '—' }
           : { lbl: 'Avg HR', val: act.average_heartrate ? Math.round(act.average_heartrate) + 'bpm' : '—' },
         { lbl: 'Time', val: fmtT(act.moving_time || 0) },
       ];
@@ -1236,10 +1236,10 @@ function drawLayout(canvas, act, selected, sc, layout) {
 
       const isCycF = isRide(act);
       const dist = fmtD(act.distance || 0);
-      const elev = '+' + Math.round(act.total_elevation_gain || 0) + 'm';
+      const elev = '+' + Math.round(elevVal(act.total_elevation_gain || 0)) + elevUnit();
       const time = fmtT(act.moving_time || 0);
-      const avgSpd = act.average_speed ? kmh(act.average_speed) + ' km/h' : '—';
-      const maxSpd = act.max_speed ? kmh(act.max_speed) + ' km/h' : '—';
+      const avgSpd = act.average_speed ? kmh(act.average_speed) + ' ' + speedUnit() : '—';
+      const maxSpd = act.max_speed ? kmh(act.max_speed) + ' ' + speedUnit() : '—';
       const pwr = act.average_watts ? Math.round(act.average_watts) + ' W' : '—';
       const cad = act.average_cadence ? Math.round(act.average_cadence) + ' rpm' : '—';
       const hr = act.average_heartrate ? Math.round(act.average_heartrate) + ' bpm' : '—';
@@ -1261,7 +1261,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       if (isCycF) {
         statBlock('Avg Speed', avgSpd, P, Math.round(H * 0.50));
       } else {
-        const pace = act.moving_time && act.distance ? (() => { const s = Math.round(act.moving_time / (act.distance / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}/km`; })() : '—';
+        const pace = act.moving_time && act.distance ? (() => { const s = Math.round(act.moving_time / kmVal(act.distance)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}/${distUnit()}`; })() : '—';
         statBlock('Avg Pace', pace, P, Math.round(H * 0.50));
       }
 

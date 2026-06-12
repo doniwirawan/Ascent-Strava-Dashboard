@@ -14,7 +14,7 @@ function renderCycling() {
   document.getElementById('cyclingHero').innerHTML = `
     <div class="hero-box hi">
       <div class="hero-label">Fastest Speed (Max)</div>
-      <div class="hero-value">${kmh(fastMax)} <span class="hero-unit">km/h</span></div>
+      <div class="hero-value">${kmh(fastMax)} <span class="hero-unit">${speedUnit()}</span></div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
         <a href="https://www.strava.com/activities/${fastMaxRide.id}" target="_blank"
            style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);">
@@ -23,7 +23,7 @@ function renderCycling() {
     </div>
     <div class="hero-box hi">
       <div class="hero-label">Best Avg Speed</div>
-      <div class="hero-value">${kmh(fastAvg)} <span class="hero-unit">km/h</span></div>
+      <div class="hero-value">${kmh(fastAvg)} <span class="hero-unit">${speedUnit()}</span></div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
         <a href="https://www.strava.com/activities/${fastAvgRide.id}" target="_blank"
            style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);">
@@ -54,7 +54,7 @@ function renderCycling() {
             <span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)}</span>
           </span>
           <span class="ctop-bar"><span class="ctop-bar-fill" style="width:${((r.max_speed/top5Max)*100).toFixed(0)}%"></span></span>
-          <span class="ctop-val">${kmh(r.max_speed)}<i>km/h</i></span>
+          <span class="ctop-val">${kmh(r.max_speed)}<i>${speedUnit()}</i></span>
         </a>`).join('')}
     </div>` : '';
 
@@ -71,7 +71,7 @@ function renderCycling() {
           borderColor:'#555', backgroundColor:'rgba(85,85,85,.05)', tension:.35, fill:true, pointRadius:2 }
       ]
     },
-    options: chartOpts('km/h')
+    options: chartOpts(speedUnit())
   });
 
   // Distance distribution histogram
@@ -79,7 +79,7 @@ function renderCycling() {
   const labels2 = ['<20','20-40','40-60','60-80','80-100','100-150','150-200','200+'];
   const counts  = new Array(labels2.length).fill(0);
   rides.forEach(r=>{
-    const km = (r.distance||0)/1000;
+    const km = kmVal(r.distance||0);
     for (let i=0;i<buckets.length-1;i++) {
       if (km>=buckets[i] && km<buckets[i+1]) { counts[i]++; break; }
     }
@@ -102,7 +102,7 @@ function renderTrends() {
   acts.forEach(a=>{
     const d=new Date(a.start_date); d.setDate(d.getDate()-d.getDay());
     const k=d.toISOString().slice(0,10);
-    weeks[k]=(weeks[k]||0)+(a.distance||0)/1000;
+    weeks[k]=(weeks[k]||0)+kmVal(a.distance||0);
   });
   const wkeys=Object.keys(weeks).sort().slice(-20);
   destroyChart('weeklyChart');
@@ -112,7 +112,7 @@ function renderTrends() {
       datasets:[{ data:wkeys.map(k=>+weeks[k].toFixed(1)),
         backgroundColor:'rgba(252,76,2,.65)', borderRadius:4, hoverBackgroundColor:'#FC4C02' }]
     },
-    options: chartOpts('km',false)
+    options: chartOpts(distUnit(),false)
   });
 
   // YoY
@@ -121,7 +121,7 @@ function renderTrends() {
     const d=new Date(a.start_date);
     const y=d.getFullYear(), m=d.getMonth();
     if (!monthly[y]) monthly[y]=new Array(12).fill(0);
-    monthly[y][m]+=(a.distance||0)/1000;
+    monthly[y][m]+=kmVal(a.distance||0);
   });
   const years=Object.keys(monthly).sort();
   const monthLabels=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -136,7 +136,7 @@ function renderTrends() {
         tension:.35, pointRadius:3, borderWidth:2
       }))
     },
-    options: chartOpts('km',true)
+    options: chartOpts(distUnit(),true)
   });
 
   // Avg speed by month
@@ -146,7 +146,7 @@ function renderTrends() {
     const d=new Date(a.start_date);
     const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     if (!spd[k]) spd[k]={sum:0,n:0};
-    spd[k].sum+=a.average_speed*3.6; spd[k].n++;
+    spd[k].sum+=kmh(a.average_speed); spd[k].n++;
   });
   const skeys=Object.keys(spd).sort().slice(-10);
   destroyChart('speedChart');
@@ -157,7 +157,7 @@ function renderTrends() {
         borderColor:'#FC4C02', backgroundColor:'rgba(252,76,2,.07)',
         tension:.4, fill:true, pointRadius:3, pointBackgroundColor:'#FC4C02' }]
     },
-    options: chartOpts('km/h')
+    options: chartOpts(speedUnit())
   });
 
   // Types doughnut
@@ -201,10 +201,10 @@ function renderActivities() {
   const maxDist = Math.max(...sample.map(a=>a.distance||0));
   const wrap = document.getElementById('bubbleWrap');
   wrap.innerHTML = sample.map(a=>{
-    const km  = (a.distance||0)/1000;
-    const pct = km/((maxDist||1)/1000);
+    const km  = kmVal(a.distance||0);
+    const pct = (a.distance||0)/(maxDist||1);
     const sz  = Math.max(28, Math.min(90, 28 + pct*62));
-    return `<div class="bubble" style="width:${sz}px;height:${sz}px" title="${a.name} — ${km.toFixed(1)} km">
+    return `<div class="bubble" style="width:${sz}px;height:${sz}px" title="${a.name} — ${km.toFixed(1)} ${distUnit()}">
       ${sz>40 ? `<span>${km.toFixed(0)}</span>` : ''}
     </div>`;
   }).join('');

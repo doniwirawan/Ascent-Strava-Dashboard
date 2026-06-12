@@ -13,6 +13,7 @@ const _sbUrl = '__SUPABASE_URL__';
 const _sbKey = '__SUPABASE_KEY__';
 const _haveRemote = _sbUrl && !_sbUrl.startsWith('__') && _sbKey && !_sbKey.startsWith('__');
 const _fnUrl = _haveRemote ? _sbUrl.replace(/\/$/, '') + '/functions/v1/strava-cache' : null;
+const _fnImg = _haveRemote ? _sbUrl.replace(/\/$/, '') + '/functions/v1/img' : null; // image download proxy
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 

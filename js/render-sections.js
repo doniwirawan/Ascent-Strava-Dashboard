@@ -36,10 +36,10 @@ function renderMonthly(filterYear) {
     html+=`<tr>
       <td style="font-weight:700">${MONTHS[m]}</td>
       <td class="num">${r.rides}</td>
-      <td class="num">${(r.dist/1000).toFixed(1)} <span class="dim">km</span></td>
-      <td class="num">${Math.round(r.elev).toLocaleString()} <span class="dim">m</span></td>
+      <td class="num">${fmtKm(r.dist)} <span class="dim">${distUnit()}</span></td>
+      <td class="num">${Math.round(elevVal(r.elev)).toLocaleString()} <span class="dim">${elevUnit()}</span></td>
       <td class="num">${fmtT(r.time)}</td>
-      <td class="num">${avgSpd?(avgSpd*3.6).toFixed(1)+' <span class="dim">km/h</span>':'—'}</td>
+      <td class="num">${avgSpd?kmh(avgSpd).toFixed(1)+' <span class="dim">'+speedUnit()+'</span>':'—'}</td>
       <td class="num">${avgHr?avgHr+' <span class="dim">bpm</span>':'—'}</td>
     </tr>`;
   }
@@ -49,10 +49,10 @@ function renderMonthly(filterYear) {
   html+=`<tr style="border-top:2px solid var(--orange);font-weight:700">
     <td>Total</td>
     <td class="num">${totR}</td>
-    <td class="num">${(totD/1000).toFixed(1)} <span class="dim">km</span></td>
-    <td class="num">${Math.round(totE).toLocaleString()} <span class="dim">m</span></td>
+    <td class="num">${fmtKm(totD)} <span class="dim">${distUnit()}</span></td>
+    <td class="num">${Math.round(elevVal(totE)).toLocaleString()} <span class="dim">${elevUnit()}</span></td>
     <td class="num">${fmtT(totT)}</td>
-    <td class="num">${totAvgSpd?(totAvgSpd*3.6).toFixed(1)+' <span class="dim">km/h</span>':'—'}</td>
+    <td class="num">${totAvgSpd?kmh(totAvgSpd).toFixed(1)+' <span class="dim">'+speedUnit()+'</span>':'—'}</td>
     <td class="num">${totAvgHr?totAvgHr+' <span class="dim">bpm</span>':'—'}</td>
   </tr>`;
   html+=`</tbody></table>`;
@@ -62,10 +62,10 @@ function renderMonthly(filterYear) {
 /* ── BEST EFFORTS ── */
 function renderBestEfforts(){
   const CATS=[
-    {title:'Longest Rides',key:'distance',fmt:a=>(a/1000).toFixed(1)+' km',sort:(a,b)=>(b.distance||0)-(a.distance||0)},
-    {title:'Most Elevation',key:'total_elevation_gain',fmt:a=>Math.round(a).toLocaleString()+' m',sort:(a,b)=>(b.total_elevation_gain||0)-(a.total_elevation_gain||0)},
-    {title:'Fastest Avg Speed',key:'average_speed',fmt:a=>(a*3.6).toFixed(1)+' km/h',sort:(a,b)=>(b.average_speed||0)-(a.average_speed||0)},
-    {title:'Highest Max Speed',key:'max_speed',fmt:a=>(a*3.6).toFixed(1)+' km/h',sort:(a,b)=>(b.max_speed||0)-(a.max_speed||0)},
+    {title:'Longest Rides',key:'distance',fmt:a=>fmtKm(a)+' '+distUnit(),sort:(a,b)=>(b.distance||0)-(a.distance||0)},
+    {title:'Most Elevation',key:'total_elevation_gain',fmt:a=>fmtElev(a),sort:(a,b)=>(b.total_elevation_gain||0)-(a.total_elevation_gain||0)},
+    {title:'Fastest Avg Speed',key:'average_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.average_speed||0)-(a.average_speed||0)},
+    {title:'Highest Max Speed',key:'max_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.max_speed||0)-(a.max_speed||0)},
     {title:'Highest Heart Rate',key:'max_heartrate',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.max_heartrate||0)-(a.max_heartrate||0)},
     {title:'Highest Suffer Score',key:'suffer_score',fmt:a=>Math.round(a),sort:(a,b)=>(b.suffer_score||0)-(a.suffer_score||0)},
   ];
@@ -100,9 +100,9 @@ function _renderBikeList(el, bikes) {
       <div class="gear-name">${b.nickname||b.name||'Bike'}${b.primary?'<span class="gear-primary">Primary</span>':''}</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">${b.name||''}</div>
       <div class="gear-stats">
-        <div><div class="gear-stat-val">${((b.distance||st.dist)/1000).toFixed(0)}</div><div class="gear-stat-lbl">Total km</div></div>
+        <div><div class="gear-stat-val">${kmVal(b.distance||st.dist).toFixed(0)}</div><div class="gear-stat-lbl">Total ${distUnit()}</div></div>
         <div><div class="gear-stat-val">${st.rides}</div><div class="gear-stat-lbl">Rides logged</div></div>
-        <div><div class="gear-stat-val">${st.elev?Math.round(st.elev/1000).toFixed(1)+'k':'—'}</div><div class="gear-stat-lbl">Elevation m</div></div>
+        <div><div class="gear-stat-val">${st.elev?Math.round(elevVal(st.elev)/1000).toFixed(1)+'k':'—'}</div><div class="gear-stat-lbl">Elevation ${elevUnit()}</div></div>
       </div>
     </div>`;
   }).join('');
@@ -191,20 +191,20 @@ function renderMilestones(){
   streak=best;
 
   // total stats
-  const totalDist=(all.reduce((s,a)=>s+(a.distance||0),0)/1000).toFixed(0);
-  const totalElev=Math.round(all.reduce((s,a)=>s+(a.total_elevation_gain||0),0));
+  const totalDist=kmVal(all.reduce((s,a)=>s+(a.distance||0),0)).toFixed(0);
+  const totalElev=Math.round(elevVal(all.reduce((s,a)=>s+(a.total_elevation_gain||0),0)));
   const totalTime=all.reduce((s,a)=>s+(a.moving_time||0),0);
   const totalActs=all.length;
 
   const milestones=[
     {icon:'🏅',label:'Total Activities',val:totalActs,unit:'',desc:'All recorded activities',total:true},
-    {icon:'🌍',label:'Total Distance',val:Number(totalDist).toLocaleString(),unit:'km',desc:'All activities combined',total:true},
-    {icon:'⛰️',label:'Total Elevation',val:totalElev.toLocaleString(),unit:'m',desc:'All activities combined',total:true},
+    {icon:'🌍',label:'Total Distance',val:Number(totalDist).toLocaleString(),unit:distUnit(),desc:'All activities combined',total:true},
+    {icon:'⛰️',label:'Total Elevation',val:totalElev.toLocaleString(),unit:elevUnit(),desc:'All activities combined',total:true},
     {icon:'⏱️',label:'Total Moving Time',val:fmtT(totalTime),unit:'',desc:'All activities combined',total:true},
-    {icon:'🚴',label:'Longest Ride',val:longestRide.distance?(longestRide.distance/1000).toFixed(1):'—',unit:'km',desc:longestRide.name||''},
-    {icon:'🏔️',label:'Most Elevation',val:mostElevRide.total_elevation_gain?Math.round(mostElevRide.total_elevation_gain):'—',unit:'m',desc:mostElevRide.name||''},
-    {icon:'⚡',label:'Fastest Ride',val:fastestRide.average_speed?(fastestRide.average_speed*3.6).toFixed(1):'—',unit:'km/h',desc:fastestRide.name||''},
-    {icon:'🏃',label:'Longest Run',val:longestRun.distance?(longestRun.distance/1000).toFixed(1):'—',unit:'km',desc:longestRun.name||''},
+    {icon:'🚴',label:'Longest Ride',val:longestRide.distance?fmtKm(longestRide.distance):'—',unit:distUnit(),desc:longestRide.name||''},
+    {icon:'🏔️',label:'Most Elevation',val:mostElevRide.total_elevation_gain?Math.round(elevVal(mostElevRide.total_elevation_gain)):'—',unit:elevUnit(),desc:mostElevRide.name||''},
+    {icon:'⚡',label:'Fastest Ride',val:fastestRide.average_speed?kmh(fastestRide.average_speed).toFixed(1):'—',unit:speedUnit(),desc:fastestRide.name||''},
+    {icon:'🏃',label:'Longest Run',val:longestRun.distance?fmtKm(longestRun.distance):'—',unit:distUnit(),desc:longestRun.name||''},
     {icon:'💓',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.name||''},
     {icon:'🔥',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days active'},
   ];
@@ -231,10 +231,10 @@ function renderRewind(filterYear){
   ya.forEach(a=>{types[a.type]=(types[a.type]||0)+1;});
   const topType=Object.entries(types).sort((a,b)=>b[1]-a[1])[0];
   const rides=ya.filter(isRide),runs=ya.filter(a=>a.type==='Run'||a.type==='VirtualRun');
-  const totalDist=(ya.reduce((s,a)=>s+(a.distance||0),0)/1000).toFixed(0);
-  const totalElev=Math.round(ya.reduce((s,a)=>s+(a.total_elevation_gain||0),0));
+  const totalDist=kmVal(ya.reduce((s,a)=>s+(a.distance||0),0)).toFixed(0);
+  const totalElev=Math.round(elevVal(ya.reduce((s,a)=>s+(a.total_elevation_gain||0),0)));
   const totalTime=ya.reduce((s,a)=>s+(a.moving_time||0),0);
-  const avgDist=ya.length?(ya.reduce((s,a)=>s+(a.distance||0),0)/ya.length/1000).toFixed(1):0;
+  const avgDist=ya.length?kmVal(ya.reduce((s,a)=>s+(a.distance||0),0)/ya.length).toFixed(1):0;
 
   // monthly breakdown for chart
   const monthly=Array(12).fill(null).map(()=>({dist:0,count:0}));
@@ -251,10 +251,10 @@ function renderRewind(filterYear){
   el.innerHTML=`
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px">
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Activities</div><div style="font-size:32px;font-weight:800;color:var(--orange)">${ya.length}</div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Distance</div><div style="font-size:32px;font-weight:800;color:var(--text)">${Number(totalDist).toLocaleString()}<span style="font-size:14px;color:var(--muted)"> km</span></div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Elevation</div><div style="font-size:32px;font-weight:800;color:var(--text)">${totalElev.toLocaleString()}<span style="font-size:14px;color:var(--muted)"> m</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Distance</div><div style="font-size:32px;font-weight:800;color:var(--text)">${Number(totalDist).toLocaleString()}<span style="font-size:14px;color:var(--muted)"> ${distUnit()}</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Elevation</div><div style="font-size:32px;font-weight:800;color:var(--text)">${totalElev.toLocaleString()}<span style="font-size:14px;color:var(--muted)"> ${elevUnit()}</span></div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Moving Time</div><div style="font-size:24px;font-weight:800;color:var(--text)">${fmtT(totalTime)}</div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Distance</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgDist}<span style="font-size:14px;color:var(--muted)"> km</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Distance</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgDist}<span style="font-size:14px;color:var(--muted)"> ${distUnit()}</span></div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Top Sport</div><div style="font-size:20px;font-weight:800;color:var(--orange)">${topType?topType[0]:'—'}</div><div style="font-size:12px;color:var(--muted)">${topType?topType[1]+' activities':''}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Rides</div><div style="font-size:32px;font-weight:800;color:var(--text)">${rides.length}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Runs</div><div style="font-size:32px;font-weight:800;color:var(--text)">${runs.length}</div></div>
@@ -270,13 +270,13 @@ function renderRewind(filterYear){
     ctx2._chart=new Chart(ctx2,{
       type:'bar',
       data:{labels:MONTHS,datasets:[
-        {label:'Distance (km)',data:monthly.map(m=>(m.dist/1000).toFixed(1)),backgroundColor:'rgba(252,76,2,0.7)',borderRadius:4,order:1},
+        {label:'Distance ('+distUnit()+')',data:monthly.map(m=>kmVal(m.dist).toFixed(1)),backgroundColor:'rgba(252,76,2,0.7)',borderRadius:4,order:1},
         {label:'Activities',data:monthly.map(m=>m.count),type:'line',borderColor:'rgba(255,255,255,0.5)',borderWidth:2,pointRadius:3,fill:false,yAxisID:'y2',order:0}
       ]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#aaa',boxWidth:12}}},
         scales:{
           x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#888'}},
-          y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#888'},title:{display:true,text:'km',color:'#888'}},
+          y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#888'},title:{display:true,text:distUnit(),color:'#888'}},
           y2:{position:'right',grid:{display:false},ticks:{color:'#888'},title:{display:true,text:'Activities',color:'#888'}}
         }}
     });
@@ -386,13 +386,13 @@ async function renderChallenges(){
       <div style="display:flex;flex-wrap:wrap">
         ${statCell('Rides',lifetimeRides.toLocaleString(),'activities','var(--orange)')}
         ${divider()}
-        ${statCell('Distance',Math.round(lifetimeKm).toLocaleString(),'km','var(--text)')}
+        ${statCell('Distance',Math.round(kmDisp(lifetimeKm)).toLocaleString(),distUnit(),'var(--text)')}
         ${divider()}
         ${statCell('Moving Time',lifetimeHours.toLocaleString(),'hours','var(--text)')}
         ${divider()}
-        ${statCell('Elevation',Math.round(lifetimeElev/1000).toLocaleString(),'k meters','var(--text)')}
-        ${bigRide>0?divider()+statCell('Biggest Ride',bigRide.toFixed(1),'km','#4da8ff'):''}
-        ${bigClimb>0?divider()+statCell('Biggest Climb',Math.round(bigClimb),'m','#4da8ff'):''}
+        ${statCell('Elevation',Math.round(elevVal(lifetimeElev)/1000).toLocaleString(),'k '+elevUnit(),'var(--text)')}
+        ${bigRide>0?divider()+statCell('Biggest Ride',kmDisp(bigRide).toFixed(1),distUnit(),'#4da8ff'):''}
+        ${bigClimb>0?divider()+statCell('Biggest Climb',Math.round(elevVal(bigClimb)),elevUnit(),'#4da8ff'):''}
         ${arun?.count?divider()+statCell('Total Runs',arun.count.toLocaleString(),'activities','#00cc88'):''}
       </div>
     </div>`;
@@ -408,9 +408,9 @@ async function renderChallenges(){
           <div style="display:flex;flex-wrap:wrap">
             ${statCell('Rides',ytdRides,'activities','var(--orange)')}
             ${divider()}
-            ${statCell('Distance',Math.round(ytdKm).toLocaleString(),'km','var(--text)')}
+            ${statCell('Distance',Math.round(kmDisp(ytdKm)).toLocaleString(),distUnit(),'var(--text)')}
             ${divider()}
-            ${statCell('Elevation',Math.round(ytdElev/1000*10)/10,'k m','var(--text)')}
+            ${statCell('Elevation',Math.round(elevVal(ytdElev)/1000*10)/10,'k '+elevUnit(),'var(--text)')}
           </div>
         </div>
       </div>
@@ -420,9 +420,9 @@ async function renderChallenges(){
           <div style="display:flex;flex-wrap:wrap">
             ${statCell('Rides',rrt.count,'activities','var(--orange)')}
             ${divider()}
-            ${statCell('Distance',Math.round(recentKm).toLocaleString(),'km','var(--text)')}
+            ${statCell('Distance',Math.round(kmDisp(recentKm)).toLocaleString(),distUnit(),'var(--text)')}
             ${divider()}
-            ${statCell('Elevation',Math.round((rrt.elevation_gain||0)/1000*10)/10,'k m','var(--text)')}
+            ${statCell('Elevation',Math.round(elevVal(rrt.elevation_gain||0)/1000*10)/10,'k '+elevUnit(),'var(--text)')}
           </div>
         </div>
       </div>`:''}
@@ -472,7 +472,7 @@ async function renderChallenges(){
     html+=`<div class="kom-list">`;
     html+=komList.slice(0,40).map(e=>{
       const seg=e.segment||e;
-      const dist=seg.distance?(seg.distance/1000).toFixed(2)+' km':'—';
+      const dist=seg.distance?kmVal(seg.distance).toFixed(2)+' '+distUnit():'—';
       const grade=seg.average_grade!=null?seg.average_grade.toFixed(1)+'%':'—';
       const t=fmtT(e.elapsed_time||0);
       const loc=[seg.city,seg.state].filter(Boolean).join(', ');
@@ -515,10 +515,10 @@ async function renderSegments(){
 
     // records bar
     const recItems=[
-      fastestSeg&&{icon:'⚡',lbl:'Fastest PR',val:((fastestSeg.distance/fastestSeg.athlete_pr_effort.elapsed_time)*3.6).toFixed(1),unit:'km/h',name:fastestSeg.name,color:'var(--orange)'},
+      fastestSeg&&{icon:'⚡',lbl:'Fastest PR',val:kmh(fastestSeg.distance/fastestSeg.athlete_pr_effort.elapsed_time).toFixed(1),unit:speedUnit(),name:fastestSeg.name,color:'var(--orange)'},
       steepestSeg&&{icon:'⛰',lbl:'Steepest',val:parseFloat(steepestSeg.average_grade).toFixed(1),unit:'%',name:steepestSeg.name,color:'#f87171'},
       mostRiddenSeg&&{icon:'🔁',lbl:'Most Ridden',val:(mostRiddenSeg.effort_count||0).toLocaleString(),unit:'efforts',name:mostRiddenSeg.name,color:'#60a5fa'},
-      longestSeg&&{icon:'📏',lbl:'Longest',val:(longestSeg.distance/1000).toFixed(1),unit:'km',name:longestSeg.name,color:'#a78bfa'},
+      longestSeg&&{icon:'📏',lbl:'Longest',val:fmtKm(longestSeg.distance),unit:distUnit(),name:longestSeg.name,color:'#a78bfa'},
     ].filter(Boolean);
 
     const recHtml=recItems.length?`<div class="seg-summary">
@@ -530,13 +530,13 @@ async function renderSegments(){
     </div>`:'';
 
     el.innerHTML=recHtml+`<div class="seg-grid">`+segs.map(s=>{
-      const dist    =(s.distance/1000).toFixed(2);
+      const dist    =kmVal(s.distance).toFixed(2);
       const gradeNum=s.average_grade!=null?parseFloat(s.average_grade):null;
       const gradeStr=gradeNum!=null?gradeNum.toFixed(1)+'%':null;
-      const climb   =s.total_elevation_gain!=null?Math.round(s.total_elevation_gain):null;
+      const climb   =s.total_elevation_gain!=null?Math.round(elevVal(s.total_elevation_gain)):null;
       const pr      =s.athlete_pr_effort;
       const prTime  =pr?fmtT(pr.elapsed_time):null;
-      const prSpeed =pr&&s.distance&&pr.elapsed_time?((s.distance/pr.elapsed_time)*3.6).toFixed(1):null;
+      const prSpeed =pr&&s.distance&&pr.elapsed_time?kmh(s.distance/pr.elapsed_time).toFixed(1):null;
       const kom     =s.xoms&&s.xoms.kom?s.xoms.kom:null;
       const efforts =s.effort_count?s.effort_count.toLocaleString():null;
       const location=[s.city,s.state,s.country].filter(Boolean).join(', ');
@@ -564,11 +564,11 @@ async function renderSegments(){
           ${prTime?`<div class="seg-pr">
             <span class="seg-pr-lbl">PR</span>
             <span class="seg-pr-time">${prTime}</span>
-            ${prSpeed?`<span class="seg-pr-speed">${prSpeed} km/h</span>`:''}
+            ${prSpeed?`<span class="seg-pr-speed">${prSpeed} ${speedUnit()}</span>`:''}
           </div>`:`<div class="seg-pr-empty">No personal record yet</div>`}
           <div class="seg-metrics">
-            <div class="seg-m"><span class="seg-m-lbl">Distance</span><span class="seg-m-val">${dist} km</span></div>
-            <div class="seg-m"><span class="seg-m-lbl">Elevation</span><span class="seg-m-val">${climb!=null?climb+' m':'—'}</span></div>
+            <div class="seg-m"><span class="seg-m-lbl">Distance</span><span class="seg-m-val">${dist} ${distUnit()}</span></div>
+            <div class="seg-m"><span class="seg-m-lbl">Elevation</span><span class="seg-m-val">${climb!=null?climb+' '+elevUnit():'—'}</span></div>
             <div class="seg-m"><span class="seg-m-lbl">KOM</span><span class="seg-m-val kom">${kom||'—'}</span></div>
           </div>
         </div>
@@ -653,16 +653,16 @@ function closePhoto(){ document.getElementById('photoLightbox').classList.remove
 async function downloadPhoto(){
   const it=photoItems[photoIdx]; if(!it) return;
   const fname=((it.name||'photo').replace(/[^\w\-]+/g,'_').slice(0,60)||'photo')+'.jpg';
+  const save=(href,revoke)=>{const a=document.createElement('a');a.href=href;a.download=fname;document.body.appendChild(a);a.click();a.remove();if(revoke)setTimeout(()=>URL.revokeObjectURL(href),1500);};
+  // 1) direct blob (works if the CDN allows CORS)
   try{
     const r=await fetch(it.url,{mode:'cors'});
-    if(!r.ok) throw new Error('http');
-    const blob=await r.blob();
-    const u=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=u; a.download=fname; a.click();
-    setTimeout(()=>URL.revokeObjectURL(u),1000);
-  }catch{
-    window.open(it.url,'_blank'); // CORS-blocked — open in a new tab as fallback
-  }
+    if(r.ok){ save(URL.createObjectURL(await r.blob()),true); return; }
+  }catch{}
+  // 2) CORS-blocked → image proxy returns Content-Disposition: attachment so it
+  //    downloads in-page instead of opening a new tab
+  if(_fnImg){ save(_fnImg+'?url='+encodeURIComponent(it.url)+'&name='+encodeURIComponent(fname)); return; }
+  window.open(it.url,'_blank'); // last resort
 }
 document.addEventListener('keydown',e=>{
   const lb=document.getElementById('photoLightbox');

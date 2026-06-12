@@ -2,6 +2,12 @@
    NAV — topbar, hamburger, mobile menu
 ══════════════════════════════════════════ */
 
+/* unit toggle (km / mi) */
+.unit-toggle { display: inline-flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.unit-toggle button { background: transparent; border: none; color: var(--muted); font-size: 12px; font-weight: 700; padding: 6px 12px; cursor: pointer; transition: background .15s, color .15s; }
+.unit-toggle button.active { background: var(--orange); color: #fff; }
+.unit-toggle button:not(.active):hover { color: var(--text); }
+
 nav {
   display: flex;
   align-items: center;
