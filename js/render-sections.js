@@ -640,14 +640,18 @@ async function renderSegments(){
       </div>`).join('')}
     </div>`:'';
 
+    const _cnt={
+      all:segs.length,
+      ride:segs.filter(s=>(s.activity_type||'').toLowerCase()==='ride').length,
+      run:segs.filter(s=>(s.activity_type||'').toLowerCase()==='run').length,
+      climb:segs.filter(s=>(s.climb_category||0)>0).length,
+      kom:segs.filter(s=>s.athlete_segment_stats&&s.athlete_segment_stats.pr_rank===1).length,
+      pr:segs.filter(s=>s.athlete_pr_effort).length,
+    };
+    const _chip=(f,lbl)=>`<button class="seg-chip-btn${f==='all'?' active':''}" data-filter="${f}">${lbl} <span class="seg-chip-n">${_cnt[f]}</span></button>`;
     const controlsHtml=`<div class="seg-controls">
       <div class="seg-chips">
-        <button class="seg-chip-btn active" data-filter="all">All</button>
-        <button class="seg-chip-btn" data-filter="ride">Rides</button>
-        <button class="seg-chip-btn" data-filter="run">Runs</button>
-        <button class="seg-chip-btn" data-filter="climb">Climbs</button>
-        <button class="seg-chip-btn" data-filter="kom">KOMs</button>
-        <button class="seg-chip-btn" data-filter="pr">With PR</button>
+        ${_chip('all','All')}${_chip('ride','Rides')}${_chip('run','Runs')}${_chip('climb','Climbs')}${_chip('kom','KOMs')}${_chip('pr','With PR')}
       </div>
       <select class="seg-sort" id="segSort">
         <option value="default">Sort: Default</option>

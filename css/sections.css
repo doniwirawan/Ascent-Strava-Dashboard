@@ -260,6 +260,7 @@
 .seg-chip-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text-2); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
 .seg-chip-btn:hover { border-color: var(--border-hover); color: var(--text); }
 .seg-chip-btn.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+.seg-chip-n { font-size: 10px; opacity: .6; font-weight: 800; margin-left: 2px; }
 .seg-sort { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 12px; padding: 7px 10px; border-radius: var(--radius-sm); cursor: pointer; outline: none; }
 
 /* Card grid */
