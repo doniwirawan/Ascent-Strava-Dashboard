@@ -607,6 +607,7 @@ async function renderSegments(){
 }
 
 /* ── PHOTOS ── */
+let photoItems = [], photoIdx = 0; // backing data for the lightbox
 async function renderPhotos(){
   const el=document.getElementById('photosGrid');
   el.innerHTML='<p style="color:var(--muted);padding:8px">Loading photos…</p>';
@@ -615,20 +616,58 @@ async function renderPhotos(){
   const results=[];
   for(const a of withPhotos.slice(0,16)){
     try{
-      const photos=await api(`/activities/${a.id}/photos?size=600&photo_sources=true`);
+      const photos=await api(`/activities/${a.id}/photos?size=2048&photo_sources=true`);
       if(photos&&photos.length) photos.forEach(p=>{
-        const url=p.urls&&(p.urls['600']||p.urls['256']||Object.values(p.urls)[0]);
-        if(url) results.push({url,name:a.name,date:a.start_date});
+        const urls=p.urls||{};
+        const full=urls['2048']||urls['1024']||urls['600']||Object.values(urls)[0];
+        const thumb=urls['600']||urls['256']||full;
+        if(full) results.push({url:full,thumb,name:a.name,date:a.start_date,actId:a.id});
       });
     }catch{}
   }
   if(!results.length){el.innerHTML='<p style="color:var(--muted);padding:8px">Could not load photos.</p>';return;}
-  el.innerHTML=results.map(p=>`
-    <div class="photo-tile" title="${p.name}">
-      <img src="${p.url}" alt="${p.name}" loading="lazy">
+  photoItems=results;
+  el.innerHTML=results.map((p,i)=>`
+    <div class="photo-tile" title="${p.name}" onclick="openPhoto(${i})">
+      <img src="${p.thumb}" alt="${p.name}" loading="lazy">
       <div class="photo-caption">
         <span>${p.name}</span>
         <span style="opacity:.65;font-size:9px">${p.date?fmtDt(p.date):''}</span>
       </div>
     </div>`).join('');
 }
+
+/* ── PHOTO LIGHTBOX ── */
+function openPhoto(i){
+  if(!photoItems.length) return;
+  photoIdx=(i+photoItems.length)%photoItems.length;
+  const it=photoItems[photoIdx];
+  const lb=document.getElementById('photoLightbox');
+  document.getElementById('lbImg').src=it.url;
+  document.getElementById('lbName').textContent=it.name||'';
+  document.getElementById('lbDate').textContent=it.date?fmtDt(it.date):'';
+  lb.classList.add('open');
+}
+function movePhoto(d){ openPhoto(photoIdx+d); }
+function closePhoto(){ document.getElementById('photoLightbox').classList.remove('open'); }
+async function downloadPhoto(){
+  const it=photoItems[photoIdx]; if(!it) return;
+  const fname=((it.name||'photo').replace(/[^\w\-]+/g,'_').slice(0,60)||'photo')+'.jpg';
+  try{
+    const r=await fetch(it.url,{mode:'cors'});
+    if(!r.ok) throw new Error('http');
+    const blob=await r.blob();
+    const u=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=u; a.download=fname; a.click();
+    setTimeout(()=>URL.revokeObjectURL(u),1000);
+  }catch{
+    window.open(it.url,'_blank'); // CORS-blocked — open in a new tab as fallback
+  }
+}
+document.addEventListener('keydown',e=>{
+  const lb=document.getElementById('photoLightbox');
+  if(!lb||!lb.classList.contains('open')) return;
+  if(e.key==='Escape') closePhoto();
+  else if(e.key==='ArrowLeft') movePhoto(-1);
+  else if(e.key==='ArrowRight') movePhoto(1);
+});

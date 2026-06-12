@@ -326,6 +326,18 @@
     <div id="photosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;"></div>
   </div>
 
+  <!-- PHOTO LIGHTBOX -->
+  <div class="lightbox" id="photoLightbox" onclick="if(event.target===this)closePhoto()">
+    <button class="lb-btn lb-close" onclick="closePhoto()" aria-label="Close">&times;</button>
+    <button class="lb-btn lb-prev" onclick="movePhoto(-1)" aria-label="Previous">&#8249;</button>
+    <img class="lb-img" id="lbImg" alt="">
+    <button class="lb-btn lb-next" onclick="movePhoto(1)" aria-label="Next">&#8250;</button>
+    <div class="lb-bar">
+      <div class="lb-meta"><span class="lb-name" id="lbName"></span><span class="lb-date" id="lbDate"></span></div>
+      <button class="lb-download" onclick="downloadPhoto()">&#10515; Download</button>
+    </div>
+  </div>
+
 </main>
 </div><!-- /.app-layout -->
 
