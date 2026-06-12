@@ -153,7 +153,15 @@ function renderHeatmap(){
     }catch{}
   });
 
-  if(bounds.length) leafletMapInst.fitBounds(bounds,{padding:[20,20],maxZoom:14});
+  if(bounds.length){
+    // Fit to the dense core of activities (5th–95th percentile) so a few
+    // far-away rides don't force the map to zoom way out. Works for any user.
+    const lats=bounds.map(b=>b[0]).sort((a,b)=>a-b);
+    const lngs=bounds.map(b=>b[1]).sort((a,b)=>a-b);
+    const q=(arr,p)=>arr[Math.min(arr.length-1,Math.max(0,Math.floor((arr.length-1)*p)))];
+    const sw=[q(lats,0.05),q(lngs,0.05)], ne=[q(lats,0.95),q(lngs,0.95)];
+    leafletMapInst.fitBounds([sw,ne],{padding:[24,24],maxZoom:15});
+  }
   else leafletMapInst.setView([-8.34,115.09],12);
 }
 
@@ -189,10 +197,10 @@ function renderMilestones(){
   const totalActs=all.length;
 
   const milestones=[
-    {icon:'🏅',label:'Total Activities',val:totalActs,unit:'',desc:'All recorded activities'},
-    {icon:'🌍',label:'Total Distance',val:Number(totalDist).toLocaleString(),unit:'km',desc:'All activities combined'},
-    {icon:'⛰️',label:'Total Elevation',val:totalElev.toLocaleString(),unit:'m',desc:'All activities combined'},
-    {icon:'⏱️',label:'Total Moving Time',val:fmtT(totalTime),unit:'',desc:'All activities combined'},
+    {icon:'🏅',label:'Total Activities',val:totalActs,unit:'',desc:'All recorded activities',total:true},
+    {icon:'🌍',label:'Total Distance',val:Number(totalDist).toLocaleString(),unit:'km',desc:'All activities combined',total:true},
+    {icon:'⛰️',label:'Total Elevation',val:totalElev.toLocaleString(),unit:'m',desc:'All activities combined',total:true},
+    {icon:'⏱️',label:'Total Moving Time',val:fmtT(totalTime),unit:'',desc:'All activities combined',total:true},
     {icon:'🚴',label:'Longest Ride',val:longestRide.distance?(longestRide.distance/1000).toFixed(1):'—',unit:'km',desc:longestRide.name||''},
     {icon:'🏔️',label:'Most Elevation',val:mostElevRide.total_elevation_gain?Math.round(mostElevRide.total_elevation_gain):'—',unit:'m',desc:mostElevRide.name||''},
     {icon:'⚡',label:'Fastest Ride',val:fastestRide.average_speed?(fastestRide.average_speed*3.6).toFixed(1):'—',unit:'km/h',desc:fastestRide.name||''},
@@ -201,11 +209,10 @@ function renderMilestones(){
     {icon:'🔥',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days active'},
   ];
   el.innerHTML=milestones.map(m=>`
-    <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:4px;">
-      <div style="font-size:28px;margin-bottom:4px">${m.icon}</div>
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">${m.label}</div>
-      <div style="font-size:26px;font-weight:800;color:var(--text);line-height:1">${m.val}<span style="font-size:14px;font-weight:400;color:var(--muted);margin-left:4px">${m.unit}</span></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.desc}</div>
+    <div class="ms-card${m.total?' is-total':''}">
+      <div class="ms-top"><span class="ms-icon">${m.icon}</span><span class="ms-label">${m.label}</span></div>
+      <div class="ms-val">${m.val}${m.unit?`<span class="ms-unit">${m.unit}</span>`:''}</div>
+      <div class="ms-desc">${m.desc||'&nbsp;'}</div>
     </div>`).join('');
 }
 
@@ -513,15 +520,15 @@ async function renderSegments(){
       longestSeg&&{icon:'📏',lbl:'Longest',val:(longestSeg.distance/1000).toFixed(1),unit:'km',name:longestSeg.name,color:'#a78bfa'},
     ].filter(Boolean);
 
-    const recHtml=recItems.length?`<div style="display:grid;grid-template-columns:repeat(${recItems.length},1fr);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;">
-      ${recItems.map((r,i)=>`<div style="padding:16px 20px;${i?'border-left:1px solid var(--border)':''}">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${r.color};margin-bottom:6px">${r.icon} ${r.lbl}</div>
-        <div style="font-size:24px;font-weight:900;color:var(--text);line-height:1;letter-spacing:-.5px">${r.val}<span style="font-size:12px;opacity:.5;font-weight:600;margin-left:3px">${r.unit}</span></div>
-        <div style="font-size:10px;color:var(--muted);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name}</div>
+    const recHtml=recItems.length?`<div class="seg-summary">
+      ${recItems.map(r=>`<div class="seg-sum">
+        <div class="seg-sum-top" style="color:${r.color}">${r.icon} ${r.lbl}</div>
+        <div class="seg-sum-val">${r.val}<span>${r.unit}</span></div>
+        <div class="seg-sum-name">${r.name}</div>
       </div>`).join('')}
-    </div>`:' ';
+    </div>`:'';
 
-    el.innerHTML=recHtml+`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">`+segs.map(s=>{
+    el.innerHTML=recHtml+`<div class="seg-grid">`+segs.map(s=>{
       const dist    =(s.distance/1000).toFixed(2);
       const gradeNum=s.average_grade!=null?parseFloat(s.average_grade):null;
       const gradeStr=gradeNum!=null?gradeNum.toFixed(1)+'%':null;
@@ -540,40 +547,35 @@ async function renderSegments(){
         :gradeNum<8?'#fb923c'
         :'#f87171';
 
-      const barW=gradeNum!=null?Math.min(Math.abs(gradeNum)/15*100,100).toFixed(1):0;
-
-      return `<div class="seg-card${isKom?' is-kom':''}" id="segcard-${s.id}">
+      return `<article class="seg-card${isKom?' is-kom':''}">
         <div class="seg-map-wrap">
           <div class="seg-map" id="segmap-${s.id}"></div>
-          ${gradeStr?`<div class="seg-grade-chip" style="background:${gc}">${gradeStr}</div>`:''}
-          ${isKom?`<div class="seg-kom-flag">👑 KOM</div>`:''}
-          <div class="seg-map-overlay">
-            <a class="seg-map-name" href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener">${s.name}</a>
-            ${location?`<div class="seg-map-loc">${location}</div>`:''}
+          <div class="seg-badges">
+            ${gradeStr?`<span class="seg-chip" style="background:${gc}">${gradeStr}</span>`:'<span></span>'}
+            ${isKom?`<span class="seg-chip seg-kom">👑 KOM</span>`:''}
+          </div>
+          <div class="seg-overlay">
+            <a class="seg-name" href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener">${s.name}</a>
+            ${location?`<div class="seg-loc">${location}</div>`:''}
           </div>
         </div>
-        <div class="seg-card-body">
-          <div class="seg-grade-bar-track">
-            <div class="seg-grade-bar-fill" style="width:${barW}%;background:${gc}"></div>
-          </div>
-          ${prTime?`<div class="seg-pr-block">
-            <div class="seg-pr-lbl">Your PR</div>
-            <div class="seg-pr-row">
-              <span class="seg-pr-time">${prTime}</span>
-              ${prSpeed?`<span class="seg-pr-speed">${prSpeed} km/h</span>`:''}
-            </div>
-          </div>`:''}
-          <div class="seg-stats-row">
-            <div class="seg-stat"><span class="seg-stat-lbl">Distance</span><span class="seg-stat-val">${dist} km</span></div>
-            <div class="seg-stat"><span class="seg-stat-lbl">Elevation</span><span class="seg-stat-val">${climb!=null?climb+' m':'—'}</span></div>
-            <div class="seg-stat"><span class="seg-stat-lbl">KOM</span><span class="seg-stat-val kom">${kom||'—'}</span></div>
+        <div class="seg-body">
+          ${prTime?`<div class="seg-pr">
+            <span class="seg-pr-lbl">PR</span>
+            <span class="seg-pr-time">${prTime}</span>
+            ${prSpeed?`<span class="seg-pr-speed">${prSpeed} km/h</span>`:''}
+          </div>`:`<div class="seg-pr-empty">No personal record yet</div>`}
+          <div class="seg-metrics">
+            <div class="seg-m"><span class="seg-m-lbl">Distance</span><span class="seg-m-val">${dist} km</span></div>
+            <div class="seg-m"><span class="seg-m-lbl">Elevation</span><span class="seg-m-val">${climb!=null?climb+' m':'—'}</span></div>
+            <div class="seg-m"><span class="seg-m-lbl">KOM</span><span class="seg-m-val kom">${kom||'—'}</span></div>
           </div>
         </div>
-        <div class="seg-card-footer">
+        <div class="seg-foot">
           <span>${efforts?efforts+' efforts':'—'}</span>
-          <a href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener" style="color:var(--orange);font-weight:700;text-decoration:none;font-size:10px">View on Strava →</a>
+          <a class="seg-link" href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener">View on Strava →</a>
         </div>
-      </div>`;
+      </article>`;
     }).join('')+'</div>';
 
     // init mini maps

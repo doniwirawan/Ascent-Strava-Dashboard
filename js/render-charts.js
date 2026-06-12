@@ -40,6 +40,24 @@ function renderCycling() {
       <div class="hero-value">${Math.round(avgElev)} <span class="hero-unit">m</span></div></div>
   `;
 
+  // Top 5 fastest (max) speeds
+  const top5 = [...rides].filter(r=>(r.max_speed||0)>0).sort((a,b)=>(b.max_speed||0)-(a.max_speed||0)).slice(0,5);
+  const top5Max = top5.length ? top5[0].max_speed : 1;
+  document.getElementById('cyclingTop5').innerHTML = top5.length ? `
+    <div class="ctop-title">Top 5 Fastest Speeds</div>
+    <div class="ctop-list">
+      ${top5.map((r,i)=>`
+        <a class="ctop-row" href="https://www.strava.com/activities/${r.id}" target="_blank" rel="noopener">
+          <span class="ctop-rank">${i+1}</span>
+          <span class="ctop-info">
+            <span class="ctop-name">${r.name}</span>
+            <span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)}</span>
+          </span>
+          <span class="ctop-bar"><span class="ctop-bar-fill" style="width:${((r.max_speed/top5Max)*100).toFixed(0)}%"></span></span>
+          <span class="ctop-val">${kmh(r.max_speed)}<i>km/h</i></span>
+        </a>`).join('')}
+    </div>` : '';
+
   // Speed trend
   const last20 = [...rides].slice(0,20).reverse();
   destroyChart('cSpeedChart');
