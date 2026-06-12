@@ -29,8 +29,8 @@ fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
 fs.writeFileSync(path.join(__dirname, 'dist', 'index.html'),    injectIndexHtml());
 fs.writeFileSync(path.join(__dirname, 'dist', 'callback.html'), injectCallbackHtml());
 
-// copy static PWA files
-['manifest.json', 'sw.js', 'icon.svg'].forEach(f => {
+// copy static PWA + legal files
+['manifest.json', 'sw.js', 'icon.svg', 'privacy.html', 'terms.html'].forEach(f => {
   const src = path.join(__dirname, f);
   if (fs.existsSync(src)) fs.copyFileSync(src, path.join(__dirname, 'dist', f));
 });

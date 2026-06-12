@@ -1,4 +1,4 @@
-const CACHE = 'strava-dash-v1';
+const CACHE = 'strava-dash-v2';
 const PRECACHE = ['/', '/callback'];
 
 self.addEventListener('install', e => {
@@ -17,16 +17,14 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   if (url.hostname.includes('strava.com') || url.hostname.includes('supabase.co')) return;
 
+  // Network-first: always try fresh, update cache, fall back to cache offline.
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const network = fetch(e.request).then(res => {
-        if (res.ok && url.origin === self.location.origin) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      });
-      return cached || network;
-    })
+    fetch(e.request).then(res => {
+      if (res.ok && url.origin === self.location.origin) {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+      }
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });
