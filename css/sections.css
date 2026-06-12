@@ -262,6 +262,11 @@
 .seg-chip-btn.active { background: var(--orange); border-color: var(--orange); color: #fff; }
 .seg-chip-n { font-size: 10px; opacity: .6; font-weight: 800; margin-left: 2px; }
 .seg-sort { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 12px; padding: 7px 10px; border-radius: var(--radius-sm); cursor: pointer; outline: none; }
+.seg-tools { display: flex; gap: 8px; align-items: center; }
+.seg-scan { background: var(--surface2); border: 1px solid var(--border); color: var(--text-2); font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; transition: border-color .15s, color .15s; }
+.seg-scan:hover { border-color: var(--border-hover); color: var(--text); }
+.seg-scan:disabled { opacity: .6; cursor: default; }
+.seg-scan-title { font-size: 12px; font-weight: 700; color: var(--text-2); margin: 24px 0 10px; }
 
 /* Card grid */
 .seg-grid {

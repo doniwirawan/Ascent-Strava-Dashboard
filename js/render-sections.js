@@ -670,14 +670,17 @@ async function renderSegments(){
       <div class="seg-chips">
         ${_chip('all','All')}${_chip('ride','Rides')}${_chip('run','Runs')}${_chip('climb','Climbs')}${_chip('kom','KOMs')}${_chip('pr','With PR')}
       </div>
-      <select class="seg-sort" id="segSort">
-        <option value="default">Sort: Default</option>
-        <option value="fastest">Fastest PR</option>
-        <option value="longest">Longest</option>
-        <option value="steepest">Steepest</option>
-        <option value="ridden">Most ridden</option>
-        <option value="name">Name A–Z</option>
-      </select>
+      <div class="seg-tools">
+        <select class="seg-sort" id="segSort">
+          <option value="default">Sort: Default</option>
+          <option value="fastest">Fastest PR</option>
+          <option value="longest">Longest</option>
+          <option value="steepest">Steepest</option>
+          <option value="ridden">Most ridden</option>
+          <option value="name">Name A–Z</option>
+        </select>
+        <button class="seg-scan" id="segScan" title="Find fastest segments from your recent activities (not just starred)">⚲ Scan rides</button>
+      </div>
     </div>`;
 
     el.innerHTML=recHtml+controlsHtml+`<div class="seg-grid" id="segGrid">`+segs.map(s=>{
@@ -733,7 +736,7 @@ async function renderSegments(){
           <a class="seg-link" href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener">View on Strava →</a>
         </div>
       </article>`;
-    }).join('')+'</div>';
+    }).join('')+'</div><div id="segScanResults"></div>';
 
     // init mini maps
     if(!window.L) return;
@@ -797,9 +800,45 @@ async function renderSegments(){
       b.classList.add('active'); if(grid) grid._filter=b.dataset.filter; applySeg();
     });
     const sortSel=document.getElementById('segSort'); if(sortSel) sortSel.onchange=applySeg;
+    const scanBtn=document.getElementById('segScan'); if(scanBtn) scanBtn.onclick=scanSegments;
   }catch(e){
     el.innerHTML=`<p style="color:var(--muted);padding:8px">Segments unavailable (${e.message}).</p>`;
   }
+}
+
+/* Scan recent activities for segment efforts (not just starred) */
+const _segScanCache={};
+async function scanSegments(){
+  const btn=document.getElementById('segScan'), out=document.getElementById('segScanResults');
+  if(!out) return;
+  const list=acts.slice(0,30);
+  if(btn) btn.disabled=true;
+  out.innerHTML='<p style="color:var(--muted);padding:8px">Scanning your recent activities for segments…</p>';
+  const best={}; let done=0, stopped=false;
+  for(const a of list){
+    if(a.id){
+      try{
+        const det=_segScanCache[a.id]||(_segScanCache[a.id]=await api(`/activities/${a.id}`));
+        (det&&det.segment_efforts||[]).forEach(e=>{
+          const seg=e.segment||{}, id=seg.id, t=e.elapsed_time||e.moving_time;
+          if(!id||!t) return;
+          if(!best[id]||t<best[id].t) best[id]={t,name:seg.name||e.name,dist:seg.distance||e.distance||0,pr:e.pr_rank===1,kom:e.kom_rank!=null,sid:id};
+        });
+      }catch(err){ if(/ 429 /.test(' '+err.message+' ')){ stopped=true; break; } }
+    }
+    done++; if(btn) btn.textContent=`Scanning ${done}/${list.length}…`;
+  }
+  if(btn){ btn.disabled=false; btn.textContent='⚲ Rescan'; }
+  const arr=Object.values(best).map(b=>({...b,spd:b.dist&&b.t?b.dist/b.t:0})).sort((x,y)=>y.spd-x.spd).slice(0,30);
+  if(!arr.length){ out.innerHTML='<p style="color:var(--muted);padding:8px">No segments found in your recent activities.</p>'; return; }
+  out.innerHTML=`<div class="seg-scan-title">${stopped?'Partial — rate limit hit · ':''}Fastest segments from your last ${list.length} activities</div>
+    <div class="ctop-list">
+      ${arr.map((b,i)=>`<a class="ctop-row" href="https://www.strava.com/segments/${b.sid}" target="_blank" rel="noopener">
+        <span class="ctop-rank">${i+1}</span>
+        <span class="ctop-info"><span class="ctop-name">${b.name||'Segment'}${b.kom?' 👑':''}${b.pr?' ⭐':''}</span><span class="ctop-meta">${kmVal(b.dist).toFixed(2)} ${distUnit()} · ${fmtT(b.t)}</span></span>
+        <span class="ctop-val">${kmh(b.spd).toFixed(1)}<i>${speedUnit()}</i></span>
+      </a>`).join('')}
+    </div>`;
 }
 
 /* ── PHOTOS ── */
