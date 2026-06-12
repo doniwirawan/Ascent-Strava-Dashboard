@@ -44,18 +44,33 @@ function renderStats() {
   const dist  = acts.reduce((s,a)=>s+(a.distance||0),0);
   const time  = acts.reduce((s,a)=>s+(a.moving_time||0),0);
   const elev  = acts.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
-  const E     = eddington(acts.filter(isRide));
   const rides = acts.filter(isRide);
   const runs  = acts.filter(a=>a.type==='Run'||a.type==='VirtualRun');
   const kudos = acts.reduce((s,a)=>s+(a.kudos_count||0),0);
   const prs   = acts.reduce((s,a)=>s+(a.pr_count||0),0);
   const achs  = acts.reduce((s,a)=>s+(a.achievement_count||0),0);
-  const longest = rides.reduce((m,a)=>a.distance>m?a.distance:m,0);
-  const ridingActs = rides.filter(a=>a.average_speed>0);
-  const avgSpd = ridingActs.length ? kmh(ridingActs.reduce((s,a)=>s+a.average_speed,0)/ridingActs.length) : 0;
 
-  // max speed across all rides (max_speed field is in m/s) — unit-aware
-  const maxSpd = kmh(rides.reduce((m,a)=>a.max_speed>m?a.max_speed:m,0));
+  // ── sport-mode-aware performance cards (driven by navbar Cyclist/Runner) ──
+  const mode = sportMode();
+  const set  = mode==='run' ? runs : rides;
+  const E    = eddington(set);
+  const longest = set.reduce((m,a)=>(a.distance||0)>m?(a.distance||0):m,0);
+  let longLbl, avgLbl, avgVal, avgSub, maxLbl, maxVal, maxSub;
+  if (mode==='run') {
+    longLbl='Longest Run';
+    const totD=set.reduce((s,a)=>s+(a.distance||0),0), totT=set.reduce((s,a)=>s+(a.moving_time||0),0);
+    avgLbl='Avg Pace'; avgVal=totT&&totD?_pace(totD/totT):'—'; avgSub='/'+distUnit();
+    const paced=set.filter(a=>a.average_speed>0);
+    const best=paced.length?paced.reduce((m,a)=>a.average_speed>m.average_speed?a:m):null;
+    maxLbl='Best Pace'; maxVal=best?_pace(best.average_speed):'—'; maxSub='/'+distUnit();
+  } else {
+    longLbl='Longest Ride';
+    const riding=set.filter(a=>a.average_speed>0);
+    const avg=riding.length?kmh(riding.reduce((s,a)=>s+a.average_speed,0)/riding.length):0;
+    avgLbl='Avg Speed'; avgVal=avg?avg.toFixed(1):'—'; avgSub=speedUnit()+' riding';
+    const mx=kmh(set.reduce((m,a)=>a.max_speed>m?a.max_speed:m,0));
+    maxLbl='Max Speed'; maxVal=mx?mx.toFixed(1):'—'; maxSub=speedUnit();
+  }
 
   // avg heart rate across activities that have it
   const hrActs = acts.filter(a=>a.average_heartrate>0);
@@ -93,24 +108,24 @@ function renderStats() {
   document.getElementById('sv-time').textContent    = Math.round(time/3600)+'h';
   document.getElementById('sv-elev').textContent    = Math.round(elevVal(elev)/1000)+'k '+elevUnit();
   document.getElementById('sv-eddy').textContent    = E;
-  document.getElementById('sv-eddy-sub').textContent= 'cycling '+distUnit();
+  document.getElementById('sv-eddy-sub').textContent= (mode==='run'?'running ':'cycling ')+distUnit();
   document.getElementById('sv-rides').textContent   = rides.length;
   document.getElementById('sv-runs').textContent    = runs.length;
   document.getElementById('sv-kudos').textContent   = kudos.toLocaleString();
   document.getElementById('sv-prs').textContent     = prs.toLocaleString();
   document.getElementById('sv-ach').textContent     = achs.toLocaleString();
   document.getElementById('sv-longest').textContent = longest?fmtKm(longest):'—';
-  document.getElementById('sv-avgspd').textContent  = avgSpd?avgSpd.toFixed(1):'—';
-  document.getElementById('sv-maxspd').textContent  = maxSpd?maxSpd.toFixed(1):'—';
+  document.getElementById('sv-avgspd').textContent  = avgVal;
+  document.getElementById('sv-maxspd').textContent  = maxVal;
   document.getElementById('sv-avghr').textContent   = avgHR||'—';
   document.getElementById('sv-streak').textContent  = bestStreak||'—';
   document.getElementById('sv-cal').textContent     = totalCal?Math.round(totalCal/1000)+'k':'—';
   const csEl=document.getElementById('sv-consistency'); if(csEl) csEl.textContent = consistency+'%';
-  // unit-dependent sub labels
-  const setSub=(id,txt)=>{const e=document.getElementById(id); if(e) e.textContent=txt;};
-  setSub('sv-longest-sub', distUnit());
-  setSub('sv-avgspd-sub', speedUnit()+' riding');
-  setSub('sv-maxspd-sub', speedUnit());
+  // mode/unit-dependent labels & subs
+  const setTxt=(id,txt)=>{const e=document.getElementById(id); if(e) e.textContent=txt;};
+  setTxt('sv-longest-lbl', longLbl); setTxt('sv-longest-sub', distUnit());
+  setTxt('sv-avgspd-lbl', avgLbl);   setTxt('sv-avgspd-sub', avgSub);
+  setTxt('sv-maxspd-lbl', maxLbl);   setTxt('sv-maxspd-sub', maxSub);
 }
 
 /* ── EDDINGTON ── */
@@ -122,16 +137,18 @@ function eddington(rides) {
 }
 
 function renderEddington() {
-  const rides = acts.filter(isRide);
+  const mode = sportMode();
+  const rides = mode==='run' ? acts.filter(a=>a.type==='Run'||a.type==='VirtualRun') : acts.filter(isRide);
+  const word = mode==='run' ? 'run' : 'ride';
   const E = eddington(rides);
   document.getElementById('eddyNum').textContent = E;
 
-  // how many rides ≥ E+1 (unit) already?
+  // how many activities ≥ E+1 (unit) already?
   const next = E+1;
   const have = rides.filter(r=>kmVal(r.distance||0)>=next).length;
   const need = next - have;
   document.getElementById('eddyNext').innerHTML =
-    `To reach <strong>E=${next}</strong> you need <strong>${need} more ride${need!==1?'s':''} of ≥${next} ${distUnit()}</strong> (have ${have}/${next}).`;
+    `To reach <strong>E=${next}</strong> you need <strong>${need} more ${word}${need!==1?'s':''} of ≥${next} ${distUnit()}</strong> (have ${have}/${next}).`;
 
   // bar chart: last 15 E-values cumulative
   const kms = rides.map(r=>kmVal(r.distance||0)).sort((a,b)=>b-a).slice(0,next+5);

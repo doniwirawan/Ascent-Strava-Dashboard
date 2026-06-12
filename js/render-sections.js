@@ -251,10 +251,19 @@ function renderHeatmap(){
 
 /* ── MILESTONES ── */
 let milestoneMode=null; // 'ride' | 'run' — global sport mode (navbar toggle)
-function setMilestoneMode(m){ milestoneMode=m; renderMilestones(); }
+function sportMode(){
+  if(milestoneMode===null){
+    const r=acts.filter(isRide).length, ru=acts.filter(a=>a.type==='Run'||a.type==='VirtualRun').length;
+    milestoneMode = ru>r ? 'run' : 'ride';
+  }
+  return milestoneMode;
+}
+function setMilestoneMode(m){ setSportMode(m); }
 function setSportMode(m){
   milestoneMode=m;
   document.querySelectorAll('#modeToggle [data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  try{ if(typeof renderStats==='function') renderStats(); }catch{}
+  try{ if(typeof renderEddington==='function') renderEddington(); }catch{}
   renderMilestones();
 }
 function _pace(speed){ if(!speed) return '—'; const sec=Math.round((useImperial?1609.34:1000)/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
@@ -263,10 +272,9 @@ function renderMilestones(){
   if(!acts.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No data.</p>';return;}
   const rides=acts.filter(isRide);
   const runs=acts.filter(a=>a.type==='Run'||a.type==='VirtualRun');
-  if(milestoneMode===null) milestoneMode = runs.length>rides.length ? 'run' : 'ride';
-  if(milestoneMode==='run' && !runs.length && rides.length) milestoneMode='ride';
-  if(milestoneMode==='ride' && !rides.length && runs.length) milestoneMode='run';
-  const mode=milestoneMode;
+  let mode=sportMode();
+  if(mode==='run' && !runs.length && rides.length){ milestoneMode='ride'; mode='ride'; }
+  if(mode==='ride' && !rides.length && runs.length){ milestoneMode='run'; mode='run'; }
   const set = mode==='run' ? runs : rides;
 
   // longest activity streak (all activities)
