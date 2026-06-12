@@ -41,19 +41,19 @@ function renderAll() {
 
 /* ── STATS ── */
 function renderStats() {
-  const dist  = acts.reduce((s,a)=>s+(a.distance||0),0);
-  const time  = acts.reduce((s,a)=>s+(a.moving_time||0),0);
-  const elev  = acts.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
   const rides = acts.filter(isRide);
   const runs  = acts.filter(a=>a.type==='Run'||a.type==='VirtualRun');
-  const kudos = acts.reduce((s,a)=>s+(a.kudos_count||0),0);
-  const prs   = acts.reduce((s,a)=>s+(a.pr_count||0),0);
-  const achs  = acts.reduce((s,a)=>s+(a.achievement_count||0),0);
 
-  // ── sport-mode-aware performance cards (driven by navbar Cyclist/Runner) ──
+  // ── everything below follows the navbar Cyclist/Runner mode ──
   const mode = sportMode();
-  const set  = mode==='run' ? runs : rides;
-  const E    = eddington(set);
+  const set  = modeActs();
+  const dist  = set.reduce((s,a)=>s+(a.distance||0),0);
+  const time  = set.reduce((s,a)=>s+(a.moving_time||0),0);
+  const elev  = set.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
+  const kudos = set.reduce((s,a)=>s+(a.kudos_count||0),0);
+  const prs   = set.reduce((s,a)=>s+(a.pr_count||0),0);
+  const achs  = set.reduce((s,a)=>s+(a.achievement_count||0),0);
+  const E     = eddington(set);
   const longest = set.reduce((m,a)=>(a.distance||0)>m?(a.distance||0):m,0);
   let longLbl, avgLbl, avgVal, avgSub, maxLbl, maxVal, maxSub;
   if (mode==='run') {
@@ -73,11 +73,11 @@ function renderStats() {
   }
 
   // avg heart rate across activities that have it
-  const hrActs = acts.filter(a=>a.average_heartrate>0);
+  const hrActs = set.filter(a=>a.average_heartrate>0);
   const avgHR  = hrActs.length ? Math.round(hrActs.reduce((s,a)=>s+a.average_heartrate,0)/hrActs.length) : 0;
 
   // best consecutive day streak
-  const daySet = new Set(acts.map(a=>a.start_date.slice(0,10)));
+  const daySet = new Set(set.map(a=>a.start_date.slice(0,10)));
   const days   = [...daySet].sort();
   let bestStreak=days.length?1:0, curStreak=days.length?1:0;
   for(let i=1;i<days.length;i++){
@@ -87,11 +87,11 @@ function renderStats() {
   }
 
   // calories: sum of kilojoules (≈ kcal for cycling) or calories field
-  const totalCal = Math.round(acts.reduce((s,a)=>s+(a.kilojoules||a.calories||0),0));
+  const totalCal = Math.round(set.reduce((s,a)=>s+(a.kilojoules||a.calories||0),0));
 
   // consistency: % of weeks with ≥1 activity, over the active span (max 26 weeks)
   const now = new Date();
-  const dates = acts.map(a=>new Date(a.start_date)).filter(d=>!isNaN(d));
+  const dates = set.map(a=>new Date(a.start_date)).filter(d=>!isNaN(d));
   const firstD = dates.length ? new Date(Math.min(...dates)) : now;
   const weeksSpan = Math.min(26, Math.max(1, Math.ceil((now-firstD)/(7*864e5))));
   let activeWeeks = 0;
@@ -102,9 +102,9 @@ function renderStats() {
   }
   const consistency = Math.round(activeWeeks/weeksSpan*100);
 
-  document.getElementById('sv-acts').textContent    = acts.length;
+  document.getElementById('sv-acts').textContent    = set.length;
   document.getElementById('sv-dist').textContent    = fmtD(dist);
-  document.getElementById('sv-dist-sub').textContent= 'avg '+fmtD(dist/acts.length);
+  document.getElementById('sv-dist-sub').textContent= 'avg '+fmtD(dist/(set.length||1));
   document.getElementById('sv-time').textContent    = Math.round(time/3600)+'h';
   document.getElementById('sv-elev').textContent    = Math.round(elevVal(elev)/1000)+'k '+elevUnit();
   document.getElementById('sv-eddy').textContent    = E;

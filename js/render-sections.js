@@ -268,7 +268,7 @@ function setSportMode(m){
   milestoneMode=m;
   document.querySelectorAll('#modeToggle [data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
   // re-render every mode-aware page
-  ['renderStats','renderEddington','renderActivities','renderTrends','renderCalendar','renderMonthly','renderBestEfforts']
+  ['renderStats','renderEddington','renderActivities','renderTrends','renderCalendar','renderMonthly','renderBestEfforts','renderRewind']
     .forEach(fn=>{ try{ if(typeof window[fn]==='function') window[fn](); }catch{} });
   try{ if(typeof leafletMapInst!=='undefined' && leafletMapInst) renderHeatmap(); }catch{}
   renderMilestones();
@@ -349,13 +349,15 @@ function renderRewind(filterYear){
   const yr=filterYear||years[0];
   const yb=document.getElementById('rewindYearBtns');
   yb.innerHTML=years.map(y=>`<button class="year-btn${y===yr?' active':''}" onclick="renderRewind(${y})">${y}</button>`).join('');
-  const ya=acts.filter(a=>new Date(a.start_date).getFullYear()===yr);
-  if(!ya.length){el.innerHTML='<p style="color:var(--muted)">No activities in '+yr+'.</p>';return;}
+  const ya=modeActs().filter(a=>new Date(a.start_date).getFullYear()===yr);
+  if(!ya.length){el.innerHTML='<p style="color:var(--muted)">No '+(sportMode()==='run'?'runs':'rides')+' in '+yr+'.</p>';return;}
 
   const types={};
   ya.forEach(a=>{types[a.type]=(types[a.type]||0)+1;});
   const topType=Object.entries(types).sort((a,b)=>b[1]-a[1])[0];
-  const rides=ya.filter(isRide),runs=ya.filter(a=>a.type==='Run'||a.type==='VirtualRun');
+  const longestA=ya.reduce((m,a)=>(a.distance||0)>(m.distance||0)?a:m,ya[0]||{});
+  const hrA=ya.filter(a=>a.average_heartrate>0);
+  const avgHRy=hrA.length?Math.round(hrA.reduce((s,a)=>s+a.average_heartrate,0)/hrA.length):0;
   const totalDist=kmVal(ya.reduce((s,a)=>s+(a.distance||0),0)).toFixed(0);
   const totalElev=Math.round(elevVal(ya.reduce((s,a)=>s+(a.total_elevation_gain||0),0)));
   const totalTime=ya.reduce((s,a)=>s+(a.moving_time||0),0);
@@ -375,7 +377,8 @@ function renderRewind(filterYear){
 
   // ── side-by-side comparison: selected year vs the year before ──
   const prevYr=yr-1;
-  const ys=y=>{const a=acts.filter(x=>new Date(x.start_date).getFullYear()===y);return{n:a.length,dist:a.reduce((s,x)=>s+(x.distance||0),0),elev:a.reduce((s,x)=>s+(x.total_elevation_gain||0),0),time:a.reduce((s,x)=>s+(x.moving_time||0),0)};};
+  const _ms=modeActs();
+  const ys=y=>{const a=_ms.filter(x=>new Date(x.start_date).getFullYear()===y);return{n:a.length,dist:a.reduce((s,x)=>s+(x.distance||0),0),elev:a.reduce((s,x)=>s+(x.total_elevation_gain||0),0),time:a.reduce((s,x)=>s+(x.moving_time||0),0)};};
   const A=ys(yr), B=ys(prevYr), hasB=B.n>0;
   const dlt=(da,db)=>{ if(!hasB||db===0) return '<span class="ryc-d">—</span>'; const pct=(da-db)/db*100, up=pct>=0; return `<span class="ryc-d ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(pct).toFixed(0)}%</span>`; };
   const cmpRows=[
@@ -398,8 +401,8 @@ function renderRewind(filterYear){
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Moving Time</div><div style="font-size:24px;font-weight:800;color:var(--text)">${fmtT(totalTime)}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Distance</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgDist}<span style="font-size:14px;color:var(--muted)"> ${distUnit()}</span></div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Top Sport</div><div style="font-size:20px;font-weight:800;color:var(--orange)">${topType?topType[0]:'—'}</div><div style="font-size:12px;color:var(--muted)">${topType?topType[1]+' activities':''}</div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Rides</div><div style="font-size:32px;font-weight:800;color:var(--text)">${rides.length}</div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Runs</div><div style="font-size:32px;font-weight:800;color:var(--text)">${runs.length}</div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Longest</div><div style="font-size:26px;font-weight:800;color:var(--text)">${longestA.distance?fmtD(longestA.distance):'—'}</div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg HR</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgHRy||'—'}<span style="font-size:14px;color:var(--muted)"> bpm</span></div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Busiest Day</div><div style="font-size:28px;font-weight:800;color:var(--text)">${busyDay}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Peak Month</div><div style="font-size:28px;font-weight:800;color:var(--orange)">${MONTHS[peakMonth]}</div></div>
     </div>
