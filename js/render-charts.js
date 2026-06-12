@@ -174,9 +174,10 @@ function renderRunning() {
 
 /* ── TRENDS ── */
 function renderTrends() {
+  const ma = modeActs(); // distance/speed charts follow the sport mode
   // Weekly
   const weeks = {};
-  acts.forEach(a=>{
+  ma.forEach(a=>{
     const d=new Date(a.start_date); d.setDate(d.getDate()-d.getDay());
     const k=d.toISOString().slice(0,10);
     weeks[k]=(weeks[k]||0)+kmVal(a.distance||0);
@@ -194,7 +195,7 @@ function renderTrends() {
 
   // YoY
   const monthly = {};
-  acts.forEach(a=>{
+  ma.forEach(a=>{
     const d=new Date(a.start_date);
     const y=d.getFullYear(), m=d.getMonth();
     if (!monthly[y]) monthly[y]=new Array(12).fill(0);
@@ -218,7 +219,7 @@ function renderTrends() {
 
   // Avg speed by month
   const spd={};
-  acts.forEach(a=>{
+  ma.forEach(a=>{
     if (!a.average_speed) return;
     const d=new Date(a.start_date);
     const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
@@ -257,7 +258,8 @@ function renderTrends() {
 
 /* ── ACTIVITIES + BUBBLES ── */
 function renderActivities() {
-  const list = acts.slice(0,15);
+  const src = modeActs();
+  const list = src.slice(0,15);
   document.getElementById('actList').innerHTML = list.map(a=>`
     <a class="act-row" href="https://www.strava.com/activities/${a.id}" target="_blank" style="text-decoration:none;color:inherit;">
       <div style="flex:1;min-width:0">
@@ -274,7 +276,7 @@ function renderActivities() {
   `).join('');
 
   // Bubbles — sample 60 activities
-  const sample = acts.slice(0,60);
+  const sample = src.slice(0,60);
   const maxDist = Math.max(...sample.map(a=>a.distance||0));
   const wrap = document.getElementById('bubbleWrap');
   wrap.innerHTML = sample.map(a=>{
@@ -290,7 +292,7 @@ function renderActivities() {
 /* ── CALENDAR — contribution graph (last 12 months) ── */
 function renderCalendar() {
   const day={}; // 'YYYY-MM-DD' -> {n, dist}
-  acts.forEach(a=>{ if(!a.start_date) return; const k=new Date(a.start_date).toISOString().slice(0,10); (day[k]||(day[k]={n:0,dist:0})); day[k].n++; day[k].dist+=a.distance||0; });
+  modeActs().forEach(a=>{ if(!a.start_date) return; const k=new Date(a.start_date).toISOString().slice(0,10); (day[k]||(day[k]={n:0,dist:0})); day[k].n++; day[k].dist+=a.distance||0; });
 
   const fmtKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const lvl=n=>n===0?'':n===1?'l1':n===2?'l2':n<=4?'l3':'l4';

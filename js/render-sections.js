@@ -8,8 +8,9 @@ function renderMonthly(filterYear) {
   yb.innerHTML = years.map(y=>`<button class="year-btn${y===yr?' active':''}" onclick="renderMonthly(${y})">${y}</button>`).join('');
 
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const cntLbl = sportMode()==='run' ? 'Runs' : 'Rides';
   const rows = {};
-  acts.filter(a=>new Date(a.start_date).getFullYear()===yr).forEach(a=>{
+  modeActs().filter(a=>new Date(a.start_date).getFullYear()===yr).forEach(a=>{
     const m = new Date(a.start_date).getMonth();
     if(!rows[m]) rows[m]={rides:0,dist:0,elev:0,time:0,speed:[],hr:[]};
     rows[m].rides++;
@@ -22,7 +23,7 @@ function renderMonthly(filterYear) {
 
   let html = `<table class="month-table">
     <thead><tr>
-      <th>Month</th><th>Rides</th><th>Distance</th><th>Elevation</th><th>Moving Time</th><th>Avg Speed</th><th>Avg HR</th>
+      <th>Month</th><th>${cntLbl}</th><th>Distance</th><th>Elevation</th><th>Moving Time</th><th>Avg Speed</th><th>Avg HR</th>
     </tr></thead><tbody>`;
 
   let totR=0,totD=0,totE=0,totT=0,allSpd=[],allHr=[];
@@ -71,8 +72,9 @@ function renderBestEfforts(){
   ];
   const MEDALS=['🥇','🥈','🥉'];
   const el=document.getElementById('bestGrid');
+  const src=modeActs();
   el.innerHTML=CATS.map(cat=>{
-    const sorted=acts.filter(a=>a[cat.key]>0).sort(cat.sort).slice(0,5);
+    const sorted=src.filter(a=>a[cat.key]>0).sort(cat.sort).slice(0,5);
     if(!sorted.length) return '';
     const rows=sorted.map((a,i)=>`
       <div class="best-row">
@@ -226,7 +228,7 @@ function renderHeatmap(){
   }).addTo(leafletMapInst);
 
   const bounds=[];
-  acts.forEach(a=>{
+  modeActs().forEach(a=>{
     if(!a.map||!a.map.summary_polyline) return;
     try{
       const pts=decodePolyline(a.map.summary_polyline);
@@ -251,19 +253,24 @@ function renderHeatmap(){
 
 /* ── MILESTONES ── */
 let milestoneMode=null; // 'ride' | 'run' — global sport mode (navbar toggle)
+function isRun(a){ return a.type==='Run'||a.type==='VirtualRun'||a.type==='TrailRun'; }
 function sportMode(){
   if(milestoneMode===null){
-    const r=acts.filter(isRide).length, ru=acts.filter(a=>a.type==='Run'||a.type==='VirtualRun').length;
+    const r=acts.filter(isRide).length, ru=acts.filter(isRun).length;
     milestoneMode = ru>r ? 'run' : 'ride';
   }
   return milestoneMode;
 }
+// activities for the current sport mode — used by the mode-aware pages
+function modeActs(){ return sportMode()==='run' ? acts.filter(isRun) : acts.filter(isRide); }
 function setMilestoneMode(m){ setSportMode(m); }
 function setSportMode(m){
   milestoneMode=m;
   document.querySelectorAll('#modeToggle [data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
-  try{ if(typeof renderStats==='function') renderStats(); }catch{}
-  try{ if(typeof renderEddington==='function') renderEddington(); }catch{}
+  // re-render every mode-aware page
+  ['renderStats','renderEddington','renderActivities','renderTrends','renderCalendar','renderMonthly','renderBestEfforts']
+    .forEach(fn=>{ try{ if(typeof window[fn]==='function') window[fn](); }catch{} });
+  try{ if(typeof leafletMapInst!=='undefined' && leafletMapInst) renderHeatmap(); }catch{}
   renderMilestones();
 }
 function _pace(speed){ if(!speed) return '—'; const sec=Math.round((useImperial?1609.34:1000)/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
