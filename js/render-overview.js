@@ -89,18 +89,23 @@ function renderStats() {
   // calories: sum of kilojoules (≈ kcal for cycling) or calories field
   const totalCal = Math.round(set.reduce((s,a)=>s+(a.kilojoules||a.calories||0),0));
 
-  // consistency: % of weeks with ≥1 activity, over the active span (max 26 weeks)
+  // consistency: how EVEN your weekly volume is over the active span (≤26 weeks).
+  // Score = 100·(1 − coefficient of variation of weekly activity counts), so
+  // uneven weeks and gaps pull it down (being active most weeks ≠ 100%).
   const now = new Date();
   const dates = set.map(a=>new Date(a.start_date)).filter(d=>!isNaN(d));
-  const firstD = dates.length ? new Date(Math.min(...dates)) : now;
-  const weeksSpan = Math.min(26, Math.max(1, Math.ceil((now-firstD)/(7*864e5))));
-  let activeWeeks = 0;
-  for(let w=0; w<weeksSpan; w++){
-    const end=new Date(now); end.setDate(now.getDate()-w*7);
-    const start=new Date(end); start.setDate(end.getDate()-6);
-    if(dates.some(t=>t>=start&&t<=end)) activeWeeks++;
+  let consistency = 0;
+  if (dates.length > 1) {
+    const firstD = new Date(Math.min(...dates));
+    const span = Math.min(26, Math.max(2, Math.ceil((now - firstD) / (7*864e5))));
+    const wk = new Array(span).fill(0);
+    dates.forEach(t => { const w = Math.floor((now - t) / (7*864e5)); if (w >= 0 && w < span) wk[w]++; });
+    const mean = wk.reduce((a,b)=>a+b,0) / span;
+    if (mean > 0) {
+      const sd = Math.sqrt(wk.reduce((a,b)=>a+(b-mean)**2,0) / span);
+      consistency = Math.max(0, Math.min(100, Math.round((1 - sd/mean) * 100)));
+    }
   }
-  const consistency = Math.round(activeWeeks/weeksSpan*100);
 
   document.getElementById('sv-acts').textContent    = set.length;
   document.getElementById('sv-dist').textContent    = fmtD(dist);
