@@ -75,3 +75,27 @@ function drawIcon(ctx,type,cx,cy,s,col){
   }
   ctx.restore();
 }
+
+function drawAreaChart(ctx, data, x, y, w, h, accentColor, lw){
+  if(!data||data.length<2) return;
+  const n=data.length;
+  const dmin=Math.min(...data), dmax=Math.max(...data);
+  const drange=dmax-dmin||1;
+  const g=ctx.createLinearGradient(x,y,x,y+h);
+  g.addColorStop(0,accentColor+'77'); g.addColorStop(1,accentColor+'05');
+  ctx.beginPath();
+  ctx.moveTo(x,y+h);
+  for(let i=0;i<n;i++){
+    const px=x+w*(i/(n-1)), py=y+h-(h*0.88)*((data[i]-dmin)/drange);
+    ctx.lineTo(px,py);
+  }
+  ctx.lineTo(x+w,y+h); ctx.closePath();
+  ctx.fillStyle=g; ctx.fill();
+  ctx.beginPath();
+  for(let i=0;i<n;i++){
+    const px=x+w*(i/(n-1)), py=y+h-(h*0.88)*((data[i]-dmin)/drange);
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.strokeStyle=accentColor; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.stroke();
+}

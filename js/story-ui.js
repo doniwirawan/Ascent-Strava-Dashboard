@@ -16,7 +16,7 @@ async function fetchStreams(actId){
   if(!actId) return;
   if(streamsCache[actId]){currentStreams=streamsCache[actId];return;}
   try{
-    const data=await api(`/activities/${actId}/streams?keys=altitude,distance&key_by_type=true`);
+    const data=await api(`/activities/${actId}/streams?keys=altitude,distance,velocity_smooth,heartrate,cadence&key_by_type=true`);
     streamsCache[actId]=data;
     currentStreams=data;
   }catch(e){
@@ -75,14 +75,15 @@ function openStoryModal(){
   // scheme picker
   const schemeSwatches={
     transp:'linear-gradient(135deg,#111 50%,#eee 50%)',
-    white:'#f0f0f0',dark:'#1a1a1a',orange:'#FC4C02',black:'#050505',
-    night:'#0a0c1c',forest:'#0a160a',slate:'#0e1420',
-    gold:'linear-gradient(135deg,#1a1200,#ffd700)',
-    silver:'linear-gradient(135deg,#141414,#c0c0c0)',
-    bronze:'linear-gradient(135deg,#1e0d00,#cd7f32)',
-    rosegold:'linear-gradient(135deg,#1e0e10,#e8818a)',
-    emerald:'linear-gradient(135deg,#001a0d,#00cc80)',
-    sapphire:'linear-gradient(135deg,#000d2e,#4096ff)',
+    dark:'#0e0e10',
+    graphite:'#18181b',
+    black:'#000',
+    white:'#f4f4f5',
+    night:'#0c0e18',
+    slate:'#10141c',
+    forest:'#0c120e',
+    plum:'#140a18',
+    orange:'#FC4C02',
   };
   const sp=document.getElementById('schemePicker');
   sp.innerHTML=Object.keys(schemeSwatches).map(k=>`
