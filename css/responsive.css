@@ -13,9 +13,10 @@
 @media (max-width: 768px) {
   :root { --nav-h: 52px; }
 
-  nav { padding: 0 14px; }
-  .hamburger { display: flex; }
-  .badge span { display: none; }
+  nav { padding: 0 12px; gap: 10px; }
+  .hamburger { display: flex; order: -1; }   /* hamburger on the far left */
+  .logo { margin-right: auto; }               /* push toggles to the right */
+  #badge { display: none !important; }         /* profile lives in the drawer — no duplicate */
 
   .btn { padding: 6px 12px; font-size: 11px; }
 
@@ -23,7 +24,7 @@
     display: none !important;
   }
 
-  .nav-right { gap: 5px; }
+  .nav-right { gap: 6px; }
   .app-layout { margin-left: 0; }
   main { padding: 16px; }
 
