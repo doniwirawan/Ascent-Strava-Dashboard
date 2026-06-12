@@ -431,3 +431,32 @@
   .lb-prev, .lb-next { width: 42px; height: 42px; font-size: 26px; }
   .lb-download { padding: 9px 14px; font-size: 12px; }
 }
+
+/* ── Gear reassign (bulk edit) ── */
+.gr-panel { margin-top: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.gr-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
+.gr-sub { font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 8px; }
+.gr-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
+.gr-selall { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.gr-selall input, .gr-cb { accent-color: var(--orange); }
+.gr-search { flex: 1; min-width: 140px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; padding: 8px 12px; outline: none; }
+.gr-search:focus { border-color: var(--border-hover); }
+.gr-apply { display: flex; align-items: center; gap: 8px; }
+.gr-to { font-size: 12px; color: var(--muted); }
+.gr-select { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; padding: 8px 10px; outline: none; }
+.gr-status { font-size: 12px; min-height: 16px; margin-bottom: 8px; color: var(--muted); }
+.gr-status.ok { color: #4ade80; }
+.gr-status.warn { color: #facc15; }
+.gr-status.err { color: #f87171; }
+.gr-list { max-height: 380px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.gr-row { display: grid; grid-template-columns: 22px 78px 1fr auto auto; align-items: center; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 12px; cursor: pointer; }
+.gr-row:last-child { border-bottom: none; }
+.gr-row:hover { background: var(--surface2); }
+.gr-date { color: var(--muted); font-size: 11px; }
+.gr-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gr-cur { color: var(--text-2); font-weight: 600; white-space: nowrap; }
+.gr-dist { color: var(--muted); white-space: nowrap; }
+@media (max-width: 560px) {
+  .gr-row { grid-template-columns: 22px 1fr auto; }
+  .gr-date, .gr-dist { display: none; }
+}

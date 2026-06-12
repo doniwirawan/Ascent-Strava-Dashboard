@@ -1365,29 +1365,21 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.letterSpacing = '-0.5px';
         ctx.fillText(disp, bx + bpad * 2.1, by + bh * 0.62);
 
-        // inline waveform or fallback bar
+        // inline real-stream waveform — same data source/approach as Night Run
         const streamKey = STAT_STREAM_MAP[s.key];
-        const streamData = streamKey && currentStreams && currentStreams[streamKey]?.data;
-        const hasWave = !!(streamData && streamData.length > 8);
-
-        if (hasWave) {
-          const samples = streamData.length > 80
-            ? streamData.filter((_, idx) => idx % Math.ceil(streamData.length / 80) === 0)
-            : streamData;
-          const waveY = by + bh - Math.round(48 * S);
-          const waveH = Math.round(32 * S);
-          const waveW = bw - bpad * 2.2;
-          const waveCol = i % 3 === 0
-            ? sc.accent
-            : (sc.card === 'transparent' ? 'rgba(255,255,255,0.7)' : (sc.accent || sc.icon));
-          drawAreaChart(ctx, samples, bx + bpad * 2.1, waveY, waveW, waveH, waveCol, Math.round(2 * S));
-          // optional max label
-          const dmax = Math.max(...samples);
+        const streamData = streamKey && currentStreams && currentStreams[streamKey] && currentStreams[streamKey].data;
+        if (streamData && streamData.length > 1) {
+          const waveH = Math.round(34 * S);
+          const waveX = bx + bpad * 2.1;
+          const waveW = bw - bpad * 2.1 - Math.round(12 * S);
+          const waveY = by + bh - waveH - Math.round(16 * S);
+          drawAreaChart(ctx, streamData, waveX, waveY, waveW, waveH, sc.accent, Math.round(2.5 * S));
+          const dmax = Math.max(...streamData);
           if (streamKey === 'altitude' || streamKey === 'heartrate') {
             ctx.fillStyle = sc.muted;
             ctx.font = `600 ${Math.round(9 * S)}px -apple-system,sans-serif`;
             ctx.textAlign = 'right';
-            ctx.fillText((streamKey === 'altitude' ? '▲' : '♥') + ' ' + Math.round(dmax),
+            ctx.fillText(streamKey === 'altitude' ? '▲ ' + Math.round(elevVal(dmax)) + elevUnit() : '♥ ' + Math.round(dmax),
               bx + bw - bpad * 0.8, waveY + waveH + Math.round(12 * S));
           }
         }

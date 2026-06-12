@@ -111,7 +111,7 @@ function _renderBikeList(el, bikes) {
 async function renderGear(){
   const el=document.getElementById('gearGrid');
   let bikes=(currentAthlete&&currentAthlete.bikes)||[];
-  if(bikes.length){ _renderBikeList(el,bikes); return; }
+  if(bikes.length){ _renderBikeList(el,bikes); renderGearTool(bikes); return; }
 
   // fallback: fetch each unique gear_id from activities
   const gearIds=[...new Set(acts.map(a=>a.gear_id).filter(Boolean))];
@@ -125,9 +125,93 @@ async function renderGear(){
     bikes=results.filter(Boolean);
     if(!bikes.length){el.innerHTML='<div class="card" style="color:var(--muted);font-size:13px;">Could not load gear data.</div>';return;}
     _renderBikeList(el,bikes);
+    renderGearTool(bikes);
   }catch(e){
     el.innerHTML=`<div class="card" style="color:var(--muted);font-size:13px;">Gear error: ${e.message}</div>`;
   }
+}
+
+/* ── GEAR REASSIGN (bulk edit) ── */
+function _bikeName(bikes,id){ const b=bikes.find(x=>x.id===id); return b?(b.nickname||b.name||'Bike'):'—'; }
+function renderGearTool(bikes){
+  const el=document.getElementById('gearReassign');
+  if(!el) return;
+  if(!bikes||!bikes.length){ el.innerHTML=''; return; }
+  const rides=acts.filter(isRide);
+  if(!rides.length){ el.innerHTML=''; return; }
+  const bikeOpts=bikes.map(b=>`<option value="${b.id}">${b.nickname||b.name||'Bike'}</option>`).join('');
+  el.innerHTML=`
+    <div class="gr-panel">
+      <div class="gr-title">Reassign Gear <span class="gr-sub">change the bike on multiple activities at once</span></div>
+      <div class="gr-controls">
+        <label class="gr-selall"><input type="checkbox" id="grAll"> Select all visible</label>
+        <input type="text" id="grSearch" class="gr-search" placeholder="Filter activities…">
+        <div class="gr-apply">
+          <span class="gr-to">Assign to</span>
+          <select id="grBike" class="gr-select">${bikeOpts}</select>
+          <button id="grSubmit" class="btn btn-primary">Apply (<span id="grCount">0</span>)</button>
+        </div>
+      </div>
+      <div id="grStatus" class="gr-status"></div>
+      <div class="gr-list" id="grList">
+        ${rides.map(a=>`<label class="gr-row" data-name="${(a.name||'').toLowerCase()}">
+          <input type="checkbox" class="gr-cb" value="${a.id}">
+          <span class="gr-date">${fmtDt(a.start_date)}</span>
+          <span class="gr-name">${a.name||'Activity'}</span>
+          <span class="gr-cur" id="gr-cur-${a.id}">${a.gear_id?_bikeName(bikes,a.gear_id):'—'}</span>
+          <span class="gr-dist">${fmtD(a.distance)}</span>
+        </label>`).join('')}
+      </div>
+    </div>`;
+  const list=el.querySelector('#grList');
+  const cbs=()=>[...list.querySelectorAll('.gr-cb')];
+  const updCount=()=>{ el.querySelector('#grCount').textContent=cbs().filter(c=>c.checked).length; };
+  list.addEventListener('change',updCount);
+  el.querySelector('#grAll').onchange=e=>{
+    cbs().forEach(cb=>{ if(cb.closest('.gr-row').style.display!=='none') cb.checked=e.target.checked; });
+    updCount();
+  };
+  el.querySelector('#grSearch').oninput=e=>{
+    const q=e.target.value.toLowerCase();
+    list.querySelectorAll('.gr-row').forEach(r=>{ r.style.display=r.dataset.name.includes(q)?'':'none'; });
+  };
+  el.querySelector('#grSubmit').onclick=()=>gearReassignSubmit(bikes);
+}
+
+async function gearReassignSubmit(bikes){
+  const el=document.getElementById('gearReassign');
+  const gearId=el.querySelector('#grBike').value;
+  const bn=_bikeName(bikes,gearId);
+  const ids=[...el.querySelectorAll('.gr-cb')].filter(c=>c.checked).map(c=>c.value);
+  const status=el.querySelector('#grStatus');
+  if(!ids.length){ status.className='gr-status warn'; status.textContent='Select at least one activity first.'; return; }
+  if(!confirm(`Reassign ${ids.length} activit${ids.length>1?'ies':'y'} to “${bn}”?\nThis updates your activities on Strava.`)) return;
+  const submit=el.querySelector('#grSubmit'); submit.disabled=true;
+  let ok=0, fail=0;
+  for(let i=0;i<ids.length;i++){
+    status.className='gr-status'; status.textContent=`Updating ${i+1} / ${ids.length}…`;
+    try{
+      await apiPut(`/activities/${ids[i]}`,{gear_id:gearId});
+      ok++;
+      const a=acts.find(x=>String(x.id)===String(ids[i])); if(a) a.gear_id=gearId;
+      const cur=document.getElementById('gr-cur-'+ids[i]); if(cur) cur.textContent=bn;
+    }catch(e){
+      fail++;
+      if(/ 40[13] /.test(' '+e.message+' ')){
+        status.className='gr-status err';
+        status.textContent='Write access not granted. Click Disconnect, then reconnect with Strava to allow editing.';
+        submit.disabled=false; return;
+      }
+      if(/ 429 /.test(' '+e.message+' ')){
+        status.className='gr-status err';
+        status.textContent=`Strava rate limit hit after ${ok} updates — wait ~15 min and retry the rest.`;
+        submit.disabled=false; break;
+      }
+    }
+  }
+  if(submit.disabled){ status.className='gr-status '+(fail?'warn':'ok'); status.textContent=`Done — ${ok} updated${fail?`, ${fail} failed`:''}.`; submit.disabled=false; }
+  try{ const aid=localStorage.getItem('strava_athlete_id'); if(aid&&typeof cacheSave==='function') cacheSave(acts,aid); }catch{}
+  renderGear();
 }
 
 /* ── HEATMAP ── */

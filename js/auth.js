@@ -6,7 +6,7 @@ function isTokenExpired() {
 }
 
 function showReconnect() {
-  const SCOPE    = 'read,activity:read_all,profile:read_all';
+  const SCOPE    = 'read,activity:read_all,profile:read_all,activity:write';
   const REDIRECT = encodeURIComponent(window.location.origin + '/callback');
   const authUrl  = `https://www.strava.com/oauth/authorize?client_id=${CONFIG.clientId}&response_type=code&redirect_uri=${REDIRECT}&approval_prompt=force&scope=${SCOPE}`;
   setStatus('Session expired — <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">Reconnect with Strava →</a>');
@@ -52,6 +52,18 @@ async function api(ep, retry = false) {
     headers: { Authorization: 'Bearer ' + CONFIG.accessToken }
   });
   if (r.status === 401 && !retry) { await doRefresh(); return api(ep, true); }
+  if (!r.ok) throw new Error('API ' + r.status + ' — ' + ep);
+  return r.json();
+}
+
+// write helper (needs activity:write scope)
+async function apiPut(ep, body, retry = false) {
+  const r = await fetch('https://www.strava.com/api/v3' + ep, {
+    method: 'PUT',
+    headers: { Authorization: 'Bearer ' + CONFIG.accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (r.status === 401 && !retry) { await doRefresh(); return apiPut(ep, body, true); }
   if (!r.ok) throw new Error('API ' + r.status + ' — ' + ep);
   return r.json();
 }

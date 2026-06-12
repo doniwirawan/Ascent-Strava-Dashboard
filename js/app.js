@@ -85,7 +85,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 if (!CONFIG.refreshToken) {
   showReconnect();
   // Change status text for first-time users (not "session expired")
-  const SCOPE    = 'read,activity:read_all,profile:read_all';
+  const SCOPE    = 'read,activity:read_all,profile:read_all,activity:write';
   const REDIRECT = encodeURIComponent(window.location.origin + '/callback');
   const authUrl  = `https://www.strava.com/oauth/authorize?client_id=${CONFIG.clientId}&response_type=code&redirect_uri=${REDIRECT}&approval_prompt=force&scope=${SCOPE}`;
   setStatus('Not connected — <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">Connect with Strava →</a>');
