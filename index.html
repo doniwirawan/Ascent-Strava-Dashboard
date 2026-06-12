@@ -48,6 +48,7 @@
     <button class="nav-link" onclick="navScrollTo('rewindSection',this)">Rewind</button>
     <button class="nav-link" onclick="navScrollTo('challengesSection',this)">Trophies</button>
     <button class="nav-link" onclick="navScrollTo('photosSection',this)">Photos</button>
+    <button class="nav-link" onclick="navScrollTo('helpSection',this)">Help</button>
   </div>
   <button class="hamburger" id="hamburgerBtn" aria-label="Menu">
     <span></span><span></span><span></span>
@@ -158,6 +159,17 @@
     <button class="nav-link" onclick="navScrollTo('challengesSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
       Trophies
+    </button>
+    <button class="nav-link" onclick="navScrollTo('photosSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Photos
+    </button>
+
+    <div class="sidebar-group-label">About</div>
+
+    <button class="nav-link" onclick="navScrollTo('helpSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Help &amp; Data
     </button>
 
   </nav>
@@ -334,6 +346,44 @@
   <div id="photosSection" style="display:none">
     <div class="section-title">Photos</div>
     <div id="photosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;"></div>
+  </div>
+
+  <!-- HELP / DATA -->
+  <div id="helpSection" style="display:none">
+    <div class="section-title">Help &amp; Data</div>
+
+    <div class="help-card">
+      <h3>How your data is loaded</h3>
+      <ul class="help-list">
+        <li><b>Source.</b> Everything comes from the official <b>Strava API</b> using your own login — this dashboard has no server and never sees your password.</li>
+        <li><b>Activities.</b> Your most recent <b>200 activities</b> are fetched (<code>/athlete/activities</code>). Aggregate "all-time / YTD / last-4-weeks" figures in Trophies come from Strava's totals endpoint (<code>/athletes/&#123;id&#125;/stats</code>), so they can exceed those 200.</li>
+        <li><b>Caching.</b> Results are cached in your browser (localStorage) and in a private per-athlete row so revisits are instant; the cache refreshes about once an hour, or immediately when you hit <b>Refresh</b>.</li>
+        <li><b>Detail on demand.</b> When you open <b>Share Story</b> or <b>Segments</b>, extra data is fetched per item — the detailed activity (for Energy/Calories/power), GPS streams (for the waveform charts), and segment routes.</li>
+        <li><b>Units.</b> The <b>km / mi</b> switch in the top bar converts every distance, speed and elevation across the app. Named metric milestones (e.g. "1,000 km Club", Everest) stay metric on purpose.</li>
+      </ul>
+    </div>
+
+    <div class="help-card">
+      <h3>What the metrics mean</h3>
+      <dl class="help-gloss">
+        <div><dt>Eddington Number (E)</dt><dd>The largest <i>E</i> where you've ridden at least <i>E</i> km on <i>E</i> separate days. E=70 means 70 rides of ≥70 km. A tough, cumulative measure of consistent big days. (Recomputed in miles when mi is selected.)</dd></div>
+        <div><dt>Consistency</dt><dd>The percentage of weeks in which you did at least one activity, over your active span (up to the last 26 weeks).</dd></div>
+        <div><dt>Activity / Day Streak</dt><dd>Your longest run of consecutive calendar days with at least one activity.</dd></div>
+        <div><dt>Moving vs Elapsed Time</dt><dd><b>Moving time</b> excludes pauses/stops; <b>elapsed time</b> is the full wall-clock duration. Stats here use moving time.</dd></div>
+        <div><dt>Avg / Max Speed</dt><dd>Average and peak speed Strava recorded for the activity, shown in km/h or mph.</dd></div>
+        <div><dt>Best Pace</dt><dd>Runner metric — minutes per km/mi for your fastest run.</dd></div>
+        <div><dt>Elevation Gain</dt><dd>Total metres (or feet) climbed — the sum of all uphill sections.</dd></div>
+        <div><dt>Energy (kJ) &amp; Calories</dt><dd>Work done / energy burned, from Strava's detailed activity (power-based for rides). Some activities have no value if Strava didn't compute one.</dd></div>
+        <div><dt>Suffer Score</dt><dd>Strava's "Relative Effort" — how hard a session was based on time spent in heart-rate zones.</dd></div>
+        <div><dt>KOM / QOM / CR</dt><dd>King/Queen of the Mountain / Course Record — being the fastest-ever on a segment. "With PR" means you have a personal record on it.</dd></div>
+        <div><dt>PRs &amp; Achievements</dt><dd>Personal records and trophies Strava awarded on your activities (e.g. fastest 5 km, biggest climb).</dd></div>
+        <div><dt>Kudos</dt><dd>The "likes" your activities received from other athletes.</dd></div>
+      </dl>
+    </div>
+
+    <div class="help-card help-muted">
+      Built as a static site on Vercel. Your activity data stays tied to your Strava account; the km/mi and Cyclist/Runner preferences are stored locally in your browser.
+    </div>
   </div>
 
   <!-- PHOTO LIGHTBOX -->
