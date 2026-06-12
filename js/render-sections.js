@@ -1,3 +1,18 @@
+/* ── inline SVG icons (replaces emoji) ── */
+function svgIcon(n){
+  const p={
+    bike:'<circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M6 18 12 6h3"/><path d="m9 18 5-9 4 9"/>',
+    run:'<circle cx="13" cy="5" r="2"/><path d="M4 17l4-1 2-4 3 2 1 5"/><path d="M9 12 7 9l4-2 3 2 2-1"/>',
+    mountain:'<path d="M3 20h18L14 6l-3 6-2-2-6 10z"/>',
+    bolt:'<path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    heart:'<path d="M20.8 5.1a5 5 0 0 0-7.1 0L12 6.8l-1.7-1.7a5 5 0 1 0-7.1 7.1L12 21l8.8-8.8a5 5 0 0 0 0-7.1z"/>',
+    flame:'<path d="M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 2 2 2 0 0-2 0-3 0-4z"/>',
+    gauge:'<path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-5"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p[n]||p.bolt}</svg>`;
+}
+
 /* ── MONTHLY STATS ── */
 function renderMonthly(filterYear) {
   const years = [...new Set(acts.map(a=>new Date(a.start_date).getFullYear()))].sort((a,b)=>b-a);
@@ -310,19 +325,19 @@ function renderMilestones(){
   const bestHR=set.filter(a=>a.average_heartrate>0).reduce((m,a)=>a.average_heartrate>(m.average_heartrate||0)?a:m,{});
 
   const records = mode==='run' ? [
-    {icon:'🏃',c:'#fc4c02',label:'Longest Run',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
-    {icon:'⚡',c:'#4da8ff',label:'Best Pace',val:fastest.average_speed?_pace(fastest.average_speed):'—',unit:'/'+distUnit(),desc:fastest.name},
-    {icon:'⛰️',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
-    {icon:'⏱️',c:'#00cc88',label:'Longest Duration',val:longDur.moving_time?fmtT(longDur.moving_time):'—',unit:'',desc:longDur.name},
-    {icon:'💓',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.name},
-    {icon:'🔥',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
+    {icon:'run',c:'#fc4c02',label:'Longest Run',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
+    {icon:'bolt',c:'#4da8ff',label:'Best Pace',val:fastest.average_speed?_pace(fastest.average_speed):'—',unit:'/'+distUnit(),desc:fastest.name},
+    {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
+    {icon:'clock',c:'#00cc88',label:'Longest Duration',val:longDur.moving_time?fmtT(longDur.moving_time):'—',unit:'',desc:longDur.name},
+    {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.name},
+    {icon:'flame',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
   ] : [
-    {icon:'🚴',c:'#fc4c02',label:'Longest Ride',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
-    {icon:'🏔️',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
-    {icon:'⚡',c:'#4da8ff',label:'Fastest Avg',val:fastest.average_speed?kmh(fastest.average_speed).toFixed(1):'—',unit:speedUnit(),desc:fastest.name},
-    {icon:'🚀',c:'#facc15',label:'Top Speed',val:topSpd.max_speed?kmh(topSpd.max_speed).toFixed(1):'—',unit:speedUnit(),desc:topSpd.name},
-    {icon:'💓',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.name},
-    {icon:'🔥',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
+    {icon:'bike',c:'#fc4c02',label:'Longest Ride',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
+    {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
+    {icon:'gauge',c:'#4da8ff',label:'Fastest Avg',val:fastest.average_speed?kmh(fastest.average_speed).toFixed(1):'—',unit:speedUnit(),desc:fastest.name},
+    {icon:'bolt',c:'#facc15',label:'Top Speed',val:topSpd.max_speed?kmh(topSpd.max_speed).toFixed(1):'—',unit:speedUnit(),desc:topSpd.name},
+    {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.name},
+    {icon:'flame',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
   ];
 
   el.innerHTML=`
@@ -331,7 +346,7 @@ function renderMilestones(){
     </div>
     <div class="mst-grid">
       ${records.map(r=>`<div class="mst-card">
-        <div class="mst-ic" style="--c:${r.c}">${r.icon}</div>
+        <div class="mst-ic" style="--c:${r.c}">${svgIcon(r.icon)}</div>
         <div class="mst-info">
           <div class="mst-lbl">${r.label}</div>
           <div class="mst-val">${r.val}${r.unit?`<span>${r.unit}</span>`:''}</div>
