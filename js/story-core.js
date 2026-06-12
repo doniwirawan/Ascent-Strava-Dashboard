@@ -79,5 +79,10 @@ const LAYOUTS = [
   { id: 'graphic', name: 'Graphic' },
   { id: 'field', name: 'Field' },
   { id: 'badgewave', name: 'Badge Wave' },
+  { id: 'poster', name: 'Poster' },
+  { id: 'ticket', name: 'Ticket' },
+  { id: 'corners', name: 'Corners' },
+  { id: 'bands', name: 'Bands' },
+  { id: 'bigstat', name: 'Big Stat' },
 
 ];

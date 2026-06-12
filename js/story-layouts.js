@@ -1373,6 +1373,92 @@ function drawLayout(canvas, act, selected, sc, layout) {
       break;
     }
 
+    /* 21. POSTER — editorial: faint route, big name + 3 stats */
+    case 'poster': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      if (polyline && polyline.length > 1) { ctx.globalAlpha = 0.5; drawRoute(ctx, polyline, P, Math.round(110 * S), W - P * 2, Math.round(H * 0.46), sc.accent, Math.round(6 * S)); ctx.globalAlpha = 1; }
+      let py = Math.round(H * 0.70);
+      if (!hideDate) { ctx.fillStyle = sc.accent; ctx.font = F(22, 700); ctx.textAlign = 'left'; ctx.letterSpacing = '0.12em'; ctx.fillText(((act.type || 'ACTIVITY') + '  ·  ' + (act.start_date ? fmtDt(act.start_date) : '')).toUpperCase(), P, py); py += Math.round(18 * S); ctx.letterSpacing = '0'; }
+      if (!hideTitle) { const nm = act.name || 'Activity'; const fs = fitText(nm, W - P * 2, 76, 800); ctx.fillStyle = sc.text; ctx.textAlign = 'left'; ctx.letterSpacing = '-1px'; ctx.fillText(nm, P, py + fs); py += fs + Math.round(46 * S); ctx.letterSpacing = '0'; }
+      const p3 = selected.slice(0, 3); const pcw = (W - P * 2) / Math.max(p3.length, 1);
+      p3.forEach((s, i) => { const { num, unit } = statVal(s, act); const x = P + i * pcw;
+        ctx.fillStyle = sc.muted; ctx.font = F(17, 600); ctx.textAlign = 'left'; ctx.letterSpacing = '0.05em'; ctx.fillText(s.label.toUpperCase(), x, py);
+        ctx.fillStyle = sc.text; ctx.font = `800 ${Math.round(46 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '-1px'; ctx.fillText(num + (unit ? ' ' + unit : ''), x, py + Math.round(52 * S)); ctx.letterSpacing = '0'; });
+      break;
+    }
+
+    /* 22. TICKET — boarding-pass style with perforation */
+    case 'ticket': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
+      const cX = Math.round(64 * S), cW = W - cX * 2, cY = Math.round(150 * S), cH = H - cY * 2;
+      ctx.fillStyle = isTransp ? 'rgba(20,20,22,0.5)' : (sc.card === 'transparent' ? '#141416' : sc.card);
+      ctx.beginPath(); ctx.roundRect(cX, cY, cW, cH, Math.round(26 * S)); ctx.fill();
+      const rH = Math.round(cH * 0.40);
+      if (polyline && polyline.length > 1) drawRoute(ctx, polyline, cX + Math.round(44 * S), cY + Math.round(44 * S), cW - Math.round(88 * S), rH - Math.round(20 * S), sc.accent, Math.round(6 * S));
+      const perfY = cY + rH;
+      ctx.fillStyle = isTransp ? baseBg : baseBgDark;
+      ctx.beginPath(); ctx.arc(cX, perfY, Math.round(20 * S), 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cX + cW, perfY, Math.round(20 * S), 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = sc.div; ctx.lineWidth = Math.round(2 * S); ctx.setLineDash([Math.round(9 * S), Math.round(9 * S)]);
+      ctx.beginPath(); ctx.moveTo(cX + Math.round(34 * S), perfY); ctx.lineTo(cX + cW - Math.round(34 * S), perfY); ctx.stroke(); ctx.setLineDash([]);
+      let ty = perfY + Math.round(58 * S); const ix = cX + Math.round(44 * S);
+      if (!hideTitle) { const nm = act.name || 'Activity'; fitText(nm, cW - Math.round(88 * S), 38, 800); ctx.fillStyle = sc.text; ctx.textAlign = 'left'; ctx.letterSpacing = '-0.5px'; ctx.fillText(nm, ix, ty); ty += Math.round(16 * S); ctx.letterSpacing = '0'; }
+      if (!hideDate) { ctx.fillStyle = sc.muted; ctx.font = F(20, 400); ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), ix, ty + Math.round(22 * S)); ty += Math.round(40 * S); }
+      const t4 = selected.slice(0, 4); const tcw = (cW - Math.round(88 * S)) / Math.max(t4.length, 1);
+      t4.forEach((s, i) => { const { num, unit } = statVal(s, act); const x = ix + i * tcw;
+        ctx.fillStyle = sc.accent; ctx.font = F(12, 700); ctx.textAlign = 'left'; ctx.letterSpacing = '0.06em'; ctx.fillText(s.label.toUpperCase(), x, ty + Math.round(34 * S));
+        let vf = Math.round(32 * S); ctx.font = `800 ${vf}px -apple-system,sans-serif`; const disp = num + (unit ? ' ' + unit : '');
+        while (vf > Math.round(14 * S) && ctx.measureText(disp).width > tcw * 0.92) { vf--; ctx.font = `800 ${vf}px -apple-system,sans-serif`; }
+        ctx.fillStyle = sc.text; ctx.letterSpacing = '-0.5px'; ctx.fillText(disp, x, ty + Math.round(72 * S)); ctx.letterSpacing = '0'; });
+      break;
+    }
+
+    /* 23. CORNERS — route centred, a stat in each corner */
+    case 'corners': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      if (!hideTitle) { const nm = act.name || 'Activity'; fitText(nm, W - P * 2, 40, 700); ctx.fillStyle = sc.text; ctx.textAlign = 'center'; ctx.letterSpacing = '-0.5px'; ctx.fillText(nm, W / 2, Math.round(110 * S)); ctx.letterSpacing = '0'; }
+      if (!hideDate) { ctx.fillStyle = sc.muted; ctx.font = F(22, 400); ctx.textAlign = 'center'; ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), W / 2, Math.round(148 * S)); }
+      if (polyline && polyline.length > 1) drawRoute(ctx, polyline, Math.round(W * 0.18), Math.round(H * 0.32), Math.round(W * 0.64), Math.round(H * 0.36), sc.accent, Math.round(6 * S));
+      const f4 = selected.slice(0, 4);
+      const cpos = [[P, Math.round(H * 0.30), 'left'], [W - P, Math.round(H * 0.30), 'right'], [P, Math.round(H * 0.74), 'left'], [W - P, Math.round(H * 0.74), 'right']];
+      f4.forEach((s, i) => { const { num, unit } = statVal(s, act); const [x, y, al] = cpos[i]; ctx.textAlign = al;
+        ctx.fillStyle = sc.muted; ctx.font = F(16, 600); ctx.letterSpacing = '0.05em'; ctx.fillText(s.label.toUpperCase(), x, y);
+        ctx.fillStyle = sc.text; ctx.font = `800 ${Math.round(40 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '-1px'; ctx.fillText(num + (unit ? ' ' + unit : ''), x, y + Math.round(44 * S)); ctx.letterSpacing = '0'; });
+      break;
+    }
+
+    /* 24. BANDS — one full-width band per stat */
+    case 'bands': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      title(P, Math.round(110 * S), W - P * 2, 52);
+      const by0 = Math.round(220 * S), avail = H - by0 - Math.round(40 * S);
+      const bn = Math.max(selected.length, 1), bh = Math.min(Math.round(150 * S), avail / bn);
+      selected.forEach((s, i) => { const { num, unit } = statVal(s, act); const y = by0 + i * bh;
+        if (i % 2 === 0) { ctx.fillStyle = withAlpha(sc.text, 0x0d); ctx.fillRect(P, y, W - P * 2, bh - Math.round(8 * S)); }
+        drawIcon(ctx, STAT_ICONS[s.key] || 'time', P + Math.round(40 * S), y + bh / 2 - Math.round(4 * S), Math.round(34 * S), sc.accent);
+        ctx.fillStyle = sc.muted; ctx.font = F(20, 600); ctx.textAlign = 'left'; ctx.letterSpacing = '0.04em'; ctx.fillText(s.label.toUpperCase(), P + Math.round(90 * S), y + bh / 2 + Math.round(7 * S));
+        ctx.fillStyle = sc.text; ctx.font = `800 ${Math.round(48 * S)}px -apple-system,sans-serif`; ctx.textAlign = 'right'; ctx.letterSpacing = '-1px'; ctx.fillText(num + (unit ? ' ' + unit : ''), W - P - Math.round(20 * S), y + bh / 2 + Math.round(16 * S)); ctx.letterSpacing = '0'; });
+      break;
+    }
+
+    /* 25. BIG STAT — one giant hero number + small row */
+    case 'bigstat': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      if (!hideTitle) { const nm = act.name || 'Activity'; fitText(nm, W - P * 2, 40, 700); ctx.fillStyle = sc.text; ctx.textAlign = 'center'; ctx.letterSpacing = '-0.5px'; ctx.fillText(nm, W / 2, Math.round(120 * S)); ctx.letterSpacing = '0'; }
+      if (!hideDate) { ctx.fillStyle = sc.muted; ctx.font = F(22, 400); ctx.textAlign = 'center'; ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), W / 2, Math.round(158 * S)); }
+      if (selected.length) {
+        const s0 = selected[0]; const { num, unit } = statVal(s0, act); const hy = Math.round(H * 0.40);
+        ctx.fillStyle = sc.accent; ctx.font = F(30, 700); ctx.textAlign = 'center'; ctx.letterSpacing = '0.1em'; ctx.fillText(s0.label.toUpperCase(), W / 2, hy);
+        fitText(num, W - P * 2, 240, 900); ctx.fillStyle = sc.text; ctx.letterSpacing = '-0.04em'; ctx.textAlign = 'center'; ctx.fillText(num, W / 2, hy + Math.round(180 * S)); ctx.letterSpacing = '0';
+        if (unit) { ctx.fillStyle = sc.muted; ctx.font = F(44, 500); ctx.fillText(unit, W / 2, hy + Math.round(248 * S)); }
+        const rest = selected.slice(1, 4);
+        if (rest.length) { const cw = (W - P * 2) / rest.length; rest.forEach((s, i) => { const { num: n2, unit: u2 } = statVal(s, act); const x = P + i * cw + cw / 2;
+          ctx.fillStyle = sc.muted; ctx.font = F(15, 600); ctx.textAlign = 'center'; ctx.letterSpacing = '0.05em'; ctx.fillText(s.label.toUpperCase(), x, H - Math.round(150 * S));
+          ctx.fillStyle = sc.text; ctx.font = `800 ${Math.round(38 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '-0.5px'; ctx.fillText(n2 + (u2 ? ' ' + u2 : ''), x, H - Math.round(100 * S)); ctx.letterSpacing = '0'; }); }
+      }
+      break;
+    }
+
 
   }
 }
