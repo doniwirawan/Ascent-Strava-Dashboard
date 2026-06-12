@@ -24,6 +24,18 @@ async function fetchStreams(actId){
   }
 }
 
+// Summary activities often omit kilojoules/calories/power — fetch the detailed
+// activity and merge it in so every stat (Energy, Calories, etc.) can render.
+const actDetailCache={};
+async function fetchActDetail(idx){
+  const act=acts[idx];
+  if(!act||!act.id||act._detailed) return;
+  try{
+    const det=actDetailCache[act.id]||(actDetailCache[act.id]=await api(`/activities/${act.id}`));
+    if(det&&det.id){ Object.assign(act,det); act._detailed=true; }
+  }catch{}
+}
+
 function openStoryModal(){
   const picker=document.getElementById('activityPicker');
   picker.innerHTML=acts.slice(0,50).map((a,i)=>`<option value="${i}">${fmtDt(a.start_date)} — ${a.name} (${fmtD(a.distance)})</option>`).join('');
@@ -62,14 +74,14 @@ function openStoryModal(){
   picker.onchange=async()=>{
     const idx=parseInt(picker.value)||0;
     const act=acts[idx]||{};
-    if(act.id) await fetchStreams(act.id);
+    if(act.id){ await Promise.all([fetchStreams(act.id), fetchActDetail(idx)]); }
     drawStoryCanvas();
   };
-  // pre-fetch streams for initial activity
+  // pre-fetch streams + detail for initial activity
   (async()=>{
     const idx=parseInt(picker.value)||0;
     const act=acts[idx]||{};
-    if(act.id){await fetchStreams(act.id);drawStoryCanvas();}
+    if(act.id){ await Promise.all([fetchStreams(act.id), fetchActDetail(idx)]); drawStoryCanvas(); }
   })();
 
   // scheme picker

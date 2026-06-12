@@ -366,8 +366,13 @@
 .mst-sub { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 560px) { .mst-banner { grid-template-columns: repeat(2, 1fr); } }
 
+/* ── Cycling — layout spacing ── */
+#cyclingSection > .card { display: flex; flex-direction: column; gap: 24px; }
+#cyclingSection .cycling-hero { margin-bottom: 2px; }
+#cyclingSection .g2 { gap: 20px; }
+
 /* ── Cycling — Top 5 fastest leaderboard ── */
-.ctop-title { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--text-2); margin: 20px 0 10px; }
+.ctop-title { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--text-2); margin: 4px 0 10px; }
 .ctop-list { display: flex; flex-direction: column; gap: 6px; }
 .ctop-row {
   display: grid; grid-template-columns: 28px minmax(0,1fr) 90px auto; align-items: center; gap: 14px;
