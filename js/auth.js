@@ -61,13 +61,13 @@ async function loadData(forceRefresh = false) {
   const btn = document.getElementById('mainBtn');
   btn.disabled = true; btn.textContent = 'Loading…';
   try {
-    // Try cache first (localStorage → Supabase), keyed by the logged-in athlete
     const cachedAthleteId = localStorage.getItem('strava_athlete_id');
+
+    // 1) Instant local render from this browser's copy (no token/network)
     if (!forceRefresh && cachedAthleteId) {
-      setStatus('Checking cache…', 'loading');
-      const cached = await cacheLoad(cachedAthleteId);
-      if (cached && cached.length) {
-        acts = cached;
+      const local = cacheLoadLocal(cachedAthleteId);
+      if (local && local.length) {
+        acts = local;
         renderAll();
         setStatus(`✓ ${acts.length} activities (cached) — <a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">Refresh from Strava</a>`, 'success');
         btn.textContent = 'Refresh'; btn.disabled = false;
@@ -86,6 +86,22 @@ async function loadData(forceRefresh = false) {
     setStatus('Loading profile…', 'loading');
     const athlete = await api('/athlete');
     renderAthlete(athlete);
+
+    // 2) Remote cache (e.g. first visit on a new device), now that the token
+    //    is valid so the Edge Function can identify this athlete.
+    if (!forceRefresh) {
+      setStatus('Checking cache…', 'loading');
+      const remote = await cacheLoadRemote(athlete.id);
+      if (remote && remote.length) {
+        acts = remote;
+        renderAll();
+        renderGear();
+        setStatus(`✓ ${acts.length} activities (cached) — <a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">Refresh from Strava</a>`, 'success');
+        btn.textContent = 'Refresh'; btn.disabled = false;
+        return;
+      }
+    }
+
     setStatus('Fetching activities…', 'loading');
     const [p1, p2] = await Promise.all([
       api('/athlete/activities?per_page=100&page=1'),

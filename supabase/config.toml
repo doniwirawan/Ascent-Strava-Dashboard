@@ -1,0 +1,4 @@
+project_id = "strava_dashboard"
+
+[functions.strava-cache]
+verify_jwt = false
