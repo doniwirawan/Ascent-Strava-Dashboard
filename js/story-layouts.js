@@ -12,8 +12,9 @@ function drawLayout(canvas, act, selected, sc, layout) {
   // photo). Guarantees the chosen theme is always visible across every layout.
   // baseBg follows the scheme (incl. light schemes); baseBgDark stays dark for
   // photo-style layouts that render light text and need a legible backdrop.
-  const isLightCard = sc.card !== 'transparent' && /255,\s*255,\s*255/.test(sc.card);
-  const baseBg = (sc.card === 'transparent' || sc.card.startsWith('linear-gradient')) ? '#0e0e10' : sc.card;
+  const isTransp = sc.card === 'transparent';
+  const isLightCard = !isTransp && /255,\s*255,\s*255/.test(sc.card);
+  const baseBg = (isTransp || sc.card.startsWith('linear-gradient')) ? '#0e0e10' : sc.card;
   const baseBgDark = isLightCard ? '#101012' : baseBg;
 
   // background
@@ -182,16 +183,18 @@ function drawLayout(canvas, act, selected, sc, layout) {
 
     /* 0. STRAVA — official-style share card: white card, map, 3-col stat row */
     case 'strava': {
-      const useLightCard = sc.card === 'transparent' || /rgba?\(255,\s*255,\s*255/.test(sc.card);
-      const cardBg = useLightCard ? '#ffffff' : sc.card;
-      const tCol = useLightCard ? '#0f0f0f' : sc.text;
-      const mCol = useLightCard ? '#888888' : sc.muted;
-      const dCol = useLightCard ? '#e8e8e8' : sc.div;
+      // transparent scheme → translucent glass card so a photo / transparency
+      // shows through; white scheme → white card; else the scheme's solid card
+      const useLightCard = !isTransp && /rgba?\(255,\s*255,\s*255/.test(sc.card);
+      const cardBg = isTransp ? 'rgba(18,18,20,0.42)' : (useLightCard ? '#ffffff' : sc.card);
+      const tCol = useLightCard ? '#0f0f0f' : (isTransp ? '#ffffff' : sc.text);
+      const mCol = useLightCard ? '#888888' : (isTransp ? 'rgba(255,255,255,0.62)' : sc.muted);
+      const dCol = useLightCard ? '#e8e8e8' : (isTransp ? 'rgba(255,255,255,0.18)' : sc.div);
       const aCol = sc.accent;
-      const mapTint = useLightCard ? '#f3f3f3' : 'rgba(255,255,255,0.04)';
+      const mapTint = useLightCard ? '#f3f3f3' : 'rgba(255,255,255,0.06)';
 
-      // floating card sits on a neutral near-black frame so it always pops
-      if (!skipBg) {
+      // backdrop frame for opaque schemes; transparent scheme stays see-through
+      if (!skipBg && !isTransp) {
         ctx.fillStyle = '#070708';
         ctx.fillRect(0, 0, W, H);
       }
@@ -685,7 +688,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
     /* 15. NIGHT RUN — frosted glass card, waveform charts, bar splits */
     case 'nightrun': {
       // ── background — scheme-derived ──
-      if (!skipBg) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
 
       // seeded waveform helper
       function wave(wx, wy, ww, wh, seed, col, lw) {
@@ -847,7 +850,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
     /* 16. EXPLORER — full-bleed photo, route trace, top stat bar */
     case 'explorer': {
       // ── background ──
-      if (!skipBg) {
+      if (!skipBg && !isTransp) {
         ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H);
         // subtle texture dots
         ctx.fillStyle = 'rgba(255,255,255,0.015)';
@@ -931,7 +934,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
     /* 17. TOPO — true topographic map: marching-squares contours + route overlay */
     case 'topo': {
       // background — scheme-derived
-      if (!skipBg) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
 
       // ── topographic height field ──
       // deterministic peaks per activity (so each ride has a unique terrain)
@@ -1109,7 +1112,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
 
     /* 18. GRAPHIC — visual stat circles + bars, designed for transparent bg */
     case 'graphic': {
-      if (!skipBg) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
 
       const isCycG = isRide(act);
       const gStats = selected.slice(0, 6);
@@ -1212,7 +1215,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
     /* 19. FIELD — photo-overlay style, route dominant right side, stats scattered */
     case 'field': {
       // solid theme background when no photo
-      if (!skipBg) {
+      if (!skipBg && !isTransp) {
         ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H);
         // vignette
         const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.85);
@@ -1298,7 +1301,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
     /* 20. BADGE WAVE — pill badges with inline waveform charts */
     case 'badgewave': {
       // ── background — scheme-derived ──
-      if (!skipBg) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
 
       // ── header/title ──
       title(P, Math.round(120 * S), W - P * 2, 56);
@@ -1308,8 +1311,9 @@ function drawLayout(canvas, act, selected, sc, layout) {
         bh = Math.round(155 * S),
         bgap = Math.round(22 * S);
       const bw = (W - P * 2 - bgap) / 2;
-      const seed = (act.id || 12345) % 100;
 
+      // Same real-stream mapping as Night Run — only stats with a real stream
+      // get a waveform; everything else simply shows no chart (no fake data).
       const STAT_STREAM_MAP = {
         average_speed: 'velocity_smooth',
         max_speed: 'velocity_smooth',
@@ -1317,8 +1321,6 @@ function drawLayout(canvas, act, selected, sc, layout) {
         max_heartrate: 'heartrate',
         average_cadence: 'cadence',
         total_elevation_gain: 'altitude',
-        distance: 'distance',
-        elapsed_time: 'time',
       };
 
       selected.forEach((s, i) => {
@@ -1388,20 +1390,6 @@ function drawLayout(canvas, act, selected, sc, layout) {
             ctx.fillText((streamKey === 'altitude' ? '▲' : '♥') + ' ' + Math.round(dmax),
               bx + bw - bpad * 0.8, waveY + waveH + Math.round(12 * S));
           }
-        } else {
-          // fallback decorative bar
-          const barY = by + bh - Math.round(42 * S);
-          const barH = Math.round(24 * S);
-          const barW = bw - bpad * 2.2;
-          const fillW = barW * (0.45 + 0.4 * Math.abs(Math.sin(i * 2.1 + seed)));
-          ctx.fillStyle = withAlpha(sc.div, 0x66);
-          ctx.beginPath();
-          ctx.roundRect(bx + bpad * 2.1, barY, barW, barH, Math.round(4 * S));
-          ctx.fill();
-          ctx.fillStyle = i % 3 === 0 ? withAlpha(sc.accent, 0x99) : (sc.card === 'transparent' ? 'rgba(255,255,255,0.5)' : withAlpha(sc.icon, 0xCC));
-          ctx.beginPath();
-          ctx.roundRect(bx + bpad * 2.1, barY, fillW, barH, Math.round(4 * S));
-          ctx.fill();
         }
       });
       break;
