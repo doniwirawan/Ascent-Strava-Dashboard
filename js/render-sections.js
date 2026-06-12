@@ -494,6 +494,7 @@ async function renderChallenges(){
 }
 
 /* ── SEGMENTS ── */
+let segMaps = []; // {m, line} — re-fitted when the section becomes visible (maps build hidden)
 async function renderSegments(){
   const el=document.getElementById('segmentsGrid');
   el.innerHTML='<p style="color:var(--muted);padding:8px">Loading starred segments…</p>';
@@ -580,6 +581,7 @@ async function renderSegments(){
 
     // init mini maps
     if(!window.L) return;
+    segMaps = [];
     segs.forEach(s=>{
       const mapEl=document.getElementById(`segmap-${s.id}`);
       if(!mapEl) return;
@@ -595,7 +597,8 @@ async function renderSegments(){
         L.circleMarker(coords[0],{radius:5,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m);
         L.circleMarker(coords[coords.length-1],{radius:5,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m);
         m.fitBounds(line.getBounds(),{padding:[16,16]});
-        setTimeout(()=>{try{m.invalidateSize();}catch{}},300);
+        segMaps.push({m,line});
+        setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}},300);
       }catch{}
     });
   }catch(e){

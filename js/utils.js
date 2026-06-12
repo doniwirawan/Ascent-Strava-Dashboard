@@ -59,6 +59,10 @@ function navScrollTo(id, btn) {
     if(!leafletMapInst) renderHeatmap();
     else setTimeout(()=>{try{leafletMapInst.invalidateSize();}catch{}},80);
   }
+  // Segment mini-maps build while hidden (0×0) — re-size and re-fit on show
+  if(id==='segmentsSection' && typeof segMaps!=='undefined'){
+    setTimeout(()=>{segMaps.forEach(({m,line})=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}});},80);
+  }
   // Resize charts after section becomes visible
   setTimeout(()=>{Object.values(charts).forEach(c=>{try{if(c&&c.resize)c.resize();}catch{}});},80);
 }
