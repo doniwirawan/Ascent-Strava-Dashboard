@@ -332,7 +332,7 @@
 .seg-pr-empty { font-size: 12px; color: var(--text-3); font-weight: 600; }
 
 .seg-metrics {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 8px;
   padding-top: 12px; border-top: 1px solid var(--border);
 }
 .seg-m { display: flex; flex-direction: column; gap: 3px; }

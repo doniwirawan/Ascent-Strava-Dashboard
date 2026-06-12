@@ -692,6 +692,8 @@ async function renderSegments(){
       const prTime  =pr?fmtT(pr.elapsed_time):null;
       const prSpeedNum=pr&&s.distance&&pr.elapsed_time?(s.distance/pr.elapsed_time):0;
       const prSpeed =prSpeedNum?kmh(prSpeedNum).toFixed(1):null;
+      // VAM = vertical metres climbed per hour (from your PR time)
+      const vam = pr&&pr.elapsed_time&&s.total_elevation_gain>0 ? Math.round(elevVal(s.total_elevation_gain)/(pr.elapsed_time/3600)) : null;
       const kom     =s.xoms&&s.xoms.kom?s.xoms.kom:null;
       const efforts =s.effort_count?s.effort_count.toLocaleString():null;
       const location=[s.city,s.state,s.country].filter(Boolean).join(', ');
@@ -728,6 +730,7 @@ async function renderSegments(){
           <div class="seg-metrics">
             <div class="seg-m"><span class="seg-m-lbl">Distance</span><span class="seg-m-val">${dist} ${distUnit()}</span></div>
             <div class="seg-m"><span class="seg-m-lbl">Elevation</span><span class="seg-m-val">${climb!=null?climb+' '+elevUnit():'—'}</span></div>
+            <div class="seg-m"><span class="seg-m-lbl">VAM</span><span class="seg-m-val">${vam!=null?vam+' '+elevUnit()+'/h':'—'}</span></div>
             <div class="seg-m"><span class="seg-m-lbl">KOM</span><span class="seg-m-val kom">${kom||'—'}</span></div>
           </div>
         </div>
@@ -822,7 +825,8 @@ async function scanSegments(){
         (det&&det.segment_efforts||[]).forEach(e=>{
           const seg=e.segment||{}, id=seg.id, t=e.elapsed_time||e.moving_time;
           if(!id||!t) return;
-          if(!best[id]||t<best[id].t) best[id]={t,name:seg.name||e.name,dist:seg.distance||e.distance||0,pr:e.pr_rank===1,kom:e.kom_rank!=null,sid:id};
+          const gain=(seg.elevation_high!=null&&seg.elevation_low!=null)?Math.max(0,seg.elevation_high-seg.elevation_low):0;
+          if(!best[id]||t<best[id].t) best[id]={t,name:seg.name||e.name,dist:seg.distance||e.distance||0,gain,pr:e.pr_rank===1,kom:e.kom_rank!=null,sid:id};
         });
       }catch(err){ if(/ 429 /.test(' '+err.message+' ')){ stopped=true; break; } }
     }
@@ -835,7 +839,7 @@ async function scanSegments(){
     <div class="ctop-list">
       ${arr.map((b,i)=>`<a class="ctop-row" href="https://www.strava.com/segments/${b.sid}" target="_blank" rel="noopener">
         <span class="ctop-rank">${i+1}</span>
-        <span class="ctop-info"><span class="ctop-name">${b.name||'Segment'}${b.kom?' 👑':''}${b.pr?' ⭐':''}</span><span class="ctop-meta">${kmVal(b.dist).toFixed(2)} ${distUnit()} · ${fmtT(b.t)}</span></span>
+        <span class="ctop-info"><span class="ctop-name">${b.name||'Segment'}${b.kom?' 👑':''}${b.pr?' ⭐':''}</span><span class="ctop-meta">${kmVal(b.dist).toFixed(2)} ${distUnit()} · ${fmtT(b.t)}${b.gain>0?' · '+Math.round(elevVal(b.gain)/(b.t/3600))+' '+elevUnit()+'/h VAM':''}</span></span>
         <span class="ctop-val">${kmh(b.spd).toFixed(1)}<i>${speedUnit()}</i></span>
       </a>`).join('')}
     </div>`;
