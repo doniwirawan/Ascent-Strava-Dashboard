@@ -210,28 +210,59 @@ function renderActivities() {
   }).join('');
 }
 
-/* ── CALENDAR ── */
+/* ── CALENDAR — contribution graph (last 12 months) ── */
 function renderCalendar() {
-  const counts={};
-  acts.forEach(a=>{ const k=new Date(a.start_date).toISOString().slice(0,10); counts[k]=(counts[k]||0)+1; });
+  const day={}; // 'YYYY-MM-DD' -> {n, dist}
+  acts.forEach(a=>{ if(!a.start_date) return; const k=new Date(a.start_date).toISOString().slice(0,10); (day[k]||(day[k]={n:0,dist:0})); day[k].n++; day[k].dist+=a.distance||0; });
 
-  const today=new Date();
-  let html='';
-  for (let mo=11;mo>=0;mo--) {
-    const ref=new Date(today.getFullYear(),today.getMonth()-mo,1);
-    const year=ref.getFullYear(), month=ref.getMonth();
-    const dim=new Date(year,month+1,0).getDate();
-    const dow=new Date(year,month,1).getDay();
-    const mname=ref.toLocaleDateString('en-GB',{month:'short',year:'2-digit'});
-    let cells='';
-    for (let i=0;i<dow;i++) cells+=`<div class="cal-cell"></div>`;
-    for (let d=1;d<=dim;d++) {
-      const k=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const n=counts[k]||0;
-      const lvl=n===0?'':n===1?'l1':n===2?'l2':n<=4?'l3':'l4';
-      cells+=`<div class="cal-cell ${lvl}" title="${k}: ${n}"></div>`;
+  const fmtKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const lvl=n=>n===0?'':n===1?'l1':n===2?'l2':n<=4?'l3':'l4';
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const today=new Date(); today.setHours(0,0,0,0);
+  const start=new Date(today); start.setDate(start.getDate()-364); start.setDate(start.getDate()-start.getDay()); // back to Sunday
+
+  // build weeks (columns of 7 days)
+  const weeks=[]; const cur=new Date(start);
+  let activeDays=0, totalActs=0, busiest=0;
+  while(cur<=today){
+    const week=[];
+    for(let i=0;i<7;i++){
+      if(cur>today){ week.push(null); }
+      else{
+        const k=fmtKey(cur), rec=day[k], n=rec?rec.n:0;
+        if(n>0){ activeDays++; totalActs+=n; busiest=Math.max(busiest,n); }
+        week.push({k,n,dist:rec?rec.dist:0,m:cur.getMonth()});
+      }
+      cur.setDate(cur.getDate()+1);
     }
-    html+=`<div class="cal-month"><div class="cal-month-name">${mname}</div><div class="cal-days">${cells}</div></div>`;
+    weeks.push(week);
   }
-  document.getElementById('calGrid').innerHTML=html;
+
+  // longest streak in range
+  let streak=0,run=0; const dd=new Date(start);
+  while(dd<=today){ const r=day[fmtKey(dd)]; if(r&&r.n>0){run++;streak=Math.max(streak,run);}else run=0; dd.setDate(dd.getDate()+1); }
+
+  let prevM=-1;
+  const months=weeks.map(w=>{ const f=w.find(c=>c); if(!f) return '<span class="cal2-m"></span>'; if(f.m!==prevM){prevM=f.m;return `<span class="cal2-m">${MONTHS[f.m]}</span>`;} return '<span class="cal2-m"></span>'; }).join('');
+  const grid=weeks.map(w=>`<div class="cal2-week">${w.map(c=>{
+    if(!c) return '<span class="cal2-cell empty"></span>';
+    const t=`${c.k} · ${c.n} ${c.n===1?'activity':'activities'}${c.dist?' · '+fmtD(c.dist):''}`;
+    return `<span class="cal-cell cal2-cell ${lvl(c.n)}" title="${t}"></span>`;
+  }).join('')}</div>`).join('');
+
+  document.getElementById('calGrid').innerHTML=`
+    <div class="cal2-stats">
+      <div><b>${totalActs.toLocaleString()}</b> activities</div>
+      <div><b>${activeDays}</b> active days</div>
+      <div><b>${streak}</b> day streak</div>
+      <div><b>${busiest}</b> busiest day</div>
+    </div>
+    <div class="cal2-scroll">
+      <div class="cal2-months">${months}</div>
+      <div class="cal2-grid">${grid}</div>
+    </div>
+    <div class="cal2-legend">Less
+      <span class="cal-cell cal2-cell"></span><span class="cal-cell cal2-cell l1"></span><span class="cal-cell cal2-cell l2"></span><span class="cal-cell cal2-cell l3"></span><span class="cal-cell cal2-cell l4"></span>
+      More</div>`;
 }
