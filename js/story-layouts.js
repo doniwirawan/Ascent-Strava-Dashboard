@@ -185,8 +185,9 @@ function drawLayout(canvas, act, selected, sc, layout) {
     const hits = isMain ? (window._customHits = []) : null;
     const reg = (id, x, y, w, h) => { if (hits) hits.push({ id, x, y, w, h }); };
     ensureCustomPositions(selected);
-    // solid scheme background when there's no uploaded photo
-    if (!skipBg) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+    // background: keep fully transparent for the transparent scheme; otherwise
+    // fill the scheme colour (a photo, when uploaded, is already drawn above)
+    if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
 
     // mirror an element around (cx,cy) per its fx/fy flip flags, then draw
     const flip = (pos, cx, cy, fn) => {

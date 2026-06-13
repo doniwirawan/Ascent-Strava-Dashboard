@@ -16,7 +16,7 @@ const STAT_DEFS = [
 ];
 
 let checkedStats = new Set(['distance', 'moving_time', 'average_speed', 'max_speed', 'total_elevation_gain', 'average_heartrate']);
-let activeScheme = 'dark';
+let activeScheme = 'transp';
 let customAccent = null; // override accent color
 let activeLayout = 'strip';
 let hideTitle = false, hideDate = false, hideRoute = false, hideLogo = false;
