@@ -946,37 +946,57 @@ async function scanSegments(){
 /* ── PHOTOS ── */
 let photoItems = [], photoIdx = 0; // backing data for the lightbox
 let _photosLoaded = false; // photos don't depend on units — don't refetch on unit toggle
-async function renderPhotos(){
-  const el=document.getElementById('photosGrid');
-  if(_photosLoaded) return;
-  _photosLoaded=true;
-  el.innerHTML='<p style="color:var(--muted);padding:8px">Loading photos…</p>';
-  const withPhotos=acts.filter(a=>a.total_photo_count>0).slice(0,24);
-  if(!withPhotos.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No photos found in recent activities.</p>';return;}
-  const results=[];
-  for(const a of withPhotos.slice(0,16)){
-    try{
-      const photos=await api(`/activities/${a.id}/photos?size=2048&photo_sources=true`);
-      if(photos&&photos.length) photos.forEach(p=>{
-        const urls=p.urls||{};
-        const full=urls['2048']||urls['1024']||urls['600']||Object.values(urls)[0];
-        const thumb=urls['600']||urls['256']||full;
-        const video=p.video_url||null; // present when the "photo" is actually a video
-        if(full||video) results.push({url:full||thumb,thumb:thumb||full,video,name:a.name,date:a.start_date,actId:a.id});
-      });
-    }catch{}
-  }
-  if(!results.length){el.innerHTML='<p style="color:var(--muted);padding:8px">Could not load photos.</p>';return;}
-  photoItems=results;
-  el.innerHTML=results.map((p,i)=>`
-    <div class="photo-tile" title="${p.name}" onclick="openPhoto(${i})">
-      <img src="${p.thumb}" alt="${p.name}" loading="lazy">
+function _photoTileHTML(p,i){
+  return `<div class="photo-tile" title="${p.name}" onclick="openPhoto(${i})">
+      <img src="${p.thumb}" alt="${p.name}" loading="lazy" decoding="async">
       ${p.video?'<span class="photo-play" aria-label="Video">▶</span>':''}
       <div class="photo-caption">
         <span>${p.name}</span>
         <span style="opacity:.65;font-size:9px">${p.date?fmtDt(p.date):''}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+}
+async function renderPhotos(){
+  const el=document.getElementById('photosGrid');
+  if(_photosLoaded) return;
+  _photosLoaded=true;
+  // every loaded activity that has photos — not an arbitrary handful
+  const withPhotos=acts.filter(a=>a.total_photo_count>0);
+  if(!withPhotos.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No photos found in recent activities.</p>';return;}
+  el.innerHTML='<p class="photo-loading" style="color:var(--muted);padding:8px">Loading photos…</p>';
+  photoItems=[];
+
+  // tiles appear progressively as each activity resolves (image first; the
+  // heavier video stream is only fetched when a tile is opened)
+  const add=(a,photos)=>{
+    (photos||[]).forEach(p=>{
+      const urls=p.urls||{};
+      const full=urls['1024']||urls['600']||urls['2048']||Object.values(urls)[0];
+      const thumb=urls['600']||urls['256']||full;
+      const video=p.video_url||null; // present when the "photo" is actually a video
+      if(!full&&!video) return;
+      const it={url:full||thumb,thumb:thumb||full,video,name:a.name,date:a.start_date,actId:a.id};
+      const idx=photoItems.push(it)-1;
+      const ld=el.querySelector('.photo-loading'); if(ld) ld.remove();
+      el.insertAdjacentHTML('beforeend',_photoTileHTML(it,idx));
+    });
+  };
+
+  // fetch in parallel with a small concurrency cap so it's fast without
+  // tripping Strava's rate limit; stop early if we do hit it
+  let cursor=0, rateLimited=false;
+  const worker=async()=>{
+    while(cursor<withPhotos.length && !rateLimited){
+      const a=withPhotos[cursor++];
+      try{ add(a, await api(`/activities/${a.id}/photos?size=1024&photo_sources=true`)); }
+      catch(err){ if(/ 429 /.test(' '+(err&&err.message||'')+' ')) rateLimited=true; }
+    }
+  };
+  await Promise.all(Array.from({length:6},worker));
+
+  const ld=el.querySelector('.photo-loading'); if(ld) ld.remove();
+  if(!photoItems.length){ el.innerHTML='<p style="color:var(--muted);padding:8px">Could not load photos.</p>'; return; }
+  if(rateLimited) el.insertAdjacentHTML('beforeend','<p style="color:var(--muted);padding:8px;grid-column:1/-1">Some photos hit Strava’s rate limit — revisit shortly to load the rest.</p>');
 }
 
 /* ── PHOTO LIGHTBOX ── */

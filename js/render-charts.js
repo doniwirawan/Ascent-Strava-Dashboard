@@ -297,25 +297,26 @@ function _actStat(label, val){
   return `<div class="actd-stat"><div class="actd-stat-val">${val}</div><div class="actd-stat-lbl">${label}</div></div>`;
 }
 
-function _actRouteSVG(a){
-  const enc = a.map && a.map.summary_polyline;
-  if(!enc) return '';
-  let pts; try { pts = decodePolyline(enc); } catch { return ''; }
-  if(!pts || pts.length<2) return '';
-  const lats=pts.map(p=>p[0]), lngs=pts.map(p=>p[1]);
-  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
-  const W=560,H=200,pad=16;
-  const sLat=(maxLat-minLat)||1e-6, sLng=(maxLng-minLng)||1e-6;
-  const scale=Math.min((W-pad*2)/sLng,(H-pad*2)/sLat);
-  const dw=sLng*scale, dh=sLat*scale, ox=(W-dw)/2, oy=(H-dh)/2;
-  const X=lng=>ox+(lng-minLng)*scale, Y=lat=>oy+(maxLat-lat)*scale;
-  const d=pts.map((p,i)=>(i?'L':'M')+X(p[1]).toFixed(1)+' '+Y(p[0]).toFixed(1)).join(' ');
-  const s=pts[0], e=pts[pts.length-1];
-  return `<svg class="actd-route" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-    <path d="${d}" fill="none" stroke="#FC4C02" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="${X(s[1]).toFixed(1)}" cy="${Y(s[0]).toFixed(1)}" r="5" fill="#22c55e"/>
-    <circle cx="${X(e[1]).toFixed(1)}" cy="${Y(e[0]).toFixed(1)}" r="5" fill="#ef4444"/>
-  </svg>`;
+let _actBigMap = null;
+// Build a real Leaflet map (tiles + route) in the activity popup
+function _actBuildMap(a){
+  if(_actBigMap){try{_actBigMap.remove();}catch{} _actBigMap=null;}
+  const el=document.getElementById('actMapBig');
+  if(!el) return;
+  let coords=[];
+  const enc=a.map&&a.map.summary_polyline;
+  if(enc) try{coords=decodePolyline(enc);}catch{}
+  if(!window.L||coords.length<2){ el.style.display='none'; return; }
+  el.style.display='';
+  try{
+    const m=L.map(el,{zoomControl:true,scrollWheelZoom:false,attributionControl:false});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
+    const line=L.polyline(coords,{color:'#FC4C02',weight:4,opacity:.95}).addTo(m);
+    L.circleMarker(coords[0],{radius:6,color:'#22c55e',fillColor:'#22c55e',fillOpacity:1,weight:0}).addTo(m);
+    L.circleMarker(coords[coords.length-1],{radius:6,color:'#ef4444',fillColor:'#ef4444',fillOpacity:1,weight:0}).addTo(m);
+    _actBigMap=m;
+    setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[24,24]});}catch{}},250);
+  }catch{}
 }
 
 function openActivityModal(ref){
@@ -366,9 +367,10 @@ function openActivityModal(ref){
 
   const loc=[a.location_city,a.location_state,a.location_country].filter(Boolean).join(', ');
 
+  const hasRoute=a.map&&a.map.summary_polyline;
   document.getElementById('actModalTitle').textContent=a.name||'Activity';
   document.getElementById('actModalBody').innerHTML=`
-    ${_actRouteSVG(a)}
+    ${hasRoute?'<div class="actd-map" id="actMapBig"></div>':''}
     <div class="actd-head">
       <span class="type-pill ${ride?'ride':''}">${a.sport_type||a.type}</span>
       <span class="actd-date">${dateStr} · ${timeStr}</span>
@@ -379,9 +381,13 @@ function openActivityModal(ref){
     ${a.id ? `<a class="btn btn-primary actd-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener">Open in Strava ↗</a>` : ''}
   `;
   document.getElementById('actModal').classList.add('open');
+  if(hasRoute) _actBuildMap(a);
 }
 
-function closeActivityModal(){ document.getElementById('actModal').classList.remove('open'); }
+function closeActivityModal(){
+  document.getElementById('actModal').classList.remove('open');
+  if(_actBigMap){try{_actBigMap.remove();}catch{} _actBigMap=null;}
+}
 document.getElementById('actModal').addEventListener('click', e=>{ if(e.target.id==='actModal') closeActivityModal(); });
 
 /* ── CALENDAR — contribution graph (last 12 months) ── */
