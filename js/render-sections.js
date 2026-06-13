@@ -13,6 +13,25 @@ function svgIcon(n){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p[n]||p.bolt}</svg>`;
 }
 
+/* ── trophy/achievement icons (custom SVG, replaces emoji) — use currentColor ── */
+function trophySvg(n){
+  const I={
+    crown:'<path d="M3 7l3.6 2.6L12 4l5.4 5.6L21 7l-1.7 10.5H4.7L3 7z" fill="currentColor"/><rect x="4.6" y="19" width="14.8" height="2.2" rx="1" fill="currentColor"/>',
+    trophy:'<path d="M6 4h12v2h3v2a4 4 0 0 1-4 4 6 6 0 0 1-3.2 3.4V18H16a1 1 0 0 1 1 1v2H7v-2a1 1 0 0 1 1-1h2.2v-2.6A6 6 0 0 1 7 12 4 4 0 0 1 3 8V6h3V4zm0 4H5a2 2 0 0 0 1 1.7V8zm12 0v1.7A2 2 0 0 0 19 8h-1z" fill="currentColor"/>',
+    bolt:'<path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" fill="currentColor"/>',
+    kudos:'<path d="M2 10h3.4v11H2zM6.9 21h9.2a2 2 0 0 0 2-1.6l1.3-6.6A2 2 0 0 0 17.4 10h-4V5.4A2.4 2.4 0 0 0 11 3L6.9 10.2z" fill="currentColor"/>',
+    globe:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3.2 3 3.2 15 0 18M12 3c-3.2 3-3.2 15 0 18" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+    world:'<circle cx="12" cy="12" r="9" fill="currentColor" opacity=".22"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3.2 3 3.2 15 0 18M12 3c-3.2 3-3.2 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+    mountain:'<path d="M3 20h18L13.6 6.5 10.2 13 8 10.3z" fill="currentColor"/><path d="M11.6 11l2-4 1.9 3.6-1.5 1-1-1.4z" fill="#fff" opacity=".85"/>',
+    runner:'<circle cx="15" cy="4.3" r="2.1" fill="currentColor"/><path d="M5 13.4l3.4-1.1 1.6-3 3 2.2.7 3 2.3-.5-.9-4.1-3.1-2.3 1.3-2.6-3.1.8z" fill="currentColor"/><path d="M9.2 13.8 7.7 17l-3 2.2 1.2 1.6 3.6-2.7 1.1-2.6z" fill="currentColor"/>',
+    bike:'<circle cx="6" cy="17.5" r="3.3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="17.5" r="3.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 17.5 11 9h4m-6 0 4 8.5M9 9h4l4 8.5M14 7h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    flame:'<path d="M12 2c1.3 3.3 4.6 4.6 4.6 9A4.6 4.6 0 0 1 7.4 11c0-1.6.7-2.8 1.7-3.8.2 1.9 1.9 2.1 1.9.3 0-2 .3-4 1-5.5z" fill="currentColor"/>',
+    target:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/>',
+    medal:'<path d="M9 3l3 5.5L15 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="15" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="m12 11.6 1.1 2.3 2.5.3-1.9 1.7.5 2.5-2.2-1.2-2.2 1.2.5-2.5-1.9-1.7 2.5-.3z" fill="currentColor"/>',
+  };
+  return `<svg viewBox="0 0 24 24" width="34" height="34">${I[n]||I.trophy}</svg>`;
+}
+
 /* ── MONTHLY STATS ── */
 function renderMonthly(filterYear) {
   const years = [...new Set(acts.map(a=>new Date(a.start_date).getFullYear()))].sort((a,b)=>b-a);
@@ -590,8 +609,8 @@ async function renderChallenges(){
   }
 
   /* ── 4. ACHIEVEMENT BADGES ── */
-  function trophyIcon(color,emoji){
-    return `<div class="ach-badge-icon" style="background:radial-gradient(circle at 35% 35%,${color}55 0%,${color}18 60%,${color}08 100%);border:3px solid ${color};box-shadow:0 0 18px ${color}44,inset 0 1px 0 rgba(255,255,255,.18);">${emoji}</div>`;
+  function trophyIcon(color,icon){
+    return `<div class="ach-badge-icon" style="color:${color};background:radial-gradient(circle at 35% 35%,${color}55 0%,${color}18 60%,${color}08 100%);border:3px solid ${color};box-shadow:0 0 18px ${color}44,inset 0 1px 0 rgba(255,255,255,.18);">${trophySvg(icon)}</div>`;
   }
 
   // use lifetime data where available
@@ -600,18 +619,18 @@ async function renderChallenges(){
   const biggestRide=bigRide>0?bigRide:longestRide;
 
   const badges=[
-    {emoji:'👑',name:'KOM / QOM',       val:komList.length,        unit:'segments',  color:'#ffd700', unlocked:komList.length>0},
-    {emoji:'🏆',name:'Achievements',     val:totalAch.toLocaleString(), unit:'on Strava', color:'#ffd700', unlocked:totalAch>0},
-    {emoji:'⚡',name:'Personal Records', val:totalPR.toLocaleString(),  unit:'PRs',       color:'#fc4c02', unlocked:totalPR>0},
-    {emoji:'👍',name:'Kudos',            val:totalKudos.toLocaleString(),unit:'received', color:'#fc4c02', unlocked:totalKudos>0},
-    {emoji:'🌍',name:'Century Rider',    val:biggestRide.toFixed(1),unit:'km best',   color:'#4da8ff', unlocked:biggestRide>=100},
-    {emoji:'🏔️',name:'Everest Climber', val:Math.round(ltElev/1000)+'k',unit:'m climbed',color:'#4da8ff',unlocked:ltElev>=8848},
-    {emoji:'🏃',name:'Half Marathoner', val:longestRun.toFixed(1), unit:'km best',   color:'#00cc88', unlocked:longestRun>=21.1},
-    {emoji:'🚴',name:'1,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#00cc88',unlocked:ltDist>=1000},
-    {emoji:'🔥',name:'5,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#fb923c',unlocked:ltDist>=5000},
-    {emoji:'🌐',name:'10,000 km Club',  val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#a78bfa',unlocked:ltDist>=10000},
-    {emoji:'🎯',name:'100 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#fb923c',unlocked:(lifetimeRides||rides.length)>=100},
-    {emoji:'💯',name:'500 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#a78bfa',unlocked:(lifetimeRides||rides.length)>=500},
+    {icon:'crown',   name:'KOM / QOM',       val:komList.length,        unit:'segments',  color:'#ffd700', unlocked:komList.length>0},
+    {icon:'trophy',  name:'Achievements',     val:totalAch.toLocaleString(), unit:'on Strava', color:'#ffd700', unlocked:totalAch>0},
+    {icon:'bolt',    name:'Personal Records', val:totalPR.toLocaleString(),  unit:'PRs',       color:'#fc4c02', unlocked:totalPR>0},
+    {icon:'kudos',   name:'Kudos',            val:totalKudos.toLocaleString(),unit:'received', color:'#fc4c02', unlocked:totalKudos>0},
+    {icon:'globe',   name:'Century Rider',    val:biggestRide.toFixed(1),unit:'km best',   color:'#4da8ff', unlocked:biggestRide>=100},
+    {icon:'mountain',name:'Everest Climber', val:Math.round(ltElev/1000)+'k',unit:'m climbed',color:'#4da8ff',unlocked:ltElev>=8848},
+    {icon:'runner',  name:'Half Marathoner', val:longestRun.toFixed(1), unit:'km best',   color:'#00cc88', unlocked:longestRun>=21.1},
+    {icon:'bike',    name:'1,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#00cc88',unlocked:ltDist>=1000},
+    {icon:'flame',   name:'5,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#fb923c',unlocked:ltDist>=5000},
+    {icon:'world',   name:'10,000 km Club',  val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#a78bfa',unlocked:ltDist>=10000},
+    {icon:'target',  name:'100 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#fb923c',unlocked:(lifetimeRides||rides.length)>=100},
+    {icon:'medal',   name:'500 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#a78bfa',unlocked:(lifetimeRides||rides.length)>=500},
   ];
 
   html+=`<div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Badges</div>`;
@@ -619,7 +638,7 @@ async function renderChallenges(){
   html+=badges.map(b=>`
     <div class="ach-badge${b.unlocked?' unlocked':''}" style="--ach-color:${b.color}">
       ${b.unlocked?'<div class="ach-badge-bar"></div>':''}
-      ${trophyIcon(b.color,b.emoji)}
+      ${trophyIcon(b.color,b.icon)}
       <div class="ach-badge-val" style="color:${b.unlocked?b.color:'var(--muted)'}">${b.val}</div>
       <div class="ach-badge-unit">${b.unit}</div>
       <div class="ach-badge-name" style="color:${b.unlocked?'var(--text)':'var(--muted)'}">${b.name}</div>
