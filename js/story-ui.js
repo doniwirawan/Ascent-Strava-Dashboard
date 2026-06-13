@@ -90,8 +90,11 @@ function _customContextMenu(clientX,clientY,id){
     {label:'Hide', fn:()=>{ group().forEach(_customHide); drawStoryCanvas(); }},
     {label:'Bigger', fn:()=>{ group().forEach(x=>_customScale(x,1.12)); saveCustomPos(); drawStoryCanvas(); }},
     {label:'Smaller', fn:()=>{ group().forEach(x=>_customScale(x,1/1.12)); saveCustomPos(); drawStoryCanvas(); }},
-    {label:'Flip horizontal', fn:()=>{ group().forEach(x=>_customFlip(x,'x')); saveCustomPos(); drawStoryCanvas(); }},
-    {label:'Flip vertical', fn:()=>{ group().forEach(x=>_customFlip(x,'y')); saveCustomPos(); drawStoryCanvas(); }},
+    // flip is only meaningful for the route map (mirroring text reads backwards)
+    ...(id==='route' ? [
+      {label:'Flip horizontal', fn:()=>{ _customFlip('route','x'); saveCustomPos(); drawStoryCanvas(); }},
+      {label:'Flip vertical', fn:()=>{ _customFlip('route','y'); saveCustomPos(); drawStoryCanvas(); }},
+    ] : []),
     {label:'Copy size', fn:()=>{ const p=_customElPos(id); _customSizeBuf = id==='route'?{w:p.w,h:p.h}:(p.s||1); }},
     {label:'Paste size', fn:()=>{ if(_customSizeBuf==null) return; group().forEach(x=>{ const p=_customElPos(x); if(!p) return; if(x==='route'&&typeof _customSizeBuf==='object'){ p.w=_customSizeBuf.w; p.h=_customSizeBuf.h; } else if(x!=='route'&&typeof _customSizeBuf==='number'){ p.s=_customSizeBuf; } }); saveCustomPos(); drawStoryCanvas(); }},
     {label:'Reset position', fn:()=>{ group().forEach(_customResetOne); drawStoryCanvas(); }},
