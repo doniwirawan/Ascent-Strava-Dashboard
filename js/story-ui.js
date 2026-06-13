@@ -146,8 +146,15 @@ function _wireCustomDrag(){
     e.preventDefault(); drawStoryCanvas();
   });
   canvas.addEventListener('pointermove',e=>{
-    if(!drag) return;
     const p=toCanvas(e);
+    if(!drag){
+      if(activeLayout!=='custom'){ canvas.style.cursor=''; return; }
+      // hover feedback: resize over a handle, move over an element, crosshair on empty
+      const H=(window._customHandles||[]).find(h=>Math.abs(p.x-h.x)<=h.r&&Math.abs(p.y-h.y)<=h.r);
+      if(H){ const pos=_customElPos(H.id); const cx=pos.x*canvas.width, cy=pos.y*canvas.height; canvas.style.cursor=((H.x<cx)===(H.y<cy))?'nwse-resize':'nesw-resize'; }
+      else canvas.style.cursor=hitAt(p)?'grab':'crosshair';
+      return;
+    }
     if(drag.resize){
       const f=Math.max(0.05, Math.hypot(p.x-drag.cx,p.y-drag.cy)/drag.startDist);
       if(drag.id==='route'){ drag.pos.w=_customClamp(drag.startW*f,0.05,1.8); drag.pos.h=_customClamp(drag.startH*f,0.04,1.8); }
