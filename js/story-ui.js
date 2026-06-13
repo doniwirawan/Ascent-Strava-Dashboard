@@ -117,7 +117,19 @@ function _wireCustomDrag(){
 
   canvas.addEventListener('pointerdown',e=>{
     if(activeLayout!=='custom'||e.button===2) return;
-    const p=toCanvas(e), h=hitAt(p);
+    const p=toCanvas(e);
+    // resize handle takes priority
+    const handle=(window._customHandles||[]).find(H=>Math.abs(p.x-H.x)<=H.r&&Math.abs(p.y-H.y)<=H.r);
+    if(handle){
+      const pos=_customElPos(handle.id);
+      if(pos){
+        const cx=pos.x*canvas.width, cy=pos.y*canvas.height;
+        drag={ resize:true, id:handle.id, cx, cy, startDist:Math.hypot(p.x-cx,p.y-cy)||1, startS:(pos.s||1), startW:pos.w, startH:pos.h, pos };
+        canvas.setPointerCapture(e.pointerId); canvas.style.cursor='nwse-resize'; e.preventDefault();
+        return;
+      }
+    }
+    const h=hitAt(p);
     if(h){
       if(e.shiftKey){ customSel.has(h.id)?customSel.delete(h.id):customSel.add(h.id); drawStoryCanvas(); return; }
       if(!customSel.has(h.id)) customSel=new Set([h.id]);
@@ -136,6 +148,13 @@ function _wireCustomDrag(){
   canvas.addEventListener('pointermove',e=>{
     if(!drag) return;
     const p=toCanvas(e);
+    if(drag.resize){
+      const f=Math.max(0.05, Math.hypot(p.x-drag.cx,p.y-drag.cy)/drag.startDist);
+      if(drag.id==='route'){ drag.pos.w=_customClamp(drag.startW*f,0.05,1.8); drag.pos.h=_customClamp(drag.startH*f,0.04,1.8); }
+      else drag.pos.s=_customClamp(drag.startS*f,0.15,5);
+      drawStoryCanvas();
+      return;
+    }
     if(drag.marquee){
       const m=window._customMarquee; m.w=p.x-drag.sx; m.h=p.y-drag.sy;
       const mx=Math.min(m.x,m.x+m.w),my=Math.min(m.y,m.y+m.h),mw=Math.abs(m.w),mh=Math.abs(m.h);

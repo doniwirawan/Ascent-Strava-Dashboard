@@ -265,6 +265,21 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.lineWidth = Math.round((on ? 3 : 2) * S);
         ctx.strokeRect(h.x - pad, h.y - pad, h.w + pad * 2, h.h + pad * 2);
       });
+      // corner resize handles for a single selected element
+      window._customHandles = [];
+      if (customSel.size === 1) {
+        const h = hits.find(hb => customSel.has(hb.id));
+        if (h) {
+          const hs = Math.round(18 * S), r = Math.round(24 * S);
+          const corners = [[h.x - pad, h.y - pad], [h.x + h.w + pad, h.y - pad], [h.x - pad, h.y + h.h + pad], [h.x + h.w + pad, h.y + h.h + pad]];
+          ctx.setLineDash([]); ctx.lineWidth = Math.max(2, Math.round(2.5 * S));
+          corners.forEach(([hx, hy]) => {
+            ctx.fillStyle = '#FC4C02'; ctx.strokeStyle = '#fff';
+            ctx.beginPath(); ctx.roundRect(hx - hs / 2, hy - hs / 2, hs, hs, Math.round(5 * S)); ctx.fill(); ctx.stroke();
+            window._customHandles.push({ id: h.id, x: hx, y: hy, r });
+          });
+        }
+      }
       // marquee rectangle
       const m = window._customMarquee;
       if (m) {
