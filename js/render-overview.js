@@ -111,6 +111,7 @@ function renderStats() {
   document.getElementById('sv-dist').textContent    = fmtD(dist);
   document.getElementById('sv-dist-sub').textContent= 'avg '+fmtD(dist/(set.length||1));
   document.getElementById('sv-time').textContent    = Math.round(time/3600)+'h';
+  document.getElementById('sv-time-sub').textContent= time>=86400 ? '≈ '+fmtDays(time) : 'hours';
   document.getElementById('sv-elev').textContent    = Math.round(elevVal(elev)/1000)+'k '+elevUnit();
   document.getElementById('sv-eddy').textContent    = E;
   document.getElementById('sv-eddy-sub').textContent= (mode==='run'?'running ':'cycling ')+distUnit();
