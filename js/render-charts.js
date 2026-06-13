@@ -257,11 +257,13 @@ function renderTrends() {
 }
 
 /* ── ACTIVITIES + BUBBLES ── */
+let _actRows = [];   // recent activities currently shown in the list (for the detail modal)
 function renderActivities() {
   const src = modeActs();
-  const list = src.slice(0,15);
-  document.getElementById('actList').innerHTML = list.map(a=>`
-    <a class="act-row" href="https://www.strava.com/activities/${a.id}" target="_blank" style="text-decoration:none;color:inherit;">
+  const list = src;
+  _actRows = list;
+  document.getElementById('actList').innerHTML = list.map((a,i)=>`
+    <div class="act-row" role="button" tabindex="0" onclick="openActivityModal(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActivityModal(${i});}">
       <div style="flex:1;min-width:0">
         <div class="act-name">${a.name}</div>
         <div class="act-meta">
@@ -272,7 +274,7 @@ function renderActivities() {
         <div class="act-dist">${fmtD(a.distance)}</div>
         <div class="act-time">${fmtT(a.moving_time)}</div>
       </div>
-    </a>
+    </div>
   `).join('');
 
   // Bubbles — sample 60 activities
@@ -288,6 +290,98 @@ function renderActivities() {
     </div>`;
   }).join('');
 }
+
+/* ── ACTIVITY DETAIL MODAL ── */
+function _actStat(label, val){
+  if(val===null || val===undefined || val==='' || val==='—') return '';
+  return `<div class="actd-stat"><div class="actd-stat-val">${val}</div><div class="actd-stat-lbl">${label}</div></div>`;
+}
+
+function _actRouteSVG(a){
+  const enc = a.map && a.map.summary_polyline;
+  if(!enc) return '';
+  let pts; try { pts = decodePolyline(enc); } catch { return ''; }
+  if(!pts || pts.length<2) return '';
+  const lats=pts.map(p=>p[0]), lngs=pts.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
+  const W=560,H=200,pad=16;
+  const sLat=(maxLat-minLat)||1e-6, sLng=(maxLng-minLng)||1e-6;
+  const scale=Math.min((W-pad*2)/sLng,(H-pad*2)/sLat);
+  const dw=sLng*scale, dh=sLat*scale, ox=(W-dw)/2, oy=(H-dh)/2;
+  const X=lng=>ox+(lng-minLng)*scale, Y=lat=>oy+(maxLat-lat)*scale;
+  const d=pts.map((p,i)=>(i?'L':'M')+X(p[1]).toFixed(1)+' '+Y(p[0]).toFixed(1)).join(' ');
+  const s=pts[0], e=pts[pts.length-1];
+  return `<svg class="actd-route" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    <path d="${d}" fill="none" stroke="var(--orange)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${X(s[1]).toFixed(1)}" cy="${Y(s[0]).toFixed(1)}" r="5" fill="#22c55e"/>
+    <circle cx="${X(e[1]).toFixed(1)}" cy="${Y(e[0]).toFixed(1)}" r="5" fill="#ef4444"/>
+  </svg>`;
+}
+
+function openActivityModal(i){
+  const a=_actRows[i]; if(!a) return;
+  const ride=isRide(a);
+  const when=a.start_date_local||a.start_date;
+  const dateStr=new Date(when).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+  const timeStr=new Date(when).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+  // moving-time avg speed where elapsed includes stops
+  const stats=[
+    _actStat('Distance', fmtD(a.distance)),
+    _actStat('Moving Time', fmtT(a.moving_time)),
+    a.elapsed_time && a.elapsed_time!==a.moving_time ? _actStat('Elapsed', fmtT(a.elapsed_time)) : '',
+    ride ? _actStat('Avg Speed', a.average_speed?fmtSpeed(a.average_speed):'—')
+         : _actStat('Avg Pace', a.average_speed?_pace(a.average_speed)+' /'+distUnit():'—'),
+    ride ? _actStat('Max Speed', a.max_speed?fmtSpeed(a.max_speed):'—')
+         : _actStat('Max Pace', a.max_speed?_pace(a.max_speed)+' /'+distUnit():'—'),
+    _actStat('Elevation', a.total_elevation_gain?fmtElev(a.total_elevation_gain):''),
+    _actStat('Highest Pt', a.elev_high!=null?fmtElev(a.elev_high):''),
+    _actStat('Avg Cadence', a.average_cadence?(ride?Math.round(a.average_cadence)+' rpm':Math.round(a.average_cadence*2)+' spm'):''),
+    _actStat('Avg HR', a.average_heartrate?Math.round(a.average_heartrate)+' bpm':''),
+    _actStat('Max HR', a.max_heartrate?Math.round(a.max_heartrate)+' bpm':''),
+    _actStat('Avg Power', a.average_watts?Math.round(a.average_watts)+' W':''),
+    _actStat('Norm Power', a.weighted_average_watts?Math.round(a.weighted_average_watts)+' W':''),
+    _actStat('Max Power', a.max_watts?Math.round(a.max_watts)+' W':''),
+    _actStat('Energy', a.kilojoules?Math.round(a.kilojoules).toLocaleString()+' kJ':''),
+    _actStat('Calories', a.calories?Math.round(a.calories).toLocaleString():''),
+    _actStat('Relative Effort', a.suffer_score||''),
+    _actStat('Avg Temp', a.average_temp!=null?Math.round(a.average_temp)+'°C':''),
+    _actStat('PRs', a.pr_count||''),
+    _actStat('Achievements', a.achievement_count||''),
+    _actStat('Kudos', a.kudos_count||''),
+    _actStat('Comments', a.comment_count||'')
+  ].filter(Boolean).join('');
+
+  // contextual badges
+  const wt=a.workout_type;
+  const badges=[
+    a.commute && 'Commute',
+    a.trainer && 'Indoor',
+    a.manual && 'Manual',
+    a.private && 'Private',
+    (wt===1||wt===11) && 'Race',
+    a.total_photo_count>0 && (a.total_photo_count+' photo'+(a.total_photo_count>1?'s':''))
+  ].filter(Boolean).map(b=>`<span class="actd-badge">${b}</span>`).join('');
+
+  const loc=[a.location_city,a.location_state,a.location_country].filter(Boolean).join(', ');
+
+  document.getElementById('actModalTitle').textContent=a.name||'Activity';
+  document.getElementById('actModalBody').innerHTML=`
+    ${_actRouteSVG(a)}
+    <div class="actd-head">
+      <span class="type-pill ${ride?'ride':''}">${a.sport_type||a.type}</span>
+      <span class="actd-date">${dateStr} · ${timeStr}</span>
+      ${badges}
+    </div>
+    ${loc?`<div class="actd-loc">📍 ${loc}</div>`:''}
+    <div class="actd-grid">${stats}</div>
+    ${a.id ? `<a class="btn btn-primary actd-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener">Open in Strava ↗</a>` : ''}
+  `;
+  document.getElementById('actModal').classList.add('open');
+}
+
+function closeActivityModal(){ document.getElementById('actModal').classList.remove('open'); }
+document.getElementById('actModal').addEventListener('click', e=>{ if(e.target.id==='actModal') closeActivityModal(); });
 
 /* ── CALENDAR — contribution graph (last 12 months) ── */
 function renderCalendar() {

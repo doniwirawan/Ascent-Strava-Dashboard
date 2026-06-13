@@ -323,6 +323,19 @@
 .seg-name:hover { color: var(--orange); }
 .seg-loc { font-size: 10px; color: rgba(255,255,255,.55); margin-top: 3px; }
 
+/* Expand-to-big-map button */
+.seg-expand {
+  position: absolute; top: 10px; right: 10px; z-index: 600;
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.55); color: #fff;
+  font-size: 15px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  transition: background .15s, border-color .15s;
+}
+.seg-card.is-kom .seg-expand { top: 46px; }
+.seg-expand:hover { background: var(--orange); border-color: var(--orange); }
+
 /* Body */
 .seg-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 13px; flex: 1; }
 .seg-pr { display: flex; align-items: baseline; gap: 9px; }

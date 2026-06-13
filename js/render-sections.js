@@ -754,6 +754,7 @@ async function renderSegments(){
             <a class="seg-name" href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener">${s.name}</a>
             ${location?`<div class="seg-loc">${location}</div>`:''}
           </div>
+          <button class="seg-expand" onclick="openSegMap('${s.id}')" title="View larger map" aria-label="View larger map">⤢</button>
         </div>
         <div class="seg-body">
           ${prTime?`<div class="seg-pr">
@@ -842,6 +843,69 @@ async function renderSegments(){
     el.innerHTML=`<p style="color:var(--muted);padding:8px">Segments unavailable (${e.message}).</p>`;
   }
 }
+
+/* ── SEGMENT MAP MODAL — full details on a big, interactive map ── */
+let _segBigMap = null;
+async function openSegMap(id){
+  const s=(_segsData||[]).find(x=>String(x.id)===String(id));
+  if(!s) return;
+  const modal=document.getElementById('segMapModal');
+  document.getElementById('segMapTitle').textContent=s.name||'Segment';
+  document.getElementById('segMapStrava').href='https://www.strava.com/segments/'+s.id;
+
+  const pr=s.athlete_pr_effort;
+  const rows=[
+    ['Distance', kmVal(s.distance).toFixed(2)+' '+distUnit()],
+    ['Avg Grade', s.average_grade!=null?parseFloat(s.average_grade).toFixed(1)+'%':'—'],
+    s.maximum_grade!=null && ['Max Grade', parseFloat(s.maximum_grade).toFixed(1)+'%'],
+    ['Elevation', s.total_elevation_gain!=null?Math.round(elevVal(s.total_elevation_gain))+' '+elevUnit():'—'],
+    s.elevation_high!=null && ['Highest', Math.round(elevVal(s.elevation_high))+' '+elevUnit()],
+    s.elevation_low!=null && ['Lowest', Math.round(elevVal(s.elevation_low))+' '+elevUnit()],
+    s.climb_category>0 && ['Climb Cat.', 'Cat '+s.climb_category],
+    ['PR Time', pr?fmtT(pr.elapsed_time):'—'],
+    pr&&s.distance&&pr.elapsed_time && ['PR Speed', kmh(s.distance/pr.elapsed_time).toFixed(1)+' '+speedUnit()],
+    ['VAM', pr&&pr.elapsed_time&&s.total_elevation_gain>0?Math.round(elevVal(s.total_elevation_gain)/(pr.elapsed_time/3600))+' '+elevUnit()+'/h':'—'],
+    ['KOM/CR', s.xoms&&s.xoms.kom?s.xoms.kom:'—'],
+    ['Efforts', s.effort_count?s.effort_count.toLocaleString():'—']
+  ].filter(Boolean);
+  const loc=[s.city,s.state,s.country].filter(Boolean).join(', ');
+  document.getElementById('segMapDetails').innerHTML=
+    (loc?`<div class="actd-loc">📍 ${loc}</div>`:'')+
+    `<div class="actd-grid">`+rows.map(r=>`<div class="actd-stat"><div class="actd-stat-val">${r[1]}</div><div class="actd-stat-lbl">${r[0]}</div></div>`).join('')+`</div>`;
+
+  modal.classList.add('open');
+
+  // build the route polyline (starred summaries lack it — fetch detailed segment, cached)
+  let poly=s.map&&(s.map.polyline||s.map.summary_polyline);
+  if(!poly){
+    try{
+      const det=segDetailCache[s.id]||(segDetailCache[s.id]=await api(`/segments/${s.id}`));
+      poly=det&&det.map&&(det.map.polyline||det.map.summary_polyline);
+    }catch{}
+  }
+  let coords=[];
+  if(poly) try{coords=decodePolyline(poly);}catch{}
+  if(!coords.length&&s.start_latlng&&s.end_latlng) coords=[s.start_latlng,s.end_latlng];
+
+  const mapEl=document.getElementById('segMapBig');
+  if(_segBigMap){try{_segBigMap.remove();}catch{} _segBigMap=null;}
+  mapEl.innerHTML='';
+  if(!window.L||!coords.length){ mapEl.innerHTML='<div class="segmap-empty">No map available for this segment.</div>'; return; }
+  try{
+    const m=L.map(mapEl,{scrollWheelZoom:true});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
+    const line=L.polyline(coords,{color:'#FC4C02',weight:4,opacity:.95}).addTo(m);
+    L.circleMarker(coords[0],{radius:6,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m).bindTooltip('Start');
+    L.circleMarker(coords[coords.length-1],{radius:6,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m).bindTooltip('Finish');
+    _segBigMap=m;
+    setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[30,30]});}catch{}},250);
+  }catch{}
+}
+function closeSegMap(){
+  document.getElementById('segMapModal').classList.remove('open');
+  if(_segBigMap){try{_segBigMap.remove();}catch{} _segBigMap=null;}
+}
+document.getElementById('segMapModal').addEventListener('click', e=>{ if(e.target.id==='segMapModal') closeSegMap(); });
 
 /* Scan recent activities for segment efforts (not just starred) */
 const _segScanCache={};

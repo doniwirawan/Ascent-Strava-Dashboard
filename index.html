@@ -402,14 +402,49 @@
         <div><dt>Moving vs Elapsed Time</dt><dd><b>Moving time</b> excludes pauses/stops; <b>elapsed time</b> is the full wall-clock duration. Stats here use moving time.</dd></div>
         <div><dt>Avg / Max Speed</dt><dd>Average and peak speed Strava recorded for the activity, shown in km/h or mph.</dd></div>
         <div><dt>Best Pace</dt><dd>Runner metric — minutes per km/mi for your fastest run.</dd></div>
-        <div><dt>Elevation Gain</dt><dd>Total metres (or feet) climbed — the sum of all uphill sections.</dd></div>
+        <div><dt>Cadence</dt><dd>Pedalling or step rate — <b>rpm</b> (revolutions per minute) for rides, <b>spm</b> (steps per minute) for runs.</dd></div>
+        <div><dt>Elevation Gain &amp; Highest Point</dt><dd>Total metres (or feet) climbed — the sum of all uphill sections — and the highest altitude reached on the route.</dd></div>
+        <div><dt>Avg / Max / Normalized Power</dt><dd>For rides with a power meter: your mean and peak watts, plus <b>Normalized Power</b> — a weighted average that reflects the metabolic cost of changing efforts better than a plain average.</dd></div>
         <div><dt>Energy (kJ) &amp; Calories</dt><dd>Work done / energy burned, from Strava's detailed activity (power-based for rides). Some activities have no value if Strava didn't compute one.</dd></div>
-        <div><dt>Suffer Score</dt><dd>Strava's "Relative Effort" — how hard a session was based on time spent in heart-rate zones.</dd></div>
+        <div><dt>Temperature</dt><dd>Average ambient temperature recorded by your device during the activity, when available.</dd></div>
+        <div><dt>Suffer Score / Relative Effort</dt><dd>Strava's measure of how hard a session was, based on time spent in heart-rate zones.</dd></div>
         <div><dt>VAM</dt><dd>Velocità Ascensionale Media — your average vertical climbing speed in metres (or feet) per hour, from your PR time on a climb. Higher = a stronger climb; elite climbs are ~1,600+ m/h.</dd></div>
         <div><dt>KOM / QOM / CR</dt><dd>King/Queen of the Mountain / Course Record — being the fastest-ever on a segment. "With PR" means you have a personal record on it.</dd></div>
         <div><dt>PRs &amp; Achievements</dt><dd>Personal records and trophies Strava awarded on your activities (e.g. fastest 5 km, biggest climb).</dd></div>
-        <div><dt>Kudos</dt><dd>The "likes" your activities received from other athletes.</dd></div>
+        <div><dt>Kudos &amp; Comments</dt><dd>The "likes" and comments your activities received from other athletes.</dd></div>
       </dl>
+    </div>
+
+    <div class="help-card">
+      <h3>What each section shows</h3>
+      <dl class="help-gloss">
+        <div><dt>Overview</dt><dd>Headline stat cards for the selected sport — totals, averages, best efforts, kudos and achievements across your loaded activities.</dd></div>
+        <div><dt>Cycling / Running</dt><dd>Sport-specific performance: your fastest efforts, a speed or pace trend over recent activities, and top rides/runs.</dd></div>
+        <div><dt>Trends</dt><dd>Distance per week and per month, plus a rolling speed/pace chart, so you can see your training direction over time.</dd></div>
+        <div><dt>Activities</dt><dd>Your most recent activities as a list — click any row to open its full detail card — alongside a distance bubble chart.</dd></div>
+        <div><dt>Calendar</dt><dd>A 12-month contribution grid: one cell per day, shaded by how many activities you did, with active-day and streak totals.</dd></div>
+        <div><dt>Eddington</dt><dd>Your Eddington number with a chart of how many more long days you need to reach the next milestone.</dd></div>
+        <div><dt>Monthly</dt><dd>A month-by-month breakdown of distance, time and activity count, and a side-by-side comparison of recent months.</dd></div>
+        <div><dt>Best Efforts</dt><dd>Your longest, fastest and biggest-climbing activities, ranked.</dd></div>
+        <div><dt>Gear</dt><dd>Per-bike and per-shoe totals (distance and rides), pulled from the gear registered on your Strava profile.</dd></div>
+        <div><dt>Heatmap</dt><dd>An interactive map with every route's GPS trace overlaid, so your most-ridden roads glow brightest.</dd></div>
+        <div><dt>Segments</dt><dd>Your starred segments with maps, your PR time, KOM/QOM status and VAM on each. Tap the <b>⤢</b> on any segment to open a big, zoomable map with the full route and every detail.</dd></div>
+        <div><dt>Milestones</dt><dd>Named distance and elevation achievements (e.g. "1,000 km Club", an Everest of climbing) and how close you are to the next.</dd></div>
+        <div><dt>Rewind</dt><dd>A year-in-review summary of a chosen year — totals, highlights and standout activities.</dd></div>
+        <div><dt>Trophies</dt><dd>All-time, year-to-date and last-4-week totals from Strava's stats endpoint, plus any KOMs/CRs.</dd></div>
+        <div><dt>Photos</dt><dd>A gallery of photos attached to your activities, opening in a full-screen lightbox.</dd></div>
+        <div><dt>Share Story</dt><dd>Generate a 9:16 shareable image of any activity, with multiple layouts, colour themes, a custom background and selectable stats.</dd></div>
+      </dl>
+    </div>
+
+    <div class="help-card">
+      <h3>Tips</h3>
+      <ul class="help-list">
+        <li><b>Activity details.</b> In <b>Activities</b>, click any row to open a card with its route map, full metrics (speed/pace, power, heart rate, cadence, energy, kudos and more) and a link to open it on Strava.</li>
+        <li><b>Sport mode.</b> The <b>Cyclist / Runner</b> toggle filters most sections to that sport, so pace, speed and distance charts reflect just those activities.</li>
+        <li><b>Refresh.</b> Data is cached for speed; hit <b>Refresh</b> to pull the latest activities from Strava immediately.</li>
+        <li><b>Privacy.</b> Use <b>Disconnect</b> to clear this device's tokens and cache, and revoke access entirely from <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener" style="color:var(--orange);font-weight:700;">Strava → My Apps</a>.</li>
+      </ul>
     </div>
 
     <div class="help-card help-muted">
@@ -520,6 +555,30 @@
         <canvas id="storyCanvas" width="1080" height="1920"></canvas>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ACTIVITY DETAIL MODAL -->
+<div class="modal-overlay" id="actModal">
+  <div class="modal act-modal">
+    <div class="modal-header">
+      <div class="modal-title" id="actModalTitle">Activity</div>
+      <button class="modal-close" id="actModalClose" onclick="closeActivityModal()">✕</button>
+    </div>
+    <div id="actModalBody"></div>
+  </div>
+</div>
+
+<!-- SEGMENT MAP MODAL -->
+<div class="modal-overlay" id="segMapModal">
+  <div class="modal segmap-modal">
+    <div class="modal-header">
+      <div class="modal-title" id="segMapTitle">Segment</div>
+      <button class="modal-close" onclick="closeSegMap()">✕</button>
+    </div>
+    <div class="segmap-wrap"><div id="segMapBig"></div></div>
+    <div id="segMapDetails"></div>
+    <a class="btn btn-primary actd-strava" id="segMapStrava" href="#" target="_blank" rel="noopener">Open on Strava ↗</a>
   </div>
 </div>
 
