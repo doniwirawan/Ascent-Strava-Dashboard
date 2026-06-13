@@ -198,60 +198,73 @@ function drawLayout(canvas, act, selected, sc, layout) {
 
     // title
     if (!hideTitle) {
-      const t = customPos.title, cx = t.x * W, cy = t.y * H, nm = act.name || 'Activity';
-      const fs = fitText(nm, W * 0.92, 50, 700);
+      const t = customPos.title, k = t.s || 1, cx = t.x * W, cy = t.y * H, nm = act.name || 'Activity';
+      const fs = fitText(nm, W * 0.96, 50 * k, 700);
       ctx.fillStyle = sc.text; ctx.textAlign = 'center'; ctx.letterSpacing = '-0.5px';
       ctx.fillText(nm, cx, cy);
-      const w = Math.min(ctx.measureText(nm).width, W * 0.92);
+      const w = Math.min(ctx.measureText(nm).width, W * 0.96);
       reg('title', cx - w / 2, cy - fs, w, fs * 1.35);
       ctx.letterSpacing = '0px';
     }
 
     // date · type
     if (!hideDate) {
-      const d = customPos.date, cx = d.x * W, cy = d.y * H;
-      ctx.fillStyle = sc.muted; ctx.font = F(26, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0px';
+      const d = customPos.date, k = d.s || 1, cx = d.x * W, cy = d.y * H;
+      ctx.fillStyle = sc.muted; ctx.font = F(26 * k, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0px';
       const txt = (act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || '');
       ctx.fillText(txt, cx, cy);
       const w = ctx.measureText(txt).width;
-      reg('date', cx - w / 2, cy - Math.round(28 * S), w, Math.round(40 * S));
+      reg('date', cx - w / 2, cy - Math.round(28 * S * k), w, Math.round(40 * S * k));
     }
 
     // each selected stat — label over value, centred at its point
     selected.forEach(s => {
       const pos = customPos.stats[s.key]; if (!pos) return;
-      const cx = pos.x * W, cy = pos.y * H;
+      const k = pos.s || 1, cx = pos.x * W, cy = pos.y * H;
       const { num, unit } = statVal(s, act), disp = num + (unit ? ' ' + unit : '');
       ctx.textAlign = 'center';
-      ctx.fillStyle = sc.accent; ctx.font = `600 ${Math.round(20 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.04em';
-      ctx.fillText(s.label.toUpperCase(), cx, cy - Math.round(10 * S));
-      let vfs = Math.round(60 * S); ctx.font = `800 ${vfs}px -apple-system,sans-serif`;
-      while (vfs > Math.round(22 * S) && ctx.measureText(disp).width > W * 0.42) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `800 ${vfs}px -apple-system,sans-serif`; }
+      ctx.fillStyle = sc.accent; ctx.font = `600 ${Math.round(20 * S * k)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.04em';
+      ctx.fillText(s.label.toUpperCase(), cx, cy - Math.round(10 * S * k));
+      let vfs = Math.round(60 * S * k); ctx.font = `800 ${vfs}px -apple-system,sans-serif`;
+      while (vfs > Math.round(22 * S) && ctx.measureText(disp).width > W * 0.6) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `800 ${vfs}px -apple-system,sans-serif`; }
       ctx.fillStyle = sc.text; ctx.letterSpacing = '-1px';
-      ctx.fillText(disp, cx, cy + Math.round(44 * S));
+      ctx.fillText(disp, cx, cy + Math.round(44 * S * k));
       ctx.letterSpacing = '0px';
-      const w = Math.max(ctx.measureText(disp).width, Math.round(130 * S));
-      reg('stat:' + s.key, cx - w / 2, cy - Math.round(36 * S), w, Math.round(100 * S));
+      const w = Math.max(ctx.measureText(disp).width, Math.round(130 * S * k));
+      reg('stat:' + s.key, cx - w / 2, cy - Math.round(36 * S * k), w, Math.round(100 * S * k));
     });
 
     // wordmark
     if (!hideLogo) {
-      const l = customPos.logo, cx = l.x * W, cy = l.y * H, txt = 'STRAVA DASHBOARD';
+      const l = customPos.logo, k = l.s || 1, cx = l.x * W, cy = l.y * H, txt = 'STRAVA DASHBOARD';
       ctx.textAlign = 'center'; ctx.fillStyle = withAlpha(sc.text, 170);
-      ctx.font = `800 ${Math.round(24 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.06em';
+      ctx.font = `800 ${Math.round(24 * S * k)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.06em';
       ctx.fillText(txt, cx, cy);
       const w = ctx.measureText(txt).width;
-      reg('logo', cx - w / 2, cy - Math.round(24 * S), w, Math.round(34 * S));
+      reg('logo', cx - w / 2, cy - Math.round(24 * S * k), w, Math.round(34 * S * k));
       ctx.letterSpacing = '0px';
     }
 
-    // drag affordances (main canvas only, never exported)
+    // drag affordances (main canvas only, never exported): selected = solid, rest = dashed
     if (isMain && customEditMode && hits) {
       ctx.save();
-      ctx.setLineDash([Math.round(9 * S), Math.round(7 * S)]);
-      ctx.strokeStyle = 'rgba(252,76,2,0.65)'; ctx.lineWidth = Math.round(2 * S);
       const pad = Math.round(10 * S);
-      hits.forEach(h => ctx.strokeRect(h.x - pad, h.y - pad, h.w + pad * 2, h.h + pad * 2));
+      hits.forEach(h => {
+        const on = customSel.has(h.id);
+        ctx.setLineDash(on ? [] : [Math.round(9 * S), Math.round(7 * S)]);
+        ctx.strokeStyle = on ? '#FC4C02' : 'rgba(252,76,2,0.45)';
+        ctx.lineWidth = Math.round((on ? 3 : 2) * S);
+        ctx.strokeRect(h.x - pad, h.y - pad, h.w + pad * 2, h.h + pad * 2);
+      });
+      // marquee rectangle
+      const m = window._customMarquee;
+      if (m) {
+        ctx.setLineDash([Math.round(8 * S), Math.round(6 * S)]);
+        ctx.strokeStyle = '#FC4C02'; ctx.lineWidth = Math.round(2 * S);
+        ctx.fillStyle = 'rgba(252,76,2,0.10)';
+        const mx = Math.min(m.x, m.x + m.w), my = Math.min(m.y, m.y + m.h), mw = Math.abs(m.w), mh = Math.abs(m.h);
+        ctx.fillRect(mx, my, mw, mh); ctx.strokeRect(mx, my, mw, mh);
+      }
       ctx.restore();
     }
   }

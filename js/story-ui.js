@@ -17,30 +17,127 @@ function drawStoryCanvas(){
   canvas.style.cursor=isCustom?'grab':'';
 }
 
-// Free-placement dragging on the main canvas (custom layout only)
+// ── custom-layout editing helpers ──
+function _customElPos(id){
+  if(id==='title') return customPos.title;
+  if(id==='date')  return customPos.date;
+  if(id==='logo')  return customPos.logo;
+  if(id==='route') return customPos.route;
+  if(id.startsWith('stat:')) return customPos.stats[id.slice(5)];
+  return null;
+}
+const _customClamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+function _customScale(id,factor){
+  if(id==='route'){ const r=customPos.route; r.w=_customClamp(r.w*factor,0.15,1.6); r.h=_customClamp(r.h*factor,0.1,1.6); }
+  else { const p=_customElPos(id); if(p) p.s=_customClamp((p.s||1)*factor,0.4,4); }
+}
+function _customSyncHideChecks(){
+  [['chk-hideTitle',hideTitle],['chk-hideDate',hideDate],['chk-hideRoute',hideRoute],['chk-hideLogo',hideLogo]].forEach(([id,v])=>{
+    const cb=document.getElementById(id); if(cb) cb.checked=v;
+    const lbl=document.getElementById(id.replace('chk-','lbl-')); if(lbl) lbl.style.borderColor=v?'var(--orange)':'var(--border)';
+  });
+}
+function _customHide(id){
+  if(id==='title') hideTitle=true;
+  else if(id==='date') hideDate=true;
+  else if(id==='route') hideRoute=true;
+  else if(id==='logo') hideLogo=true;
+  else if(id.startsWith('stat:')){ const k=id.slice(5); checkedStats.delete(k); const lbl=document.getElementById('lbl-'+k); if(lbl){ lbl.style.borderColor='var(--border)'; const cb=lbl.querySelector('input'); if(cb) cb.checked=false; } }
+  _customSyncHideChecks(); customSel.delete(id);
+}
+function _customResetOne(id){
+  const def=_defaultCustomPos();
+  if(id==='title') customPos.title={...def.title};
+  else if(id==='date') customPos.date={...def.date};
+  else if(id==='route') customPos.route={...def.route};
+  else if(id==='logo') customPos.logo={...def.logo};
+  else if(id.startsWith('stat:')) delete customPos.stats[id.slice(5)];
+  saveCustomPos();
+}
+let _customMenuEl=null, _customSizeBuf=null;
+function _customContextMenu(clientX,clientY,id){
+  if(!_customMenuEl){ _customMenuEl=document.createElement('div'); _customMenuEl.className='ctx-menu'; document.body.appendChild(_customMenuEl);
+    document.addEventListener('pointerdown',ev=>{ if(_customMenuEl&&!_customMenuEl.contains(ev.target)) _customMenuEl.style.display='none'; }); }
+  const group=()=> (customSel.has(id)&&customSel.size>1)?[...customSel]:[id];
+  const items=[
+    {label:'Hide', fn:()=>{ group().forEach(_customHide); drawStoryCanvas(); }},
+    {label:'Bigger', fn:()=>{ group().forEach(x=>_customScale(x,1.12)); saveCustomPos(); drawStoryCanvas(); }},
+    {label:'Smaller', fn:()=>{ group().forEach(x=>_customScale(x,1/1.12)); saveCustomPos(); drawStoryCanvas(); }},
+    {label:'Copy size', fn:()=>{ const p=_customElPos(id); _customSizeBuf = id==='route'?{w:p.w,h:p.h}:(p.s||1); }},
+    {label:'Paste size', fn:()=>{ if(_customSizeBuf==null) return; group().forEach(x=>{ const p=_customElPos(x); if(!p) return; if(x==='route'&&typeof _customSizeBuf==='object'){ p.w=_customSizeBuf.w; p.h=_customSizeBuf.h; } else if(x!=='route'&&typeof _customSizeBuf==='number'){ p.s=_customSizeBuf; } }); saveCustomPos(); drawStoryCanvas(); }},
+    {label:'Reset position', fn:()=>{ group().forEach(_customResetOne); drawStoryCanvas(); }},
+  ];
+  _customMenuEl.innerHTML=items.map((it,i)=>`<button data-i="${i}">${it.label}</button>`).join('');
+  _customMenuEl.querySelectorAll('button').forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); items[+b.dataset.i].fn(); _customMenuEl.style.display='none'; });
+  _customMenuEl.style.display='block';
+  _customMenuEl.style.left=Math.min(clientX,innerWidth-160)+'px';
+  _customMenuEl.style.top=Math.min(clientY,innerHeight-180)+'px';
+}
+
+// Free-placement editing on the main canvas (custom layout only): drag, group
+// marquee-select, group move, wheel-resize, right-click menu
 function _wireCustomDrag(){
   const canvas=document.getElementById('storyCanvas');
   if(canvas._customWired) return; canvas._customWired=true;
   let drag=null;
   const toCanvas=e=>{ const r=canvas.getBoundingClientRect(); return { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) }; };
-  const elPos=id=> id==='title'?customPos.title : id==='date'?customPos.date : id==='logo'?customPos.logo : id==='route'?customPos.route : id.startsWith('stat:')?customPos.stats[id.slice(5)] : null;
+  const hitAt=p=>{ const hits=window._customHits||[], pad=12; for(let i=hits.length-1;i>=0;i--){ const h=hits[i]; if(p.x>=h.x-pad&&p.x<=h.x+h.w+pad&&p.y>=h.y-pad&&p.y<=h.y+h.h+pad) return h; } return null; };
+
   canvas.addEventListener('pointerdown',e=>{
-    if(activeLayout!=='custom') return;
-    const p=toCanvas(e), hits=window._customHits||[];
-    for(let i=hits.length-1;i>=0;i--){ const h=hits[i]; if(p.x>=h.x&&p.x<=h.x+h.w&&p.y>=h.y&&p.y<=h.y+h.h){ drag={sx:p.x,sy:p.y,pos:elPos(h.id)}; break; } }
-    if(drag&&drag.pos){ canvas.setPointerCapture(e.pointerId); canvas.style.cursor='grabbing'; e.preventDefault(); } else drag=null;
+    if(activeLayout!=='custom'||e.button===2) return;
+    const p=toCanvas(e), h=hitAt(p);
+    if(h){
+      if(e.shiftKey){ customSel.has(h.id)?customSel.delete(h.id):customSel.add(h.id); drawStoryCanvas(); return; }
+      if(!customSel.has(h.id)) customSel=new Set([h.id]);
+      drag={ items:[...customSel].map(id=>{ const pos=_customElPos(id); return pos?{pos,x0:pos.x,y0:pos.y}:null; }).filter(Boolean), sx:p.x, sy:p.y };
+      canvas.setPointerCapture(e.pointerId); canvas.style.cursor='grabbing';
+    } else {
+      if(!e.shiftKey) customSel.clear();
+      drag={ marquee:true, sx:p.x, sy:p.y, base:new Set(customSel) };
+      window._customMarquee={x:p.x,y:p.y,w:0,h:0};
+      canvas.setPointerCapture(e.pointerId);
+    }
+    e.preventDefault(); drawStoryCanvas();
   });
   canvas.addEventListener('pointermove',e=>{
     if(!drag) return;
     const p=toCanvas(e);
-    drag.pos.x=Math.min(1,Math.max(0,drag.pos.x+(p.x-drag.sx)/canvas.width));
-    drag.pos.y=Math.min(1,Math.max(0,drag.pos.y+(p.y-drag.sy)/canvas.height));
-    drag.sx=p.x; drag.sy=p.y;
-    drawStoryCanvas();
+    if(drag.marquee){
+      const m=window._customMarquee; m.w=p.x-drag.sx; m.h=p.y-drag.sy;
+      const mx=Math.min(m.x,m.x+m.w),my=Math.min(m.y,m.y+m.h),mw=Math.abs(m.w),mh=Math.abs(m.h);
+      const sel=new Set(drag.base);
+      (window._customHits||[]).forEach(h=>{ if(!(h.x>mx+mw||h.x+h.w<mx||h.y>my+mh||h.y+h.h<my)) sel.add(h.id); });
+      customSel=sel; drawStoryCanvas();
+    } else {
+      const dx=(p.x-drag.sx)/canvas.width, dy=(p.y-drag.sy)/canvas.height;
+      drag.items.forEach(it=>{ it.pos.x=Math.min(1,Math.max(0,it.x0+dx)); it.pos.y=Math.min(1,Math.max(0,it.y0+dy)); });
+      drawStoryCanvas();
+    }
   });
-  const end=()=>{ if(drag){ drag=null; saveCustomPos(); canvas.style.cursor='grab'; } };
+  const end=()=>{ if(!drag) return; if(drag.marquee){ window._customMarquee=null; drawStoryCanvas(); } else saveCustomPos(); drag=null; canvas.style.cursor='grab'; };
   canvas.addEventListener('pointerup',end);
   canvas.addEventListener('pointercancel',end);
+
+  canvas.addEventListener('wheel',e=>{
+    if(activeLayout!=='custom') return;
+    const p=toCanvas(e), h=hitAt(p);
+    const ids = (h && !customSel.has(h.id)) ? [h.id] : (customSel.size?[...customSel]:(h?[h.id]:[]));
+    if(!ids.length) return;
+    e.preventDefault();
+    const f=e.deltaY<0?1.08:1/1.08;
+    ids.forEach(id=>_customScale(id,f));
+    saveCustomPos(); drawStoryCanvas();
+  },{passive:false});
+
+  canvas.addEventListener('contextmenu',e=>{
+    if(activeLayout!=='custom') return;
+    const p=toCanvas(e), h=hitAt(p);
+    if(!h) return;
+    e.preventDefault();
+    if(!customSel.has(h.id)) customSel=new Set([h.id]);
+    drawStoryCanvas();
+    _customContextMenu(e.clientX,e.clientY,h.id);
+  });
 }
 
 async function fetchStreams(actId){

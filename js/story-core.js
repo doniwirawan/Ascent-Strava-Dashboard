@@ -58,6 +58,7 @@ function statVal(s, act) { const v = String(s.fmt(act)); const p = v.split(' ');
 
 /* ── CUSTOM LAYOUT — free drag-and-place of every element ── */
 let customEditMode = true; // draw drag affordances on the main canvas (never in export)
+let customSel = new Set(); // ids of currently group-selected elements (transient)
 let customPos = _loadCustomPos();
 function _defaultCustomPos() {
   return {

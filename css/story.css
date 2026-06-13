@@ -87,6 +87,20 @@
   border-radius: 8px; padding: 8px 12px;
 }
 
+/* right-click menu for custom-layout elements */
+.ctx-menu {
+  display: none; position: fixed; z-index: 100000;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 5px; min-width: 150px;
+  box-shadow: var(--shadow-md);
+}
+.ctx-menu button {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; color: var(--text);
+  font-size: 13px; padding: 8px 12px; border-radius: 6px; cursor: pointer;
+}
+.ctx-menu button:hover { background: var(--surface3); }
+
 .modal-actions { display: flex; gap: 10px; flex-shrink: 0; }
 .modal-actions button { flex: 1; padding: 10px; }
 
