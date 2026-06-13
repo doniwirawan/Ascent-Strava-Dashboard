@@ -28,8 +28,35 @@ function _customElPos(id){
 }
 const _customClamp=(v,min,max)=>Math.min(max,Math.max(min,v));
 function _customScale(id,factor){
-  if(id==='route'){ const r=customPos.route; r.w=_customClamp(r.w*factor,0.15,1.6); r.h=_customClamp(r.h*factor,0.1,1.6); }
-  else { const p=_customElPos(id); if(p) p.s=_customClamp((p.s||1)*factor,0.4,4); }
+  if(id==='route'){ const r=customPos.route; r.w=_customClamp(r.w*factor,0.05,1.8); r.h=_customClamp(r.h*factor,0.04,1.8); }
+  else { const p=_customElPos(id); if(p) p.s=_customClamp((p.s||1)*factor,0.15,5); }
+}
+function _customFlip(id,axis){ const p=_customElPos(id); if(!p) return; if(axis==='x') p.fx=!p.fx; else p.fy=!p.fy; }
+
+// Canva-style snapping: align dragged element's edges/centre to the canvas and
+// to other elements, plus equal-spacing between two neighbours. Draws guides.
+function _customSnap(drag,canvas){
+  const W=canvas.width,H=canvas.height,clamp=v=>Math.min(1,Math.max(0,v));
+  const prim=drag.primary;
+  if(!prim){ window._customGuides=null; return; }
+  const bw=prim.bw||0, bh=prim.bh||0, cx=prim.pos.x*W, cy=prim.pos.y*H;
+  const others=(window._customHits||[]).filter(h=>!customSel.has(h.id));
+  const TH=22; // snap distance in canvas px
+  const xLines=[0,W/2,W], yLines=[0,H/2,H];
+  others.forEach(h=>{ xLines.push(h.x,h.x+h.w/2,h.x+h.w); yLines.push(h.y,h.y+h.h/2,h.y+h.h); });
+  // equal spacing — midpoint between two elements the dragged one sits between
+  const vov=others.filter(h=> !(h.y>cy+bh/2 || h.y+h.h<cy-bh/2));
+  vov.forEach(L=>vov.forEach(R=>{ const Lr=L.x+L.w, Rl=R.x; if(Lr+TH<Rl) xLines.push((Lr+Rl)/2); }));
+  const hov=others.filter(h=> !(h.x>cx+bw/2 || h.x+h.w<cx-bw/2));
+  hov.forEach(T=>hov.forEach(B=>{ const Tb=T.y+T.h, Bt=B.y; if(Tb+TH<Bt) yLines.push((Tb+Bt)/2); }));
+
+  const xa=[cx-bw/2,cx,cx+bw/2], ya=[cy-bh/2,cy,cy+bh/2];
+  let bx=null; xa.forEach(a=>xLines.forEach(l=>{const d=Math.abs(a-l); if(d<(bx?bx.d:TH)) bx={d,line:l,center:cx+(l-a)};}));
+  let by=null; ya.forEach(a=>yLines.forEach(l=>{const d=Math.abs(a-l); if(d<(by?by.d:TH)) by={d,line:l,center:cy+(l-a)};}));
+  const guides=[];
+  if(bx){ const off=(bx.center-cx)/W; drag.items.forEach(it=>it.pos.x=clamp(it.pos.x+off)); guides.push({v:bx.line}); }
+  if(by){ const off=(by.center-cy)/H; drag.items.forEach(it=>it.pos.y=clamp(it.pos.y+off)); guides.push({h:by.line}); }
+  window._customGuides=guides.length?guides:null;
 }
 function _customSyncHideChecks(){
   [['chk-hideTitle',hideTitle],['chk-hideDate',hideDate],['chk-hideRoute',hideRoute],['chk-hideLogo',hideLogo]].forEach(([id,v])=>{
@@ -63,6 +90,8 @@ function _customContextMenu(clientX,clientY,id){
     {label:'Hide', fn:()=>{ group().forEach(_customHide); drawStoryCanvas(); }},
     {label:'Bigger', fn:()=>{ group().forEach(x=>_customScale(x,1.12)); saveCustomPos(); drawStoryCanvas(); }},
     {label:'Smaller', fn:()=>{ group().forEach(x=>_customScale(x,1/1.12)); saveCustomPos(); drawStoryCanvas(); }},
+    {label:'Flip horizontal', fn:()=>{ group().forEach(x=>_customFlip(x,'x')); saveCustomPos(); drawStoryCanvas(); }},
+    {label:'Flip vertical', fn:()=>{ group().forEach(x=>_customFlip(x,'y')); saveCustomPos(); drawStoryCanvas(); }},
     {label:'Copy size', fn:()=>{ const p=_customElPos(id); _customSizeBuf = id==='route'?{w:p.w,h:p.h}:(p.s||1); }},
     {label:'Paste size', fn:()=>{ if(_customSizeBuf==null) return; group().forEach(x=>{ const p=_customElPos(x); if(!p) return; if(x==='route'&&typeof _customSizeBuf==='object'){ p.w=_customSizeBuf.w; p.h=_customSizeBuf.h; } else if(x!=='route'&&typeof _customSizeBuf==='number'){ p.s=_customSizeBuf; } }); saveCustomPos(); drawStoryCanvas(); }},
     {label:'Reset position', fn:()=>{ group().forEach(_customResetOne); drawStoryCanvas(); }},
@@ -91,6 +120,7 @@ function _wireCustomDrag(){
       if(!customSel.has(h.id)) customSel=new Set([h.id]);
       const items=[...customSel].map(id=>{ const pos=_customElPos(id); return pos?{id,pos,x0:pos.x,y0:pos.y}:null; }).filter(Boolean);
       drag={ items, primary:items.find(it=>it.id===h.id)||items[0], sx:p.x, sy:p.y };
+      if(drag.primary){ drag.primary.bw=h.w; drag.primary.bh=h.h; }
       canvas.setPointerCapture(e.pointerId); canvas.style.cursor='grabbing';
     } else {
       if(!e.shiftKey) customSel.clear();
@@ -113,20 +143,7 @@ function _wireCustomDrag(){
       const clamp=v=>Math.min(1,Math.max(0,v));
       const dx=(p.x-drag.sx)/canvas.width, dy=(p.y-drag.sy)/canvas.height;
       drag.items.forEach(it=>{ it.pos.x=clamp(it.x0+dx); it.pos.y=clamp(it.y0+dy); });
-      // Canva-style smart snap: align the dragged element's centre to the
-      // canvas centre or to any other element's centre, and show a guide
-      const guides=[];
-      if(drag.primary && !e.altKey){
-        const snapX=26/canvas.width, snapY=26/canvas.height;
-        const others=(window._customHits||[]).filter(h=>!customSel.has(h.id));
-        const xLines=[0.5,0.25,0.75,...others.map(h=>(h.x+h.w/2)/canvas.width)];
-        const yLines=[0.5,0.25,0.75,...others.map(h=>(h.y+h.h/2)/canvas.height)];
-        let bx=null,bxd=snapX; xLines.forEach(l=>{const d=Math.abs(drag.primary.pos.x-l);if(d<bxd){bxd=d;bx=l;}});
-        let by=null,byd=snapY; yLines.forEach(l=>{const d=Math.abs(drag.primary.pos.y-l);if(d<byd){byd=d;by=l;}});
-        if(bx!=null){ const off=bx-drag.primary.pos.x; drag.items.forEach(it=>it.pos.x=clamp(it.pos.x+off)); guides.push({v:bx*canvas.width}); }
-        if(by!=null){ const off=by-drag.primary.pos.y; drag.items.forEach(it=>it.pos.y=clamp(it.pos.y+off)); guides.push({h:by*canvas.height}); }
-      }
-      window._customGuides=guides.length?guides:null;
+      if(!e.altKey) _customSnap(drag,canvas); else window._customGuides=null;
       drawStoryCanvas();
     }
   });

@@ -188,11 +188,18 @@ function drawLayout(canvas, act, selected, sc, layout) {
     // solid scheme background when there's no uploaded photo
     if (!skipBg) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
 
+    // mirror an element around (cx,cy) per its fx/fy flip flags, then draw
+    const flip = (pos, cx, cy, fn) => {
+      const sx = pos.fx ? -1 : 1, sy = pos.fy ? -1 : 1;
+      if (sx === 1 && sy === 1) { fn(); return; }
+      ctx.save(); ctx.translate(cx, cy); ctx.scale(sx, sy); ctx.translate(-cx, -cy); fn(); ctx.restore();
+    };
+
     // route box
     if (!hideRoute && polyline && polyline.length > 1) {
       const rb = customPos.route;
       const rw = rb.w * W, rh = rb.h * H, rx = rb.x * W - rw / 2, ry = rb.y * H - rh / 2;
-      drawRoute(ctx, polyline, rx, ry, rw, rh, sc.accent, Math.round(6 * S));
+      flip(rb, rb.x * W, rb.y * H, () => drawRoute(ctx, polyline, rx, ry, rw, rh, sc.accent, Math.round(6 * S)));
       reg('route', rx, ry, rw, rh);
     }
 
@@ -201,7 +208,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const t = customPos.title, k = t.s || 1, cx = t.x * W, cy = t.y * H, nm = act.name || 'Activity';
       const fs = fitText(nm, W * 0.96, 50 * k, 700);
       ctx.fillStyle = sc.text; ctx.textAlign = 'center'; ctx.letterSpacing = '-0.5px';
-      ctx.fillText(nm, cx, cy);
+      flip(t, cx, cy, () => ctx.fillText(nm, cx, cy));
       const w = Math.min(ctx.measureText(nm).width, W * 0.96);
       reg('title', cx - w / 2, cy - fs, w, fs * 1.35);
       ctx.letterSpacing = '0px';
@@ -212,7 +219,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const d = customPos.date, k = d.s || 1, cx = d.x * W, cy = d.y * H;
       ctx.fillStyle = sc.muted; ctx.font = F(26 * k, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0px';
       const txt = (act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || '');
-      ctx.fillText(txt, cx, cy);
+      flip(d, cx, cy, () => ctx.fillText(txt, cx, cy));
       const w = ctx.measureText(txt).width;
       reg('date', cx - w / 2, cy - Math.round(28 * S * k), w, Math.round(40 * S * k));
     }
@@ -223,12 +230,14 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const k = pos.s || 1, cx = pos.x * W, cy = pos.y * H;
       const { num, unit } = statVal(s, act), disp = num + (unit ? ' ' + unit : '');
       ctx.textAlign = 'center';
-      ctx.fillStyle = sc.accent; ctx.font = `600 ${Math.round(20 * S * k)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.04em';
-      ctx.fillText(s.label.toUpperCase(), cx, cy - Math.round(10 * S * k));
       let vfs = Math.round(60 * S * k); ctx.font = `800 ${vfs}px -apple-system,sans-serif`;
       while (vfs > Math.round(22 * S) && ctx.measureText(disp).width > W * 0.6) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `800 ${vfs}px -apple-system,sans-serif`; }
-      ctx.fillStyle = sc.text; ctx.letterSpacing = '-1px';
-      ctx.fillText(disp, cx, cy + Math.round(44 * S * k));
+      flip(pos, cx, cy, () => {
+        ctx.fillStyle = sc.accent; ctx.font = `600 ${Math.round(20 * S * k)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.04em';
+        ctx.fillText(s.label.toUpperCase(), cx, cy - Math.round(10 * S * k));
+        ctx.fillStyle = sc.text; ctx.font = `800 ${vfs}px -apple-system,sans-serif`; ctx.letterSpacing = '-1px';
+        ctx.fillText(disp, cx, cy + Math.round(44 * S * k));
+      });
       ctx.letterSpacing = '0px';
       const w = Math.max(ctx.measureText(disp).width, Math.round(130 * S * k));
       reg('stat:' + s.key, cx - w / 2, cy - Math.round(36 * S * k), w, Math.round(100 * S * k));
@@ -239,7 +248,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const l = customPos.logo, k = l.s || 1, cx = l.x * W, cy = l.y * H, txt = 'STRAVA DASHBOARD';
       ctx.textAlign = 'center'; ctx.fillStyle = withAlpha(sc.text, 170);
       ctx.font = `800 ${Math.round(24 * S * k)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.06em';
-      ctx.fillText(txt, cx, cy);
+      flip(l, cx, cy, () => ctx.fillText(txt, cx, cy));
       const w = ctx.measureText(txt).width;
       reg('logo', cx - w / 2, cy - Math.round(24 * S * k), w, Math.round(34 * S * k));
       ctx.letterSpacing = '0px';
