@@ -322,7 +322,19 @@ function openStoryModal(){
   // custom free-placement: enable canvas dragging + reset button
   _wireCustomDrag();
   const customReset=document.getElementById('customReset');
-  if(customReset) customReset.onclick=()=>{ resetCustomPos(); drawStoryCanvas(); };
+  if(customReset) customReset.onclick=()=>{ customSel.clear(); resetCustomPos(); drawStoryCanvas(); };
+  const toolbar=document.getElementById('customToolbar');
+  if(toolbar) toolbar.querySelectorAll('button[data-act]').forEach(b=>b.onclick=()=>{
+    const sel=customSel.size?[...customSel]:[]; const act=b.dataset.act;
+    if(!sel.length) return; // nothing selected — tap an element first
+    if(act==='bigger') sel.forEach(x=>_customScale(x,1.12));
+    else if(act==='smaller') sel.forEach(x=>_customScale(x,1/1.12));
+    else if(act==='fliph') sel.filter(x=>x==='route').forEach(x=>_customFlip(x,'x'));
+    else if(act==='flipv') sel.filter(x=>x==='route').forEach(x=>_customFlip(x,'y'));
+    else if(act==='hide') sel.forEach(_customHide);
+    else if(act==='resetone') sel.forEach(_customResetOne);
+    saveCustomPos(); drawStoryCanvas();
+  });
 
   document.getElementById('storyModal').classList.add('open');
   setTimeout(drawStoryCanvas,50);
