@@ -89,7 +89,8 @@ function _wireCustomDrag(){
     if(h){
       if(e.shiftKey){ customSel.has(h.id)?customSel.delete(h.id):customSel.add(h.id); drawStoryCanvas(); return; }
       if(!customSel.has(h.id)) customSel=new Set([h.id]);
-      drag={ items:[...customSel].map(id=>{ const pos=_customElPos(id); return pos?{pos,x0:pos.x,y0:pos.y}:null; }).filter(Boolean), sx:p.x, sy:p.y };
+      const items=[...customSel].map(id=>{ const pos=_customElPos(id); return pos?{id,pos,x0:pos.x,y0:pos.y}:null; }).filter(Boolean);
+      drag={ items, primary:items.find(it=>it.id===h.id)||items[0], sx:p.x, sy:p.y };
       canvas.setPointerCapture(e.pointerId); canvas.style.cursor='grabbing';
     } else {
       if(!e.shiftKey) customSel.clear();
@@ -109,12 +110,27 @@ function _wireCustomDrag(){
       (window._customHits||[]).forEach(h=>{ if(!(h.x>mx+mw||h.x+h.w<mx||h.y>my+mh||h.y+h.h<my)) sel.add(h.id); });
       customSel=sel; drawStoryCanvas();
     } else {
+      const clamp=v=>Math.min(1,Math.max(0,v));
       const dx=(p.x-drag.sx)/canvas.width, dy=(p.y-drag.sy)/canvas.height;
-      drag.items.forEach(it=>{ it.pos.x=Math.min(1,Math.max(0,it.x0+dx)); it.pos.y=Math.min(1,Math.max(0,it.y0+dy)); });
+      drag.items.forEach(it=>{ it.pos.x=clamp(it.x0+dx); it.pos.y=clamp(it.y0+dy); });
+      // Canva-style smart snap: align the dragged element's centre to the
+      // canvas centre or to any other element's centre, and show a guide
+      const guides=[];
+      if(drag.primary && !e.altKey){
+        const snapX=26/canvas.width, snapY=26/canvas.height;
+        const others=(window._customHits||[]).filter(h=>!customSel.has(h.id));
+        const xLines=[0.5,0.25,0.75,...others.map(h=>(h.x+h.w/2)/canvas.width)];
+        const yLines=[0.5,0.25,0.75,...others.map(h=>(h.y+h.h/2)/canvas.height)];
+        let bx=null,bxd=snapX; xLines.forEach(l=>{const d=Math.abs(drag.primary.pos.x-l);if(d<bxd){bxd=d;bx=l;}});
+        let by=null,byd=snapY; yLines.forEach(l=>{const d=Math.abs(drag.primary.pos.y-l);if(d<byd){byd=d;by=l;}});
+        if(bx!=null){ const off=bx-drag.primary.pos.x; drag.items.forEach(it=>it.pos.x=clamp(it.pos.x+off)); guides.push({v:bx*canvas.width}); }
+        if(by!=null){ const off=by-drag.primary.pos.y; drag.items.forEach(it=>it.pos.y=clamp(it.pos.y+off)); guides.push({h:by*canvas.height}); }
+      }
+      window._customGuides=guides.length?guides:null;
       drawStoryCanvas();
     }
   });
-  const end=()=>{ if(!drag) return; if(drag.marquee){ window._customMarquee=null; drawStoryCanvas(); } else saveCustomPos(); drag=null; canvas.style.cursor='grab'; };
+  const end=()=>{ if(!drag) return; if(drag.marquee){ window._customMarquee=null; drawStoryCanvas(); } else { window._customGuides=null; saveCustomPos(); drawStoryCanvas(); } drag=null; canvas.style.cursor='grab'; };
   canvas.addEventListener('pointerup',end);
   canvas.addEventListener('pointercancel',end);
 

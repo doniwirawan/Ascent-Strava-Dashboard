@@ -265,6 +265,12 @@ function drawLayout(canvas, act, selected, sc, layout) {
         const mx = Math.min(m.x, m.x + m.w), my = Math.min(m.y, m.y + m.h), mw = Math.abs(m.w), mh = Math.abs(m.h);
         ctx.fillRect(mx, my, mw, mh); ctx.strokeRect(mx, my, mw, mh);
       }
+      // alignment guides (Canva-style)
+      const guides = window._customGuides;
+      if (guides) {
+        ctx.setLineDash([]); ctx.strokeStyle = '#ff2d9b'; ctx.lineWidth = Math.max(1, Math.round(2 * S));
+        guides.forEach(g => { ctx.beginPath(); if (g.v != null) { ctx.moveTo(g.v, 0); ctx.lineTo(g.v, H); } else { ctx.moveTo(0, g.h); ctx.lineTo(W, g.h); } ctx.stroke(); });
+      }
       ctx.restore();
     }
   }
