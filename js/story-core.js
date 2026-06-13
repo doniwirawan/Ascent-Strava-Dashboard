@@ -24,6 +24,28 @@ let storyBgImage = null; // uploaded background image
 let currentStreams = null; // altitude+distance streams for selected activity
 const streamsCache = {}; // keyed by activity id
 
+/* ── persist the whole story setup (layout, theme, stats, hidden parts) so the
+   editor reopens exactly where you left off (positions live in customPos) ── */
+function saveStorySettings() {
+  try {
+    localStorage.setItem('story_settings', JSON.stringify({
+      layout: activeLayout, scheme: activeScheme, accent: customAccent,
+      stats: [...checkedStats], hT: hideTitle, hD: hideDate, hR: hideRoute, hL: hideLogo,
+    }));
+  } catch {}
+}
+(function _loadStorySettings() {
+  try {
+    const o = JSON.parse(localStorage.getItem('story_settings') || 'null');
+    if (!o) return;
+    if (o.layout) activeLayout = o.layout;
+    if (o.scheme) activeScheme = o.scheme;
+    if ('accent' in o) customAccent = o.accent;
+    if (Array.isArray(o.stats)) checkedStats = new Set(o.stats);
+    hideTitle = !!o.hT; hideDate = !!o.hD; hideRoute = !!o.hR; hideLogo = !!o.hL;
+  } catch {}
+})();
+
 /* ── SCHEMES — sleek dark / minimal palette ──
    All cards are solid colours (gradients only render in the strava layout),
    near-black surfaces, soft off-white text, low-chroma muted tones and
