@@ -33,29 +33,39 @@ function _customScale(id,factor){
 }
 function _customFlip(id,axis){ const p=_customElPos(id); if(!p) return; if(axis==='x') p.fx=!p.fx; else p.fy=!p.fy; }
 
-// Canva-style snapping: align dragged element's edges/centre to the canvas and
-// to other elements, plus equal-spacing between two neighbours. Draws guides.
+// Figma-style snapping: align dragged element's edges/centre to the canvas and
+// to other elements, plus equal-spacing between two neighbours (with distance
+// guides). Mutates positions and sets window._customGuides.
 function _customSnap(drag,canvas){
   const W=canvas.width,H=canvas.height,clamp=v=>Math.min(1,Math.max(0,v));
   const prim=drag.primary;
   if(!prim){ window._customGuides=null; return; }
-  const bw=prim.bw||0, bh=prim.bh||0, cx=prim.pos.x*W, cy=prim.pos.y*H;
+  const bw=prim.bw||0, bh=prim.bh||0;
+  let cx=prim.pos.x*W, cy=prim.pos.y*H;
   const others=(window._customHits||[]).filter(h=>!customSel.has(h.id));
   const TH=22; // snap distance in canvas px
+
+  // alignment lines (canvas + every other element's edges/centre)
   const xLines=[0,W/2,W], yLines=[0,H/2,H];
   others.forEach(h=>{ xLines.push(h.x,h.x+h.w/2,h.x+h.w); yLines.push(h.y,h.y+h.h/2,h.y+h.h); });
-  // equal spacing — midpoint between two elements the dragged one sits between
-  const vov=others.filter(h=> !(h.y>cy+bh/2 || h.y+h.h<cy-bh/2));
-  vov.forEach(L=>vov.forEach(R=>{ const Lr=L.x+L.w, Rl=R.x; if(Lr+TH<Rl) xLines.push((Lr+Rl)/2); }));
-  const hov=others.filter(h=> !(h.x>cx+bw/2 || h.x+h.w<cx-bw/2));
-  hov.forEach(T=>hov.forEach(B=>{ const Tb=T.y+T.h, Bt=B.y; if(Tb+TH<Bt) yLines.push((Tb+Bt)/2); }));
+  // equal-spacing pairs the dragged element can sit between
+  const vov=others.filter(h=> !(h.y>cy+bh/2 || h.y+h.h<cy-bh/2)), spX=[];
+  for(const L of vov) for(const R of vov){ if(L===R) continue; const Lr=L.x+L.w, Rl=R.x; if(Lr<Rl) spX.push({c:(Lr+Rl)/2,L,R}); }
+  const hov=others.filter(h=> !(h.x>cx+bw/2 || h.x+h.w<cx-bw/2)), spY=[];
+  for(const T of hov) for(const B of hov){ if(T===B) continue; const Tb=T.y+T.h, Bt=B.y; if(Tb<Bt) spY.push({c:(Tb+Bt)/2,T,B}); }
 
   const xa=[cx-bw/2,cx,cx+bw/2], ya=[cy-bh/2,cy,cy+bh/2];
-  let bx=null; xa.forEach(a=>xLines.forEach(l=>{const d=Math.abs(a-l); if(d<(bx?bx.d:TH)) bx={d,line:l,center:cx+(l-a)};}));
-  let by=null; ya.forEach(a=>yLines.forEach(l=>{const d=Math.abs(a-l); if(d<(by?by.d:TH)) by={d,line:l,center:cy+(l-a)};}));
+  let bx=null; xa.forEach(a=>xLines.forEach(l=>{const d=Math.abs(a-l); if(d<(bx?bx.d:TH)) bx={d,line:l,center:cx+(l-a),sp:null};}));
+  spX.forEach(s=>{ const d=Math.abs(cx-s.c); if(d<(bx?bx.d:TH)) bx={d,center:s.c,sp:s}; });
+  let by=null; ya.forEach(a=>yLines.forEach(l=>{const d=Math.abs(a-l); if(d<(by?by.d:TH)) by={d,line:l,center:cy+(l-a),sp:null};}));
+  spY.forEach(s=>{ const d=Math.abs(cy-s.c); if(d<(by?by.d:TH)) by={d,center:s.c,sp:s}; });
+
+  if(bx){ const off=(bx.center-cx)/W; drag.items.forEach(it=>it.pos.x=clamp(it.pos.x+off)); cx=bx.center; }
+  if(by){ const off=(by.center-cy)/H; drag.items.forEach(it=>it.pos.y=clamp(it.pos.y+off)); cy=by.center; }
+
   const guides=[];
-  if(bx){ const off=(bx.center-cx)/W; drag.items.forEach(it=>it.pos.x=clamp(it.pos.x+off)); guides.push({v:bx.line}); }
-  if(by){ const off=(by.center-cy)/H; drag.items.forEach(it=>it.pos.y=clamp(it.pos.y+off)); guides.push({h:by.line}); }
+  if(bx){ if(bx.sp){ const {L,R}=bx.sp, y=cy; guides.push({seg:[L.x+L.w,y,cx-bw/2,y]},{seg:[cx+bw/2,y,R.x,y]}); } else guides.push({v:bx.line}); }
+  if(by){ if(by.sp){ const {T,B}=by.sp, x=cx; guides.push({seg:[x,T.y+T.h,x,cy-bh/2]},{seg:[x,cy+bh/2,x,B.y]}); } else guides.push({h:by.line}); }
   window._customGuides=guides.length?guides:null;
 }
 function _customSyncHideChecks(){
