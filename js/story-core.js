@@ -56,8 +56,37 @@ function getScheme() {
 /* ── stat value helper ── */
 function statVal(s, act) { const v = String(s.fmt(act)); const p = v.split(' '); return { num: p[0], unit: p.slice(1).join(' ') }; }
 
-/* ── 25 LAYOUTS ── */
+/* ── CUSTOM LAYOUT — free drag-and-place of every element ── */
+let customEditMode = true; // draw drag affordances on the main canvas (never in export)
+let customPos = _loadCustomPos();
+function _defaultCustomPos() {
+  return {
+    title: { x: 0.5, y: 0.09 },
+    date:  { x: 0.5, y: 0.14 },
+    route: { x: 0.5, y: 0.44, w: 0.82, h: 0.40 },
+    logo:  { x: 0.5, y: 0.95 },
+    stats: {},
+  };
+}
+function _loadCustomPos() {
+  try { const o = JSON.parse(localStorage.getItem('story_custom_pos') || 'null'); return (o && o.title && o.route) ? o : _defaultCustomPos(); }
+  catch { return _defaultCustomPos(); }
+}
+function saveCustomPos() { try { localStorage.setItem('story_custom_pos', JSON.stringify(customPos)); } catch {} }
+function resetCustomPos() { customPos = _defaultCustomPos(); saveCustomPos(); }
+// give any newly-selected stat a sensible starting slot (3-col grid, lower third)
+function ensureCustomPositions(selected) {
+  selected.forEach(s => {
+    if (!customPos.stats[s.key]) {
+      const i = Object.keys(customPos.stats).length, col = i % 3, row = Math.floor(i / 3);
+      customPos.stats[s.key] = { x: 0.22 + col * 0.28, y: 0.70 + row * 0.11 };
+    }
+  });
+}
+
+/* ── LAYOUTS ── */
 const LAYOUTS = [
+  { id: 'custom', name: 'Custom' },
   { id: 'strava', name: 'Strava' },
   { id: 'strip', name: 'Strip' },
   { id: 'grid', name: 'Grid' },

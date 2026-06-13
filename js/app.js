@@ -5,10 +5,14 @@ document.getElementById('modalClose2').addEventListener('click', ()=>document.ge
 document.getElementById('storyModal').addEventListener('click', e=>{ if(e.target===e.currentTarget) e.currentTarget.classList.remove('open'); });
 document.getElementById('downloadBtn').addEventListener('click', ()=>{
   const canvas = document.getElementById('storyCanvas');
+  // re-render without the custom drag guides so they never appear in the export
+  const wasEditing = customEditMode;
+  if (activeLayout === 'custom' && wasEditing) { customEditMode = false; drawStoryCanvas(); }
   const a = document.createElement('a');
   a.download = 'strava-story.png';
   a.href = canvas.toDataURL('image/png');
   a.click();
+  if (activeLayout === 'custom' && wasEditing) { customEditMode = true; drawStoryCanvas(); }
 });
 
 /* ── MAIN BUTTON EVENTS ── */

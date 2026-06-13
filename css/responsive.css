@@ -69,8 +69,8 @@
   .modal-body { grid-template-columns: 1fr; gap: 12px; }
 
   /* preview on top so edits are visible while scrolling the controls */
+  .story-right { order: -1; }
   .story-preview {
-    order: -1;
     height: 46vh !important;
     width: auto !important;
     aspect-ratio: 9/16;

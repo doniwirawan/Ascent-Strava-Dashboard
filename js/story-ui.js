@@ -10,6 +10,37 @@ function drawStoryCanvas(){
     const miniSel=selected.slice(0,4);
     drawLayout(c,miniAct,miniSel,sc,c.dataset.layout);
   });
+  // custom layout: show the drag hint and make the canvas feel draggable
+  const hint=document.getElementById('storyHint');
+  const isCustom=activeLayout==='custom';
+  if(hint) hint.style.display=isCustom?'':'none';
+  canvas.style.cursor=isCustom?'grab':'';
+}
+
+// Free-placement dragging on the main canvas (custom layout only)
+function _wireCustomDrag(){
+  const canvas=document.getElementById('storyCanvas');
+  if(canvas._customWired) return; canvas._customWired=true;
+  let drag=null;
+  const toCanvas=e=>{ const r=canvas.getBoundingClientRect(); return { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) }; };
+  const elPos=id=> id==='title'?customPos.title : id==='date'?customPos.date : id==='logo'?customPos.logo : id==='route'?customPos.route : id.startsWith('stat:')?customPos.stats[id.slice(5)] : null;
+  canvas.addEventListener('pointerdown',e=>{
+    if(activeLayout!=='custom') return;
+    const p=toCanvas(e), hits=window._customHits||[];
+    for(let i=hits.length-1;i>=0;i--){ const h=hits[i]; if(p.x>=h.x&&p.x<=h.x+h.w&&p.y>=h.y&&p.y<=h.y+h.h){ drag={sx:p.x,sy:p.y,pos:elPos(h.id)}; break; } }
+    if(drag&&drag.pos){ canvas.setPointerCapture(e.pointerId); canvas.style.cursor='grabbing'; e.preventDefault(); } else drag=null;
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(!drag) return;
+    const p=toCanvas(e);
+    drag.pos.x=Math.min(1,Math.max(0,drag.pos.x+(p.x-drag.sx)/canvas.width));
+    drag.pos.y=Math.min(1,Math.max(0,drag.pos.y+(p.y-drag.sy)/canvas.height));
+    drag.sx=p.x; drag.sy=p.y;
+    drawStoryCanvas();
+  });
+  const end=()=>{ if(drag){ drag=null; saveCustomPos(); canvas.style.cursor='grab'; } };
+  canvas.addEventListener('pointerup',end);
+  canvas.addEventListener('pointercancel',end);
 }
 
 async function fetchStreams(actId){
@@ -154,6 +185,11 @@ function openStoryModal(){
     clearBg.style.display=storyBgImage?'':'none';
     clearBg.addEventListener('click',()=>{storyBgImage=null;clearBg.style.display='none';bgName.textContent='';if(bgInput)bgInput.value='';drawStoryCanvas();});
   }
+
+  // custom free-placement: enable canvas dragging + reset button
+  _wireCustomDrag();
+  const customReset=document.getElementById('customReset');
+  if(customReset) customReset.onclick=()=>{ resetCustomPos(); drawStoryCanvas(); };
 
   document.getElementById('storyModal').classList.add('open');
   setTimeout(drawStoryCanvas,50);
