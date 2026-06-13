@@ -15,7 +15,7 @@
   background: var(--surface);
   overflow-y: auto;
   overflow-x: hidden;
-  z-index: 200;
+  z-index: 9999999;
   display: flex;
   flex-direction: column;
   scrollbar-width: none;
@@ -30,7 +30,7 @@
 .sidebar-act.danger { color: #f87171; }
 
 /* off-canvas backdrop (used on mobile) */
-.sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 190; }
+.sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 9999998; }
 .sidebar-backdrop.open { opacity: 1; pointer-events: auto; }
 
 .sidebar-user {

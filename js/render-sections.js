@@ -313,7 +313,7 @@ function renderMilestones(){
     {v:set.length.toLocaleString(), l:mode==='run'?'Runs':'Rides'},
     {v:Number(tDist).toLocaleString(), l:'Distance ('+distUnit()+')'},
     {v:tElev.toLocaleString(), l:'Elevation ('+elevUnit()+')'},
-    {v:fmtT(tTime), l:'Moving Time'},
+    {v:fmtT(tTime), l:'Moving Time', sub:'≈ '+fmtDays(tTime)},
   ];
 
   // records within the mode
@@ -342,7 +342,7 @@ function renderMilestones(){
 
   el.innerHTML=`
     <div class="mst-banner">
-      ${totals.map(t=>`<div class="mst-cell"><div class="mst-cv">${t.v}</div><div class="mst-cl">${t.l}</div></div>`).join('')}
+      ${totals.map(t=>`<div class="mst-cell"><div class="mst-cv">${t.v}</div><div class="mst-cl">${t.l}</div>${t.sub?`<div class="mst-cs">${t.sub}</div>`:''}</div>`).join('')}
     </div>
     <div class="mst-grid">
       ${records.map(r=>`<div class="mst-card">
@@ -946,58 +946,82 @@ async function scanSegments(){
 /* ── PHOTOS ── */
 let photoItems = [], photoIdx = 0; // backing data for the lightbox
 let _photosLoaded = false; // photos don't depend on units — don't refetch on unit toggle
-function _photoTileHTML(p,i){
-  return `<div class="photo-tile" title="${p.name}" onclick="openPhoto(${i})">
-      <img src="${p.thumb}" alt="${p.name}" loading="lazy" decoding="async">
-      ${p.video?'<span class="photo-play" aria-label="Video">▶</span>':''}
-      <div class="photo-caption">
-        <span>${p.name}</span>
-        <span style="opacity:.65;font-size:9px">${p.date?fmtDt(p.date):''}</span>
-      </div>
-    </div>`;
-}
+/* Persistent per-activity photo cache (survives reloads) so we hit Strava's
+   API only once per activity, not on every visit/refresh. */
+let _actPhotoCache = {};            // actId -> [{url,thumb,video}]
+let _photoObserver = null, _photoRateLimited = false;
+function _photoCacheKey(){ return 'strava_photos_' + (localStorage.getItem('strava_athlete_id') || 'x'); }
+function _photoCacheLoad(){ try{ return JSON.parse(localStorage.getItem(_photoCacheKey()) || '{}'); }catch{ return {}; } }
+function _photoCacheSave(){ try{ localStorage.setItem(_photoCacheKey(), JSON.stringify(_actPhotoCache)); }catch{ /* quota — non-fatal */ } }
+
 async function renderPhotos(){
   const el=document.getElementById('photosGrid');
   if(_photosLoaded) return;
   _photosLoaded=true;
-  // loaded activities that have photos — newest first, capped so we don't
-  // blow Strava's rate limit (one photos request per activity)
-  const withPhotos=acts.filter(a=>a.total_photo_count>0).slice(0,60);
-  if(!withPhotos.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No photos found in recent activities.</p>';return;}
-  el.innerHTML='<p class="photo-loading" style="color:var(--muted);padding:8px">Loading photos…</p>';
-  photoItems=[];
+  _actPhotoCache=_photoCacheLoad();
+  const withPhotos=acts.filter(a=>a.total_photo_count>0); // ALL activities with photos
+  if(!withPhotos.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No photos found in your activities.</p>';return;}
 
-  // tiles appear progressively as each activity resolves (image first; the
-  // heavier video stream is only fetched when a tile is opened)
-  const add=(a,photos)=>{
-    (photos||[]).forEach(p=>{
-      const urls=p.urls||{};
-      const full=urls['1024']||urls['600']||urls['2048']||Object.values(urls)[0];
-      const thumb=urls['600']||urls['256']||full;
-      const video=p.video_url||null; // present when the "photo" is actually a video
-      if(!full&&!video) return;
-      const it={url:full||thumb,thumb:thumb||full,video,name:a.name,date:a.start_date,actId:a.id};
-      const idx=photoItems.push(it)-1;
-      const ld=el.querySelector('.photo-loading'); if(ld) ld.remove();
-      el.insertAdjacentHTML('beforeend',_photoTileHTML(it,idx));
-    });
-  };
+  // one tile per activity — render instantly from cache; uncached tiles show a
+  // skeleton and lazy-fetch only when they scroll into view (rate-limit friendly)
+  el.innerHTML=withPhotos.map(a=>{
+    const cached=_actPhotoCache[a.id];
+    const cover=cached&&cached.length?(cached.find(x=>x.thumb)||cached[0]):null;
+    const badge=a.total_photo_count>1?`<span class="photo-count">▣ ${a.total_photo_count}</span>`:(cover&&cover.video?'<span class="photo-play">▶</span>':'');
+    return `<div class="photo-tile${cover?'':' photo-pending'}" data-actid="${a.id}" title="${(a.name||'').replace(/"/g,'&quot;')}" onclick="openActPhotos('${a.id}')">
+      ${cover?`<img src="${cover.thumb||cover.url}" alt="" loading="lazy" decoding="async">`:'<div class="photo-skel"></div>'}
+      ${badge}
+      <div class="photo-caption"><span>${a.name||''}</span><span style="opacity:.65;font-size:9px">${a.start_date?fmtDt(a.start_date):''}</span></div>
+    </div>`;
+  }).join('');
 
-  // fetch in parallel with a small concurrency cap so it's fast without
-  // tripping Strava's rate limit; stop early if we do hit it
-  let cursor=0, rateLimited=false;
-  const worker=async()=>{
-    while(cursor<withPhotos.length && !rateLimited){
-      const a=withPhotos[cursor++];
-      try{ add(a, await api(`/activities/${a.id}/photos?size=1024&photo_sources=true`)); }
-      catch(err){ if(/ 429 /.test(' '+(err&&err.message||'')+' ')) rateLimited=true; }
-    }
-  };
-  await Promise.all(Array.from({length:6},worker));
+  if(_photoObserver) _photoObserver.disconnect();
+  _photoObserver=new IntersectionObserver(ents=>{
+    ents.forEach(en=>{ if(en.isIntersecting){ _photoObserver.unobserve(en.target); _loadTilePhotos(en.target); } });
+  },{rootMargin:'300px'});
+  el.querySelectorAll('.photo-tile.photo-pending').forEach(t=>_photoObserver.observe(t));
+}
 
-  const ld=el.querySelector('.photo-loading'); if(ld) ld.remove();
-  if(!photoItems.length){ el.innerHTML='<p style="color:var(--muted);padding:8px">Could not load photos.</p>'; return; }
-  if(rateLimited) el.insertAdjacentHTML('beforeend','<p style="color:var(--muted);padding:8px;grid-column:1/-1">Some photos hit Strava’s rate limit — revisit shortly to load the rest.</p>');
+async function _loadTilePhotos(tile){
+  const id=tile.dataset.actid;
+  if(_actPhotoCache[id]){ _renderTileCover(tile,_actPhotoCache[id]); return; }
+  if(_photoRateLimited) return;
+  try{
+    const photos=await api(`/activities/${id}/photos?size=1024&photo_sources=true`);
+    const items=(photos||[]).map(p=>{
+      const u=p.urls||{};
+      const full=u['1024']||u['600']||u['2048']||Object.values(u)[0];
+      const thumb=u['600']||u['256']||full;
+      return {url:full||thumb,thumb:thumb||full,video:p.video_url||null};
+    }).filter(x=>x.url||x.video);
+    _actPhotoCache[id]=items;
+    _photoCacheSave();
+    _renderTileCover(tile,items);
+  }catch(err){
+    if(/ 429 /.test(' '+(err&&err.message||'')+' ')) _photoRateLimited=true;
+    tile.classList.add('photo-failed');
+  }
+}
+
+function _renderTileCover(tile,items){
+  tile.classList.remove('photo-pending');
+  if(!items||!items.length){ tile.style.display='none'; return; }
+  const cover=items.find(x=>x.thumb)||items[0];
+  const skel=tile.querySelector('.photo-skel'); if(skel) skel.remove();
+  if(!tile.querySelector('img')){
+    tile.insertAdjacentHTML('afterbegin',`<img src="${cover.thumb||cover.url}" alt="" loading="lazy" decoding="async">`);
+    if(items.length===1 && cover.video && !tile.querySelector('.photo-count') && !tile.querySelector('.photo-play'))
+      tile.insertAdjacentHTML('beforeend','<span class="photo-play">▶</span>');
+  }
+}
+
+// open the lightbox with one activity's photos (loads them first if needed)
+function openActPhotos(id){
+  const a=acts.find(x=>String(x.id)===String(id));
+  const show=items=>{ if(items&&items.length){ photoItems=items.map(x=>({...x,name:a?a.name:'',date:a?a.start_date:null})); openPhoto(0); } };
+  if(_actPhotoCache[id]){ show(_actPhotoCache[id]); return; }
+  const tile=document.querySelector(`.photo-tile[data-actid="${id}"]`);
+  if(tile) _loadTilePhotos(tile).then(()=>show(_actPhotoCache[id]));
 }
 
 /* ── PHOTO LIGHTBOX ── */

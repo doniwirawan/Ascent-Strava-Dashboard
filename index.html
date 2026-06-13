@@ -386,7 +386,7 @@
       <h3>How your data is loaded</h3>
       <ul class="help-list">
         <li><b>Source.</b> Everything comes from the official <b>Strava API</b> using your own login — this dashboard has no server and never sees your password.</li>
-        <li><b>Activities.</b> Up to your <b>2,000 most recent activities</b> are fetched (<code>/athlete/activities</code>). Aggregate "all-time / YTD / last-4-weeks" figures in Trophies come from Strava's totals endpoint (<code>/athletes/&#123;id&#125;/stats</code>), so they can exceed even that.</li>
+        <li><b>Activities.</b> Your <b>full activity history</b> is fetched (<code>/athlete/activities</code>, paged) and cached so revisits are instant. Aggregate "all-time / YTD / last-4-weeks" figures in Trophies come from Strava's totals endpoint (<code>/athletes/&#123;id&#125;/stats</code>).</li>
         <li><b>Caching.</b> Results are cached in your browser (localStorage) and in a private per-athlete row so revisits are instant; the cache refreshes about once an hour, or immediately when you hit <b>Refresh</b>.</li>
         <li><b>Detail on demand.</b> When you open <b>Share Story</b> or <b>Segments</b>, extra data is fetched per item — the detailed activity (for Energy/Calories/power), GPS streams (for the waveform charts), and segment routes.</li>
         <li><b>Units.</b> The <b>km / mi</b> switch in the top bar converts every distance, speed and elevation across the app. Named metric milestones (e.g. "1,000 km Club", Everest) stay metric on purpose.</li>

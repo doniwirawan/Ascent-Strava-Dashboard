@@ -221,6 +221,19 @@
   -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
   box-shadow: 0 2px 12px rgba(0,0,0,.5);
 }
+.photo-count {
+  position: absolute; top: 6px; right: 6px; z-index: 1;
+  font-size: 10px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,.55); border-radius: 6px; padding: 2px 7px;
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); pointer-events: none;
+}
+.photo-skel {
+  position: absolute; inset: 0;
+  background: linear-gradient(100deg, var(--surface2) 30%, var(--surface3) 50%, var(--surface2) 70%);
+  background-size: 200% 100%; animation: photoShimmer 1.2s ease-in-out infinite;
+}
+@keyframes photoShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.photo-failed .photo-skel { animation: none; opacity: .35; }
 
 .photo-caption {
   position: absolute;
@@ -382,6 +395,7 @@
 .mst-cell { background: var(--surface); padding: 20px 18px; text-align: center; }
 .mst-cv { font-size: 30px; font-weight: 900; color: var(--text); line-height: 1; letter-spacing: -1px; }
 .mst-cl { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+.mst-cs { font-size: 11px; font-weight: 700; color: var(--orange); margin-top: 4px; }
 
 .mst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
 .mst-card { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: border-color .2s, transform .18s, box-shadow .2s; }

@@ -116,9 +116,9 @@ async function loadData(forceRefresh = false) {
     }
 
     setStatus('Fetching activities…', 'loading');
-    // Page through the athlete's history (newest first). Stops at the last
-    // partial page, capped so very large accounts don't fetch indefinitely.
-    const PER = 200, MAX_PAGES = 10; // up to ~2,000 most-recent activities
+    // Page through the athlete's full history (newest first) until the last
+    // partial page. MAX_PAGES is only a runaway safety bound (~40k activities).
+    const PER = 200, MAX_PAGES = 200;
     acts = [];
     for (let page = 1; page <= MAX_PAGES; page++) {
       const batch = await api(`/athlete/activities?per_page=${PER}&page=${page}`);
