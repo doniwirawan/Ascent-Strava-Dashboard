@@ -16,8 +16,8 @@ function renderCycling() {
       <div class="hero-label">Fastest Speed (Max)</div>
       <div class="hero-value">${kmh(fastMax)} <span class="hero-unit">${speedUnit()}</span></div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
-        <a href="https://www.strava.com/activities/${fastMaxRide.id}" target="_blank"
-           style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);">
+        <a href="https://www.strava.com/activities/${fastMaxRide.id}" onclick="openActivityModal('${fastMaxRide.id}');return false;"
+           style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);cursor:pointer;">
           ${fastMaxRide.name}</a> &nbsp;·&nbsp; ${fmtDt(fastMaxRide.start_date)} &nbsp;·&nbsp; ${fmtD(fastMaxRide.distance)}
       </div>
     </div>
@@ -25,8 +25,8 @@ function renderCycling() {
       <div class="hero-label">Best Avg Speed</div>
       <div class="hero-value">${kmh(fastAvg)} <span class="hero-unit">${speedUnit()}</span></div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
-        <a href="https://www.strava.com/activities/${fastAvgRide.id}" target="_blank"
-           style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);">
+        <a href="https://www.strava.com/activities/${fastAvgRide.id}" onclick="openActivityModal('${fastAvgRide.id}');return false;"
+           style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);cursor:pointer;">
           ${fastAvgRide.name}</a> &nbsp;·&nbsp; ${fmtDt(fastAvgRide.start_date)} &nbsp;·&nbsp; ${fmtD(fastAvgRide.distance)}
       </div>
     </div>
@@ -47,7 +47,7 @@ function renderCycling() {
     <div class="ctop-title">Top 5 Fastest Speeds</div>
     <div class="ctop-list">
       ${top5.map((r,i)=>`
-        <a class="ctop-row" href="https://www.strava.com/activities/${r.id}" target="_blank" rel="noopener">
+        <a class="ctop-row" href="https://www.strava.com/activities/${r.id}" onclick="openActivityModal('${r.id}');return false;" rel="noopener">
           <span class="ctop-rank">${i+1}</span>
           <span class="ctop-info">
             <span class="ctop-name">${r.name}</span>
@@ -110,7 +110,7 @@ function renderRunning() {
   const avgHR = hrRuns.length ? Math.round(hrRuns.reduce((s, r) => s + r.average_heartrate, 0) / hrRuns.length) : 0;
 
   const subline = (r, extra) => r ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
-      <a href="https://www.strava.com/activities/${r.id}" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);">${r.name}</a> &nbsp;·&nbsp; ${fmtDt(r.start_date)} &nbsp;·&nbsp; ${extra}</div>` : '';
+      <a href="https://www.strava.com/activities/${r.id}" onclick="openActivityModal('${r.id}');return false;" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);cursor:pointer;">${r.name}</a> &nbsp;·&nbsp; ${fmtDt(r.start_date)} &nbsp;·&nbsp; ${extra}</div>` : '';
 
   document.getElementById('runningHero').innerHTML = `
     <div class="hero-box hi">
@@ -136,7 +136,7 @@ function renderRunning() {
     <div class="ctop-title">Top 5 Fastest Pace</div>
     <div class="ctop-list">
       ${top5.map((r, i) => `
-        <a class="ctop-row" href="https://www.strava.com/activities/${r.id}" target="_blank" rel="noopener">
+        <a class="ctop-row" href="https://www.strava.com/activities/${r.id}" onclick="openActivityModal('${r.id}');return false;" rel="noopener">
           <span class="ctop-rank">${i+1}</span>
           <span class="ctop-info"><span class="ctop-name">${r.name}</span><span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)}</span></span>
           <span class="ctop-bar"><span class="ctop-bar-fill" style="width:${(r.average_speed/top5max*100).toFixed(0)}%"></span></span>
@@ -281,11 +281,11 @@ function renderActivities() {
   const sample = src.slice(0,60);
   const maxDist = Math.max(...sample.map(a=>a.distance||0));
   const wrap = document.getElementById('bubbleWrap');
-  wrap.innerHTML = sample.map(a=>{
+  wrap.innerHTML = sample.map((a,i)=>{
     const km  = kmVal(a.distance||0);
     const pct = (a.distance||0)/(maxDist||1);
     const sz  = Math.max(28, Math.min(90, 28 + pct*62));
-    return `<div class="bubble" style="width:${sz}px;height:${sz}px" title="${a.name} — ${km.toFixed(1)} ${distUnit()}">
+    return `<div class="bubble" style="width:${sz}px;height:${sz}px;cursor:pointer" title="${a.name} — ${km.toFixed(1)} ${distUnit()}" onclick="openActivityModal(${i})">
       ${sz>40 ? `<span>${km.toFixed(0)}</span>` : ''}
     </div>`;
   }).join('');
@@ -312,14 +312,15 @@ function _actRouteSVG(a){
   const d=pts.map((p,i)=>(i?'L':'M')+X(p[1]).toFixed(1)+' '+Y(p[0]).toFixed(1)).join(' ');
   const s=pts[0], e=pts[pts.length-1];
   return `<svg class="actd-route" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-    <path d="${d}" fill="none" stroke="var(--orange)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${d}" fill="none" stroke="#FC4C02" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     <circle cx="${X(s[1]).toFixed(1)}" cy="${Y(s[0]).toFixed(1)}" r="5" fill="#22c55e"/>
     <circle cx="${X(e[1]).toFixed(1)}" cy="${Y(e[0]).toFixed(1)}" r="5" fill="#ef4444"/>
   </svg>`;
 }
 
-function openActivityModal(i){
-  const a=_actRows[i]; if(!a) return;
+function openActivityModal(ref){
+  const a = (typeof ref==='number') ? _actRows[ref] : (acts||[]).find(x=>String(x.id)===String(ref));
+  if(!a) return;
   const ride=isRide(a);
   const when=a.start_date_local||a.start_date;
   const dateStr=new Date(when).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'});

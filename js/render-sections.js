@@ -961,7 +961,8 @@ async function renderPhotos(){
         const urls=p.urls||{};
         const full=urls['2048']||urls['1024']||urls['600']||Object.values(urls)[0];
         const thumb=urls['600']||urls['256']||full;
-        if(full) results.push({url:full,thumb,name:a.name,date:a.start_date,actId:a.id});
+        const video=p.video_url||null; // present when the "photo" is actually a video
+        if(full||video) results.push({url:full||thumb,thumb:thumb||full,video,name:a.name,date:a.start_date,actId:a.id});
       });
     }catch{}
   }
@@ -970,6 +971,7 @@ async function renderPhotos(){
   el.innerHTML=results.map((p,i)=>`
     <div class="photo-tile" title="${p.name}" onclick="openPhoto(${i})">
       <img src="${p.thumb}" alt="${p.name}" loading="lazy">
+      ${p.video?'<span class="photo-play" aria-label="Video">▶</span>':''}
       <div class="photo-caption">
         <span>${p.name}</span>
         <span style="opacity:.65;font-size:9px">${p.date?fmtDt(p.date):''}</span>
@@ -983,13 +985,29 @@ function openPhoto(i){
   photoIdx=(i+photoItems.length)%photoItems.length;
   const it=photoItems[photoIdx];
   const lb=document.getElementById('photoLightbox');
-  document.getElementById('lbImg').src=it.url;
+  const img=document.getElementById('lbImg');
+  const vid=document.getElementById('lbVideo');
+  if(it.video){
+    img.style.display='none';
+    vid.src=it.video;
+    if(it.thumb) vid.poster=it.thumb;
+    vid.style.display='';
+    vid.currentTime=0;
+    vid.play().catch(()=>{});
+  }else{
+    if(vid){ vid.pause(); vid.removeAttribute('src'); vid.load(); vid.style.display='none'; }
+    img.src=it.url;
+    img.style.display='';
+  }
   document.getElementById('lbName').textContent=it.name||'';
   document.getElementById('lbDate').textContent=it.date?fmtDt(it.date):'';
   lb.classList.add('open');
 }
 function movePhoto(d){ openPhoto(photoIdx+d); }
-function closePhoto(){ document.getElementById('photoLightbox').classList.remove('open'); }
+function closePhoto(){
+  document.getElementById('photoLightbox').classList.remove('open');
+  const vid=document.getElementById('lbVideo'); if(vid) vid.pause();
+}
 async function downloadPhoto(){
   const it=photoItems[photoIdx]; if(!it) return;
   const fname=((it.name||'photo').replace(/[^\w\-]+/g,'_').slice(0,60)||'photo')+'.jpg';
