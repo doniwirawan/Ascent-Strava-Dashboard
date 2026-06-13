@@ -1,4 +1,4 @@
-const CACHE = 'strava-dash-v2';
+const CACHE = 'strava-dash-__BUILD__';
 const PRECACHE = ['/', '/callback'];
 
 self.addEventListener('install', e => {

@@ -7,6 +7,9 @@ const SECRET       = (process.env.STRAVA_CLIENT_SECRET || '').replace(/\n/g, '')
 const SUPA_URL     = (process.env.SUPABASE_URL          || '').replace(/\n/g, '').trim();
 const SUPA_KEY     = (process.env.SUPABASE_ANON_KEY     || '').replace(/\n/g, '').trim();
 
+// changes every build → busts the browser HTTP cache for js/ and css/ assets
+const BUILD = Date.now().toString(36);
+
 function injectIndexHtml() {
   let content = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
   content = content.replace(/__STRAVA_CLIENT_ID__/g,     ID);
@@ -15,6 +18,8 @@ function injectIndexHtml() {
   content = content.replace(/__STRAVA_REFRESH_TOKEN__/g, '');
   content = content.replace(/__SUPABASE_URL__/g,         SUPA_URL);
   content = content.replace(/__SUPABASE_KEY__/g,         SUPA_KEY);
+  // cache-bust local script/style URLs so a new deploy is always picked up
+  content = content.replace(/(src|href)="((?:js|css)\/[^"?]+)"/g, `$1="$2?v=${BUILD}"`);
   return content;
 }
 
@@ -29,10 +34,16 @@ fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
 fs.writeFileSync(path.join(__dirname, 'dist', 'index.html'),    injectIndexHtml());
 fs.writeFileSync(path.join(__dirname, 'dist', 'callback.html'), injectCallbackHtml());
 
-// copy static PWA + legal files
+// copy static PWA + legal files (sw.js gets the build id for its cache name)
 ['manifest.json', 'sw.js', 'icon.svg', 'privacy.html', 'terms.html'].forEach(f => {
   const src = path.join(__dirname, f);
-  if (fs.existsSync(src)) fs.copyFileSync(src, path.join(__dirname, 'dist', f));
+  if (!fs.existsSync(src)) return;
+  const dest = path.join(__dirname, 'dist', f);
+  if (f === 'sw.js') {
+    fs.writeFileSync(dest, fs.readFileSync(src, 'utf8').replace(/__BUILD__/g, BUILD));
+  } else {
+    fs.copyFileSync(src, dest);
+  }
 });
 
 // copy css/ and js/ folders — inject placeholders into JS files
