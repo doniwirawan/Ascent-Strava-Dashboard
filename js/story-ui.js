@@ -27,6 +27,14 @@ function _customElPos(id){
   return null;
 }
 const _customClamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+// shrink an uploaded image so it fits in localStorage (max dim px, JPEG)
+function _downscaleDataURL(img,maxDim){
+  const scale=Math.min(1, maxDim/Math.max(img.naturalWidth||img.width, img.naturalHeight||img.height));
+  const w=Math.round((img.naturalWidth||img.width)*scale), h=Math.round((img.naturalHeight||img.height)*scale);
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  c.getContext('2d').drawImage(img,0,0,w,h);
+  return c.toDataURL('image/jpeg',0.85);
+}
 function _customScale(id,factor){
   if(id==='route'){ const r=customPos.route; r.w=_customClamp(r.w*factor,0.05,1.8); r.h=_customClamp(r.h*factor,0.04,1.8); }
   else { const p=_customElPos(id); if(p) p.s=_customClamp((p.s||1)*factor,0.15,5); }
@@ -339,23 +347,30 @@ function openStoryModal(){
   const bgUploadBtn=document.getElementById('bgUploadBtn');
   const clearBg=document.getElementById('clearBgBtn');
   const bgName=document.getElementById('bgImageName');
-  if(bgUploadBtn&&bgInput) bgUploadBtn.addEventListener('click',()=>bgInput.click());
-  if(bgInput){
-    bgInput.addEventListener('change',e=>{
-      const file=e.target.files[0];
-      if(!file) return;
-      const reader=new FileReader();
-      reader.onload=ev=>{
-        const img=new Image();
-        img.onload=()=>{storyBgImage=img;clearBg.style.display='';bgName.textContent=file.name;drawStoryCanvas();};
-        img.src=ev.target.result;
+  if(bgUploadBtn&&bgInput) bgUploadBtn.onclick=()=>bgInput.click();
+  if(bgInput) bgInput.onchange=e=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const img=new Image();
+      img.onload=()=>{
+        storyBgImage=img; if(clearBg) clearBg.style.display=''; if(bgName) bgName.textContent=file.name;
+        try{ localStorage.setItem('story_bg', _downscaleDataURL(img,1280)); localStorage.setItem('story_bg_name', file.name); }catch{}
+        drawStoryCanvas();
       };
-      reader.readAsDataURL(file);
-    });
-  }
+      img.src=ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
   if(clearBg){
     clearBg.style.display=storyBgImage?'':'none';
-    clearBg.addEventListener('click',()=>{storyBgImage=null;clearBg.style.display='none';bgName.textContent='';if(bgInput)bgInput.value='';drawStoryCanvas();});
+    clearBg.onclick=()=>{ storyBgImage=null; clearBg.style.display='none'; if(bgName) bgName.textContent=''; if(bgInput) bgInput.value=''; localStorage.removeItem('story_bg'); localStorage.removeItem('story_bg_name'); drawStoryCanvas(); };
+  }
+  // restore a previously-used background photo
+  if(!storyBgImage){
+    const saved=localStorage.getItem('story_bg');
+    if(saved){ const img=new Image(); img.onload=()=>{ storyBgImage=img; if(clearBg) clearBg.style.display=''; if(bgName) bgName.textContent=localStorage.getItem('story_bg_name')||'photo'; drawStoryCanvas(); }; img.src=saved; }
   }
 
   // custom free-placement: enable canvas dragging + reset button
