@@ -960,8 +960,9 @@ async function renderPhotos(){
   const el=document.getElementById('photosGrid');
   if(_photosLoaded) return;
   _photosLoaded=true;
-  // every loaded activity that has photos — not an arbitrary handful
-  const withPhotos=acts.filter(a=>a.total_photo_count>0);
+  // loaded activities that have photos — newest first, capped so we don't
+  // blow Strava's rate limit (one photos request per activity)
+  const withPhotos=acts.filter(a=>a.total_photo_count>0).slice(0,60);
   if(!withPhotos.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No photos found in recent activities.</p>';return;}
   el.innerHTML='<p class="photo-loading" style="color:var(--muted);padding:8px">Loading photos…</p>';
   photoItems=[];

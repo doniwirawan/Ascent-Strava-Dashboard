@@ -116,11 +116,17 @@ async function loadData(forceRefresh = false) {
     }
 
     setStatus('Fetching activities…', 'loading');
-    const [p1, p2] = await Promise.all([
-      api('/athlete/activities?per_page=100&page=1'),
-      api('/athlete/activities?per_page=100&page=2')
-    ]);
-    acts = [...p1, ...p2];
+    // Page through the athlete's history (newest first). Stops at the last
+    // partial page, capped so very large accounts don't fetch indefinitely.
+    const PER = 200, MAX_PAGES = 10; // up to ~2,000 most-recent activities
+    acts = [];
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const batch = await api(`/athlete/activities?per_page=${PER}&page=${page}`);
+      if (!batch || !batch.length) break;
+      acts = acts.concat(batch);
+      setStatus(`Fetching activities… (${acts.length})`, 'loading');
+      if (batch.length < PER) break; // last page reached
+    }
     renderAll();
     cacheSave(acts, athlete.id);
     setStatus(`✓ ${acts.length} activities loaded`, 'success');
