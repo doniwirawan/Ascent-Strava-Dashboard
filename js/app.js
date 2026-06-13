@@ -1,8 +1,9 @@
 /* ── STORY MODAL EVENTS ── */
+function _closeStory(){ document.getElementById('storyModal').classList.remove('open'); localStorage.removeItem('story_open'); }
 document.getElementById('shareBtn').addEventListener('click', openStoryModal);
-document.getElementById('modalClose').addEventListener('click',  ()=>document.getElementById('storyModal').classList.remove('open'));
-document.getElementById('modalClose2').addEventListener('click', ()=>document.getElementById('storyModal').classList.remove('open'));
-document.getElementById('storyModal').addEventListener('click', e=>{ if(e.target===e.currentTarget) e.currentTarget.classList.remove('open'); });
+document.getElementById('modalClose').addEventListener('click',  _closeStory);
+document.getElementById('modalClose2').addEventListener('click', _closeStory);
+document.getElementById('storyModal').addEventListener('click', e=>{ if(e.target===e.currentTarget) _closeStory(); });
 document.getElementById('downloadBtn').addEventListener('click', ()=>{
   const canvas = document.getElementById('storyCanvas');
   // re-render without the custom drag guides so they never appear in the export
@@ -54,7 +55,10 @@ if (!CONFIG.refreshToken) {
   document.getElementById('mainBtn').textContent = 'Connect';
   document.getElementById('mainBtn').onclick = () => { window.location.href = authUrl; };
 } else {
-  loadData();
+  // reopen the Share Story modal if that's where the user left off
+  loadData().then(() => {
+    if (localStorage.getItem('story_open') === '1' && typeof acts !== 'undefined' && acts.length) openStoryModal();
+  });
 }
 
 /* ── SERVICE WORKER ── */

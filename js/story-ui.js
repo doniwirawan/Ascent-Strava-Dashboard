@@ -363,5 +363,6 @@ function openStoryModal(){
   });
 
   document.getElementById('storyModal').classList.add('open');
+  localStorage.setItem('story_open','1'); // remember to reopen after a refresh
   setTimeout(drawStoryCanvas,50);
 }
