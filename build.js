@@ -33,7 +33,7 @@ fs.writeFileSync(path.join(__dirname, 'dist', 'index.html'),    injectIndexHtml(
 fs.writeFileSync(path.join(__dirname, 'dist', 'callback.html'), injectCallbackHtml());
 
 // copy static PWA + legal files (sw.js gets the build id for its cache name)
-['manifest.json', 'sw.js', 'icon.png', 'apple-touch-icon.png', 'privacy.html', 'terms.html'].forEach(f => {
+['manifest.json', 'sw.js', 'icon.png', 'apple-touch-icon.png', 'privacy.html', 'terms.html', 'robots.txt', 'sitemap.xml'].forEach(f => {
   const src = path.join(__dirname, f);
   if (!fs.existsSync(src)) return;
   const dest = path.join(__dirname, 'dist', f);

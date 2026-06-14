@@ -3,7 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Ascent</title>
+  <title>Ascent — Strava Analytics Dashboard &amp; Story Card Maker</title>
+  <meta name="description" content="Ascent is a free, private web app that turns your Strava rides and runs into a beautiful analytics dashboard — stats, trends, heatmaps, segments, Eddington number and milestones — plus a studio for shareable 9:16 story cards. Runs entirely in your browser.">
+  <meta name="keywords" content="Strava dashboard, Strava analytics, Strava story card, cycling stats, running stats, Strava heatmap, Eddington number, activity dashboard, ride stats, run stats">
+  <link rel="canonical" href="https://stravadashboard.vercel.app/">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Ascent">
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Ascent">
+  <meta property="og:title" content="Ascent — Strava Analytics Dashboard &amp; Story Card Maker">
+  <meta property="og:description" content="Turn your Strava rides and runs into a beautiful, private analytics dashboard — plus a studio for shareable 9:16 story cards. Free and runs entirely in your browser.">
+  <meta property="og:url" content="https://stravadashboard.vercel.app/">
+  <meta property="og:image" content="https://stravadashboard.vercel.app/images/screenshots/overview.png">
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Ascent — Strava Analytics Dashboard &amp; Story Card Maker">
+  <meta name="twitter:description" content="Turn your Strava rides and runs into a private analytics dashboard, plus shareable 9:16 story cards. Free, runs in your browser.">
+  <meta name="twitter:image" content="https://stravadashboard.vercel.app/images/screenshots/story.png">
+  <!-- Structured data for search & generative engines (GEO/SEO) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Ascent",
+    "alternateName": "Ascent — Strava Dashboard",
+    "applicationCategory": "HealthApplication",
+    "operatingSystem": "Web browser",
+    "url": "https://stravadashboard.vercel.app/",
+    "description": "Ascent is a free, independent web app that turns your Strava activity history into a personal analytics dashboard and a share-card studio. It visualises cycling and running stats, trends, heatmaps, segments, calendar, Eddington number and milestones, and generates shareable 9:16 story images of any activity. Everything runs in your browser; it is not affiliated with Strava.",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "featureList": ["Activity analytics dashboard", "Cycling and running stats", "Weekly and monthly trends", "GPS route heatmap", "Starred segments with PRs and KOMs", "Eddington number", "Activity calendar and streaks", "Shareable 9:16 story cards with 28 templates"]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      { "@type": "Question", "name": "What is Ascent?", "acceptedAnswer": { "@type": "Answer", "text": "Ascent is a free, independent web app that turns your Strava activity history into a personal analytics dashboard and a share-card studio. It visualises your cycling and running — totals, trends, heatmaps, segments, calendar, Eddington number and milestones — and lets you generate shareable 9:16 story images of any ride or run. Everything runs in your browser, nothing is stored on a server, and it is not affiliated with Strava." } },
+      { "@type": "Question", "name": "Is Ascent free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Ascent is completely free and has no ads. You sign in with your existing Strava account; no separate account is needed." } },
+      { "@type": "Question", "name": "Is Ascent safe and private?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Your data and login tokens stay only in your browser — there is no server-side database. We never see your Strava password, the app's client secret is kept server-side, and traffic uses HTTPS. You can disconnect and wipe everything anytime." } },
+      { "@type": "Question", "name": "Is Ascent affiliated with Strava?", "acceptedAnswer": { "@type": "Answer", "text": "No. Ascent is an independent, unofficial app for your own Strava data and is not affiliated with, endorsed by, or sponsored by Strava, Inc." } },
+      { "@type": "Question", "name": "What can I make with the Ascent story studio?", "acceptedAnswer": { "@type": "Answer", "text": "You can turn any Strava activity into a 9:16 share image using 28 templates, with color themes, your own background photo, real topographic maps, selectable stats, and a drag-and-drop editor, then export a PNG for Instagram or anywhere." } }
+    ]
+  }
+  </script>
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/png" href="/icon.png">
   <link rel="icon" sizes="any" href="/icon.png">
@@ -89,7 +135,8 @@
     <h2 class="lp-h2">Data &amp; Privacy FAQ</h2>
     <p class="lp-h2-sub">The questions everyone asks before connecting an account.</p>
     <div class="lp-faq">
-      <details open><summary>Do you collect my data?</summary><div class="ans">Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth). We use it to show <i>you</i> your stats — nothing more. We never see your Strava password, and we don't collect payment info.</div></details>
+      <details open><summary>What is Ascent?</summary><div class="ans">Ascent is a <b>free, independent web app that turns your Strava activity history into a personal analytics dashboard and a share-card studio</b>. It visualises your cycling and running — totals, trends, heatmaps, segments, calendar, Eddington number and milestones — and lets you generate shareable 9:16 story images of any ride or run. Everything runs in your browser, nothing is stored on a server, and it's not affiliated with Strava.</div></details>
+      <details><summary>Do you collect my data?</summary><div class="ans">Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth). We use it to show <i>you</i> your stats — nothing more. We never see your Strava password, and we don't collect payment info.</div></details>
       <details><summary>How is my data processed?</summary><div class="ans">Almost everything (stats, charts, maps, story images) is computed <b>in your browser</b>. Your recent activities are cached so the app loads instantly on repeat visits. The only data ever <i>written</i> back to Strava is reassigning gear — and only when you choose to.</div></details>
       <details><summary>Where is my data stored?</summary><div class="ans">Only on <b>your device</b> — your browser's storage holds your login tokens, preferences and a copy of recent activities. <b>Nothing is stored on our servers</b> — no activity database, and your tokens are never saved server-side. It's 100% client-side. Your password is never stored.</div></details>
       <details><summary>Is Ascent safe? How is it secured?</summary><div class="ans">A few ways: <b>(1)</b> your data and tokens live only in your browser — there's no server-side database to breach. <b>(2)</b> We never see your Strava password; you sign in through Strava's own OAuth. <b>(3)</b> The app's confidential Strava <i>client secret</i> is kept on the server and never shipped to the browser, so it can't be lifted from the page. <b>(4)</b> The single server step is a tiny function that completes Strava's token exchange — it passes your code/token through to Strava and stores nothing. <b>(5)</b> Traffic is HTTPS, scopes are minimal, and you can wipe everything anytime with <b>Disconnect</b>.</div></details>
@@ -544,6 +591,7 @@
     <div class="help-card">
       <h3>FAQ — Data &amp; Privacy</h3>
       <dl class="help-gloss">
+        <div><dt>What is Ascent?</dt><dd>Ascent is a free, independent web app that turns your Strava activity history into a personal analytics dashboard and a share-card studio — stats, trends, heatmaps, segments, calendar, Eddington number, milestones, and 9:16 story cards. Everything runs in your browser and it's not affiliated with Strava.</dd></div>
         <div><dt>Do you collect my data?</dt><dd>Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth). We use it to show <i>you</i> your stats — nothing more. We never see your Strava password, and we don't collect payment info or anything beyond what your activities already contain.</dd></div>
         <div><dt>How is my data processed?</dt><dd>Almost everything (stats, charts, maps, story images) is computed <b>in your browser</b>. Your recent activities are cached so the app loads instantly on repeat visits. The only data we ever <i>write</i> back to Strava is reassigning gear — and only when you explicitly choose to.</dd></div>
         <div><dt>Where is my data stored?</dt><dd>Only on <b>your device</b> — in your browser's localStorage (login tokens, preferences, and a copy of your recent activities). <b>Nothing is stored on our servers</b> — no activity database, and your tokens are never saved server-side. Your password is never stored.</dd></div>
