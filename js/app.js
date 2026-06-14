@@ -77,9 +77,18 @@ if (!CONFIG.refreshToken) {
     const sync=()=>{ const w=track.clientWidth||1; cur=Math.round(track.scrollLeft/w); dots.forEach((d,i)=>d.classList.toggle('active',i===cur)); };
     track.addEventListener('scroll',()=>requestAnimationFrame(sync));
     const prev=document.getElementById('lpPrev'), next=document.getElementById('lpNext');
-    if(prev) prev.onclick=()=>go(cur-1);
-    if(next) next.onclick=()=>go(cur+1);
-    sync();
+    // autoplay — advance every 5s, pause on hover/touch, skip if reduced-motion
+    const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let timer=null;
+    const stop=()=>{ if(timer){clearInterval(timer);timer=null;} };
+    const play=()=>{ stop(); if(reduce||!track.offsetParent) return; timer=setInterval(()=>go((cur+1)%slides.length),5000); };
+    const bump=()=>{ stop(); play(); }; // restart the clock after a manual move
+    if(prev) prev.onclick=()=>{ go(cur-1); bump(); };
+    if(next) next.onclick=()=>{ go(cur+1); bump(); };
+    dots.forEach((d,i)=>{ const o=d.onclick; d.onclick=()=>{ o&&o(); bump(); }; });
+    track.addEventListener('pointerenter',stop);
+    track.addEventListener('pointerleave',play);
+    sync(); play();
   }
   const rev=document.querySelectorAll('.reveal');
   if(rev.length && 'IntersectionObserver' in window){

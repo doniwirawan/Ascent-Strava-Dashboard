@@ -79,6 +79,8 @@
         <figure class="lp-slide"><div class="stage"><img src="images/screenshots/trendsSection.png" alt="Trends charts" loading="lazy"></div><figcaption><b>Trends.</b> Weekly distance, a year-over-year comparison, pace/speed trend, and your activity split — spot build-ups, peaks and off-seasons.</figcaption></figure>
         <figure class="lp-slide"><div class="stage"><img src="images/screenshots/calSection.png" alt="Activity calendar" loading="lazy"></div><figcaption><b>Calendar.</b> A 12-month contribution grid — every active day shaded by volume, with your longest streak and busiest day.</figcaption></figure>
         <figure class="lp-slide"><div class="stage"><img src="images/screenshots/heatSection.png" alt="Route heatmap" loading="lazy"></div><figcaption><b>Heatmap.</b> Every GPS trace overlaid on an interactive map — your most-travelled roads glow brightest.</figcaption></figure>
+        <figure class="lp-slide"><div class="stage"><img src="images/screenshots/activity-detail.png" alt="Activity detail card" loading="lazy"></div><figcaption><b>Activity detail.</b> Tap any activity for its route map and every metric — speed, power, heart rate, cadence, energy, PRs and more — plus a link to open it on Strava.</figcaption></figure>
+        <figure class="lp-slide"><div class="stage"><img src="images/screenshots/eddington.png" alt="Eddington number" loading="lazy"></div><figcaption><b>Eddington number.</b> A cumulative measure of your big days, with a chart of exactly how many more long rides you need to hit the next milestone.</figcaption></figure>
       </div>
       <button class="lp-car-btn next" id="lpNext" aria-label="Next">›</button>
       <div class="lp-dots" id="lpDots"></div>
@@ -638,8 +640,8 @@
         <div>
           <div class="picker-label">Background Image</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button type="button" class="btn btn-ghost" id="bgUploadBtn" style="font-size:11px;padding:5px 12px;">Upload Photo</button>
-            <input type="file" id="bgImageInput" accept="image/*" style="opacity:0;position:absolute;width:1px;height:1px;pointer-events:none;overflow:hidden;">
+            <label class="btn btn-ghost" id="bgUploadBtn" for="bgImageInput" style="font-size:11px;padding:5px 12px;cursor:pointer;">Upload Photo</label>
+            <input type="file" id="bgImageInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
             <button class="btn btn-ghost" id="clearBgBtn" style="font-size:11px;padding:5px 10px;display:none">✕ Clear</button>
             <span id="bgImageName" style="font-size:11px;color:var(--muted);"></span>
           </div>

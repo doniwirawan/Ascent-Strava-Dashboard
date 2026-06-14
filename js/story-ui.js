@@ -415,10 +415,10 @@ function openStoryModal(){
   if(chkLogo) chkLogo.onchange=()=>{hideLogo=chkLogo.checked;document.getElementById('lbl-hideLogo').style.borderColor=hideLogo?'var(--orange)':'var(--border)';saveStorySettings();drawStoryCanvas();};
 
   const bgInput=document.getElementById('bgImageInput');
-  const bgUploadBtn=document.getElementById('bgUploadBtn');
   const clearBg=document.getElementById('clearBgBtn');
   const bgName=document.getElementById('bgImageName');
-  if(bgUploadBtn&&bgInput) bgUploadBtn.onclick=()=>bgInput.click();
+  // the Upload Photo control is a <label for="bgImageInput">, so tapping it opens
+  // the picker natively (reliable on mobile) — no programmatic .click() needed
   if(bgInput) bgInput.onchange=e=>{
     const file=e.target.files[0];
     if(!file) return;
