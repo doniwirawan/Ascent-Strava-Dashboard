@@ -280,6 +280,25 @@ function drawLayout(canvas, act, selected, sc, layout) {
             window._customHandles.push({ id: h.id, x: hx, y: hy, r });
           });
         }
+      } else if (customSel.size > 1) {
+        // group: bounding box of all selected elements + corner resize handles
+        const sel = hits.filter(hb => customSel.has(hb.id));
+        if (sel.length) {
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          sel.forEach(h => { minX = Math.min(minX, h.x); minY = Math.min(minY, h.y); maxX = Math.max(maxX, h.x + h.w); maxY = Math.max(maxY, h.y + h.h); });
+          minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+          ctx.setLineDash([Math.round(6 * S), Math.round(5 * S)]);
+          ctx.strokeStyle = '#FC4C02'; ctx.lineWidth = Math.round(2.5 * S);
+          ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+          const hs = Math.round(18 * S), r = Math.round(24 * S);
+          const corners = [[minX, minY], [maxX, minY], [minX, maxY], [maxX, maxY]];
+          ctx.setLineDash([]); ctx.lineWidth = Math.max(2, Math.round(2.5 * S));
+          corners.forEach(([hx, hy]) => {
+            ctx.fillStyle = '#FC4C02'; ctx.strokeStyle = '#fff';
+            ctx.beginPath(); ctx.roundRect(hx - hs / 2, hy - hs / 2, hs, hs, Math.round(5 * S)); ctx.fill(); ctx.stroke();
+            window._customHandles.push({ group: true, x: hx, y: hy, r });
+          });
+        }
       }
       // marquee rectangle
       const m = window._customMarquee;

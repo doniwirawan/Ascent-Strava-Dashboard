@@ -139,6 +139,17 @@ function _wireCustomDrag(){
     // resize handle takes priority
     const handle=(window._customHandles||[]).find(H=>Math.abs(p.x-H.x)<=H.r&&Math.abs(p.y-H.y)<=H.r);
     if(handle){
+      if(handle.group){
+        // group resize: scale every selected element's size + its offset from the group centre
+        const items=[...customSel].map(id=>{ const pos=_customElPos(id); return pos?{id,pos,x0:pos.x,y0:pos.y,startS:(pos.s||1),startW:pos.w,startH:pos.h}:null; }).filter(Boolean);
+        const sel=(window._customHits||[]).filter(hb=>customSel.has(hb.id));
+        let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+        sel.forEach(h=>{ minX=Math.min(minX,h.x); minY=Math.min(minY,h.y); maxX=Math.max(maxX,h.x+h.w); maxY=Math.max(maxY,h.y+h.h); });
+        const gcx=(minX+maxX)/2, gcy=(minY+maxY)/2;
+        drag={ groupResize:true, items, gcx, gcy, gxn:gcx/canvas.width, gyn:gcy/canvas.height, startDist:Math.hypot(p.x-gcx,p.y-gcy)||1 };
+        canvas.setPointerCapture(e.pointerId); canvas.style.cursor='nwse-resize'; e.preventDefault();
+        return;
+      }
       const pos=_customElPos(handle.id);
       if(pos){
         const cx=pos.x*canvas.width, cy=pos.y*canvas.height;
@@ -169,8 +180,21 @@ function _wireCustomDrag(){
       if(activeLayout!=='custom'){ canvas.style.cursor=''; return; }
       // hover feedback: resize over a handle, move over an element, crosshair on empty
       const H=(window._customHandles||[]).find(h=>Math.abs(p.x-h.x)<=h.r&&Math.abs(p.y-h.y)<=h.r);
-      if(H){ const pos=_customElPos(H.id); const cx=pos.x*canvas.width, cy=pos.y*canvas.height; canvas.style.cursor=((H.x<cx)===(H.y<cy))?'nwse-resize':'nesw-resize'; }
+      if(H&&H.group){ canvas.style.cursor='nwse-resize'; }
+      else if(H){ const pos=_customElPos(H.id); const cx=pos.x*canvas.width, cy=pos.y*canvas.height; canvas.style.cursor=((H.x<cx)===(H.y<cy))?'nwse-resize':'nesw-resize'; }
       else canvas.style.cursor=hitAt(p)?'grab':'crosshair';
+      return;
+    }
+    if(drag.groupResize){
+      const f=Math.max(0.05, Math.hypot(p.x-drag.gcx,p.y-drag.gcy)/drag.startDist);
+      const clamp=v=>Math.min(1,Math.max(0,v));
+      drag.items.forEach(it=>{
+        if(it.id==='route'){ it.pos.w=_customClamp(it.startW*f,0.05,1.8); it.pos.h=_customClamp(it.startH*f,0.04,1.8); }
+        else it.pos.s=_customClamp(it.startS*f,0.15,5);
+        it.pos.x=clamp(drag.gxn+(it.x0-drag.gxn)*f);
+        it.pos.y=clamp(drag.gyn+(it.y0-drag.gyn)*f);
+      });
+      drawStoryCanvas();
       return;
     }
     if(drag.resize){
