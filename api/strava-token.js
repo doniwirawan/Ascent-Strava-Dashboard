@@ -6,8 +6,9 @@ module.exports = async (req, res) => {
     res.status(405).json({ error: 'method_not_allowed' });
     return;
   }
-  const CLIENT_ID = process.env.STRAVA_CLIENT_ID;
-  const CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET;
+  // env values can carry stray whitespace/newlines — strip it (ids/secrets have none)
+  const CLIENT_ID = (process.env.STRAVA_CLIENT_ID || '').replace(/\s+/g, '');
+  const CLIENT_SECRET = (process.env.STRAVA_CLIENT_SECRET || '').replace(/\s+/g, '');
   if (!CLIENT_ID || !CLIENT_SECRET) {
     res.status(500).json({ error: 'server_not_configured' });
     return;
