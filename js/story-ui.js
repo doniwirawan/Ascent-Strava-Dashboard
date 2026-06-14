@@ -248,6 +248,39 @@ function _wireCustomDrag(){
   });
 }
 
+// Real elevation grid (DEM) for the route's area — powers the Topo layout's
+// genuine contour lines. Sampled from Open-Meteo's free elevation API (Copernicus
+// DEM); JSON only, so the canvas stays exportable. Cached per activity.
+const topoCache = {};
+async function ensureTopoGrid(act){
+  const id = act && act.id; if(!id || topoCache[id]) return;
+  const enc = act.map && act.map.summary_polyline;
+  let poly = null; try{ poly = enc ? decodePolyline(enc) : null; }catch{}
+  if(!poly || poly.length<2){ topoCache[id]='error'; return; }
+  topoCache[id]='loading';
+  try{
+    let minLa=90,maxLa=-90,minLn=180,maxLn=-180;
+    for(const [la,ln] of poly){ if(la<minLa)minLa=la; if(la>maxLa)maxLa=la; if(ln<minLn)minLn=ln; if(ln>maxLn)maxLn=ln; }
+    const mLa=(maxLa-minLa)*0.15||0.01, mLn=(maxLn-minLn)*0.15||0.01;
+    minLa-=mLa; maxLa+=mLa; minLn-=mLn; maxLn+=mLn;
+    const N=16, lats=[], lngs=[];
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){ lats.push(maxLa-(maxLa-minLa)*r/(N-1)); lngs.push(minLn+(maxLn-minLn)*c/(N-1)); }
+    const elev=new Array(N*N);
+    for(let i=0;i<lats.length;i+=100){
+      const la=lats.slice(i,i+100).map(v=>v.toFixed(5)).join(',');
+      const ln=lngs.slice(i,i+100).map(v=>v.toFixed(5)).join(',');
+      const res=await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${la}&longitude=${ln}`);
+      const j=await res.json(); const arr=j.elevation||[];
+      for(let k=0;k<arr.length;k++) elev[i+k]=arr[k];
+    }
+    const grid=[]; let mn=Infinity,mx=-Infinity;
+    for(let r=0;r<N;r++){ grid[r]=[]; for(let c=0;c<N;c++){ let v=elev[r*N+c]; if(v==null||isNaN(v)) v=0; grid[r][c]=v; if(v<mn)mn=v; if(v>mx)mx=v; } }
+    if(mx-mn<1) mx=mn+1;
+    topoCache[id]={grid,N,minLa,maxLa,minLn,maxLn,mn,mx};
+  }catch(e){ topoCache[id]='error'; }
+  try{ if(activeLayout==='topo') drawStoryCanvas(); }catch{}
+}
+
 async function fetchStreams(actId){
   if(!actId) return;
   if(streamsCache[actId]){currentStreams=streamsCache[actId];return;}

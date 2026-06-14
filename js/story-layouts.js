@@ -1092,79 +1092,28 @@ function drawLayout(canvas, act, selected, sc, layout) {
       // background — scheme-derived
       if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
 
-      // ── topographic height field ──
-      // deterministic peaks per activity (so each ride has a unique terrain)
-      const seedI = (act.id || 12345) % 9973;
-      const rand = (n) => {
-        const x = Math.sin(seedI * 0.0137 + n * 12.9898) * 43758.5453;
-        return x - Math.floor(x);
-      };
-      const PEAK_COUNT = 3 + Math.floor(rand(1) * 3); // 3–5 peaks
-      const peaks = [];
-      for (let p = 0; p < PEAK_COUNT; p++) {
-        peaks.push({
-          x: W * (0.15 + rand(p * 7 + 3) * 0.70),
-          y: H * (0.12 + rand(p * 11 + 5) * 0.76),
-          h: 70 + rand(p * 13 + 9) * 70,
-          r: W * (0.18 + rand(p * 17 + 2) * 0.16),
-          sign: rand(p * 19 + 1) > 0.25 ? 1 : -0.55, // mostly peaks, occasional basin
-        });
-      }
-      const noisePhase = rand(99) * 6.28;
-      function heightAt(x, y) {
-        let h = 0;
-        for (const pk of peaks) {
-          const dx = (x - pk.x) / pk.r, dy = (y - pk.y) / pk.r;
-          h += pk.h * pk.sign * Math.exp(-(dx * dx + dy * dy) * 0.7);
-        }
-        // ridge noise
-        h += Math.sin(x * 0.0095 + noisePhase) * Math.cos(y * 0.0088 + noisePhase * 1.7) * 7;
-        h += Math.sin(x * 0.024 + noisePhase * 2.1) * Math.cos(y * 0.021 + noisePhase * 3.3) * 3;
-        return h;
-      }
+      const isMainC = canvas.id === 'storyCanvas';
+      const realTopo = (typeof topoCache !== 'undefined') ? topoCache[act.id] : null;
+      const useReal = realTopo && typeof realTopo === 'object' && realTopo.grid;
+      // fetch the real elevation grid (main canvas only); it redraws when ready
+      if (isMainC && !realTopo && typeof ensureTopoGrid === 'function' && polyline && polyline.length > 1) ensureTopoGrid(act);
 
-      // sample grid
-      const RES = 28;
-      const cellGW = W / RES, cellGH = H / RES;
-      const grid = new Array(RES + 1);
-      for (let gy = 0; gy <= RES; gy++) {
-        grid[gy] = new Array(RES + 1);
-        for (let gx = 0; gx <= RES; gx++) {
-          grid[gy][gx] = heightAt(gx * cellGW, gy * cellGH);
-        }
-      }
-
-      // marching squares — draw each contour level
-      const LEVELS = 18;
-      const lo = -25, hi = 110;
-      for (let l = 0; l < LEVELS; l++) {
-        const level = lo + (hi - lo) * l / (LEVELS - 1);
-        const isIdx = (l % 4 === 0);
-        ctx.strokeStyle = sc.accent + (isIdx ? '78' : '22');
-        ctx.lineWidth = (isIdx ? 1.7 : 0.9) * S;
-        ctx.beginPath();
-        for (let gy = 0; gy < RES; gy++) {
-          for (let gx = 0; gx < RES; gx++) {
-            const h0 = grid[gy][gx];
-            const h1 = grid[gy][gx + 1];
-            const h2 = grid[gy + 1][gx + 1];
-            const h3 = grid[gy + 1][gx];
-            let mIdx = 0;
-            if (h0 > level) mIdx |= 1;
-            if (h1 > level) mIdx |= 2;
-            if (h2 > level) mIdx |= 4;
-            if (h3 > level) mIdx |= 8;
-            if (mIdx === 0 || mIdx === 15) continue;
-            const x0 = gx * cellGW, y0 = gy * cellGH;
-            const eTop = (level - h0) / (h1 - h0);
-            const eRight = (level - h1) / (h2 - h1);
-            const eBot = (level - h3) / (h2 - h3);
-            const eLeft = (level - h0) / (h3 - h0);
-            const tX = x0 + eTop * cellGW, tY = y0;
-            const rX = x0 + cellGW, rY = y0 + eRight * cellGH;
-            const bX = x0 + eBot * cellGW, bY = y0 + cellGH;
-            const lX = x0, lY = y0 + eLeft * cellGH;
-            switch (mIdx) {
+      // marching squares over a height grid → contour lines
+      const marchGrid = (grid, RES, ox, oy, cw, ch, lo, hi, LEVELS) => {
+        for (let l = 0; l < LEVELS; l++) {
+          const level = lo + (hi - lo) * l / (LEVELS - 1);
+          const isIdx = (l % 4 === 0);
+          ctx.strokeStyle = sc.accent + (isIdx ? '88' : '24');
+          ctx.lineWidth = (isIdx ? 1.7 : 0.9) * S;
+          ctx.beginPath();
+          for (let gy = 0; gy < RES; gy++) for (let gx = 0; gx < RES; gx++) {
+            const h0 = grid[gy][gx], h1 = grid[gy][gx + 1], h2 = grid[gy + 1][gx + 1], h3 = grid[gy + 1][gx];
+            let mi = 0; if (h0 > level) mi |= 1; if (h1 > level) mi |= 2; if (h2 > level) mi |= 4; if (h3 > level) mi |= 8;
+            if (mi === 0 || mi === 15) continue;
+            const x0 = ox + gx * cw, y0 = oy + gy * ch;
+            const eTop = (level - h0) / (h1 - h0), eRight = (level - h1) / (h2 - h1), eBot = (level - h3) / (h2 - h3), eLeft = (level - h0) / (h3 - h0);
+            const tX = x0 + eTop * cw, tY = y0, rX = x0 + cw, rY = y0 + eRight * ch, bX = x0 + eBot * cw, bY = y0 + ch, lX = x0, lY = y0 + eLeft * ch;
+            switch (mi) {
               case 1: case 14: ctx.moveTo(tX, tY); ctx.lineTo(lX, lY); break;
               case 2: case 13: ctx.moveTo(tX, tY); ctx.lineTo(rX, rY); break;
               case 3: case 12: ctx.moveTo(lX, lY); ctx.lineTo(rX, rY); break;
@@ -1175,16 +1124,58 @@ function drawLayout(canvas, act, selected, sc, layout) {
               case 10:         ctx.moveTo(tX, tY); ctx.lineTo(lX, lY); ctx.moveTo(bX, bY); ctx.lineTo(rX, rY); break;
             }
           }
+          ctx.stroke();
         }
-        ctx.stroke();
+      };
+
+      const mapX = P, mapY = Math.round(P * 1.0), mapW = W - P * 2, mapH = Math.round(H * 0.50);
+
+      if (useReal) {
+        // ── REAL topography: contours from a DEM grid, route projected on top ──
+        const N = realTopo.N, g = realTopo.grid;
+        const minLa = realTopo.minLa, maxLa = realTopo.maxLa, minLn = realTopo.minLn, maxLn = realTopo.maxLn;
+        const cosLat = Math.cos((minLa + maxLa) / 2 * Math.PI / 180) || 1;
+        const spanLng = (maxLn - minLn) * cosLat || 1e-6, spanLat = (maxLa - minLa) || 1e-6;
+        const scale = Math.min(mapW / spanLng, mapH / spanLat);
+        const drawW = spanLng * scale, drawH = spanLat * scale;
+        const offX = mapX + (mapW - drawW) / 2, offY = mapY + (mapH - drawH) / 2;
+        marchGrid(g, N - 1, offX, offY, drawW / (N - 1), drawH / (N - 1), realTopo.mn, realTopo.mx, 14);
+        if (polyline && polyline.length > 1 && !hideRoute) {
+          const px = ll => offX + (ll[1] - minLn) * cosLat * scale;
+          const py = ll => offY + (maxLa - ll[0]) * scale;
+          ctx.shadowColor = sc.accent; ctx.shadowBlur = Math.round(16 * S);
+          ctx.strokeStyle = sc.accent; ctx.lineWidth = Math.round(6 * S); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+          ctx.beginPath();
+          polyline.forEach((c, i) => { i ? ctx.lineTo(px(c), py(c)) : ctx.moveTo(px(c), py(c)); });
+          ctx.stroke(); ctx.shadowBlur = 0;
+          const a0 = polyline[0], b0 = polyline[polyline.length - 1];
+          ctx.fillStyle = '#22c55e'; ctx.beginPath(); ctx.arc(px(a0), py(a0), Math.round(7 * S), 0, 6.283); ctx.fill();
+          ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(px(b0), py(b0), Math.round(7 * S), 0, 6.283); ctx.fill();
+        }
+      } else {
+        // ── fallback: synthetic terrain (while the DEM loads or if unavailable) ──
+        const seedI = (act.id || 12345) % 9973;
+        const rand = (n) => { const x = Math.sin(seedI * 0.0137 + n * 12.9898) * 43758.5453; return x - Math.floor(x); };
+        const PEAK_COUNT = 3 + Math.floor(rand(1) * 3);
+        const peaks = [];
+        for (let p = 0; p < PEAK_COUNT; p++) peaks.push({ x: W * (0.15 + rand(p * 7 + 3) * 0.70), y: H * (0.12 + rand(p * 11 + 5) * 0.76), h: 70 + rand(p * 13 + 9) * 70, r: W * (0.18 + rand(p * 17 + 2) * 0.16), sign: rand(p * 19 + 1) > 0.25 ? 1 : -0.55 });
+        const noisePhase = rand(99) * 6.28;
+        const heightAt = (x, y) => { let h = 0; for (const pk of peaks) { const dx = (x - pk.x) / pk.r, dy = (y - pk.y) / pk.r; h += pk.h * pk.sign * Math.exp(-(dx * dx + dy * dy) * 0.7); } h += Math.sin(x * 0.0095 + noisePhase) * Math.cos(y * 0.0088 + noisePhase * 1.7) * 7; h += Math.sin(x * 0.024 + noisePhase * 2.1) * Math.cos(y * 0.021 + noisePhase * 3.3) * 3; return h; };
+        const RES = 28, cgw = W / RES, cgh = H / RES, grid = [];
+        for (let gy = 0; gy <= RES; gy++) { grid[gy] = []; for (let gx = 0; gx <= RES; gx++) grid[gy][gx] = heightAt(gx * cgw, gy * cgh); }
+        marchGrid(grid, RES, 0, 0, cgw, cgh, -25, 110, 18);
+        if (polyline && polyline.length > 1 && !hideRoute) {
+          ctx.shadowColor = sc.accent; ctx.shadowBlur = Math.round(20 * S);
+          drawRoute(ctx, polyline, P, Math.round(P * 1.2), W - P * 2, Math.round(H * 0.50), sc.accent, Math.round(6 * S));
+          ctx.shadowBlur = 0;
+        }
       }
 
       // corner survey ticks
       ctx.strokeStyle = sc.accent + '66';
       ctx.lineWidth = Math.max(1, Math.round(1.4 * S));
       const tickL = Math.round(20 * S);
-      const cps = [[P, P, 1, 1], [W - P, P, -1, 1], [P, H - P, 1, -1], [W - P, H - P, -1, -1]];
-      cps.forEach(([cx_, cy_, dx, dy]) => {
+      [[P, P, 1, 1], [W - P, P, -1, 1], [P, H - P, 1, -1], [W - P, H - P, -1, -1]].forEach(([cx_, cy_, dx, dy]) => {
         ctx.beginPath();
         ctx.moveTo(cx_, cy_); ctx.lineTo(cx_ + tickL * dx, cy_);
         ctx.moveTo(cx_, cy_); ctx.lineTo(cx_, cy_ + tickL * dy);
@@ -1201,13 +1192,6 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.textAlign = 'right';
         ctx.fillText(act.start_latlng[1].toFixed(3) + '° E', W - P - Math.round(28 * S), P + Math.round(14 * S));
         ctx.letterSpacing = '0';
-      }
-
-      // route on top of contours
-      if (polyline && polyline.length > 1 && !hideRoute) {
-        ctx.shadowColor = sc.accent; ctx.shadowBlur = Math.round(20 * S);
-        drawRoute(ctx, polyline, P, Math.round(P * 1.2), W - P * 2, Math.round(H * 0.50), sc.accent, Math.round(6 * S));
-        ctx.shadowBlur = 0;
       }
 
       // title block
