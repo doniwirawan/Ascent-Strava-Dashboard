@@ -73,6 +73,7 @@ body.logged-out main { display: none !important; }
 }
 .lp-shot figcaption { margin-top: 12px; color: var(--muted); font-size: 14px; line-height: 1.55; text-align: center; }
 .lp-shot figcaption b { color: var(--text); }
+.lp-shot-story img { max-width: 340px; margin: 0 auto; border-radius: 18px; }
 
 /* ── FAQ ── */
 .lp-faq { max-width: 820px; margin: 0 auto; }

@@ -31,9 +31,6 @@
   <div class="msg" id="msg">Exchanging authorization code…</div>
 
   <script>
-    const CLIENT_ID     = '__STRAVA_CLIENT_ID__';
-    const CLIENT_SECRET = '__STRAVA_CLIENT_SECRET__';
-
     async function exchange() {
       const params = new URLSearchParams(window.location.search);
       const code   = params.get('code');
@@ -47,15 +44,11 @@
       }
 
       try {
-        const r = await fetch('https://www.strava.com/oauth/token', {
+        // exchanged server-side so the client secret never reaches the browser
+        const r = await fetch('/api/strava-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            client_id:     CLIENT_ID,
-            client_secret: CLIENT_SECRET,
-            code,
-            grant_type: 'authorization_code'
-          })
+          body: JSON.stringify({ code })
         });
 
         if (!r.ok) throw new Error('Token exchange failed (' + r.status + ')');

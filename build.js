@@ -13,7 +13,6 @@ const BUILD = Date.now().toString(36);
 function injectIndexHtml() {
   let content = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
   content = content.replace(/__STRAVA_CLIENT_ID__/g,     ID);
-  content = content.replace(/__STRAVA_CLIENT_SECRET__/g, SECRET);
   content = content.replace(/__STRAVA_ACCESS_TOKEN__/g,  '');
   content = content.replace(/__STRAVA_REFRESH_TOKEN__/g, '');
   content = content.replace(/__SUPABASE_URL__/g,         SUPA_URL);
@@ -24,10 +23,9 @@ function injectIndexHtml() {
 }
 
 function injectCallbackHtml() {
-  let content = fs.readFileSync(path.join(__dirname, 'callback.html'), 'utf8');
-  content = content.replace(/const CLIENT_ID\s*=\s*'.*?';/g, `const CLIENT_ID     = '${ID}';`);
-  content = content.replace(/const CLIENT_SECRET\s*=\s*'.*?';/g, `const CLIENT_SECRET = '${SECRET}';`);
-  return content;
+  // callback.html no longer embeds any credentials — the token exchange is
+  // done server-side via /api/strava-token
+  return fs.readFileSync(path.join(__dirname, 'callback.html'), 'utf8');
 }
 
 fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
@@ -57,7 +55,6 @@ function copyDir(src, dest) {
     } else if (file.endsWith('.js')) {
       let content = fs.readFileSync(srcFile, 'utf8');
       content = content.replace(/__STRAVA_CLIENT_ID__/g,     ID);
-      content = content.replace(/__STRAVA_CLIENT_SECRET__/g, SECRET);
       content = content.replace(/__SUPABASE_URL__/g,         SUPA_URL);
       content = content.replace(/__SUPABASE_KEY__/g,         SUPA_KEY);
       fs.writeFileSync(destFile, content);

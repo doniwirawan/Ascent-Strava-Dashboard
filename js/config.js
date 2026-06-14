@@ -1,6 +1,7 @@
 const CONFIG = {
-  clientId:     '__STRAVA_CLIENT_ID__',
-  clientSecret: '__STRAVA_CLIENT_SECRET__',
+  clientId:     '__STRAVA_CLIENT_ID__', // public; used to build the authorize URL
+  // clientSecret is intentionally NOT shipped to the browser — the token
+  // exchange/refresh happens server-side in /api/strava-token
   accessToken:  localStorage.getItem('strava_access_token')  || '',
   refreshToken: localStorage.getItem('strava_refresh_token') || ''
 };

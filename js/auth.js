@@ -17,15 +17,11 @@ function showReconnect() {
 }
 
 async function doRefresh() {
-  const r = await fetch('https://www.strava.com/oauth/token', {
+  // token refresh runs server-side so the client secret never reaches the browser
+  const r = await fetch('/api/strava-token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id:     CONFIG.clientId,
-      client_secret: CONFIG.clientSecret,
-      refresh_token: CONFIG.refreshToken,
-      grant_type:    'refresh_token'
-    })
+    body: JSON.stringify({ refresh_token: CONFIG.refreshToken })
   });
   if (r.status === 400 || r.status === 401) {
     // Token is invalid/revoked — clear storage and prompt re-auth
