@@ -61,10 +61,14 @@
 
 .modal-body {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
+
+/* let the story modal shrink to narrow viewports (flex-item min-width:auto
+   would otherwise keep it as wide as its widest content) */
+#storyModal .modal { min-width: 0; }
 
 .modal-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 
@@ -79,8 +83,18 @@
 
 .story-preview canvas { width: 100%; height: 100%; display: block; touch-action: none; }
 
-/* preview column stays pinned in view while the options menu on the left scrolls */
-.story-right { display: flex; flex-direction: column; gap: 10px; position: sticky; top: 0; align-self: start; }
+.story-right { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+/* Desktop: fixed header (close ✕) + fixed preview/actions on the right; only the
+   options column on the left scrolls — so Download is always reachable. */
+@media (min-width: 701px) {
+  #storyModal .modal { overflow: hidden; }
+  #storyModal .modal-body { flex: 1; min-height: 0; align-items: stretch; }
+  #storyModal .modal-left { overflow-y: auto; min-height: 0; padding-right: 8px; }
+  #storyModal .story-right { min-height: 0; overflow-y: auto; }
+  #storyModal .story-preview { height: min(72vh, 800px); width: auto; aspect-ratio: 9/16; margin: 0 auto; max-width: 100%; flex: 0 0 auto; }
+  #storyModal .modal-actions { padding-top: 4px; }
+}
 .story-editor {
   display: flex; flex-direction: column; gap: 8px;
   background: var(--surface2); border: 1px solid var(--border);
@@ -137,7 +151,7 @@
 
 .layout-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
 }
 
