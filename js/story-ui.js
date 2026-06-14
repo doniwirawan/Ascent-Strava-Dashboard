@@ -2,7 +2,7 @@ function drawStoryCanvas(){
   const canvas=document.getElementById('storyCanvas');
   const idx=parseInt(document.getElementById('activityPicker').value)||0;
   const act=acts[idx]||{};
-  const selected=STAT_DEFS.filter(s=>checkedStats.has(s.key));
+  const selected=STAT_DEFS.filter(s=>checkedStats.has(s.key)&&statApplies(s,act));
   drawLayout(canvas,act,selected,getScheme(),activeLayout);
   // also redraw all layout thumbnails
   document.querySelectorAll('.layout-thumb').forEach(c=>{
@@ -272,13 +272,21 @@ async function fetchActDetail(idx){
   }catch{}
 }
 
-// reflect the current checkedStats set onto the stat toggle checkboxes/borders
-function _syncStatToggleUI(){
-  STAT_DEFS.forEach(s=>{
-    const lbl=document.getElementById('lbl-'+s.key); if(!lbl) return;
-    const on=checkedStats.has(s.key);
-    const cb=lbl.querySelector('input'); if(cb) cb.checked=on;
-    lbl.style.borderColor=on?'var(--orange)':'var(--border)';
+// build the stat toggle list for the given activity — only stats relevant to
+// that sport are shown (e.g. Pace appears for runs, not rides)
+function _buildStatToggles(act){
+  const tw=document.getElementById('statToggles'); if(!tw) return;
+  tw.innerHTML=STAT_DEFS.filter(s=>statApplies(s,act)).map(s=>`
+    <label id="lbl-${s.key}" style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:5px 8px;background:var(--surface2);border-radius:5px;border:1px solid ${checkedStats.has(s.key)?'var(--orange)':'var(--border)'};">
+      <input type="checkbox" ${checkedStats.has(s.key)?'checked':''} data-key="${s.key}" style="accent-color:var(--orange);">${s.label}
+    </label>`).join('');
+  tw.querySelectorAll('input').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      const k=cb.dataset.key;cb.checked?checkedStats.add(k):checkedStats.delete(k);
+      document.getElementById('lbl-'+k).style.borderColor=cb.checked?'var(--orange)':'var(--border)';
+      saveStorySettings();
+      drawStoryCanvas();
+    });
   });
 }
 
@@ -306,25 +314,14 @@ function openStoryModal(){
     });
   });
 
-  // stat toggles
-  const tw=document.getElementById('statToggles');
-  tw.innerHTML=STAT_DEFS.map(s=>`
-    <label id="lbl-${s.key}" style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:5px 8px;background:var(--surface2);border-radius:5px;border:1px solid ${checkedStats.has(s.key)?'var(--orange)':'var(--border)'};">
-      <input type="checkbox" ${checkedStats.has(s.key)?'checked':''} data-key="${s.key}" style="accent-color:var(--orange);">${s.label}
-    </label>`).join('');
-  tw.querySelectorAll('input').forEach(cb=>{
-    cb.addEventListener('change',()=>{
-      const k=cb.dataset.key;cb.checked?checkedStats.add(k):checkedStats.delete(k);
-      document.getElementById('lbl-'+k).style.borderColor=cb.checked?'var(--orange)':'var(--border)';
-      saveStorySettings();
-      drawStoryCanvas();
-    });
-  });
+  // stat toggles (activity-aware: hides run-only stats like Pace on rides)
+  _buildStatToggles(acts[parseInt(picker.value)||0]);
 
   picker.onchange=async()=>{
     const idx=parseInt(picker.value)||0;
     const act=acts[idx]||{};
-    if(adaptStatsToActivity(act)){ _syncStatToggleUI(); saveStorySettings(); }
+    if(adaptStatsToActivity(act)) saveStorySettings();
+    _buildStatToggles(act); // rebuild so Pace shows/hides with the sport
     if(act.id){ await Promise.all([fetchStreams(act.id), fetchActDetail(idx)]); }
     drawStoryCanvas();
   };

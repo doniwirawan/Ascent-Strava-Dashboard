@@ -2,7 +2,7 @@
 const STAT_DEFS = [
   { key: 'distance', label: 'Distance', fmt: a => fmtD(a.distance || 0), unit: '' },
   { key: 'moving_time', label: 'Moving Time', fmt: a => fmtT(a.moving_time || 0), unit: '' },
-  { key: 'pace', label: 'Pace', fmt: a => fmtPace(a.average_speed || 0), unit: '' },
+  { key: 'pace', label: 'Pace', fmt: a => fmtPace(a.average_speed || 0), unit: '', runOnly: true },
   { key: 'average_speed', label: 'Avg Speed', fmt: a => kmh(a.average_speed || 0) + ' ' + speedUnit(), unit: '' },
   { key: 'max_speed', label: 'Max Speed', fmt: a => kmh(a.max_speed || 0) + ' ' + speedUnit(), unit: '' },
   { key: 'average_heartrate', label: 'Avg Heart Rate', fmt: a => a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '—', unit: '' },
@@ -78,6 +78,10 @@ function getScheme() {
 
 /* ── stat value helper ── */
 function statVal(s, act) { const v = String(s.fmt(act)); const p = v.split(' '); return { num: p[0], unit: p.slice(1).join(' ') }; }
+
+/* whether a stat is relevant to this activity — e.g. Pace only makes sense for
+   runs, so it's hidden (and never rendered) on rides/other activities */
+function statApplies(s, act) { return !s.runOnly || (act && isRun(act)); }
 
 /* ── adapt the shown stats to the activity type (runs → pace/cadence,
    rides → speed/power). Only re-picks when the sport category changes, so
