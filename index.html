@@ -26,8 +26,72 @@
   <link rel="stylesheet" href="css/story.css">
   <link rel="stylesheet" href="css/sections.css">
   <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/landing.css">
 </head>
 <body>
+
+<!-- LANDING (shown to logged-out visitors; hidden once connected) -->
+<div id="landingView">
+  <div class="lp">
+    <div class="lp-nav">
+      <div class="lp-brand"><img src="/icon.png" alt="Ascent"> Ascent</div>
+      <a class="lp-connect js-connect" href="#" style="padding:9px 16px;font-size:14px;box-shadow:none;">Connect</a>
+    </div>
+
+    <header class="lp-hero">
+      <img class="lp-icon" src="/icon.png" alt="Ascent">
+      <h1>Your Strava data,<br><span class="accent">beautifully unpacked.</span></h1>
+      <p class="sub">Ascent turns your rides and runs into a fast, private analytics dashboard — stats, trends, heatmaps, segments, milestones — plus a studio for sharing gorgeous 9:16 activity cards.</p>
+      <a class="lp-connect js-connect" href="#">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.172"/></svg>
+        Connect with Strava
+      </a>
+      <div class="lp-note">Free · Private · No new account — sign in with your Strava</div>
+    </header>
+
+    <div class="lp-steps">
+      <div class="lp-step"><div class="n">1</div><h4>Connect with Strava</h4><p>Authorize securely through Strava's official login. We never see your password.</p></div>
+      <div class="lp-step"><div class="n">2</div><h4>We crunch it — in your browser</h4><p>Your full history loads once and is cached, so it's computed locally and opens instantly next time.</p></div>
+      <div class="lp-step"><div class="n">3</div><h4>Explore & share</h4><p>Dive into your stats and maps, then export a share-ready story card of any activity.</p></div>
+    </div>
+
+    <h2 class="lp-h2">Everything in one place</h2>
+    <p class="lp-h2-sub">A complete view of your training — no spreadsheets required.</p>
+    <div class="lp-features">
+      <div class="lp-feat"><div class="ico">📊</div><h4>Overview & Trends</h4><p>Totals, averages, weekly/monthly distance and a rolling speed/pace trend for cycling and running.</p></div>
+      <div class="lp-feat"><div class="ico">🗺️</div><h4>Heatmap</h4><p>Every GPS trace overlaid on an interactive map — your most-ridden roads glow brightest.</p></div>
+      <div class="lp-feat"><div class="ico">🏔️</div><h4>Segments & KOMs</h4><p>Your starred segments with PRs, KOM/QOM status and VAM, each with a zoomable map.</p></div>
+      <div class="lp-feat"><div class="ico">🎯</div><h4>Eddington & Milestones</h4><p>Your Eddington number, day streaks, and named distance/elevation milestones with progress.</p></div>
+      <div class="lp-feat"><div class="ico">🖼️</div><h4>Story-card Studio</h4><p>Generate 9:16 share images in 28 templates — themes, custom backgrounds, real topographic maps, and a drag-and-drop editor.</p></div>
+      <div class="lp-feat"><div class="ico">🔒</div><h4>Privacy-first</h4><p>Everything is computed in your browser. No ads, no selling data, one-click disconnect.</p></div>
+    </div>
+
+    <h2 class="lp-h2">Data &amp; Privacy FAQ</h2>
+    <p class="lp-h2-sub">The questions everyone asks before connecting an account.</p>
+    <div class="lp-faq">
+      <details open><summary>Do you collect my data?</summary><div class="ans">Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth). We use it to show <i>you</i> your stats — nothing more. We never see your Strava password, and we don't collect payment info.</div></details>
+      <details><summary>How is my data processed?</summary><div class="ans">Almost everything (stats, charts, maps, story images) is computed <b>in your browser</b>. Your recent activities are cached so the app loads instantly on repeat visits. The only data ever <i>written</i> back to Strava is reassigning gear — and only when you choose to.</div></details>
+      <details><summary>Where is my data stored?</summary><div class="ans">In two places: <b>your device</b> (browser storage — login tokens, preferences, a copy of recent activities) and a <b>cache database</b> (Supabase), keyed to your Strava athlete ID, to speed up repeat visits. Your password is never stored.</div></details>
+      <details><summary>Do you sell or share my data?</summary><div class="ans"><b>No.</b> We never sell, rent, trade, or share your personal data for advertising or marketing, and we don't build profiles for third parties.</div></details>
+      <details><summary>What permissions does it request?</summary><div class="ans"><code>read</code>, <code>activity:read_all</code>, and <code>profile:read_all</code> to read your activities &amp; profile, plus <code>activity:write</code> — used <i>only</i> when you reassign gear yourself.</div></details>
+      <details><summary>Can I delete my data or disconnect?</summary><div class="ans">Yes, anytime. Use <b>Disconnect</b> in the app to clear this device's tokens and cache, and revoke access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava → My Apps</a>. To remove the server-side cache, email <a href="mailto:doniwirawan166@gmail.com">doniwirawan166@gmail.com</a>.</div></details>
+      <details><summary>Is this an official Strava app?</summary><div class="ans">No. Ascent is an independent, free, personal-use dashboard for your own Strava data. It is <b>not affiliated with, endorsed by, or sponsored by Strava, Inc.</b></div></details>
+    </div>
+
+    <div class="lp-cta">
+      <h2>Ready to see your year in motion?</h2>
+      <a class="lp-connect js-connect" href="#">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.172"/></svg>
+        Connect with Strava
+      </a>
+    </div>
+
+    <div class="lp-foot">
+      <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a>
+      <div class="disclaim">Ascent is independent and not affiliated with, endorsed by, or sponsored by Strava, Inc.</div>
+    </div>
+  </div>
+</div>
 
 <nav>
   <div class="logo">

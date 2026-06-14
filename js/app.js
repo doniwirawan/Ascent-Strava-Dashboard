@@ -46,14 +46,17 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 
 /* ── INIT ── */
 if (!CONFIG.refreshToken) {
-  showReconnect();
-  // Change status text for first-time users (not "session expired")
+  // first-time / logged-out visitor → show the landing page, hide the app
   const SCOPE    = 'read,activity:read_all,profile:read_all,activity:write';
   const REDIRECT = encodeURIComponent(window.location.origin + '/callback');
   const authUrl  = `https://www.strava.com/oauth/authorize?client_id=${CONFIG.clientId}&response_type=code&redirect_uri=${REDIRECT}&approval_prompt=force&scope=${SCOPE}`;
+  document.body.classList.add('logged-out');
+  document.querySelectorAll('.js-connect').forEach(el => { el.href = authUrl; el.onclick = () => { window.location.href = authUrl; return false; }; });
+  // keep the in-app reconnect affordance wired too (harmless while hidden)
+  showReconnect();
   setStatus('Not connected — <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">Connect with Strava →</a>');
-  document.getElementById('mainBtn').textContent = 'Connect';
-  document.getElementById('mainBtn').onclick = () => { window.location.href = authUrl; };
+  const mb = document.getElementById('mainBtn');
+  if (mb) { mb.textContent = 'Connect'; mb.onclick = () => { window.location.href = authUrl; }; }
 } else {
   // reopen the Share Story modal if that's where the user left off
   loadData().then(() => {
