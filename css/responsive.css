@@ -16,6 +16,7 @@
   nav { padding: 0 12px; gap: 10px; }
   .hamburger { display: flex; order: -1; }   /* hamburger on the far left */
   .logo { margin-right: auto; }               /* push toggles to the right */
+  .logo-sub { display: none; }                /* keep just "Ascent" on mobile */
   #badge { display: none !important; }         /* profile lives in the drawer — no duplicate */
 
   .btn { padding: 6px 12px; font-size: 11px; }

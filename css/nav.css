@@ -44,6 +44,8 @@ nav {
   flex-shrink: 0;
 }
 
+.logo-sub { color: var(--muted); font-weight: 600; }
+
 .nav-links {
   display: none;
 }

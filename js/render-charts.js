@@ -323,9 +323,11 @@ function openActivityModal(ref){
   const a = (typeof ref==='number') ? _actRows[ref] : (acts||[]).find(x=>String(x.id)===String(ref));
   if(!a) return;
   const ride=isRide(a);
+  // start_date_local is the activity's local wall-clock time but carries a 'Z',
+  // so format it in UTC to show it as-is (otherwise it re-shifts to the viewer's TZ)
   const when=a.start_date_local||a.start_date;
-  const dateStr=new Date(when).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
-  const timeStr=new Date(when).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  const dateStr=new Date(when).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
+  const timeStr=new Date(when).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'});
 
   // moving-time avg speed where elapsed includes stops
   const stats=[
