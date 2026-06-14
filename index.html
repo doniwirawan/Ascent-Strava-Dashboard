@@ -449,6 +449,21 @@
       </ul>
     </div>
 
+    <div class="help-card">
+      <h3>FAQ — Data &amp; Privacy</h3>
+      <dl class="help-gloss">
+        <div><dt>Do you collect my data?</dt><dd>Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth). We use it to show <i>you</i> your stats — nothing more. We never see your Strava password, and we don't collect payment info or anything beyond what your activities already contain.</dd></div>
+        <div><dt>How is my data processed?</dt><dd>Almost everything (stats, charts, maps, story images) is computed <b>in your browser</b>. Your recent activities are cached so the app loads instantly on repeat visits. The only data we ever <i>write</i> back to Strava is reassigning gear — and only when you explicitly choose to.</dd></div>
+        <div><dt>Where is my data stored?</dt><dd>In two places: <b>your device</b> (browser localStorage — your login tokens, preferences, and a copy of your recent activities) and a <b>cache database</b> (Supabase), keyed to your Strava athlete ID, to speed up repeat visits. Your password is never stored — tokens are used only to talk to the Strava API on your behalf.</dd></div>
+        <div><dt>Do you sell or share my data?</dt><dd><b>No.</b> We never sell, rent, trade, or share your personal data for advertising or marketing, and we don't build profiles for third parties or use it for anything unrelated to the features you use.</dd></div>
+        <div><dt>What permissions does the app request?</dt><dd><code>read</code>, <code>activity:read_all</code>, and <code>profile:read_all</code> (to read your activities &amp; profile), plus <code>activity:write</code> — used <i>only</i> when you reassign gear on an activity yourself.</dd></div>
+        <div><dt>Which third parties are involved?</dt><dd><b>Strava</b> (the source of your data), <b>Supabase</b> (cache database), <b>Vercel</b> (hosting), and map/asset providers like <b>CARTO</b> &amp; <b>OpenStreetMap</b> (which may see your IP address as a normal part of serving maps and fonts).</dd></div>
+        <div><dt>Can I delete my data or disconnect?</dt><dd>Yes, anytime. Use <b>Disconnect</b> to clear this device's tokens and cached data, and revoke the app's access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener" style="color:var(--orange);font-weight:700;">Strava → My Apps</a>. For removal of the server-side cache, contact <a href="mailto:doniwirawan166@gmail.com" style="color:var(--orange);font-weight:700;">doniwirawan166@gmail.com</a>.</dd></div>
+        <div><dt>Is this an official Strava app?</dt><dd>No. Ascent is an independent, free, personal-use dashboard for your own Strava data. It is <b>not affiliated with, endorsed by, or sponsored by Strava, Inc.</b></dd></div>
+      </dl>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted);">Full details in our <a href="/privacy" style="color:var(--orange);font-weight:700;">Privacy Policy</a> and <a href="/terms" style="color:var(--orange);font-weight:700;">Terms of Service</a>.</div>
+    </div>
+
     <div class="help-card help-muted">
       Built as a static site on Vercel. Your activity data stays tied to your Strava account; the km/mi and Cyclist/Runner preferences are stored locally in your browser.
       <div style="margin-top:12px;">
