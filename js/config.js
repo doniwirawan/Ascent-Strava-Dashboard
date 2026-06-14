@@ -5,13 +5,14 @@ const CONFIG = {
   refreshToken: localStorage.getItem('strava_refresh_token') || ''
 };
 
-/* ── REMOTE CACHE (via strava-cache Edge Function) ── */
-// The browser never touches the table directly. It calls the Edge Function,
-// which verifies the Strava token server-side and reads/writes only that
-// athlete's row with the service role. The table itself is locked by RLS.
+/* ── CACHE — client-side only ──
+   The app stores your activities only in your own browser (localStorage); no
+   copy is kept on any server. The Supabase remote cache is intentionally
+   disabled so "everything runs in your browser" is literally true. Flip
+   _haveRemote back to the env check to re-enable cross-device caching. */
 const _sbUrl = '__SUPABASE_URL__';
 const _sbKey = '__SUPABASE_KEY__';
-const _haveRemote = _sbUrl && !_sbUrl.startsWith('__') && _sbKey && !_sbKey.startsWith('__');
+const _haveRemote = false;
 const _fnUrl = _haveRemote ? _sbUrl.replace(/\/$/, '') + '/functions/v1/strava-cache' : null;
 const _fnImg = _haveRemote ? _sbUrl.replace(/\/$/, '') + '/functions/v1/img' : null; // image download proxy
 

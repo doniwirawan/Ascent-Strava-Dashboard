@@ -48,6 +48,21 @@
   box-sizing: border-box;
 }
 
+/* ── themed scrollbars (dark, slim, orange on hover) ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface4) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--surface4);
+  border-radius: 10px;
+  border: 2px solid var(--bg);
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--orange-mid); }
+*::-webkit-scrollbar-corner { background: transparent; }
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
   background: var(--bg);

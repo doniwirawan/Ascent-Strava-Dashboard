@@ -55,17 +55,15 @@
 
   <h2>5. Where data is stored</h2>
   <ul>
-    <li><strong>Your device (browser <code>localStorage</code>)</strong>: OAuth access/refresh tokens, your preferences (units, sport mode, last page viewed), and a copy of your recent activities;</li>
-    <li><strong>Cache database (Supabase)</strong>: a copy of your recent activities, keyed to your Strava athlete ID, to speed up repeat visits. Access is mediated by a server-side function.</li>
+    <li><strong>Your device only (browser <code>localStorage</code>)</strong>: OAuth access/refresh tokens, your preferences (units, sport mode, last page viewed), and a copy of your recent activities.</li>
   </ul>
-  <p>We never receive or store your Strava password. Tokens are used solely to communicate with the Strava API on your behalf.</p>
+  <p><strong>We do not keep a copy of your activity data on any server.</strong> All processing and caching happens in your browser; the App is a static site with no application database for your data. We never receive or store your Strava password. Tokens are used solely to communicate with the Strava API on your behalf.</p>
 
   <h2>6. Third-party services (sub-processors)</h2>
   <p>The App relies on the following third parties, each governed by its own privacy policy and terms:</p>
   <ul>
     <li><strong>Strava, Inc.</strong> — the source of your activity data;</li>
-    <li><strong>Supabase</strong> — caching database and serverless functions;</li>
-    <li><strong>Vercel</strong> — website hosting and delivery;</li>
+    <li><strong>Vercel</strong> — static website hosting and delivery;</li>
     <li><strong>Map &amp; asset providers</strong> (e.g., CARTO, OpenStreetMap, and content-delivery networks) — for maps, fonts, and libraries; these providers may receive your IP address and basic request data as a normal part of serving content.</li>
   </ul>
   <p>We are not responsible for the independent practices of these providers.</p>
@@ -78,10 +76,9 @@
 
   <h2>9. Retention &amp; deletion</h2>
   <ul>
-    <li>Cached activity data refreshes periodically and is overwritten on refresh;</li>
+    <li>Cached activity data lives only in your browser, refreshes periodically, and is overwritten on refresh;</li>
     <li>You can clear your tokens and this device’s cached data at any time using <strong>Disconnect</strong>, or by clearing your browser storage;</li>
-    <li>You can revoke the App’s access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava → Settings → My Apps</a>, which prevents further access to your data;</li>
-    <li>To request deletion of any copy of your data held in the cache database, email us; we will action reasonable requests within a reasonable time.</li>
+    <li>You can revoke the App’s access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava → Settings → My Apps</a>, which prevents further access to your data.</li>
   </ul>
 
   <h2>10. Your choices &amp; rights</h2>

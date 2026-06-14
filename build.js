@@ -52,7 +52,9 @@ function copyDir(src, dest) {
   fs.readdirSync(src).forEach(file => {
     const srcFile = path.join(src, file);
     const destFile = path.join(dest, file);
-    if (file.endsWith('.js')) {
+    if (fs.statSync(srcFile).isDirectory()) {
+      copyDir(srcFile, destFile);
+    } else if (file.endsWith('.js')) {
       let content = fs.readFileSync(srcFile, 'utf8');
       content = content.replace(/__STRAVA_CLIENT_ID__/g,     ID);
       content = content.replace(/__STRAVA_CLIENT_SECRET__/g, SECRET);
@@ -64,7 +66,7 @@ function copyDir(src, dest) {
     }
   });
 }
-['css', 'js'].forEach(dir => {
+['css', 'js', 'images'].forEach(dir => {
   const src = path.join(__dirname, dir);
   if (fs.existsSync(src)) copyDir(src, path.join(__dirname, 'dist', dir));
 });

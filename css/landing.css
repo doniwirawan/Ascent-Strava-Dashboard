@@ -64,6 +64,16 @@ body.logged-out main { display: none !important; }
 .lp-feat h4 { margin: 0 0 6px; font-size: 16px; }
 .lp-feat p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
 
+/* ── screenshots ── */
+.lp-shots { display: flex; flex-direction: column; gap: 28px; max-width: 940px; margin: 0 auto; }
+.lp-shot { margin: 0; }
+.lp-shot img {
+  width: 100%; display: block; border-radius: 14px;
+  border: 1px solid var(--border); box-shadow: var(--shadow-md);
+}
+.lp-shot figcaption { margin-top: 12px; color: var(--muted); font-size: 14px; line-height: 1.55; text-align: center; }
+.lp-shot figcaption b { color: var(--text); }
+
 /* ── FAQ ── */
 .lp-faq { max-width: 820px; margin: 0 auto; }
 .lp-faq details { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }

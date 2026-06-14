@@ -63,7 +63,24 @@
       <div class="lp-feat"><div class="ico">🏔️</div><h4>Segments & KOMs</h4><p>Your starred segments with PRs, KOM/QOM status and VAM, each with a zoomable map.</p></div>
       <div class="lp-feat"><div class="ico">🎯</div><h4>Eddington & Milestones</h4><p>Your Eddington number, day streaks, and named distance/elevation milestones with progress.</p></div>
       <div class="lp-feat"><div class="ico">🖼️</div><h4>Story-card Studio</h4><p>Generate 9:16 share images in 28 templates — themes, custom backgrounds, real topographic maps, and a drag-and-drop editor.</p></div>
-      <div class="lp-feat"><div class="ico">🔒</div><h4>Privacy-first</h4><p>Everything is computed in your browser. No ads, no selling data, one-click disconnect.</p></div>
+      <div class="lp-feat"><div class="ico">🔒</div><h4>100% client-side</h4><p>Your data never leaves your browser — nothing is stored on our servers. No ads, no selling data, one-click disconnect.</p></div>
+    </div>
+
+    <h2 class="lp-h2">See it in action</h2>
+    <p class="lp-h2-sub">Real views from the dashboard (shown here with sample data).</p>
+    <div class="lp-shots">
+      <figure class="lp-shot">
+        <img src="images/screenshots/overview.png" alt="Ascent overview dashboard with stat cards" loading="lazy">
+        <figcaption><b>Overview.</b> Your whole history at a glance — distance, moving time, elevation, your Eddington number, streaks and consistency, split by cycling and running. Switch km/mi and Cyclist/Runner from the top bar.</figcaption>
+      </figure>
+      <figure class="lp-shot">
+        <img src="images/screenshots/trends.png" alt="Ascent trends charts" loading="lazy">
+        <figcaption><b>Trends.</b> See your direction over time — weekly distance, a year-over-year monthly comparison, your pace/speed trend, and how your training splits across sports. Great for spotting build-ups, peaks and off-seasons.</figcaption>
+      </figure>
+      <figure class="lp-shot">
+        <img src="images/screenshots/calendar.png" alt="Ascent activity calendar contribution grid" loading="lazy">
+        <figcaption><b>Calendar.</b> A 12-month contribution grid — every active day shaded by volume, with your longest streak and busiest day. The fastest way to see how consistent you've really been.</figcaption>
+      </figure>
     </div>
 
     <h2 class="lp-h2">Data &amp; Privacy FAQ</h2>
@@ -71,7 +88,7 @@
     <div class="lp-faq">
       <details open><summary>Do you collect my data?</summary><div class="ans">Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth). We use it to show <i>you</i> your stats — nothing more. We never see your Strava password, and we don't collect payment info.</div></details>
       <details><summary>How is my data processed?</summary><div class="ans">Almost everything (stats, charts, maps, story images) is computed <b>in your browser</b>. Your recent activities are cached so the app loads instantly on repeat visits. The only data ever <i>written</i> back to Strava is reassigning gear — and only when you choose to.</div></details>
-      <details><summary>Where is my data stored?</summary><div class="ans">In two places: <b>your device</b> (browser storage — login tokens, preferences, a copy of recent activities) and a <b>cache database</b> (Supabase), keyed to your Strava athlete ID, to speed up repeat visits. Your password is never stored.</div></details>
+      <details><summary>Where is my data stored?</summary><div class="ans">Only on <b>your device</b> — in your browser's storage (login tokens, preferences, a copy of recent activities). <b>Nothing is stored on our servers</b>; it's 100% client-side. Your password is never stored.</div></details>
       <details><summary>Do you sell or share my data?</summary><div class="ans"><b>No.</b> We never sell, rent, trade, or share your personal data for advertising or marketing, and we don't build profiles for third parties.</div></details>
       <details><summary>What permissions does it request?</summary><div class="ans"><code>read</code>, <code>activity:read_all</code>, and <code>profile:read_all</code> to read your activities &amp; profile, plus <code>activity:write</code> — used <i>only</i> when you reassign gear yourself.</div></details>
       <details><summary>Can I delete my data or disconnect?</summary><div class="ans">Yes, anytime. Use <b>Disconnect</b> in the app to clear this device's tokens and cache, and revoke access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava → My Apps</a>. To remove the server-side cache, email <a href="mailto:doniwirawan166@gmail.com">doniwirawan166@gmail.com</a>.</div></details>
@@ -453,7 +470,7 @@
       <ul class="help-list">
         <li><b>Source.</b> Everything comes from the official <b>Strava API</b> using your own login — this dashboard has no server and never sees your password.</li>
         <li><b>Activities.</b> Your <b>full activity history</b> is fetched (<code>/athlete/activities</code>, paged) and cached so revisits are instant. Aggregate "all-time / YTD / last-4-weeks" figures in Trophies come from Strava's totals endpoint (<code>/athletes/&#123;id&#125;/stats</code>).</li>
-        <li><b>Caching.</b> Results are cached in your browser (localStorage) and in a private per-athlete row so revisits are instant; the cache refreshes about once an hour, or immediately when you hit <b>Refresh</b>.</li>
+        <li><b>Caching.</b> Results are cached <b>only in your browser</b> (localStorage) so revisits are instant — nothing is stored on a server. The cache refreshes about once an hour, or immediately when you hit <b>Refresh</b>.</li>
         <li><b>Detail on demand.</b> When you open <b>Share Story</b> or <b>Segments</b>, extra data is fetched per item — the detailed activity (for Energy/Calories/power), GPS streams (for the waveform charts), and segment routes.</li>
         <li><b>Units.</b> The <b>km / mi</b> switch in the top bar converts every distance, speed and elevation across the app. Named metric milestones (e.g. "1,000 km Club", Everest) stay metric on purpose.</li>
       </ul>
@@ -518,10 +535,10 @@
       <dl class="help-gloss">
         <div><dt>Do you collect my data?</dt><dd>Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth). We use it to show <i>you</i> your stats — nothing more. We never see your Strava password, and we don't collect payment info or anything beyond what your activities already contain.</dd></div>
         <div><dt>How is my data processed?</dt><dd>Almost everything (stats, charts, maps, story images) is computed <b>in your browser</b>. Your recent activities are cached so the app loads instantly on repeat visits. The only data we ever <i>write</i> back to Strava is reassigning gear — and only when you explicitly choose to.</dd></div>
-        <div><dt>Where is my data stored?</dt><dd>In two places: <b>your device</b> (browser localStorage — your login tokens, preferences, and a copy of your recent activities) and a <b>cache database</b> (Supabase), keyed to your Strava athlete ID, to speed up repeat visits. Your password is never stored — tokens are used only to talk to the Strava API on your behalf.</dd></div>
+        <div><dt>Where is my data stored?</dt><dd>Only on <b>your device</b> — in your browser's localStorage (login tokens, preferences, and a copy of your recent activities). <b>Nothing is stored on our servers</b>; everything runs client-side. Your password is never stored — tokens are used only to talk to the Strava API on your behalf.</dd></div>
         <div><dt>Do you sell or share my data?</dt><dd><b>No.</b> We never sell, rent, trade, or share your personal data for advertising or marketing, and we don't build profiles for third parties or use it for anything unrelated to the features you use.</dd></div>
         <div><dt>What permissions does the app request?</dt><dd><code>read</code>, <code>activity:read_all</code>, and <code>profile:read_all</code> (to read your activities &amp; profile), plus <code>activity:write</code> — used <i>only</i> when you reassign gear on an activity yourself.</dd></div>
-        <div><dt>Which third parties are involved?</dt><dd><b>Strava</b> (the source of your data), <b>Supabase</b> (cache database), <b>Vercel</b> (hosting), and map/asset providers like <b>CARTO</b> &amp; <b>OpenStreetMap</b> (which may see your IP address as a normal part of serving maps and fonts).</dd></div>
+        <div><dt>Which third parties are involved?</dt><dd><b>Strava</b> (the source of your data), <b>Vercel</b> (static hosting), and map/asset providers like <b>CARTO</b> &amp; <b>OpenStreetMap</b> (which may see your IP address as a normal part of serving maps and fonts). There's no server-side database for your data.</dd></div>
         <div><dt>Can I delete my data or disconnect?</dt><dd>Yes, anytime. Use <b>Disconnect</b> to clear this device's tokens and cached data, and revoke the app's access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener" style="color:var(--orange);font-weight:700;">Strava → My Apps</a>. For removal of the server-side cache, contact <a href="mailto:doniwirawan166@gmail.com" style="color:var(--orange);font-weight:700;">doniwirawan166@gmail.com</a>.</dd></div>
         <div><dt>Is this an official Strava app?</dt><dd>No. Ascent is an independent, free, personal-use dashboard for your own Strava data. It is <b>not affiliated with, endorsed by, or sponsored by Strava, Inc.</b></dd></div>
       </dl>
