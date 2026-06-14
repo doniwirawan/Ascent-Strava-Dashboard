@@ -54,7 +54,7 @@ const fmtT  = s   => { const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); ret
 const fmtDays = s => { const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600); return d>0?`${d}d ${h}h`:`${h}h`; }; // duration as days+hours
 const fmtDt = d   => new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 const isRide= a   => ['Ride','VirtualRide','EBikeRide','GravelRide','MountainBikeRide'].includes(a.type);
-const isRun = a   => ['Run','TrailRun','VirtualRun'].includes(a.type);
+// NOTE: isRun() is defined in render-sections.js (loaded after this file)
 
 function setStatus(msg, cls='') {
   const el = document.getElementById('statusBar');
