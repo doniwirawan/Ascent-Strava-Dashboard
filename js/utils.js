@@ -23,6 +23,14 @@ const kmDisp  = km => useImperial ? km/_MI : km;               // km value → k
 const elevVal = m  => useImperial ? m*_FT : m;                 // elevation value in m/ft
 const kmh     = ms => +(ms * (useImperial ? 2.23694 : 3.6)).toFixed(1); // speed value
 const fmtSpeed= ms => kmh(ms) + ' ' + speedUnit();
+// running pace: seconds per km/mi → "m:ss /km" (— when no speed)
+const fmtPace = ms => {
+  if (!ms || ms <= 0) return '—';
+  const spu = (useImperial ? _MI*1000 : 1000) / ms; // seconds per unit
+  const m = Math.floor(spu/60), s = Math.round(spu%60);
+  const mm = s===60 ? m+1 : m, ss = s===60 ? 0 : s;
+  return `${mm}:${String(ss).padStart(2,'0')} /${distUnit()}`;
+};
 const fmtKm   = m  => kmVal(m).toFixed(1);                     // distance value, 1 dp (unit implied)
 const fmtD    = m  => {
   if (useImperial) { const mi=(m/1000)/_MI; return mi>=0.1 ? mi.toFixed(1)+' mi' : Math.round(m*_FT)+' ft'; }

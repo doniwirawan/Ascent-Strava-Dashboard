@@ -2,6 +2,7 @@
 const STAT_DEFS = [
   { key: 'distance', label: 'Distance', fmt: a => fmtD(a.distance || 0), unit: '' },
   { key: 'moving_time', label: 'Moving Time', fmt: a => fmtT(a.moving_time || 0), unit: '' },
+  { key: 'pace', label: 'Pace', fmt: a => fmtPace(a.average_speed || 0), unit: '' },
   { key: 'average_speed', label: 'Avg Speed', fmt: a => kmh(a.average_speed || 0) + ' ' + speedUnit(), unit: '' },
   { key: 'max_speed', label: 'Max Speed', fmt: a => kmh(a.max_speed || 0) + ' ' + speedUnit(), unit: '' },
   { key: 'average_heartrate', label: 'Avg Heart Rate', fmt: a => a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '—', unit: '' },
@@ -15,7 +16,7 @@ const STAT_DEFS = [
   { key: 'achievement_count', label: 'Achievements', fmt: a => a.achievement_count || 0, unit: '' },
 ];
 
-let checkedStats = new Set(['distance', 'moving_time', 'average_speed', 'max_speed', 'total_elevation_gain', 'average_heartrate']);
+let checkedStats = new Set(['distance', 'moving_time', 'pace', 'total_elevation_gain', 'average_heartrate', 'average_speed']);
 let activeScheme = 'transp';
 let customAccent = null; // override accent color
 let activeLayout = 'strip';
@@ -66,7 +67,7 @@ const SCHEMES = {
 };
 
 /* ── icon ── */
-const STAT_ICONS = { distance: 'distance', moving_time: 'time', average_speed: 'speed', max_speed: 'speed', average_heartrate: 'hr', max_heartrate: 'hr', average_cadence: 'cadence', average_watts: 'power', total_elevation_gain: 'elev', kilojoules: 'power', calories: 'fire', suffer_score: 'hr', achievement_count: 'star' };
+const STAT_ICONS = { distance: 'distance', moving_time: 'time', pace: 'speed', average_speed: 'speed', max_speed: 'speed', average_heartrate: 'hr', max_heartrate: 'hr', average_cadence: 'cadence', average_watts: 'power', total_elevation_gain: 'elev', kilojoules: 'power', calories: 'fire', suffer_score: 'hr', achievement_count: 'star' };
 
 /* ── get resolved scheme ── */
 function getScheme() {
@@ -136,5 +137,8 @@ const LAYOUTS = [
   { id: 'corners', name: 'Corners' },
   { id: 'bands', name: 'Bands' },
   { id: 'bigstat', name: 'Big Stat' },
+  { id: 'frame', name: 'Frame' },
+  { id: 'pace', name: 'Pace' },
+  { id: 'column', name: 'Column' },
 
 ];

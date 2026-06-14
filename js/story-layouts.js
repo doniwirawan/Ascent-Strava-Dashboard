@@ -1614,6 +1614,142 @@ function drawLayout(canvas, act, selected, sc, layout) {
       break;
     }
 
+    /* 26. FRAME — gallery poster: inset keyline, centred title, route & stat strip */
+    case 'frame': {
+      if (!skipBg && sc.card !== 'transparent') { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      const m = Math.round(54 * S), m2 = m + Math.round(18 * S);
+      ctx.strokeStyle = withAlpha(sc.text, 60); ctx.lineWidth = Math.max(1, Math.round(2 * S));
+      ctx.strokeRect(m, m, W - m * 2, H - m * 2);
+      // centred title + date
+      let yc = Math.round(196 * S);
+      if (!hideTitle) {
+        const nm = act.name || 'Activity';
+        fitText(nm, W - m2 * 2, 56, 700);
+        ctx.fillStyle = sc.text; ctx.textAlign = 'center'; ctx.letterSpacing = '-0.5px';
+        ctx.fillText(nm, W / 2, yc); ctx.letterSpacing = '0px';
+      }
+      if (!hideDate) {
+        ctx.fillStyle = sc.accent; ctx.font = F(22, 600); ctx.textAlign = 'center'; ctx.letterSpacing = '0.14em';
+        ctx.fillText(((act.start_date ? fmtDt(act.start_date) : '') + '  ·  ' + (act.type || '')).toUpperCase(), W / 2, yc + Math.round(46 * S));
+        ctx.letterSpacing = '0px';
+      }
+      // centred route
+      if (!hideRoute && polyline && polyline.length > 1) {
+        const rTop = Math.round(330 * S), rH = Math.round(960 * S), rx = m2 + Math.round(40 * S);
+        drawRoute(ctx, polyline, rx, rTop, W - rx * 2, rH, sc.accent, Math.round(6 * S));
+      }
+      // centred stat strip (up to 4) with thin dividers
+      const fcs = selected.slice(0, 4);
+      if (fcs.length) {
+        const stripY = Math.round(1500 * S), cW = (W - m2 * 2) / fcs.length;
+        fcs.forEach((s, i) => {
+          const cx = m2 + i * cW + cW / 2;
+          const { num, unit } = statVal(s, act), disp = num + (unit ? ' ' + unit : '');
+          if (i > 0) { ctx.fillStyle = withAlpha(sc.text, 40); ctx.fillRect(m2 + i * cW, stripY - Math.round(8 * S), Math.max(1, Math.round(1 * S)), Math.round(124 * S)); }
+          ctx.fillStyle = sc.muted; ctx.font = F(17, 600); ctx.textAlign = 'center'; ctx.letterSpacing = '0.06em';
+          ctx.fillText(s.label.toUpperCase(), cx, stripY + Math.round(28 * S));
+          let vfs = Math.round(50 * S); ctx.font = `800 ${vfs}px -apple-system,sans-serif`;
+          while (vfs > Math.round(18 * S) && ctx.measureText(disp).width > cW * 0.86) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `800 ${vfs}px -apple-system,sans-serif`; }
+          ctx.fillStyle = sc.text; ctx.letterSpacing = '-0.5px'; ctx.fillText(disp, cx, stripY + Math.round(96 * S));
+          ctx.letterSpacing = '0px';
+        });
+      }
+      if (!hideLogo) {
+        ctx.fillStyle = withAlpha(sc.text, 150); ctx.font = F(20, 800); ctx.textAlign = 'center'; ctx.letterSpacing = '0.1em';
+        ctx.fillText('STRAVA DASHBOARD', W / 2, H - m - Math.round(30 * S)); ctx.letterSpacing = '0px';
+      }
+      break;
+    }
+
+    /* 27. PACE — route as full-bleed art, bottom scrim, title + stat row */
+    case 'pace': {
+      if (!skipBg) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
+      if (!hideRoute && polyline && polyline.length > 1) {
+        drawRoute(ctx, polyline, Math.round(60 * S), Math.round(150 * S), W - Math.round(120 * S), Math.round(1120 * S), sc.accent, Math.round(7 * S));
+      }
+      if (!skipBg) {
+        const g = ctx.createLinearGradient(0, H * 0.46, 0, H);
+        g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.86)');
+        ctx.fillStyle = g; ctx.fillRect(0, Math.round(H * 0.46), W, Math.round(H * 0.54));
+      }
+      let by = Math.round(1500 * S);
+      if (!hideDate) {
+        ctx.fillStyle = sc.accent; ctx.font = F(24, 700); ctx.textAlign = 'left'; ctx.letterSpacing = '0.12em';
+        ctx.fillText((act.type || 'ACTIVITY').toUpperCase() + '  ·  ' + (act.start_date ? fmtDt(act.start_date).toUpperCase() : ''), P, by);
+        ctx.letterSpacing = '0px';
+      }
+      if (!hideTitle) {
+        const nm = act.name || 'Activity';
+        fitText(nm, W - P * 2, 64, 800);
+        ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.letterSpacing = '-1px';
+        ctx.fillText(nm, P, by + Math.round(72 * S)); ctx.letterSpacing = '0px';
+      }
+      const pcs = selected.slice(0, 3);
+      if (pcs.length) {
+        const stripY = Math.round(1668 * S), cW = (W - P * 2) / pcs.length;
+        pcs.forEach((s, i) => {
+          const cx = P + i * cW;
+          const { num, unit } = statVal(s, act), disp = num + (unit ? ' ' + unit : '');
+          ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = F(17, 600); ctx.textAlign = 'left'; ctx.letterSpacing = '0.05em';
+          ctx.fillText(s.label.toUpperCase(), cx, stripY);
+          let vfs = Math.round(46 * S); ctx.font = `800 ${vfs}px -apple-system,sans-serif`;
+          while (vfs > Math.round(18 * S) && ctx.measureText(disp).width > cW * 0.92) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `800 ${vfs}px -apple-system,sans-serif`; }
+          ctx.fillStyle = '#ffffff'; ctx.letterSpacing = '-0.5px'; ctx.fillText(disp, cx, stripY + Math.round(58 * S));
+          ctx.letterSpacing = '0px';
+        });
+      }
+      if (!hideLogo) {
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = F(19, 800); ctx.textAlign = 'right'; ctx.letterSpacing = '0.08em';
+        ctx.fillText('STRAVA DASHBOARD', W - P, H - Math.round(44 * S)); ctx.letterSpacing = '0px';
+      }
+      break;
+    }
+
+    /* 28. COLUMN — narrow centred column: title, route, divided stat list */
+    case 'column': {
+      if (!skipBg && sc.card !== 'transparent') { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      const colW = Math.round(W * 0.72), colX = Math.round((W - colW) / 2);
+      let yc = Math.round(176 * S);
+      if (!hideTitle) {
+        const nm = act.name || 'Activity';
+        fitText(nm, colW, 52, 700);
+        ctx.fillStyle = sc.text; ctx.textAlign = 'center'; ctx.letterSpacing = '-0.5px';
+        ctx.fillText(nm, W / 2, yc); ctx.letterSpacing = '0px'; yc += Math.round(46 * S);
+      }
+      if (!hideDate) {
+        ctx.fillStyle = sc.muted; ctx.font = F(24, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0';
+        ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), W / 2, yc); yc += Math.round(28 * S);
+      }
+      let routeBottom = yc;
+      if (!hideRoute && polyline && polyline.length > 1) {
+        const rH = Math.round(560 * S);
+        drawRoute(ctx, polyline, colX, yc + Math.round(24 * S), colW, rH, sc.accent, Math.round(6 * S));
+        routeBottom = yc + Math.round(24 * S) + rH;
+      }
+      if (selected.length) {
+        const listY = routeBottom + Math.round(44 * S);
+        const avail = H - listY - Math.round(120 * S);
+        const rH = Math.min(Math.round(150 * S), avail / selected.length);
+        selected.forEach((s, i) => {
+          const { num, unit } = statVal(s, act), disp = num + (unit ? ' ' + unit : '');
+          const ry = listY + i * rH, baseY = ry + rH * 0.62;
+          ctx.strokeStyle = withAlpha(sc.text, 30); ctx.lineWidth = Math.max(1, Math.round(1 * S));
+          ctx.beginPath(); ctx.moveTo(colX, ry); ctx.lineTo(colX + colW, ry); ctx.stroke();
+          ctx.fillStyle = sc.muted; ctx.font = F(22, 600); ctx.textAlign = 'left'; ctx.letterSpacing = '0.04em';
+          ctx.fillText(s.label.toUpperCase(), colX, baseY);
+          let vfs = Math.round(44 * S); ctx.font = `800 ${vfs}px -apple-system,sans-serif`;
+          while (vfs > Math.round(18 * S) && ctx.measureText(disp).width > colW * 0.5) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `800 ${vfs}px -apple-system,sans-serif`; }
+          ctx.fillStyle = sc.text; ctx.textAlign = 'right'; ctx.letterSpacing = '-0.5px';
+          ctx.fillText(disp, colX + colW, baseY); ctx.letterSpacing = '0px';
+        });
+      }
+      if (!hideLogo) {
+        ctx.fillStyle = withAlpha(sc.text, 140); ctx.font = F(20, 800); ctx.textAlign = 'center'; ctx.letterSpacing = '0.1em';
+        ctx.fillText('STRAVA DASHBOARD', W / 2, H - Math.round(56 * S)); ctx.letterSpacing = '0px';
+      }
+      break;
+    }
+
 
   }
 }
