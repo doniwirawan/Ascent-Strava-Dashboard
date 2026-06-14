@@ -69,7 +69,7 @@
   .modal-body { grid-template-columns: 1fr; gap: 12px; }
 
   /* preview on top so edits are visible while scrolling the controls */
-  .story-right { order: -1; }
+  .story-right { order: -1; position: static; }
   .story-preview {
     height: 46vh !important;
     width: auto !important;

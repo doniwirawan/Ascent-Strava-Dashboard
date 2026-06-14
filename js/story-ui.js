@@ -46,10 +46,14 @@ function _customFlip(id,axis){ const p=_customElPos(id); if(!p) return; if(axis=
 // guides). Mutates positions and sets window._customGuides.
 function _customSnap(drag,canvas){
   const W=canvas.width,H=canvas.height,clamp=v=>Math.min(1,Math.max(0,v));
-  const prim=drag.primary;
-  if(!prim){ window._customGuides=null; return; }
-  const bw=prim.bw||0, bh=prim.bh||0;
-  let cx=prim.pos.x*W, cy=prim.pos.y*H;
+  const items=drag.items;
+  if(!items||!items.length){ window._customGuides=null; return; }
+  // group bounding box (canvas px) from each item's centre + half-extents — so a
+  // multi-element selection snaps as a single unit on both axes
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  items.forEach(it=>{ const ex=(it.bw||0)/2, ey=(it.bh||0)/2, ix=it.pos.x*W, iy=it.pos.y*H; minX=Math.min(minX,ix-ex); maxX=Math.max(maxX,ix+ex); minY=Math.min(minY,iy-ey); maxY=Math.max(maxY,iy+ey); });
+  const bw=maxX-minX, bh=maxY-minY;
+  let cx=(minX+maxX)/2, cy=(minY+maxY)/2;
   const others=(window._customHits||[]).filter(h=>!customSel.has(h.id));
   const TH=22; // snap distance in canvas px
 
@@ -162,9 +166,9 @@ function _wireCustomDrag(){
     if(h){
       if(e.shiftKey){ customSel.has(h.id)?customSel.delete(h.id):customSel.add(h.id); drawStoryCanvas(); return; }
       if(!customSel.has(h.id)) customSel=new Set([h.id]);
-      const items=[...customSel].map(id=>{ const pos=_customElPos(id); return pos?{id,pos,x0:pos.x,y0:pos.y}:null; }).filter(Boolean);
-      drag={ items, primary:items.find(it=>it.id===h.id)||items[0], sx:p.x, sy:p.y };
-      if(drag.primary){ drag.primary.bw=h.w; drag.primary.bh=h.h; }
+      const hitMap={}; (window._customHits||[]).forEach(hb=>hitMap[hb.id]=hb);
+      const items=[...customSel].map(id=>{ const pos=_customElPos(id); if(!pos) return null; const hb=hitMap[id]; return {id,pos,x0:pos.x,y0:pos.y,bw:hb?hb.w:0,bh:hb?hb.h:0}; }).filter(Boolean);
+      drag={ items, sx:p.x, sy:p.y };
       canvas.setPointerCapture(e.pointerId); canvas.style.cursor='grabbing';
     } else {
       if(!e.shiftKey) customSel.clear();
