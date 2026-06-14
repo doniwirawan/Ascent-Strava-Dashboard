@@ -64,6 +64,30 @@ if (!CONFIG.refreshToken) {
   });
 }
 
+/* ── LANDING: carousel + scroll-reveal animations ── */
+(function(){
+  const track=document.getElementById('lpTrack');
+  if(track){
+    const slides=[...track.children];
+    const dotsWrap=document.getElementById('lpDots');
+    const go=i=>{ i=Math.max(0,Math.min(slides.length-1,i)); track.scrollTo({left:slides[i].offsetLeft-track.offsetLeft,behavior:'smooth'}); };
+    let cur=0;
+    if(dotsWrap) slides.forEach((_,i)=>{ const b=document.createElement('button'); b.setAttribute('aria-label','Slide '+(i+1)); b.onclick=()=>go(i); dotsWrap.appendChild(b); });
+    const dots=dotsWrap?[...dotsWrap.children]:[];
+    const sync=()=>{ const w=track.clientWidth||1; cur=Math.round(track.scrollLeft/w); dots.forEach((d,i)=>d.classList.toggle('active',i===cur)); };
+    track.addEventListener('scroll',()=>requestAnimationFrame(sync));
+    const prev=document.getElementById('lpPrev'), next=document.getElementById('lpNext');
+    if(prev) prev.onclick=()=>go(cur-1);
+    if(next) next.onclick=()=>go(cur+1);
+    sync();
+  }
+  const rev=document.querySelectorAll('.reveal');
+  if(rev.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }),{threshold:0.12});
+    rev.forEach(el=>io.observe(el));
+  } else { rev.forEach(el=>el.classList.add('in')); }
+})();
+
 /* ── SERVICE WORKER ── */
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').catch(()=>{});

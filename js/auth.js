@@ -151,25 +151,63 @@ function renderAthlete(a) {
 }
 
 /* ── DEMO ── */
+function _demoEncode(points){
+  let last=[0,0],out='';
+  const e=v=>{v=v<0?~(v<<1):(v<<1);let s='';while(v>=0x20){s+=String.fromCharCode((0x20|(v&0x1f))+63);v>>=5;}s+=String.fromCharCode(v+63);return s;};
+  for(const p of points){const a=Math.round(p[0]*1e5),b=Math.round(p[1]*1e5);out+=e(a-last[0])+e(b-last[1]);last=[a,b];}
+  return out;
+}
+function _demoRoute(clat,clng,size,seed){
+  const pts=[],n=64;
+  for(let i=0;i<=n;i++){const t=i/n*Math.PI*2;const rr=size*(0.62+0.38*Math.sin(t*3+seed)+0.18*Math.cos(t*5+seed*1.7));pts.push([clat+rr*Math.sin(t)*0.85,clng+rr*Math.cos(t)*1.25]);}
+  return _demoEncode(pts);
+}
 function loadDemo() {
-  const types=['Ride','Ride','Ride','Run','Hike','VirtualRide','Run'];
+  const types=['Ride','Ride','Ride','Run','Ride','Run','GravelRide','Run','Ride','Hike','VirtualRide','Run'];
+  const rideNames=['Morning Ride','Sunset Loop','Bukit Climb','Coffee Ride','Ubud Hills','Coastal Spin','Sanur Sprint','Long Endurance Ride','Bedugul Climb','Recovery Spin'];
+  const runNames=['Morning Run','Tempo Run','Easy Recovery Run','Long Run','Track Intervals','Beach Run','Hill Repeats','Sunday Long Run','Progression Run','Shakeout Run'];
+  const hikeNames=['Sunrise Hike','Ridge Trek','Volcano Hike','Jungle Trail'];
+  const centers=[[-8.67,115.15],[-8.51,115.26],[-8.34,115.16],[-8.79,115.17],[-8.41,115.20]];
   const now=Date.now();
-  acts=Array.from({length:120},(_,i)=>{
+  acts=Array.from({length:140},(_,i)=>{
     const type=types[i%types.length];
     const r=()=>Math.random();
+    const ride=type.includes('Ride');
     let dist,avgS,maxS;
-    if(type.includes('Ride')){dist=8000+r()*85000;avgS=5+r()*5;maxS=avgS*(1.25+r()*.3);}
-    else if(type==='Run'){dist=3000+r()*18000;avgS=2.5+r()*1.5;maxS=avgS*1.2;}
-    else{dist=2000+r()*12000;avgS=1.5+r();maxS=avgS*1.1;}
+    if(ride){dist=14000+r()*86000;avgS=6.5+r()*4;maxS=avgS*(1.3+r()*.35);}
+    else if(type==='Run'){dist=4000+r()*18000;avgS=2.7+r()*1.4;maxS=avgS*1.25;}
+    else{dist=3000+r()*9000;avgS=1.3+r()*0.7;maxS=avgS*1.15;}
+    const elev=ride?(120+r()*1400):(40+r()*500);
+    const c=centers[i%centers.length];
+    const nm=ride?rideNames[i%rideNames.length]:(type==='Run'?runNames[i%runNames.length]:hikeNames[i%hikeNames.length]);
+    const mt=dist/avgS;
+    const hr=ride?(122+r()*42):(140+r()*38);
+    const dateStr=new Date(now-i*86400000*(0.5+r()*.9)).toISOString().replace('Z','Z');
     return {
-      name:type+' '+String(i+1).padStart(3,'0'),
-      type, distance:dist, moving_time:dist/avgS,
+      id:900000+i, name:nm, type, sport_type:type,
+      distance:dist, moving_time:mt, elapsed_time:mt*(1.05+r()*0.25),
       average_speed:avgS, max_speed:maxS,
-      total_elevation_gain:30+r()*700,
-      start_date:new Date(now-i*86400000*(0.6+r()*.9)).toISOString()
+      total_elevation_gain:elev, elev_high:80+elev*0.6,
+      average_heartrate:hr, max_heartrate:hr+12+r()*20,
+      average_cadence:ride?(78+r()*16):(82+r()*8),
+      average_watts:ride?Math.round(110+r()*120):undefined,
+      max_watts:ride?Math.round(400+r()*500):undefined,
+      kilojoules:ride?Math.round(mt*(110+r()*120)/1000):undefined,
+      calories:Math.round(dist/1000*(ride?22:62)),
+      suffer_score:Math.round(20+r()*120),
+      kudos_count:Math.round(2+r()*40),
+      pr_count:r()>0.7?Math.round(1+r()*3):0,
+      achievement_count:r()>0.5?Math.round(1+r()*6):0,
+      total_photo_count:r()>0.6?Math.round(1+r()*4):0,
+      start_date:dateStr, start_date_local:dateStr,
+      start_latlng:[c[0],c[1]],
+      location_city:['Denpasar','Ubud','Bedugul','Uluwatu','Canggu'][i%5], location_state:'Bali', location_country:'Indonesia',
+      map:{summary_polyline:_demoRoute(c[0],c[1],0.02+r()*0.05,i*1.3)}
     };
   });
-  renderAthlete({firstname:'Demo',lastname:'Athlete',profile_medium:''});
+  renderAthlete({firstname:'Alex',lastname:'Rivera',
+    profile_medium:'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=160&h=160&fit=crop&crop=faces',
+    profile:'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=320&h=320&fit=crop&crop=faces'});
   renderAll();
   setStatus(`Demo mode — ${acts.length} sample activities`,'success');
   const btn=document.getElementById('mainBtn');

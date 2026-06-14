@@ -55,36 +55,33 @@
       <div class="lp-step"><div class="n">3</div><h4>Explore & share</h4><p>Dive into your stats and maps, then export a share-ready story card of any activity.</p></div>
     </div>
 
-    <h2 class="lp-h2">Everything in one place</h2>
-    <p class="lp-h2-sub">A complete view of your training — no spreadsheets required.</p>
+    <h2 class="lp-h2 reveal">Built around the Story studio</h2>
+    <p class="lp-h2-sub reveal">A full analytics dashboard — with a share-card studio as the headline act.</p>
     <div class="lp-features">
-      <div class="lp-feat"><div class="ico">📊</div><h4>Overview & Trends</h4><p>Totals, averages, weekly/monthly distance and a rolling speed/pace trend for cycling and running.</p></div>
-      <div class="lp-feat"><div class="ico">🗺️</div><h4>Heatmap</h4><p>Every GPS trace overlaid on an interactive map — your most-ridden roads glow brightest.</p></div>
-      <div class="lp-feat"><div class="ico">🏔️</div><h4>Segments & KOMs</h4><p>Your starred segments with PRs, KOM/QOM status and VAM, each with a zoomable map.</p></div>
-      <div class="lp-feat"><div class="ico">🎯</div><h4>Eddington & Milestones</h4><p>Your Eddington number, day streaks, and named distance/elevation milestones with progress.</p></div>
-      <div class="lp-feat"><div class="ico">🖼️</div><h4>Story-card Studio</h4><p>Generate 9:16 share images in 28 templates — themes, custom backgrounds, real topographic maps, and a drag-and-drop editor.</p></div>
-      <div class="lp-feat"><div class="ico">🔒</div><h4>100% client-side</h4><p>Your data never leaves your browser — nothing is stored on our servers. No ads, no selling data, one-click disconnect.</p></div>
+      <div class="lp-feat feat-star reveal"><div class="ico">🖼️</div><h4>Story-card Studio <span class="flag">flagship</span></h4><p>Turn any ride or run into a stunning 9:16 share card — 28 templates, color themes, your own background photo, real topographic maps, and a drag-and-drop editor. This is what Ascent is built around.</p></div>
+      <div class="lp-feat reveal"><div class="ico">📊</div><h4>Overview & Trends</h4><p>Totals, averages, weekly/monthly distance and a rolling speed/pace trend for cycling and running.</p></div>
+      <div class="lp-feat reveal"><div class="ico">🗺️</div><h4>Heatmap</h4><p>Every GPS trace overlaid on an interactive map — your most-ridden roads glow brightest.</p></div>
+      <div class="lp-feat reveal"><div class="ico">🏔️</div><h4>Segments & KOMs</h4><p>Your starred segments with PRs, KOM/QOM status and VAM, each with a zoomable map.</p></div>
+      <div class="lp-feat reveal"><div class="ico">🎯</div><h4>Eddington & Milestones</h4><p>Your Eddington number, day streaks, and named distance/elevation milestones with progress.</p></div>
+      <div class="lp-feat reveal"><div class="ico">🔒</div><h4>100% client-side</h4><p>Your data never leaves your browser — nothing is stored on our servers. No ads, no selling data, one-click disconnect.</p></div>
     </div>
 
-    <h2 class="lp-h2">See it in action</h2>
-    <p class="lp-h2-sub">Real views from the dashboard (shown here with sample data).</p>
-    <div class="lp-shots">
-      <figure class="lp-shot">
-        <img src="images/screenshots/overview.png" alt="Ascent overview dashboard with stat cards" loading="lazy">
-        <figcaption><b>Overview.</b> Your whole history at a glance — distance, moving time, elevation, your Eddington number, streaks and consistency, split by cycling and running. Switch km/mi and Cyclist/Runner from the top bar.</figcaption>
-      </figure>
-      <figure class="lp-shot">
-        <img src="images/screenshots/trends.png" alt="Ascent trends charts" loading="lazy">
-        <figcaption><b>Trends.</b> See your direction over time — weekly distance, a year-over-year monthly comparison, your pace/speed trend, and how your training splits across sports. Great for spotting build-ups, peaks and off-seasons.</figcaption>
-      </figure>
-      <figure class="lp-shot">
-        <img src="images/screenshots/calendar.png" alt="Ascent activity calendar contribution grid" loading="lazy">
-        <figcaption><b>Calendar.</b> A 12-month contribution grid — every active day shaded by volume, with your longest streak and busiest day. The fastest way to see how consistent you've really been.</figcaption>
-      </figure>
-      <figure class="lp-shot lp-shot-story">
-        <img src="images/screenshots/story.png" alt="Ascent share story card for an activity" loading="lazy">
-        <figcaption><b>Story-card studio.</b> Turn any activity into a 9:16 share image — 28 templates, color themes, your own background photo, real topographic maps, and a drag-and-drop custom editor. Export a clean PNG for Instagram or anywhere.</figcaption>
-      </figure>
+    <h2 class="lp-h2 reveal">See it in action</h2>
+    <p class="lp-h2-sub reveal">Swipe through real views — starting with the share-card studio (sample data).</p>
+    <div class="lp-carousel reveal">
+      <button class="lp-car-btn prev" id="lpPrev" aria-label="Previous">‹</button>
+      <div class="lp-track" id="lpTrack">
+        <figure class="lp-slide"><div class="stage"><img src="images/screenshots/story-popup.png" alt="Ascent Story studio" loading="lazy"></div><figcaption><b>Story studio.</b> Pick an activity, choose a template &amp; theme, toggle stats, even drop in a background photo — and watch the 9:16 card render live. Then export a clean PNG.</figcaption></figure>
+        <figure class="lp-slide"><div class="stage story"><img src="images/screenshots/story.png" alt="Frame story template" loading="lazy"></div><figcaption><b>Frame template.</b> A clean gallery-poster card with your route and key stats.</figcaption></figure>
+        <figure class="lp-slide"><div class="stage story"><img src="images/screenshots/story-pace.png" alt="Pace story template" loading="lazy"></div><figcaption><b>Pace template.</b> Your route as full-bleed art with a bold title — runner-friendly with pace.</figcaption></figure>
+        <figure class="lp-slide"><div class="stage story"><img src="images/screenshots/story-strava.png" alt="Transparent story template" loading="lazy"></div><figcaption><b>Transparent theme.</b> A clean card you can drop over any Instagram-story background.</figcaption></figure>
+        <figure class="lp-slide"><div class="stage"><img src="images/screenshots/overview.png" alt="Overview dashboard" loading="lazy"></div><figcaption><b>Overview.</b> Your whole history at a glance — distance, time, elevation, Eddington number, streaks and consistency, split by cycling and running.</figcaption></figure>
+        <figure class="lp-slide"><div class="stage"><img src="images/screenshots/trendsSection.png" alt="Trends charts" loading="lazy"></div><figcaption><b>Trends.</b> Weekly distance, a year-over-year comparison, pace/speed trend, and your activity split — spot build-ups, peaks and off-seasons.</figcaption></figure>
+        <figure class="lp-slide"><div class="stage"><img src="images/screenshots/calSection.png" alt="Activity calendar" loading="lazy"></div><figcaption><b>Calendar.</b> A 12-month contribution grid — every active day shaded by volume, with your longest streak and busiest day.</figcaption></figure>
+        <figure class="lp-slide"><div class="stage"><img src="images/screenshots/heatSection.png" alt="Route heatmap" loading="lazy"></div><figcaption><b>Heatmap.</b> Every GPS trace overlaid on an interactive map — your most-travelled roads glow brightest.</figcaption></figure>
+      </div>
+      <button class="lp-car-btn next" id="lpNext" aria-label="Next">›</button>
+      <div class="lp-dots" id="lpDots"></div>
     </div>
 
     <h2 class="lp-h2">Data &amp; Privacy FAQ</h2>
@@ -92,10 +89,12 @@
     <div class="lp-faq">
       <details open><summary>Do you collect my data?</summary><div class="ans">Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth). We use it to show <i>you</i> your stats — nothing more. We never see your Strava password, and we don't collect payment info.</div></details>
       <details><summary>How is my data processed?</summary><div class="ans">Almost everything (stats, charts, maps, story images) is computed <b>in your browser</b>. Your recent activities are cached so the app loads instantly on repeat visits. The only data ever <i>written</i> back to Strava is reassigning gear — and only when you choose to.</div></details>
-      <details><summary>Where is my data stored?</summary><div class="ans">Only on <b>your device</b> — in your browser's storage (login tokens, preferences, a copy of recent activities). <b>Nothing is stored on our servers</b>; it's 100% client-side. Your password is never stored.</div></details>
+      <details><summary>Where is my data stored?</summary><div class="ans">Only on <b>your device</b> — your browser's storage holds your login tokens, preferences and a copy of recent activities. <b>Nothing is stored on our servers</b> — no activity database, and your tokens are never saved server-side. It's 100% client-side. Your password is never stored.</div></details>
+      <details><summary>Is Ascent safe? How is it secured?</summary><div class="ans">A few ways: <b>(1)</b> your data and tokens live only in your browser — there's no server-side database to breach. <b>(2)</b> We never see your Strava password; you sign in through Strava's own OAuth. <b>(3)</b> The app's confidential Strava <i>client secret</i> is kept on the server and never shipped to the browser, so it can't be lifted from the page. <b>(4)</b> The single server step is a tiny function that completes Strava's token exchange — it passes your code/token through to Strava and stores nothing. <b>(5)</b> Traffic is HTTPS, scopes are minimal, and you can wipe everything anytime with <b>Disconnect</b>.</div></details>
+      <details><summary>Why isn't my token saved on a server?</summary><div class="ans">It doesn't need to be — and keeping it off our servers is safer. Your access/refresh tokens are stored in <b>your browser</b> and sent straight from your browser to Strava. The only thing we keep server-side is the app's <i>client secret</i> (so it stays hidden); the token exchange that uses it happens transiently and saves nothing.</div></details>
       <details><summary>Do you sell or share my data?</summary><div class="ans"><b>No.</b> We never sell, rent, trade, or share your personal data for advertising or marketing, and we don't build profiles for third parties.</div></details>
       <details><summary>What permissions does it request?</summary><div class="ans"><code>read</code>, <code>activity:read_all</code>, and <code>profile:read_all</code> to read your activities &amp; profile, plus <code>activity:write</code> — used <i>only</i> when you reassign gear yourself.</div></details>
-      <details><summary>Can I delete my data or disconnect?</summary><div class="ans">Yes, anytime. Use <b>Disconnect</b> in the app to clear this device's tokens and cache, and revoke access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava → My Apps</a>. To remove the server-side cache, email <a href="mailto:doniwirawan166@gmail.com">doniwirawan166@gmail.com</a>.</div></details>
+      <details><summary>Can I delete my data or disconnect?</summary><div class="ans">Yes, anytime. Use <b>Disconnect</b> in the app to clear this device's tokens and cached data, and revoke access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava → My Apps</a>. Since nothing is stored on our servers, that's all it takes.</div></details>
       <details><summary>Is this an official Strava app?</summary><div class="ans">No. Ascent is an independent, free, personal-use dashboard for your own Strava data. It is <b>not affiliated with, endorsed by, or sponsored by Strava, Inc.</b></div></details>
     </div>
 
@@ -159,6 +158,12 @@
   </div>
 </nav>
 <div class="mobile-menu" id="mobileMenu"></div>
+
+<!-- floating Share Story button (mobile only; the headline feature) -->
+<button class="share-fab" id="shareFab" onclick="document.getElementById('shareBtn').click()" aria-label="Share Story" style="display:none">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+  <span>Story</span>
+</button>
 
 <div class="app-layout">
 <aside class="sidebar" id="sidebar">
@@ -539,11 +544,13 @@
       <dl class="help-gloss">
         <div><dt>Do you collect my data?</dt><dd>Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth). We use it to show <i>you</i> your stats — nothing more. We never see your Strava password, and we don't collect payment info or anything beyond what your activities already contain.</dd></div>
         <div><dt>How is my data processed?</dt><dd>Almost everything (stats, charts, maps, story images) is computed <b>in your browser</b>. Your recent activities are cached so the app loads instantly on repeat visits. The only data we ever <i>write</i> back to Strava is reassigning gear — and only when you explicitly choose to.</dd></div>
-        <div><dt>Where is my data stored?</dt><dd>Only on <b>your device</b> — in your browser's localStorage (login tokens, preferences, and a copy of your recent activities). <b>Nothing is stored on our servers</b>; everything runs client-side. Your password is never stored — tokens are used only to talk to the Strava API on your behalf.</dd></div>
+        <div><dt>Where is my data stored?</dt><dd>Only on <b>your device</b> — in your browser's localStorage (login tokens, preferences, and a copy of your recent activities). <b>Nothing is stored on our servers</b> — no activity database, and your tokens are never saved server-side. Your password is never stored.</dd></div>
+        <div><dt>Is Ascent safe? How is it secured?</dt><dd>Your data and tokens live only in your browser (no server-side database to breach); we never see your Strava password; the app's confidential Strava <b>client secret</b> is kept on the server and never shipped to the browser; the only server step is a tiny function that completes Strava's token exchange and stores nothing; and traffic is HTTPS with minimal scopes. You can wipe everything anytime with <b>Disconnect</b>.</dd></div>
+        <div><dt>Why isn't my token stored on a server?</dt><dd>It doesn't need to be, and it's safer not to. Tokens stay in <b>your browser</b> and go straight to Strava. The only thing kept server-side is the app's client secret (so it can't be stolen from the page); the exchange that uses it runs transiently and saves nothing.</dd></div>
         <div><dt>Do you sell or share my data?</dt><dd><b>No.</b> We never sell, rent, trade, or share your personal data for advertising or marketing, and we don't build profiles for third parties or use it for anything unrelated to the features you use.</dd></div>
         <div><dt>What permissions does the app request?</dt><dd><code>read</code>, <code>activity:read_all</code>, and <code>profile:read_all</code> (to read your activities &amp; profile), plus <code>activity:write</code> — used <i>only</i> when you reassign gear on an activity yourself.</dd></div>
         <div><dt>Which third parties are involved?</dt><dd><b>Strava</b> (the source of your data), <b>Vercel</b> (static hosting), and map/asset providers like <b>CARTO</b> &amp; <b>OpenStreetMap</b> (which may see your IP address as a normal part of serving maps and fonts). There's no server-side database for your data.</dd></div>
-        <div><dt>Can I delete my data or disconnect?</dt><dd>Yes, anytime. Use <b>Disconnect</b> to clear this device's tokens and cached data, and revoke the app's access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener" style="color:var(--orange);font-weight:700;">Strava → My Apps</a>. For removal of the server-side cache, contact <a href="mailto:doniwirawan166@gmail.com" style="color:var(--orange);font-weight:700;">doniwirawan166@gmail.com</a>.</dd></div>
+        <div><dt>Can I delete my data or disconnect?</dt><dd>Yes, anytime. Use <b>Disconnect</b> to clear this device's tokens and cached data, and revoke the app's access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener" style="color:var(--orange);font-weight:700;">Strava → My Apps</a>. Since nothing is stored on our servers, that fully removes your data.</dd></div>
         <div><dt>Is this an official Strava app?</dt><dd>No. Ascent is an independent, free, personal-use dashboard for your own Strava data. It is <b>not affiliated with, endorsed by, or sponsored by Strava, Inc.</b></dd></div>
       </dl>
       <div style="margin-top:10px;font-size:12px;color:var(--muted);">Full details in our <a href="/privacy" style="color:var(--orange);font-weight:700;">Privacy Policy</a> and <a href="/terms" style="color:var(--orange);font-weight:700;">Terms of Service</a>.</div>

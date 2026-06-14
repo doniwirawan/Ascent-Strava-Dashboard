@@ -57,13 +57,14 @@
   <ul>
     <li><strong>Your device only (browser <code>localStorage</code>)</strong>: OAuth access/refresh tokens, your preferences (units, sport mode, last page viewed), and a copy of your recent activities.</li>
   </ul>
-  <p><strong>We do not keep a copy of your activity data on any server.</strong> All processing and caching happens in your browser; the App is a static site with no application database for your data. We never receive or store your Strava password. Tokens are used solely to communicate with the Strava API on your behalf.</p>
+  <p><strong>We do not keep a copy of your activity data, or your access/refresh tokens, on any server.</strong> All processing and caching happens in your browser; the App is a static site with no application database for your data. Your tokens are stored only in your browser and are sent directly from your browser to Strava’s API.</p>
+  <p><strong>OAuth exchange.</strong> The one server-side step is a small serverless function that completes Strava’s OAuth token exchange and refresh. It exists so the App’s confidential Strava <em>client secret</em> stays on the server and is never exposed in your browser. When you connect (or your token is refreshed), your authorization code or refresh token passes <strong>transiently</strong> through this function to Strava and the resulting tokens are returned to your browser; the function does <strong>not</strong> store your code, tokens, or activity data. We never receive or store your Strava password.</p>
 
   <h2>6. Third-party services (sub-processors)</h2>
   <p>The App relies on the following third parties, each governed by its own privacy policy and terms:</p>
   <ul>
     <li><strong>Strava, Inc.</strong> — the source of your activity data;</li>
-    <li><strong>Vercel</strong> — static website hosting and delivery;</li>
+    <li><strong>Vercel</strong> — website hosting and delivery, and a serverless function that performs the Strava OAuth token exchange/refresh (it processes the code/token transiently and stores nothing);</li>
     <li><strong>Map &amp; asset providers</strong> (e.g., CARTO, OpenStreetMap, and content-delivery networks) — for maps, fonts, and libraries; these providers may receive your IP address and basic request data as a normal part of serving content.</li>
   </ul>
   <p>We are not responsible for the independent practices of these providers.</p>
@@ -88,7 +89,7 @@
   <p>The App is not directed to children below the minimum age required to hold a Strava account in their jurisdiction, and we do not knowingly collect their data. If you believe a child has used the App, contact us.</p>
 
   <h2>12. Security</h2>
-  <p>We use reasonable technical measures (such as server-side mediation of database access and use of HTTPS by our providers) to help protect data. However, <strong>no method of transmission or storage is completely secure, and we cannot guarantee absolute security.</strong> You use the App at your own risk, as further described in our <a href="/terms">Terms of Service</a>. In the event of a data incident, we will take reasonable steps and provide any notices required by applicable law.</p>
+  <p>We use reasonable technical measures to help protect data: your data and tokens stay in your browser (no server-side data store), the App’s confidential Strava client secret is kept server-side and never shipped to the browser, and traffic uses HTTPS. However, <strong>no method of transmission or storage is completely secure, and we cannot guarantee absolute security.</strong> You use the App at your own risk, as further described in our <a href="/terms">Terms of Service</a>. In the event of a data incident, we will take reasonable steps and provide any notices required by applicable law.</p>
 
   <h2>13. Changes to this Policy</h2>
   <p>We may update this Policy from time to time by posting a revised version with a new “Last updated” date. Your continued use of the App after changes constitutes acceptance of the updated Policy.</p>
