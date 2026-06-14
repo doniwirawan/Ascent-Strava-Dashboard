@@ -1,7 +1,7 @@
 {
-  "name": "Strava Dashboard",
-  "short_name": "Strava Dash",
-  "description": "Your personal Strava activity dashboard",
+  "name": "Ascent",
+  "short_name": "Ascent",
+  "description": "Personal cycling & running analytics for your Strava activities",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0c0c",
@@ -9,10 +9,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

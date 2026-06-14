@@ -246,7 +246,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
 
     // wordmark
     if (!hideLogo) {
-      const l = customPos.logo, k = l.s || 1, cx = l.x * W, cy = l.y * H, txt = 'STRAVA DASHBOARD';
+      const l = customPos.logo, k = l.s || 1, cx = l.x * W, cy = l.y * H, txt = 'ASCENT';
       ctx.textAlign = 'center'; ctx.fillStyle = withAlpha(sc.text, 170);
       ctx.font = `800 ${Math.round(24 * S * k)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.06em';
       flip(l, cx, cy, () => ctx.fillText(txt, cx, cy));
@@ -606,7 +606,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       grid(selected, 0, cY + Math.round(160 * S), W, cH - Math.round(168 * S), 2);
       if (!hideLogo) {
         ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.font = F(26, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0.12em';
-        ctx.fillText('STRAVA · ' + new Date().getFullYear(), W / 2, cY - Math.round(32 * S)); ctx.letterSpacing = '0px';
+        ctx.fillText('ASCENT · ' + new Date().getFullYear(), W / 2, cY - Math.round(32 * S)); ctx.letterSpacing = '0px';
       }
       if (polyline && polyline.length > 1) {
         drawRoute(ctx, polyline, P, cY + cH + Math.round(32 * S), W - P * 2, H - (cY + cH) - Math.round(48 * S), sc.accent, Math.round(4 * S));
@@ -1244,7 +1244,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.fillStyle = sc.accent + 'aa';
         ctx.font = `900 ${Math.round(13 * S)}px -apple-system,sans-serif`;
         ctx.textAlign = 'right'; ctx.letterSpacing = '0.18em';
-        ctx.fillText('TOPO · STRAVA', W - P, H - Math.round(28 * S));
+        ctx.fillText('TOPO · ASCENT', W - P, H - Math.round(28 * S));
         ctx.letterSpacing = '0';
       }
       break;
@@ -1640,7 +1640,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       }
       if (!hideLogo) {
         ctx.fillStyle = withAlpha(sc.text, 150); ctx.font = F(20, 800); ctx.textAlign = 'center'; ctx.letterSpacing = '0.1em';
-        ctx.fillText('STRAVA DASHBOARD', W / 2, H - m - Math.round(30 * S)); ctx.letterSpacing = '0px';
+        ctx.fillText('ASCENT', W / 2, H - m - Math.round(30 * S)); ctx.letterSpacing = '0px';
       }
       break;
     }
@@ -1686,7 +1686,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       }
       if (!hideLogo) {
         ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = F(19, 800); ctx.textAlign = 'right'; ctx.letterSpacing = '0.08em';
-        ctx.fillText('STRAVA DASHBOARD', W - P, H - Math.round(44 * S)); ctx.letterSpacing = '0px';
+        ctx.fillText('ASCENT', W - P, H - Math.round(44 * S)); ctx.letterSpacing = '0px';
       }
       break;
     }
@@ -1731,7 +1731,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       }
       if (!hideLogo) {
         ctx.fillStyle = withAlpha(sc.text, 140); ctx.font = F(20, 800); ctx.textAlign = 'center'; ctx.letterSpacing = '0.1em';
-        ctx.fillText('STRAVA DASHBOARD', W / 2, H - Math.round(56 * S)); ctx.letterSpacing = '0px';
+        ctx.fillText('ASCENT', W / 2, H - Math.round(56 * S)); ctx.letterSpacing = '0px';
       }
       break;
     }
