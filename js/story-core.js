@@ -79,6 +79,22 @@ function getScheme() {
 /* ── stat value helper ── */
 function statVal(s, act) { const v = String(s.fmt(act)); const p = v.split(' '); return { num: p[0], unit: p.slice(1).join(' ') }; }
 
+/* ── adapt the shown stats to the activity type (runs → pace/cadence,
+   rides → speed/power). Only re-picks when the sport category changes, so
+   manual tweaks within the same sport are preserved. Returns true if it
+   changed the selection. ── */
+let _lastStatType = null;
+function adaptStatsToActivity(act) {
+  if (!act) return false;
+  const t = isRun(act) ? 'run' : isRide(act) ? 'ride' : 'other';
+  if (t === _lastStatType) return false;
+  _lastStatType = t;
+  if (t === 'run')       checkedStats = new Set(['distance', 'moving_time', 'pace', 'total_elevation_gain', 'average_heartrate', 'average_cadence']);
+  else if (t === 'ride') checkedStats = new Set(['distance', 'moving_time', 'average_speed', 'total_elevation_gain', 'average_heartrate', 'average_watts']);
+  else                   checkedStats = new Set(['distance', 'moving_time', 'average_speed', 'total_elevation_gain', 'average_heartrate', 'calories']);
+  return true;
+}
+
 /* ── CUSTOM LAYOUT — free drag-and-place of every element ── */
 let customEditMode = true; // draw drag affordances on the main canvas (never in export)
 let customSel = new Set(); // ids of currently group-selected elements (transient)

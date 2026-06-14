@@ -1663,11 +1663,13 @@ function drawLayout(canvas, act, selected, sc, layout) {
 
     /* 27. PACE — route as full-bleed art, bottom scrim, title + stat row */
     case 'pace': {
-      if (!skipBg) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
+      // transparent scheme stays see-through (no solid fill, no scrim); opaque
+      // schemes get a dark backdrop + bottom scrim for legible white text
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
       if (!hideRoute && polyline && polyline.length > 1) {
         drawRoute(ctx, polyline, Math.round(60 * S), Math.round(150 * S), W - Math.round(120 * S), Math.round(1120 * S), sc.accent, Math.round(7 * S));
       }
-      if (!skipBg) {
+      if (!skipBg && !isTransp) {
         const g = ctx.createLinearGradient(0, H * 0.46, 0, H);
         g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.86)');
         ctx.fillStyle = g; ctx.fillRect(0, Math.round(H * 0.46), W, Math.round(H * 0.54));

@@ -272,9 +272,21 @@ async function fetchActDetail(idx){
   }catch{}
 }
 
+// reflect the current checkedStats set onto the stat toggle checkboxes/borders
+function _syncStatToggleUI(){
+  STAT_DEFS.forEach(s=>{
+    const lbl=document.getElementById('lbl-'+s.key); if(!lbl) return;
+    const on=checkedStats.has(s.key);
+    const cb=lbl.querySelector('input'); if(cb) cb.checked=on;
+    lbl.style.borderColor=on?'var(--orange)':'var(--border)';
+  });
+}
+
 function openStoryModal(){
   const picker=document.getElementById('activityPicker');
   picker.innerHTML=acts.slice(0,50).map((a,i)=>`<option value="${i}">${fmtDt(a.start_date)} — ${a.name} (${fmtD(a.distance)})</option>`).join('');
+  // adapt the default stat selection to the first activity's sport
+  adaptStatsToActivity(acts[parseInt(picker.value)||0]);
 
   // layout thumbnails
   const lp=document.getElementById('layoutPicker');
@@ -312,6 +324,7 @@ function openStoryModal(){
   picker.onchange=async()=>{
     const idx=parseInt(picker.value)||0;
     const act=acts[idx]||{};
+    if(adaptStatsToActivity(act)){ _syncStatToggleUI(); saveStorySettings(); }
     if(act.id){ await Promise.all([fetchStreams(act.id), fetchActDetail(idx)]); }
     drawStoryCanvas();
   };
