@@ -103,4 +103,5 @@ function navScrollTo(id, btn) {
   }
   // Resize charts after section becomes visible
   setTimeout(()=>{Object.values(charts).forEach(c=>{try{if(c&&c.resize)c.resize();}catch{}});},80);
+  if (window.applyI18n) window.applyI18n();
 }

@@ -37,7 +37,7 @@ const I18N = {
     'faq1.q': 'Apa itu Ascent?',
     'faq1.a': 'Ascent adalah <b>aplikasi web gratis dan independen yang mengubah riwayat aktivitas Strava Anda menjadi dasbor analitik pribadi dan studio kartu-bagikan</b>. Aplikasi ini memvisualisasikan aktivitas bersepeda dan lari Anda — total, tren, peta panas, segmen, kalender, angka Eddington, dan milestone — serta memungkinkan Anda membuat gambar cerita 9:16 yang dapat dibagikan dari aktivitas apa pun. Semuanya berjalan di browser Anda, tidak ada yang disimpan di server, dan tidak berafiliasi dengan Strava.',
     'faq2.q': 'Apakah Anda mengumpulkan data saya?',
-    'faq2.a': 'Hanya data Strava Anda sendiri, dan hanya setelah Anda mengotorisasi aplikasi melalui login aman Strava (OAuth). Kami menggunakannya untuk menampilkan statistik kepada <i>Anda</i> — tidak lebih. Kami tidak pernah melihat kata sandi Strava Anda, dan kami tidak mengumpulkan info pembayaran.',
+    'faq2.a': 'Hanya data Strava Anda sendiri, dan hanya setelah Anda mengotorisasi aplikasi melalui login aman Strava (OAuth) — kami menggunakannya untuk menampilkan statistik kepada <i>Anda</i>. Kami juga memakai analitik yang ramah privasi (Google Analytics) untuk memahami penggunaan yang <i>agregat dan anonim</i> — misalnya fitur mana yang populer — agar dapat menyempurnakan aplikasi; ini tidak pernah mencakup data Strava pribadi Anda. Kami tidak pernah melihat kata sandi Strava Anda, tidak mengumpulkan info pembayaran, dan tidak pernah menjual data Anda.',
     'faq3.q': 'Bagaimana data saya diproses?',
     'faq3.a': 'Hampir semuanya (statistik, grafik, peta, gambar cerita) dihitung <b>di browser Anda</b>. Aktivitas terbaru Anda di-cache agar aplikasi memuat instan saat kunjungan berikutnya. Satu-satunya data yang pernah <i>ditulis</i> kembali ke Strava adalah penetapan ulang perlengkapan — dan hanya jika Anda memilihnya.',
     'faq4.q': 'Di mana data saya disimpan?',
@@ -90,16 +90,86 @@ const APP_ID = {
   'running': 'lari', 'received': 'diterima', 'personal records': 'rekor pribadi',
   'total': 'total', 'days in a row': 'hari berturut-turut', 'weekly regularity': 'keteraturan mingguan',
   'total kcal': 'total kkal',
+  // card titles (static HTML inside sections)
+  'Speed Trend — Last 20 Rides': 'Tren Kecepatan — 20 Gowes Terakhir',
+  'Ride Distance Distribution': 'Distribusi Jarak Gowes',
+  'Pace Trend — Last 20 Runs': 'Tren Pace — 20 Lari Terakhir',
+  'Run Distance Distribution': 'Distribusi Jarak Lari',
+  'Weekly Distance (km)': 'Jarak Mingguan (km)',
+  'Year-over-Year Monthly Distance (km)': 'Jarak Bulanan Antar-Tahun (km)',
+  'Avg Speed by Month (km/h)': 'Kecepatan Rata-rata per Bulan (km/h)',
+  'Activity Split': 'Pembagian Aktivitas',
+  'Recent Activities': 'Aktivitas Terbaru',
+  'Activities by Distance (bubble size = km)': 'Aktivitas berdasarkan Jarak (ukuran = km)',
+  'Progress to next Eddington number': 'Progres ke angka Eddington berikutnya',
+  // hero cards (Cycling / Running)
+  'Fastest Speed (Max)': 'Kecepatan Tertinggi (Maks)', 'Best Avg Speed': 'Kecepatan Rata-rata Terbaik',
+  'Avg Elevation': 'Elevasi Rata-rata', 'Total Time': 'Total Waktu',
+  'Total Rides': 'Total Gowes', 'Total Runs': 'Total Lari', 'Total Distance': 'Total Jarak',
+  'Top 5 Fastest Speeds': '5 Kecepatan Tercepat', 'Top 5 Fastest Pace': '5 Pace Tercepat',
+  'Best Pace': 'Pace Terbaik', 'Longest Ride': 'Gowes Terjauh', 'Longest Run': 'Lari Terjauh',
+  // activity detail modal stat labels
+  'Elapsed': 'Waktu Berlalu', 'Avg Speed': 'Kecepatan Rata-rata', 'Avg Pace': 'Pace Rata-rata',
+  'Max Speed': 'Kecepatan Maks', 'Max Pace': 'Pace Maks', 'Highest Pt': 'Titik Tertinggi',
+  'Avg Cadence': 'Kadens Rata-rata', 'Avg HR': 'HR Rata-rata', 'Max HR': 'HR Maks',
+  'Avg Power': 'Daya Rata-rata', 'Norm Power': 'Daya Normal', 'Max Power': 'Daya Maks',
+  'Energy': 'Energi', 'Relative Effort': 'Upaya Relatif', 'Avg Temp': 'Suhu Rata-rata',
+  'Comments': 'Komentar',
+  // badges + links
+  'Commute': 'Komuter', 'Indoor': 'Dalam Ruangan', 'Manual': 'Manual', 'Private': 'Privat', 'Race': 'Balapan',
+  'Open in Strava ↗': 'Buka di Strava ↗', 'Open on Strava ↗': 'Buka di Strava ↗',
+  // calendar
+  'activities': 'aktivitas', 'active days': 'hari aktif', 'day streak': 'rentetan hari',
+  'busiest day': 'hari tersibuk', 'Less': 'Sedikit', 'More': 'Banyak',
+  // monthly table
+  'Month': 'Bulan',
+  // best efforts
+  'Longest Rides': 'Gowes Terjauh', 'Most Elevation': 'Elevasi Terbanyak',
+  'Fastest Avg Speed': 'Kecepatan Rata-rata Tercepat', 'Highest Max Speed': 'Kecepatan Maks Tertinggi',
+  'Highest Heart Rate': 'Detak Jantung Tertinggi', 'Highest Suffer Score': 'Suffer Score Tertinggi',
+  // gear
+  'Total km': 'Total km', 'Total mi': 'Total mi', 'Rides logged': 'Gowes tercatat',
+  'Elevation m': 'Elevasi m', 'Elevation ft': 'Elevasi ft', 'Primary': 'Utama',
+  'Reassign Gear': 'Tetapkan Ulang Perlengkapan', 'Assign to': 'Tetapkan ke',
+  // milestones
+  'Distance (km)': 'Jarak (km)', 'Distance (mi)': 'Jarak (mi)',
+  'Elevation (m)': 'Elevasi (m)', 'Elevation (ft)': 'Elevasi (ft)',
+  'Longest Duration': 'Durasi Terpanjang', 'Peak Heart Rate': 'Detak Jantung Puncak',
+  'Activity Streak': 'Rentetan Aktivitas', 'Fastest Avg': 'Rata-rata Tercepat',
+  'Top Speed': 'Kecepatan Tertinggi', 'Longest consecutive days': 'Hari berturut terpanjang',
+  // rewind
+  'Avg Distance': 'Jarak Rata-rata', 'Top Sport': 'Olahraga Utama', 'Longest': 'Terjauh',
+  'Busiest Day': 'Hari Tersibuk', 'Peak Month': 'Bulan Puncak',
+  // trophies
+  'All-time': 'Sepanjang waktu', 'Last 4 weeks': '4 minggu terakhir', 'Badges': 'Lencana',
+  'Biggest Ride': 'Gowes Terbesar', 'Biggest Climb': 'Tanjakan Terbesar', 'Total Runs': 'Total Lari',
+  'KOM / QOM': 'KOM / QOM', 'Personal Records': 'Rekor Pribadi', 'Century Rider': 'Pesepeda Seratusan',
+  'Everest Climber': 'Pendaki Everest', 'Half Marathoner': 'Pelari Half Marathon',
+  '1,000 km Club': 'Klub 1.000 km', '5,000 km Club': 'Klub 5.000 km', '10,000 km Club': 'Klub 10.000 km',
+  '100 Rides': '100 Gowes', '500 Rides': '500 Gowes',
+  // segments
+  'All': 'Semua', 'Climbs': 'Tanjakan', 'With PR': 'Ada PR',
+  'No personal record yet': 'Belum ada rekor pribadi', 'View on Strava →': 'Lihat di Strava →',
+  'Fastest PR': 'PR Tercepat', 'Steepest': 'Tercuram', 'Most Ridden': 'Paling Sering',
+  'Start': 'Mulai', 'Finish': 'Selesai', 'Avg Grade': 'Gradien Rata-rata', 'Max Grade': 'Gradien Maks',
+  'Highest': 'Tertinggi', 'Lowest': 'Terendah', 'PR Time': 'Waktu PR', 'PR Speed': 'Kecepatan PR',
+  'Efforts': 'Upaya', 'Scan rides': 'Pindai gowes', 'Rescan': 'Pindai ulang',
+  // trophies units + athlete-hero labels
+  'hours': 'jam', 'segments': 'segmen', 'on Strava': 'di Strava', 'km best': 'km terbaik',
+  'm climbed': 'm didaki', 'km total': 'total km', 'rides': 'gowes',
+  'KOMs': 'KOM', 'Followers': 'Pengikut',
 };
 
 /* ── Strings built in JS (Overview stat labels/subs), via window.t(key) ── */
 const I18N_JS = {
   en: { longRide: 'Longest Ride', longRun: 'Longest Run', avgSpeed: 'Avg Speed', avgPace: 'Avg Pace',
         maxSpeed: 'Max Speed', bestPace: 'Best Pace', riding: 'riding', hours: 'hours',
-        cycling: 'cycling', running: 'running', avg: 'avg' },
+        cycling: 'cycling', running: 'running', avg: 'avg',
+        chMax: 'Max', chAvg: 'Avg', chActs: 'Activities', distanceWord: 'Distance' },
   id: { longRide: 'Gowes Terjauh', longRun: 'Lari Terjauh', avgSpeed: 'Kecepatan Rata-rata', avgPace: 'Pace Rata-rata',
         maxSpeed: 'Kecepatan Maks', bestPace: 'Pace Terbaik', riding: 'gowes', hours: 'jam',
-        cycling: 'bersepeda', running: 'lari', avg: 'rata-rata' },
+        cycling: 'bersepeda', running: 'lari', avg: 'rata-rata',
+        chMax: 'Maks', chAvg: 'Rata2', chActs: 'Aktivitas', distanceWord: 'Jarak' },
 };
 
 let _lang = 'en';
@@ -120,8 +190,29 @@ window.t = function (key) {
   const grab = el => el.childNodes.forEach(n => {
     if (n.nodeType === 3 && n.nodeValue.trim()) appNodes.push({ n, en: n.nodeValue });
   });
-  document.querySelectorAll('.section-title, .sidebar-group-label, .sidebar-act, .sidebar-user-sub, .nav-link, #saveImgBtn, #shareBtn, #logoutBtn').forEach(grab);
+  document.querySelectorAll('.section-title, .card-title, .sidebar-group-label, .sidebar-act, .sidebar-user-sub, .nav-link, #saveImgBtn, #shareBtn, #logoutBtn').forEach(grab);
   document.querySelectorAll('.s-label, .s-sub').forEach(el => { if (!el.id) grab(el); });
+
+  // Dynamic labels are rebuilt (in English) by the render layer, so they can't
+  // be captured once. Instead we re-scan known label elements and swap the text
+  // after each render. English is the source, so this only acts for Indonesian.
+  const DYN_SEL = '.hero-label,.ctop-title,.best-card-title,.gear-stat-lbl,.gear-primary,' +
+    '.mst-lbl,.mst-cl,.mst-sub,.seg-m-lbl,.actd-stat-lbl,.actd-badge,.actd-strava,' +
+    '.seg-chip-btn,.seg-pr-empty,.seg-link,.seg-sum-top,.ryc-l,.gr-to,.gr-title,' +
+    '.month-table th,.cal2-stats div,.cal2-legend,.ach-badge-name,.ach-badge-unit,' +
+    '#rewindContent .card div,#challengesGrid div,#challengesGrid span';
+  function translateDynamic() {
+    if (_lang !== 'id') return;
+    document.querySelectorAll(DYN_SEL).forEach(el => {
+      el.childNodes.forEach(n => {
+        if (n.nodeType === 3) {
+          const k = n.nodeValue.trim();
+          if (k && APP_ID[k] != null) n.nodeValue = n.nodeValue.replace(k, APP_ID[k]);
+        }
+      });
+    });
+  }
+  window.applyI18n = translateDynamic;
 
   function detect() {
     try { const saved = localStorage.getItem('lang'); if (saved) return saved; } catch {}
@@ -146,6 +237,7 @@ window.t = function (key) {
       const tr = APP_ID[key];
       n.nodeValue = (lang === 'id' && tr != null) ? en.replace(key, tr) : en;
     });
+    translateDynamic();
     document.documentElement.lang = lang;
     document.querySelectorAll('.lang-toggle button').forEach(b =>
       b.classList.toggle('active', b.dataset.lang === lang));

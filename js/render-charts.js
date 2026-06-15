@@ -65,9 +65,9 @@ function renderCycling() {
     type:'line',
     data:{ labels:last20.map(r=>fmtDt(r.start_date)),
       datasets:[
-        { label:'Max',  data:last20.map(r=>kmh(r.max_speed||0)),
+        { label:t('chMax'),  data:last20.map(r=>kmh(r.max_speed||0)),
           borderColor:'#FC4C02', backgroundColor:'rgba(252,76,2,.07)', tension:.35, fill:true, pointRadius:3, pointBackgroundColor:'#FC4C02' },
-        { label:'Avg',  data:last20.map(r=>kmh(r.average_speed||0)),
+        { label:t('chAvg'),  data:last20.map(r=>kmh(r.average_speed||0)),
           borderColor:'#555', backgroundColor:'rgba(85,85,85,.05)', tension:.35, fill:true, pointRadius:2 }
       ]
     },
@@ -382,6 +382,7 @@ function openActivityModal(ref){
     <div class="actd-grid">${stats}</div>
     ${a.id ? `<a class="btn btn-primary actd-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener">Open in Strava ↗</a>` : ''}
   `;
+  if (window.applyI18n) window.applyI18n();
   document.getElementById('actModal').classList.add('open');
   if(hasRoute) _actBuildMap(a);
 }

@@ -40,6 +40,7 @@ function renderAll() {
   try { const s = localStorage.getItem('lastSection'); if (s && _ALL_SECTIONS.includes(s)) last = s; } catch {}
   const navBtn = document.querySelector('#sidebarNav .nav-link[onclick*="'+last+'"]') || document.querySelector('#sidebarNav .nav-link');
   navScrollTo(last, navBtn);
+  if (window.applyI18n) window.applyI18n();
 }
 
 /* ── STATS ── */

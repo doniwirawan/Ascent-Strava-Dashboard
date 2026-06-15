@@ -92,6 +92,7 @@ function renderMonthly(filterYear) {
   </tr>`;
   html+=`</tbody></table>`;
   document.getElementById('monthlyTable').innerHTML=html;
+  if (window.applyI18n) window.applyI18n();
 }
 
 /* ── BEST EFFORTS ── */
@@ -118,6 +119,7 @@ function renderBestEfforts(){
       </div>`).join('');
     return `<div class="best-card"><div class="best-card-title">${cat.title}</div>${rows}</div>`;
   }).join('');
+  if (window.applyI18n) window.applyI18n();
 }
 
 /* ── GEAR ── */
@@ -142,6 +144,7 @@ function _renderBikeList(el, bikes) {
       </div>
     </div>`;
   }).join('');
+  if (window.applyI18n) window.applyI18n();
 }
 
 async function renderGear(){
@@ -212,6 +215,7 @@ function renderGearTool(bikes){
     list.querySelectorAll('.gr-row').forEach(r=>{ r.style.display=r.dataset.name.includes(q)?'':'none'; });
   };
   el.querySelector('#grSubmit').onclick=()=>gearReassignSubmit(bikes);
+  if (window.applyI18n) window.applyI18n();
 }
 
 async function gearReassignSubmit(bikes){
@@ -306,6 +310,7 @@ function setSportMode(m){
     .forEach(fn=>{ try{ if(typeof window[fn]==='function') window[fn](); }catch{} });
   try{ if(typeof leafletMapInst!=='undefined' && leafletMapInst) renderHeatmap(); }catch{}
   renderMilestones();
+  if (window.applyI18n) window.applyI18n();
 }
 function _pace(speed){ if(!speed) return '—'; const sec=Math.round((useImperial?1609.34:1000)/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
 function renderMilestones(){
@@ -373,6 +378,7 @@ function renderMilestones(){
         </div>
       </div>`).join('')}
     </div>`;
+  if (window.applyI18n) window.applyI18n();
 }
 
 /* ── REWIND ── */
@@ -441,6 +447,7 @@ function renderRewind(filterYear){
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Peak Month</div><div style="font-size:28px;font-weight:800;color:var(--orange)">${MONTHS[peakMonth]}</div></div>
     </div>
     <div class="chart-wrap" style="height:220px"><canvas id="rewindChart"></canvas></div>`;
+  if (window.applyI18n) window.applyI18n();
 
   requestAnimationFrame(()=>{
     const ctx2=document.getElementById('rewindChart');
@@ -449,14 +456,14 @@ function renderRewind(filterYear){
     ctx2._chart=new Chart(ctx2,{
       type:'bar',
       data:{labels:MONTHS,datasets:[
-        {label:'Distance ('+distUnit()+')',data:monthly.map(m=>kmVal(m.dist).toFixed(1)),backgroundColor:'rgba(252,76,2,0.7)',borderRadius:4,order:1},
-        {label:'Activities',data:monthly.map(m=>m.count),type:'line',borderColor:'rgba(255,255,255,0.5)',borderWidth:2,pointRadius:3,fill:false,yAxisID:'y2',order:0}
+        {label:t('distanceWord')+' ('+distUnit()+')',data:monthly.map(m=>kmVal(m.dist).toFixed(1)),backgroundColor:'rgba(252,76,2,0.7)',borderRadius:4,order:1},
+        {label:t('chActs'),data:monthly.map(m=>m.count),type:'line',borderColor:'rgba(255,255,255,0.5)',borderWidth:2,pointRadius:3,fill:false,yAxisID:'y2',order:0}
       ]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#aaa',boxWidth:12}}},
         scales:{
           x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#888'}},
           y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#888'},title:{display:true,text:distUnit(),color:'#888'}},
-          y2:{position:'right',grid:{display:false},ticks:{color:'#888'},title:{display:true,text:'Activities',color:'#888'}}
+          y2:{position:'right',grid:{display:false},ticks:{color:'#888'},title:{display:true,text:t('chActs'),color:'#888'}}
         }}
     });
   });
@@ -670,6 +677,7 @@ async function renderChallenges(){
   }
 
   el.innerHTML=html;
+  if (window.applyI18n) window.applyI18n();
 }
 
 /* ── SEGMENTS ── */
@@ -794,6 +802,7 @@ async function renderSegments(){
         </div>
       </article>`;
     }).join('')+'</div><div id="segScanResults"></div>';
+    if (window.applyI18n) window.applyI18n();
 
     // init mini maps
     if(!window.L) return;
@@ -891,6 +900,7 @@ async function openSegMap(id){
   document.getElementById('segMapDetails').innerHTML=
     (loc?`<div class="actd-loc">📍 ${loc}</div>`:'')+
     `<div class="actd-grid">`+rows.map(r=>`<div class="actd-stat"><div class="actd-stat-val">${r[1]}</div><div class="actd-stat-lbl">${r[0]}</div></div>`).join('')+`</div>`;
+  if (window.applyI18n) window.applyI18n();
 
   modal.classList.add('open');
 
@@ -960,6 +970,7 @@ async function scanSegments(){
         <span class="ctop-val">${kmh(b.spd).toFixed(1)}<i>${speedUnit()}</i></span>
       </a>`).join('')}
     </div>`;
+  if (window.applyI18n) window.applyI18n();
 }
 
 /* ── PHOTOS ── */
