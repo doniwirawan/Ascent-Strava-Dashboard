@@ -92,7 +92,9 @@
   padding: 6px 0 20px;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  /* size to content (not flex:1) so the sidebar's overflow-y:auto scrolls the
+     whole list — flex:1 pinned it to the viewport and hid the lower items */
+  flex: 0 0 auto;
 }
 
 .sidebar-nav.locked { pointer-events: none; opacity: .35; }
