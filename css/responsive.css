@@ -21,12 +21,9 @@
 
   .btn { padding: 6px 12px; font-size: 11px; }
 
-  /* top-bar controls move into the hamburger drawer on mobile */
-  #shareBtn, #logoutBtn, #mainBtn, #saveImgBtn,
-  #langToggleApp, #unitToggle, #modeToggle {
-    display: none !important;
-  }
-  .sidebar-controls { display: flex; }
+  /* Save Image / Share Story are floating FABs; Refresh / Disconnect live in the
+     drawer. Keep the EN/ID, km/mi and sport toggles in the top bar. */
+  #shareBtn, #logoutBtn, #mainBtn, #saveImgBtn { display: none !important; }
 
   .nav-right { gap: 6px; }
   .app-layout { margin-left: 0; }

@@ -70,9 +70,10 @@ nav {
 .fab svg { width: 20px; height: 20px; }
 .fab:active { transform: scale(.96); }
 
-/* "Install app" pill — mobile only, sits bottom-left so it clears the Story FAB */
+/* "Install app" pill — mobile only; sits above the floating FAB row so the two
+   never overlap on narrow screens */
 .install-pill {
-  position: fixed; left: 16px; bottom: 16px; z-index: 9000;
+  position: fixed; left: 16px; bottom: 78px; z-index: 9000;
   display: flex; align-items: stretch;
   background: var(--surface2); border: 1px solid var(--border);
   border-radius: 999px; overflow: hidden;
