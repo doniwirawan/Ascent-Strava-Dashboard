@@ -71,6 +71,14 @@
     padding: 14px 12px 20px;
   }
 
+  /* the Story modal fills the screen on mobile — no empty space above it */
+  #storyModal .modal {
+    max-height: 100vh;
+    max-height: 100dvh;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
   .modal-body { grid-template-columns: minmax(0, 1fr); gap: 12px; }
 
   /* preview on top so edits are visible while scrolling the controls */

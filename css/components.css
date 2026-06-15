@@ -193,3 +193,6 @@
   border-color: var(--orange-mid);
   color: var(--orange);
 }
+
+/* small inline icons (replace decorative emoji in text), sized to the text */
+.ic { width: 1em; height: 1em; vertical-align: -0.14em; display: inline-block; flex-shrink: 0; }

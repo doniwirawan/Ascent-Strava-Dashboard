@@ -8,10 +8,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Terms of Service — Ascent</title>
 <meta name="description" content="Terms of Service for Ascent, a free, independent analytics dashboard for your own Strava data. Not affiliated with Strava, Inc.">
-<link rel="canonical" href="https://stravadashboard.vercel.app/terms">
+<link rel="canonical" href="https://ascent-analytics.vercel.app/terms">
 <link rel="icon" type="image/png" href="/icon.png" />
 <style>
-  :root{--orange:#FC4C02;--bg:#0c0c0c;--surface:#131313;--border:#252525;--text:#eee;--muted:#888;}
+  :root{--orange:#FC4C02;--bg:#0c0c0c;--surface:#131313;--surface2:#1b1b1b;--border:#252525;--text:#eee;--muted:#888;}
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;}
   .wrap{max-width:780px;margin:0 auto;padding:48px 22px 80px;}
@@ -21,7 +21,11 @@
   .meta{color:var(--muted);font-size:13px;margin-bottom:8px;}
   p,li{font-size:14.5px;color:#d6d6d6;}
   ul{padding-left:20px;}
-  .back{display:inline-block;margin-bottom:24px;font-size:13px;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px;}
+  .back{display:inline-block;font-size:13px;}
+  .lang-toggle{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0;}
+  .lang-toggle button{background:transparent;border:none;color:var(--muted);font-size:12px;font-weight:700;padding:7px 11px;cursor:pointer;}
+  .lang-toggle button.active{background:var(--orange);color:#fff;}
   .note{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--muted);}
   strong{color:var(--text);}
   .caps{text-transform:uppercase;font-size:13px;letter-spacing:.02em;}
@@ -29,75 +33,156 @@
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="/">← Back to dashboard</a>
-  <h1>Terms of Service</h1>
-  <div class="meta">Last updated: 12 June 2026</div>
+  <div class="topbar">
+    <a class="back" href="/" data-i18n="back">← Back to dashboard</a>
+    <div class="lang-toggle" id="lt"><button data-l="en">EN</button><button data-l="id">ID</button></div>
+  </div>
+  <h1 data-i18n="h1">Terms of Service</h1>
+  <div class="meta" data-i18n="updated">Last updated: 12 June 2026</div>
 
-  <p>These Terms of Service (“<strong>Terms</strong>”) form a binding agreement between you (“<strong>you</strong>”, “user”) and the operator of the Ascent web application (the “<strong>App</strong>”, “we”, “us”, the “<strong>Operator</strong>”). By accessing, connecting an account to, or using the App in any way, you confirm that you have read, understood, and agree to be bound by these Terms and by our <a href="/privacy">Privacy Policy</a>. <strong>If you do not agree, do not access or use the App.</strong></p>
+  <p data-i18n="intro">These Terms of Service (“<strong>Terms</strong>”) form a binding agreement between you (“<strong>you</strong>”, “user”) and the operator of the Ascent web application (the “<strong>App</strong>”, “we”, “us”, the “<strong>Operator</strong>”). By accessing, connecting an account to, or using the App in any way, you confirm that you have read, understood, and agree to be bound by these Terms and by our <a href="/privacy">Privacy Policy</a>. <strong>If you do not agree, do not access or use the App.</strong></p>
 
-  <h2>1. The App; relationship to Strava</h2>
-  <p>The App is an <strong>independent, unofficial, free, personal-use</strong> analytics tool that displays and helps you interact with your own Strava data. It is <strong>not affiliated with, endorsed, sponsored, certified, or approved by Strava, Inc.</strong> “Strava” and all related names, logos, and marks are trademarks of Strava, Inc., used only nominatively to describe interoperability. Your access to and use of Strava data through the App remains at all times subject to Strava’s own Terms of Service, API Agreement, Brand Guidelines, and Privacy Policy, and you are solely responsible for complying with them. If Strava changes, limits, suspends, or terminates its API or your access, the App may stop working in whole or in part, and we have no liability for this.</p>
+  <h2 data-i18n="s1h">1. The App; relationship to Strava</h2>
+  <p data-i18n="s1p">The App is an <strong>independent, unofficial, free, personal-use</strong> analytics tool that displays and helps you interact with your own Strava data. It is <strong>not affiliated with, endorsed, sponsored, certified, or approved by Strava, Inc.</strong> “Strava” and all related names, logos, and marks are trademarks of Strava, Inc., used only nominatively to describe interoperability. Your access to and use of Strava data through the App remains at all times subject to Strava’s own Terms of Service, API Agreement, Brand Guidelines, and Privacy Policy, and you are solely responsible for complying with them. If Strava changes, limits, suspends, or terminates its API or your access, the App may stop working in whole or in part, and we have no liability for this.</p>
 
-  <h2>2. Eligibility &amp; your account</h2>
-  <p>To use the App you must (a) hold a valid Strava account; (b) be at least the age of majority in your jurisdiction, or the minimum age required to hold a Strava account, and have full legal capacity to accept these Terms; and (c) not be barred from using the App or Strava under any applicable law. You are solely responsible for your Strava credentials, your device, your network, and all actions taken through your connected account, whether or not authorized by you.</p>
+  <h2 data-i18n="s2h">2. Eligibility &amp; your account</h2>
+  <p data-i18n="s2p">To use the App you must (a) hold a valid Strava account; (b) be at least the age of majority in your jurisdiction, or the minimum age required to hold a Strava account, and have full legal capacity to accept these Terms; and (c) not be barred from using the App or Strava under any applicable law. You are solely responsible for your Strava credentials, your device, your network, and all actions taken through your connected account, whether or not authorized by you.</p>
 
-  <h2>3. Licence &amp; acceptable use</h2>
-  <p>Subject to these Terms, you are granted a limited, personal, non-exclusive, non-transferable, non-sublicensable, revocable licence to use the App for your own lawful, non-commercial purposes. You agree that you will <strong>not</strong>, and will not permit anyone to:</p>
+  <h2 data-i18n="s3h">3. Licence &amp; acceptable use</h2>
+  <p data-i18n="s3p">Subject to these Terms, you are granted a limited, personal, non-exclusive, non-transferable, non-sublicensable, revocable licence to use the App for your own lawful, non-commercial purposes. You agree that you will <strong>not</strong>, and will not permit anyone to:</p>
   <ul>
-    <li>use the App in violation of any law, regulation, or third-party right, or in violation of Strava’s terms;</li>
-    <li>access data that is not your own, or attempt to access other users’ data;</li>
-    <li>copy, resell, sublicense, rent, or commercially exploit the App;</li>
-    <li>reverse engineer, decompile, scrape, or circumvent any security or rate-limiting;</li>
-    <li>introduce malware, overload, disrupt, or interfere with the App or its providers;</li>
-    <li>remove or obscure any notices, or misrepresent your affiliation.</li>
+    <li data-i18n="s3li1">use the App in violation of any law, regulation, or third-party right, or in violation of Strava’s terms;</li>
+    <li data-i18n="s3li2">access data that is not your own, or attempt to access other users’ data;</li>
+    <li data-i18n="s3li3">copy, resell, sublicense, rent, or commercially exploit the App;</li>
+    <li data-i18n="s3li4">reverse engineer, decompile, scrape, or circumvent any security or rate-limiting;</li>
+    <li data-i18n="s3li5">introduce malware, overload, disrupt, or interfere with the App or its providers;</li>
+    <li data-i18n="s3li6">remove or obscure any notices, or misrepresent your affiliation.</li>
   </ul>
 
-  <h2>4. Write access &amp; changes to your data</h2>
-  <p>Certain optional features (for example, bulk gear reassignment) modify your activities on Strava using the <em>activity:write</em> permission. <strong>You alone initiate these actions and are solely and entirely responsible for the results.</strong> Such changes are made directly to your Strava account, may affect many activities at once, and <strong>may be permanent and irreversible</strong>. You are responsible for reviewing every selection before confirming. We are not responsible for any change, loss, corruption, or unintended modification of your Strava data, however caused.</p>
+  <h2 data-i18n="s4h">4. Write access &amp; changes to your data</h2>
+  <p data-i18n="s4p">Certain optional features (for example, bulk gear reassignment) modify your activities on Strava using the <em>activity:write</em> permission. <strong>You alone initiate these actions and are solely and entirely responsible for the results.</strong> Such changes are made directly to your Strava account, may affect many activities at once, and <strong>may be permanent and irreversible</strong>. You are responsible for reviewing every selection before confirming. We are not responsible for any change, loss, corruption, or unintended modification of your Strava data, however caused.</p>
 
-  <h2>5. Assumption of risk; not professional advice</h2>
-  <p>Physical activity carries inherent risks. The App is an informational and entertainment tool only. <strong>It does not provide medical, health, fitness, training, nutritional, navigational, safety, financial, or any other professional advice</strong>, and nothing in it should be relied upon as such. Always consult a qualified professional before making training, health, or safety decisions, and never rely on the App for navigation or in any situation where inaccurate information could lead to injury, loss, or damage. <strong>You assume all risks arising from your activities and from any reliance on the App.</strong></p>
+  <h2 data-i18n="s5h">5. Assumption of risk; not professional advice</h2>
+  <p data-i18n="s5p">Physical activity carries inherent risks. The App is an informational and entertainment tool only. <strong>It does not provide medical, health, fitness, training, nutritional, navigational, safety, financial, or any other professional advice</strong>, and nothing in it should be relied upon as such. Always consult a qualified professional before making training, health, or safety decisions, and never rely on the App for navigation or in any situation where inaccurate information could lead to injury, loss, or damage. <strong>You assume all risks arising from your activities and from any reliance on the App.</strong></p>
 
-  <h2>6. Accuracy &amp; “as is” — no warranty</h2>
-  <p class="caps">The App is provided “as is” and “as available,” with all faults and without warranties of any kind, whether express, implied, statutory, or otherwise, including but not limited to implied warranties of merchantability, fitness for a particular purpose, title, accuracy, quiet enjoyment, and non-infringement.</p>
-  <p>Without limiting the above, we do not warrant that the App will be uninterrupted, timely, secure, error-free, or that any data or metric will be accurate, complete, or current. Metrics, estimates, and derived figures — including but not limited to distance, moving/elapsed time, speed, pace, elevation gain, calories and energy (kJ), VAM, Eddington number, consistency, streaks, heart-rate figures, and segment/leaderboard/KOM data — are computed from third-party data that may itself be wrong, delayed, or incomplete, and <strong>must not</strong> be relied upon for any important decision.</p>
+  <h2 data-i18n="s6h">6. Accuracy &amp; “as is” — no warranty</h2>
+  <p class="caps" data-i18n="s6cap1">The App is provided “as is” and “as available,” with all faults and without warranties of any kind, whether express, implied, statutory, or otherwise, including but not limited to implied warranties of merchantability, fitness for a particular purpose, title, accuracy, quiet enjoyment, and non-infringement.</p>
+  <p data-i18n="s6p2">Without limiting the above, we do not warrant that the App will be uninterrupted, timely, secure, error-free, or that any data or metric will be accurate, complete, or current. Metrics, estimates, and derived figures — including but not limited to distance, moving/elapsed time, speed, pace, elevation gain, calories and energy (kJ), VAM, Eddington number, consistency, streaks, heart-rate figures, and segment/leaderboard/KOM data — are computed from third-party data that may itself be wrong, delayed, or incomplete, and <strong>must not</strong> be relied upon for any important decision.</p>
 
-  <h2>7. Third-party services &amp; content</h2>
-  <p>The App depends on third-party services and content, including Strava, hosting and serverless functions (Vercel, used to perform the Strava OAuth token exchange), and map/tile and library providers (e.g., CARTO, OpenStreetMap, and content-delivery networks). We do not control these services, do not guarantee their availability, accuracy, or security, and are not responsible or liable for their acts, omissions, outages, data, changes, or terms. Your use of third-party services may be governed by their own terms and policies.</p>
+  <h2 data-i18n="s7h">7. Third-party services &amp; content</h2>
+  <p data-i18n="s7p">The App depends on third-party services and content, including Strava, hosting and serverless functions (Vercel, used to perform the Strava OAuth token exchange), and map/tile and library providers (e.g., CARTO, OpenStreetMap, and content-delivery networks). We do not control these services, do not guarantee their availability, accuracy, or security, and are not responsible or liable for their acts, omissions, outages, data, changes, or terms. Your use of third-party services may be governed by their own terms and policies.</p>
 
-  <h2>8. Limitation of liability</h2>
-  <p class="caps">To the maximum extent permitted by applicable law, in no event will the Operator (or its contributors) be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages, or for any loss of or damage to data, profits, revenue, goodwill, activities, or opportunity, or for any personal injury, arising out of or relating to these Terms, the App, or your use of or inability to use the App, whether based in contract, tort (including negligence), strict liability, or any other theory, and even if we have been advised of the possibility of such damages.</p>
-  <p class="caps">To the maximum extent permitted by law, the Operator’s total cumulative liability for all claims relating to the App will not exceed the greater of (a) the total amount you paid to use the App in the 12 months before the claim (which, the App being free, is USD $0) or (b) USD $10.</p>
-  <p>Some jurisdictions do not allow certain exclusions or limitations; in those jurisdictions our liability is limited to the smallest extent permitted by law.</p>
+  <h2 data-i18n="s8h">8. Limitation of liability</h2>
+  <p class="caps" data-i18n="s8cap1">To the maximum extent permitted by applicable law, in no event will the Operator (or its contributors) be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages, or for any loss of or damage to data, profits, revenue, goodwill, activities, or opportunity, or for any personal injury, arising out of or relating to these Terms, the App, or your use of or inability to use the App, whether based in contract, tort (including negligence), strict liability, or any other theory, and even if we have been advised of the possibility of such damages.</p>
+  <p class="caps" data-i18n="s8cap2">To the maximum extent permitted by law, the Operator’s total cumulative liability for all claims relating to the App will not exceed the greater of (a) the total amount you paid to use the App in the 12 months before the claim (which, the App being free, is USD $0) or (b) USD $10.</p>
+  <p data-i18n="s8p3">Some jurisdictions do not allow certain exclusions or limitations; in those jurisdictions our liability is limited to the smallest extent permitted by law.</p>
 
-  <h2>9. Indemnification</h2>
-  <p>You agree to defend, indemnify, and hold harmless the Operator and its contributors from and against any and all claims, demands, actions, liabilities, damages, losses, costs, and expenses (including reasonable legal fees) arising out of or in any way connected with: (a) your access to or use of the App; (b) your data or activities; (c) any change you make to your Strava account via the App; (d) your violation of these Terms; or (e) your violation of any law or any third-party right (including Strava’s terms or any third party’s privacy or intellectual-property rights).</p>
+  <h2 data-i18n="s9h">9. Indemnification</h2>
+  <p data-i18n="s9p">You agree to defend, indemnify, and hold harmless the Operator and its contributors from and against any and all claims, demands, actions, liabilities, damages, losses, costs, and expenses (including reasonable legal fees) arising out of or in any way connected with: (a) your access to or use of the App; (b) your data or activities; (c) any change you make to your Strava account via the App; (d) your violation of these Terms; or (e) your violation of any law or any third-party right (including Strava’s terms or any third party’s privacy or intellectual-property rights).</p>
 
-  <h2>10. Availability, changes &amp; experimental features</h2>
-  <p>The App is a personal project provided voluntarily and may be changed, suspended, limited, or discontinued at any time, for any reason, without notice or liability. Features may be experimental and may change or be removed. We are not obligated to provide support, maintenance, updates, or backups, and we are not responsible for any data loss.</p>
+  <h2 data-i18n="s10h">10. Availability, changes &amp; experimental features</h2>
+  <p data-i18n="s10p">The App is a personal project provided voluntarily and may be changed, suspended, limited, or discontinued at any time, for any reason, without notice or liability. Features may be experimental and may change or be removed. We are not obligated to provide support, maintenance, updates, or backups, and we are not responsible for any data loss.</p>
 
-  <h2>11. Intellectual property</h2>
-  <p>The App’s code, design, and content (excluding your Strava data and third-party marks) are owned by the Operator or its licensors and are protected by applicable laws. These Terms grant you no ownership rights. All rights not expressly granted are reserved.</p>
+  <h2 data-i18n="s11h">11. Intellectual property</h2>
+  <p data-i18n="s11p">The App’s code, design, and content (excluding your Strava data and third-party marks) are owned by the Operator or its licensors and are protected by applicable laws. These Terms grant you no ownership rights. All rights not expressly granted are reserved.</p>
 
-  <h2>12. Termination</h2>
-  <p>You may stop using the App at any time and revoke its access from your <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava settings</a>. We may suspend or terminate your access at any time, with or without cause or notice. Provisions that by their nature should survive termination — including Sections 4–9, 11, and 13–15 — will survive.</p>
+  <h2 data-i18n="s12h">12. Termination</h2>
+  <p data-i18n="s12p">You may stop using the App at any time and revoke its access from your <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava settings</a>. We may suspend or terminate your access at any time, with or without cause or notice. Provisions that by their nature should survive termination — including Sections 4–9, 11, and 13–15 — will survive.</p>
 
-  <h2>13. Force majeure</h2>
-  <p>We are not liable for any failure or delay caused by events beyond our reasonable control, including acts of God, natural disasters, war, terrorism, civil unrest, government action, labour disputes, internet or utility failures, or the acts, omissions, or outages of third-party providers (including Strava).</p>
+  <h2 data-i18n="s13h">13. Force majeure</h2>
+  <p data-i18n="s13p">We are not liable for any failure or delay caused by events beyond our reasonable control, including acts of God, natural disasters, war, terrorism, civil unrest, government action, labour disputes, internet or utility failures, or the acts, omissions, or outages of third-party providers (including Strava).</p>
 
-  <h2>14. Governing law &amp; dispute resolution</h2>
-  <p>These Terms are governed by and construed in accordance with the laws of the <strong>Republic of Indonesia</strong>, without regard to its conflict-of-law rules. Subject to applicable mandatory consumer-protection law, any dispute arising out of or relating to these Terms or the App shall be submitted to the <strong>exclusive jurisdiction of the competent courts of Indonesia</strong>. You agree, to the extent permitted by law, that any claim will be brought in your individual capacity and not as part of any class or representative action.</p>
+  <h2 data-i18n="s14h">14. Governing law &amp; dispute resolution</h2>
+  <p data-i18n="s14p">These Terms are governed by and construed in accordance with the laws of the <strong>Republic of Indonesia</strong>, without regard to its conflict-of-law rules. Subject to applicable mandatory consumer-protection law, any dispute arising out of or relating to these Terms or the App shall be submitted to the <strong>exclusive jurisdiction of the competent courts of Indonesia</strong>. You agree, to the extent permitted by law, that any claim will be brought in your individual capacity and not as part of any class or representative action.</p>
 
-  <h2>15. General</h2>
-  <p>These Terms and the Privacy Policy are the entire agreement between you and the Operator regarding the App and supersede any prior agreements. If any provision is held unenforceable, the remaining provisions remain in full force and the unenforceable provision will be enforced to the maximum extent permitted. Our failure to enforce any right is not a waiver. You may not assign these Terms; we may assign them freely. There are no third-party beneficiaries. Section headings are for convenience only. In case of any conflict between translations, the English version prevails.</p>
+  <h2 data-i18n="s15h">15. General</h2>
+  <p data-i18n="s15p">These Terms and the Privacy Policy are the entire agreement between you and the Operator regarding the App and supersede any prior agreements. If any provision is held unenforceable, the remaining provisions remain in full force and the unenforceable provision will be enforced to the maximum extent permitted. Our failure to enforce any right is not a waiver. You may not assign these Terms; we may assign them freely. There are no third-party beneficiaries. Section headings are for convenience only. In case of any conflict between translations, the English version prevails.</p>
 
-  <h2>16. Changes to these Terms</h2>
-  <p>We may update these Terms at any time by posting a revised version with a new “Last updated” date. Your continued use of the App after changes take effect constitutes acceptance of the updated Terms.</p>
+  <h2 data-i18n="s16h">16. Changes to these Terms</h2>
+  <p data-i18n="s16p">We may update these Terms at any time by posting a revised version with a new “Last updated” date. Your continued use of the App after changes take effect constitutes acceptance of the updated Terms.</p>
 
-  <h2>17. Contact</h2>
+  <h2 data-i18n="s17h">17. Contact</h2>
   <p><a href="mailto:doniwirawan166@gmail.com">doniwirawan166@gmail.com</a></p>
 
-  <p style="margin-top:24px;">See also our <a href="/privacy">Privacy Policy</a>.</p>
+  <p style="margin-top:24px;" data-i18n="seealso">See also our <a href="/privacy">Privacy Policy</a>.</p>
 </div>
+
+<script>
+const T = { id: {
+  'back': '← Kembali ke dasbor',
+  'h1': 'Ketentuan Layanan',
+  'updated': 'Terakhir diperbarui: 12 Juni 2026',
+  'intro': 'Ketentuan Layanan ini (“<strong>Ketentuan</strong>”) membentuk perjanjian yang mengikat antara Anda (“<strong>Anda</strong>”, “pengguna”) dan operator aplikasi web Ascent (“<strong>Aplikasi</strong>”, “kami”, “<strong>Operator</strong>”). Dengan mengakses, menghubungkan akun ke, atau menggunakan Aplikasi dengan cara apa pun, Anda menyatakan telah membaca, memahami, dan menyetujui untuk terikat oleh Ketentuan ini dan <a href="/privacy">Kebijakan Privasi</a> kami. <strong>Jika Anda tidak setuju, jangan mengakses atau menggunakan Aplikasi.</strong>',
+  's1h': '1. Aplikasi; hubungan dengan Strava',
+  's1p': 'Aplikasi adalah alat analitik <strong>independen, tidak resmi, gratis, untuk penggunaan pribadi</strong> yang menampilkan dan membantu Anda berinteraksi dengan data Strava Anda sendiri. Aplikasi ini <strong>tidak berafiliasi dengan, didukung, disponsori, disertifikasi, atau disetujui oleh Strava, Inc.</strong> “Strava” dan semua nama, logo, serta merek terkait adalah merek dagang Strava, Inc., yang digunakan hanya secara nominatif untuk menjelaskan interoperabilitas. Akses dan penggunaan Anda atas data Strava melalui Aplikasi setiap saat tetap tunduk pada Ketentuan Layanan, Perjanjian API, Pedoman Merek, dan Kebijakan Privasi milik Strava sendiri, dan Anda sepenuhnya bertanggung jawab untuk mematuhinya. Jika Strava mengubah, membatasi, menangguhkan, atau menghentikan API-nya atau akses Anda, Aplikasi dapat berhenti berfungsi sebagian atau seluruhnya, dan kami tidak bertanggung jawab atas hal ini.',
+  's2h': '2. Kelayakan &amp; akun Anda',
+  's2p': 'Untuk menggunakan Aplikasi Anda harus (a) memiliki akun Strava yang sah; (b) setidaknya berusia dewasa di yurisdiksi Anda, atau usia minimum yang disyaratkan untuk memiliki akun Strava, dan memiliki kapasitas hukum penuh untuk menerima Ketentuan ini; dan (c) tidak dilarang menggunakan Aplikasi atau Strava berdasarkan hukum yang berlaku. Anda sepenuhnya bertanggung jawab atas kredensial Strava, perangkat, jaringan Anda, dan semua tindakan yang dilakukan melalui akun terhubung Anda, baik diizinkan oleh Anda maupun tidak.',
+  's3h': '3. Lisensi &amp; penggunaan yang dapat diterima',
+  's3p': 'Tunduk pada Ketentuan ini, Anda diberikan lisensi yang terbatas, pribadi, non-eksklusif, tidak dapat dipindahtangankan, tidak dapat disublisensikan, dan dapat dicabut untuk menggunakan Aplikasi untuk tujuan Anda sendiri yang sah dan non-komersial. Anda setuju bahwa Anda <strong>tidak akan</strong>, dan tidak akan mengizinkan siapa pun untuk:',
+  's3li1': 'menggunakan Aplikasi yang melanggar hukum, peraturan, atau hak pihak ketiga, atau melanggar ketentuan Strava;',
+  's3li2': 'mengakses data yang bukan milik Anda, atau mencoba mengakses data pengguna lain;',
+  's3li3': 'menyalin, menjual kembali, mensublisensikan, menyewakan, atau mengeksploitasi Aplikasi secara komersial;',
+  's3li4': 'merekayasa balik, mendekompilasi, melakukan scraping, atau mengakali keamanan atau pembatasan tingkat (rate-limiting);',
+  's3li5': 'memasukkan malware, membebani berlebih, mengganggu, atau menginterferensi Aplikasi atau penyedianya;',
+  's3li6': 'menghapus atau mengaburkan pemberitahuan apa pun, atau salah menggambarkan afiliasi Anda.',
+  's4h': '4. Akses tulis &amp; perubahan pada data Anda',
+  's4p': 'Fitur opsional tertentu (misalnya, penetapan ulang perlengkapan secara massal) memodifikasi aktivitas Anda di Strava menggunakan izin <em>activity:write</em>. <strong>Hanya Anda yang memulai tindakan ini dan Anda sepenuhnya bertanggung jawab atas hasilnya.</strong> Perubahan tersebut dilakukan langsung pada akun Strava Anda, dapat memengaruhi banyak aktivitas sekaligus, dan <strong>mungkin permanen dan tidak dapat dibatalkan</strong>. Anda bertanggung jawab meninjau setiap pilihan sebelum mengonfirmasi. Kami tidak bertanggung jawab atas perubahan, kehilangan, kerusakan, atau modifikasi yang tidak diinginkan pada data Strava Anda, apa pun penyebabnya.',
+  's5h': '5. Asumsi risiko; bukan nasihat profesional',
+  's5p': 'Aktivitas fisik memiliki risiko yang melekat. Aplikasi hanyalah alat informasi dan hiburan. <strong>Aplikasi tidak memberikan nasihat medis, kesehatan, kebugaran, latihan, nutrisi, navigasi, keselamatan, keuangan, atau nasihat profesional lainnya</strong>, dan tidak ada bagian di dalamnya yang boleh diandalkan sebagai demikian. Selalu konsultasikan dengan profesional yang berkualifikasi sebelum membuat keputusan latihan, kesehatan, atau keselamatan, dan jangan pernah mengandalkan Aplikasi untuk navigasi atau dalam situasi apa pun di mana informasi yang tidak akurat dapat menyebabkan cedera, kehilangan, atau kerusakan. <strong>Anda menanggung semua risiko yang timbul dari aktivitas Anda dan dari ketergantungan apa pun pada Aplikasi.</strong>',
+  's6h': '6. Akurasi &amp; “apa adanya” — tanpa jaminan',
+  's6cap1': 'Aplikasi disediakan “sebagaimana adanya” dan “sebagaimana tersedia,” dengan segala kekurangan dan tanpa jaminan dalam bentuk apa pun, baik tersurat, tersirat, menurut undang-undang, maupun lainnya, termasuk namun tidak terbatas pada jaminan tersirat tentang kelayakan jual, kesesuaian untuk tujuan tertentu, kepemilikan, akurasi, kenikmatan tenang, dan non-pelanggaran.',
+  's6p2': 'Tanpa membatasi hal di atas, kami tidak menjamin bahwa Aplikasi akan tanpa gangguan, tepat waktu, aman, bebas kesalahan, atau bahwa data atau metrik apa pun akan akurat, lengkap, atau terkini. Metrik, perkiraan, dan angka turunan — termasuk namun tidak terbatas pada jarak, waktu bergerak/berlalu, kecepatan, pace, perolehan elevasi, kalori dan energi (kJ), VAM, angka Eddington, konsistensi, rentetan, angka detak jantung, dan data segmen/papan peringkat/KOM — dihitung dari data pihak ketiga yang mungkin keliru, tertunda, atau tidak lengkap, dan <strong>tidak boleh</strong> diandalkan untuk keputusan penting apa pun.',
+  's7h': '7. Layanan &amp; konten pihak ketiga',
+  's7p': 'Aplikasi bergantung pada layanan dan konten pihak ketiga, termasuk Strava, hosting dan fungsi serverless (Vercel, digunakan untuk melakukan pertukaran token OAuth Strava), serta penyedia peta/tile dan pustaka (mis. CARTO, OpenStreetMap, dan jaringan pengiriman konten). Kami tidak mengendalikan layanan ini, tidak menjamin ketersediaan, akurasi, atau keamanannya, dan tidak bertanggung jawab atau berkewajiban atas tindakan, kelalaian, pemadaman, data, perubahan, atau ketentuannya. Penggunaan Anda atas layanan pihak ketiga dapat diatur oleh ketentuan dan kebijakan mereka sendiri.',
+  's8h': '8. Pembatasan tanggung jawab',
+  's8cap1': 'Sejauh diizinkan oleh hukum yang berlaku, dalam keadaan apa pun Operator (atau kontributornya) tidak akan bertanggung jawab atas kerugian tidak langsung, insidental, khusus, konsekuensial, teladan, atau hukuman, atau atas kehilangan atau kerusakan data, keuntungan, pendapatan, niat baik, aktivitas, atau peluang, atau atas cedera pribadi apa pun, yang timbul dari atau terkait dengan Ketentuan ini, Aplikasi, atau penggunaan Anda atau ketidakmampuan menggunakan Aplikasi, baik berdasarkan kontrak, perbuatan melawan hukum (termasuk kelalaian), tanggung jawab mutlak, maupun teori lainnya, bahkan jika kami telah diberi tahu tentang kemungkinan kerugian tersebut.',
+  's8cap2': 'Sejauh diizinkan oleh hukum, total tanggung jawab kumulatif Operator untuk semua klaim terkait Aplikasi tidak akan melebihi yang lebih besar dari (a) jumlah total yang Anda bayarkan untuk menggunakan Aplikasi dalam 12 bulan sebelum klaim (yang, karena Aplikasi gratis, adalah USD $0) atau (b) USD $10.',
+  's8p3': 'Beberapa yurisdiksi tidak mengizinkan pengecualian atau pembatasan tertentu; di yurisdiksi tersebut tanggung jawab kami dibatasi seminimal mungkin yang diizinkan oleh hukum.',
+  's9h': '9. Ganti rugi',
+  's9p': 'Anda setuju untuk membela, mengganti rugi, dan membebaskan Operator dan kontributornya dari segala klaim, tuntutan, tindakan, kewajiban, kerugian, kehilangan, biaya, dan pengeluaran (termasuk biaya hukum yang wajar) yang timbul dari atau dengan cara apa pun terkait dengan: (a) akses atau penggunaan Anda atas Aplikasi; (b) data atau aktivitas Anda; (c) perubahan apa pun yang Anda buat pada akun Strava Anda melalui Aplikasi; (d) pelanggaran Anda atas Ketentuan ini; atau (e) pelanggaran Anda atas hukum apa pun atau hak pihak ketiga (termasuk ketentuan Strava atau hak privasi atau kekayaan intelektual pihak ketiga mana pun).',
+  's10h': '10. Ketersediaan, perubahan &amp; fitur eksperimental',
+  's10p': 'Aplikasi adalah proyek pribadi yang disediakan secara sukarela dan dapat diubah, ditangguhkan, dibatasi, atau dihentikan kapan saja, untuk alasan apa pun, tanpa pemberitahuan atau tanggung jawab. Fitur mungkin bersifat eksperimental dan dapat berubah atau dihapus. Kami tidak berkewajiban menyediakan dukungan, pemeliharaan, pembaruan, atau cadangan, dan kami tidak bertanggung jawab atas kehilangan data apa pun.',
+  's11h': '11. Kekayaan intelektual',
+  's11p': 'Kode, desain, dan konten Aplikasi (tidak termasuk data Strava Anda dan merek pihak ketiga) dimiliki oleh Operator atau pemberi lisensinya dan dilindungi oleh hukum yang berlaku. Ketentuan ini tidak memberi Anda hak kepemilikan. Semua hak yang tidak diberikan secara tegas adalah hak yang dilindungi.',
+  's12h': '12. Penghentian',
+  's12p': 'Anda dapat berhenti menggunakan Aplikasi kapan saja dan mencabut aksesnya dari <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">pengaturan Strava</a> Anda. Kami dapat menangguhkan atau menghentikan akses Anda kapan saja, dengan atau tanpa sebab atau pemberitahuan. Ketentuan yang menurut sifatnya harus tetap berlaku setelah penghentian — termasuk Bagian 4–9, 11, dan 13–15 — akan tetap berlaku.',
+  's13h': '13. Keadaan kahar (force majeure)',
+  's13p': 'Kami tidak bertanggung jawab atas kegagalan atau keterlambatan yang disebabkan oleh peristiwa di luar kendali wajar kami, termasuk bencana alam, perang, terorisme, kerusuhan sipil, tindakan pemerintah, sengketa perburuhan, kegagalan internet atau utilitas, atau tindakan, kelalaian, atau pemadaman penyedia pihak ketiga (termasuk Strava).',
+  's14h': '14. Hukum yang mengatur &amp; penyelesaian sengketa',
+  's14p': 'Ketentuan ini diatur oleh dan ditafsirkan sesuai dengan hukum <strong>Republik Indonesia</strong>, tanpa memperhatikan aturan konflik hukumnya. Tunduk pada hukum perlindungan konsumen wajib yang berlaku, setiap sengketa yang timbul dari atau terkait dengan Ketentuan ini atau Aplikasi akan diajukan ke <strong>yurisdiksi eksklusif pengadilan yang berwenang di Indonesia</strong>. Anda setuju, sejauh diizinkan oleh hukum, bahwa klaim apa pun akan diajukan dalam kapasitas individu Anda dan bukan sebagai bagian dari gugatan kelompok atau perwakilan.',
+  's15h': '15. Umum',
+  's15p': 'Ketentuan ini dan Kebijakan Privasi merupakan keseluruhan perjanjian antara Anda dan Operator mengenai Aplikasi dan menggantikan perjanjian sebelumnya. Jika ada ketentuan yang dianggap tidak dapat diberlakukan, ketentuan yang tersisa tetap berlaku penuh dan ketentuan yang tidak dapat diberlakukan akan diberlakukan sejauh maksimum yang diizinkan. Kegagalan kami menegakkan suatu hak bukanlah pelepasan hak. Anda tidak boleh mengalihkan Ketentuan ini; kami dapat mengalihkannya secara bebas. Tidak ada penerima manfaat pihak ketiga. Judul bagian hanya untuk kemudahan. Jika terjadi konflik antar terjemahan, versi bahasa Inggris yang berlaku.',
+  's16h': '16. Perubahan Ketentuan ini',
+  's16p': 'Kami dapat memperbarui Ketentuan ini kapan saja dengan memposting versi revisi beserta tanggal “Terakhir diperbarui” yang baru. Penggunaan Aplikasi yang berkelanjutan setelah perubahan berlaku merupakan penerimaan atas Ketentuan yang diperbarui.',
+  's17h': '17. Kontak',
+  'seealso': 'Lihat juga <a href="/privacy">Kebijakan Privasi</a> kami.',
+} };
+(function () {
+  const nodes = document.querySelectorAll('[data-i18n]');
+  const enHTML = new Map();
+  nodes.forEach(n => enHTML.set(n, n.innerHTML));
+  function detect() {
+    try { const s = localStorage.getItem('lang'); if (s) return s; } catch {}
+    const l = (navigator.languages || [navigator.language || '']).join(',').toLowerCase();
+    if (l.includes('id')) return 'id';
+    try { if (/^Asia\/(Jakarta|Pontianak|Makassar|Jayapura)/.test(Intl.DateTimeFormat().resolvedOptions().timeZone || '')) return 'id'; } catch {}
+    return 'en';
+  }
+  function apply(lang) {
+    const d = T[lang];
+    nodes.forEach(n => { const k = n.getAttribute('data-i18n'); n.innerHTML = (d && d[k] != null) ? d[k] : enHTML.get(n); });
+    document.documentElement.lang = lang;
+    document.querySelectorAll('#lt button').forEach(b => b.classList.toggle('active', b.dataset.l === lang));
+  }
+  let cur = detect();
+  apply(cur);
+  document.getElementById('lt').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    cur = b.dataset.l;
+    try { localStorage.setItem('lang', cur); } catch {}
+    apply(cur);
+  });
+})();
+</script>
 </body>
 </html>

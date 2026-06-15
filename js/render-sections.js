@@ -32,6 +32,25 @@ function trophySvg(n){
   return `<svg viewBox="0 0 24 24" width="34" height="34">${I[n]||I.trophy}</svg>`;
 }
 
+/* ── small inline icons (replace decorative emoji in text) — sized to 1em ── */
+function ic(n){
+  const p={
+    bolt:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+    mountain:'<path d="m3 20 6-12 4 7 3-5 5 10z"/>',
+    repeat:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+    ruler:'<line x1="3" y1="12" x2="21" y2="12"/><polyline points="7 8 3 12 7 16"/><polyline points="17 8 21 12 17 16"/>',
+    crown:'<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-1.7 11H4.7z"/>',
+    expand:'<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
+    search:'<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    star:'<polygon points="12 2 15 9 22 9.3 17 14 18.5 21.2 12 17.4 5.5 21.2 7 14 2 9.3 9 9 12 2"/>',
+    play:'<polygon points="7 4 20 12 7 20 7 4"/>',
+    stack:'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/>',
+    pin:'<path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  };
+  return `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p[n]||''}</svg>`;
+}
+
 /* ── MONTHLY STATS ── */
 function renderMonthly(filterYear) {
   const years = [...new Set(acts.map(a=>new Date(a.start_date).getFullYear()))].sort((a,b)=>b-a);
@@ -105,7 +124,6 @@ function renderBestEfforts(){
     {title:'Highest Heart Rate',key:'max_heartrate',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.max_heartrate||0)-(a.max_heartrate||0)},
     {title:'Highest Suffer Score',key:'suffer_score',fmt:a=>Math.round(a),sort:(a,b)=>(b.suffer_score||0)-(a.suffer_score||0)},
   ];
-  const MEDALS=['🥇','🥈','🥉'];
   const el=document.getElementById('bestGrid');
   const src=modeActs();
   el.innerHTML=CATS.map(cat=>{
@@ -113,7 +131,7 @@ function renderBestEfforts(){
     if(!sorted.length) return '';
     const rows=sorted.map((a,i)=>`
       <div class="best-row">
-        <div class="best-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${MEDALS[i]||i+1}</div>
+        <div class="best-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
         <div class="best-name">${a.name||'Activity'} <span style="color:var(--muted);font-size:10px;">${fmtDt(a.start_date)}</span></div>
         <div class="best-val">${cat.fmt(a[cat.key])}</div>
       </div>`).join('');
@@ -674,7 +692,7 @@ async function renderChallenges(){
         </div>
         <div style="min-width:0;flex:1">
           <div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${seg.name||'Segment'}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px">${dist} · ${grade} · ⏱ ${t}${loc?' · '+loc:''}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${dist} · ${grade} · ${ic('clock')} ${t}${loc?' · '+loc:''}</div>
         </div>
       </div>`;
     }).join('');
@@ -710,10 +728,10 @@ async function renderSegments(){
 
     // records bar
     const recItems=[
-      fastestSeg&&{icon:'⚡',lbl:'Fastest PR',val:kmh(fastestSeg.distance/fastestSeg.athlete_pr_effort.elapsed_time).toFixed(1),unit:speedUnit(),name:fastestSeg.name,color:'var(--orange)'},
-      steepestSeg&&{icon:'⛰',lbl:'Steepest',val:parseFloat(steepestSeg.average_grade).toFixed(1),unit:'%',name:steepestSeg.name,color:'#f87171'},
-      mostRiddenSeg&&{icon:'🔁',lbl:'Most Ridden',val:(mostRiddenSeg.effort_count||0).toLocaleString(),unit:'efforts',name:mostRiddenSeg.name,color:'#60a5fa'},
-      longestSeg&&{icon:'📏',lbl:'Longest',val:fmtKm(longestSeg.distance),unit:distUnit(),name:longestSeg.name,color:'#a78bfa'},
+      fastestSeg&&{icon:ic('bolt'),lbl:'Fastest PR',val:kmh(fastestSeg.distance/fastestSeg.athlete_pr_effort.elapsed_time).toFixed(1),unit:speedUnit(),name:fastestSeg.name,color:'var(--orange)'},
+      steepestSeg&&{icon:ic('mountain'),lbl:'Steepest',val:parseFloat(steepestSeg.average_grade).toFixed(1),unit:'%',name:steepestSeg.name,color:'#f87171'},
+      mostRiddenSeg&&{icon:ic('repeat'),lbl:'Most Ridden',val:(mostRiddenSeg.effort_count||0).toLocaleString(),unit:'efforts',name:mostRiddenSeg.name,color:'#60a5fa'},
+      longestSeg&&{icon:ic('ruler'),lbl:'Longest',val:fmtKm(longestSeg.distance),unit:distUnit(),name:longestSeg.name,color:'#a78bfa'},
     ].filter(Boolean);
 
     const recHtml=recItems.length?`<div class="seg-summary">
@@ -746,7 +764,7 @@ async function renderSegments(){
           <option value="ridden">Most ridden</option>
           <option value="name">Name A–Z</option>
         </select>
-        <button class="seg-scan" id="segScan" title="Find fastest segments from your recent activities (not just starred)">⚲ Scan rides</button>
+        <button class="seg-scan" id="segScan" title="Find fastest segments from your recent activities (not just starred)">${ic('search')} Scan rides</button>
       </div>
     </div>`;
 
@@ -781,13 +799,13 @@ async function renderSegments(){
           <div class="seg-map" id="segmap-${s.id}"></div>
           <div class="seg-badges">
             ${gradeStr?`<span class="seg-chip" style="background:${gc}">${gradeStr}</span>`:'<span></span>'}
-            ${isKom?`<span class="seg-chip seg-kom">👑 KOM</span>`:''}
+            ${isKom?`<span class="seg-chip seg-kom">${ic('crown')} KOM</span>`:''}
           </div>
           <div class="seg-overlay">
             <a class="seg-name" href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener">${s.name}</a>
             ${location?`<div class="seg-loc">${location}</div>`:''}
           </div>
-          <button class="seg-expand" onclick="openSegMap('${s.id}')" title="View larger map" aria-label="View larger map">⤢</button>
+          <button class="seg-expand" onclick="openSegMap('${s.id}')" title="View larger map" aria-label="View larger map">${ic('expand')}</button>
         </div>
         <div class="seg-body">
           ${prTime?`<div class="seg-pr">
@@ -965,14 +983,14 @@ async function scanSegments(){
     }
     done++; if(btn) btn.textContent=`Scanning ${done}/${list.length}…`;
   }
-  if(btn){ btn.disabled=false; btn.textContent='⚲ Rescan'; }
+  if(btn){ btn.disabled=false; btn.innerHTML=ic('search')+' Rescan'; }
   const arr=Object.values(best).map(b=>({...b,spd:b.dist&&b.t?b.dist/b.t:0})).sort((x,y)=>y.spd-x.spd).slice(0,30);
   if(!arr.length){ out.innerHTML='<p style="color:var(--muted);padding:8px">No segments found in your recent activities.</p>'; return; }
   out.innerHTML=`<div class="seg-scan-title">${stopped?'Partial — rate limit hit · ':''}Fastest segments from your last ${list.length} activities</div>
     <div class="ctop-list">
       ${arr.map((b,i)=>`<a class="ctop-row" href="https://www.strava.com/segments/${b.sid}" target="_blank" rel="noopener">
         <span class="ctop-rank">${i+1}</span>
-        <span class="ctop-info"><span class="ctop-name">${b.name||'Segment'}${b.kom?' 👑':''}${b.pr?' ⭐':''}</span><span class="ctop-meta">${kmVal(b.dist).toFixed(2)} ${distUnit()} · ${fmtT(b.t)}${b.gain>0?' · '+Math.round(elevVal(b.gain)/(b.t/3600))+' '+elevUnit()+'/h VAM':''}</span></span>
+        <span class="ctop-info"><span class="ctop-name">${b.name||'Segment'}${b.kom?' '+ic('crown'):''}${b.pr?' '+ic('star'):''}</span><span class="ctop-meta">${kmVal(b.dist).toFixed(2)} ${distUnit()} · ${fmtT(b.t)}${b.gain>0?' · '+Math.round(elevVal(b.gain)/(b.t/3600))+' '+elevUnit()+'/h VAM':''}</span></span>
         <span class="ctop-val">${kmh(b.spd).toFixed(1)}<i>${speedUnit()}</i></span>
       </a>`).join('')}
     </div>`;
@@ -1003,7 +1021,7 @@ async function renderPhotos(){
   el.innerHTML=withPhotos.map(a=>{
     const cached=_actPhotoCache[a.id];
     const cover=cached&&cached.length?(cached.find(x=>x.thumb)||cached[0]):null;
-    const badge=a.total_photo_count>1?`<span class="photo-count">▣ ${a.total_photo_count}</span>`:(cover&&cover.video?'<span class="photo-play">▶</span>':'');
+    const badge=a.total_photo_count>1?`<span class="photo-count">${ic('stack')} ${a.total_photo_count}</span>`:(cover&&cover.video?`<span class="photo-play">${ic('play')}</span>`:'');
     return `<div class="photo-tile${cover?'':' photo-pending'}" data-actid="${a.id}" title="${(a.name||'').replace(/"/g,'&quot;')}" onclick="openActPhotos('${a.id}')">
       ${cover?`<img src="${cover.thumb||cover.url}" alt="" loading="lazy" decoding="async">`:'<div class="photo-skel"></div>'}
       ${badge}
@@ -1047,7 +1065,7 @@ function _renderTileCover(tile,items){
   if(!tile.querySelector('img')){
     tile.insertAdjacentHTML('afterbegin',`<img src="${cover.thumb||cover.url}" alt="" loading="lazy" decoding="async">`);
     if(items.length===1 && cover.video && !tile.querySelector('.photo-count') && !tile.querySelector('.photo-play'))
-      tile.insertAdjacentHTML('beforeend','<span class="photo-play">▶</span>');
+      tile.insertAdjacentHTML('beforeend',`<span class="photo-play">${ic('play')}</span>`);
   }
 }
 

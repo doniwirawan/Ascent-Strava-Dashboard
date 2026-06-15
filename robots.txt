@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /callback
 
-Sitemap: https://stravadashboard.vercel.app/sitemap.xml
+Sitemap: https://ascent-analytics.vercel.app/sitemap.xml

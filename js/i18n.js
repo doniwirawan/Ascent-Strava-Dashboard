@@ -120,7 +120,7 @@ const I18N = {
     'h.sec.10t': 'Heatmap',
     'h.sec.10d': 'Peta interaktif dengan setiap jejak GPS rute ditumpuk, sehingga jalan yang paling sering Anda lalui bersinar paling terang.',
     'h.sec.11t': 'Segmen',
-    'h.sec.11d': 'Segmen berbintang Anda dengan peta, waktu PR Anda, status KOM/QOM, dan VAM tiap segmen. Ketuk <b>⤢</b> pada segmen mana pun untuk membuka peta besar yang dapat diperbesar dengan rute penuh dan semua detail.',
+    'h.sec.11d': 'Segmen berbintang Anda dengan peta, waktu PR Anda, status KOM/QOM, dan VAM tiap segmen. Ketuk tombol <b>perbesar</b> pada segmen mana pun untuk membuka peta besar yang dapat diperbesar dengan rute penuh dan semua detail.',
     'h.sec.12t': 'Milestone',
     'h.sec.12d': 'Pencapaian jarak dan elevasi bernama (mis. "1.000 km Club", Everest pendakian) dan seberapa dekat Anda ke berikutnya.',
     'h.sec.13t': 'Kilas Balik',
