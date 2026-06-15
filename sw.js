@@ -6,9 +6,18 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ).then(() => self.clients.claim()));
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    const hadOld = keys.some(k => k !== CACHE && k.startsWith('strava-dash-'));
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await self.clients.claim();
+    // If this is an UPDATE (an older version was cached), force-reload any open
+    // tabs so users always see the new deploy without a manual hard-refresh.
+    if (hadOld) {
+      const cs = await self.clients.matchAll({ type: 'window' });
+      cs.forEach(c => { try { c.navigate(c.url); } catch {} });
+    }
+  })());
 });
 
 self.addEventListener('fetch', e => {

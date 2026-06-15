@@ -100,13 +100,15 @@ function navScrollTo(id, btn) {
   // Lazy-load API-heavy sections on first open (rate-limit friendly). Each
   // render reuses cached data, so this only hits Strava once per refresh.
   const _empty = gid => { const e=document.getElementById(gid); return e && !e.innerHTML.trim(); };
-  if(id==='gearSection' && _empty('gearGrid') && typeof renderGear==='function') renderGear();
-  if(id==='challengesSection' && _empty('challengesGrid') && typeof renderChallenges==='function') renderChallenges();
-  if(id==='segmentsSection'){
-    if(_empty('segmentsGrid') && typeof renderSegments==='function') renderSegments();
-    // Segment mini-maps build while hidden (0×0) — re-size and re-fit on show
-    else if(typeof segMaps!=='undefined') setTimeout(()=>{segMaps.forEach(({m,line})=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}});},80);
-  }
+  try {
+    if(id==='gearSection' && _empty('gearGrid') && typeof renderGear==='function') renderGear();
+    if(id==='challengesSection' && _empty('challengesGrid') && typeof renderChallenges==='function') renderChallenges();
+    if(id==='segmentsSection'){
+      if(_empty('segmentsGrid') && typeof renderSegments==='function') renderSegments();
+      // Segment mini-maps build while hidden (0×0) — re-size and re-fit on show
+      else if(typeof segMaps!=='undefined') setTimeout(()=>{segMaps.forEach(({m,line})=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}});},80);
+    }
+  } catch(e){ console.error('lazy render failed:', id, e); }
   // Resize charts after section becomes visible
   setTimeout(()=>{Object.values(charts).forEach(c=>{try{if(c&&c.resize)c.resize();}catch{}});},80);
   if (window.applyI18n) window.applyI18n();

@@ -3,18 +3,13 @@ function renderAll() {
   // Show all sections temporarily so charts can measure their containers
   _ALL_SECTIONS.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='';});
 
-  renderStats();
-  renderCycling();
-  renderRunning();
-  renderTrends();
-  renderActivities();
-  renderCalendar();
-  renderEddington();
-  renderMonthly();
-  renderBestEfforts();
-  renderMilestones();
-  renderRewind();
-  renderPhotos();
+  // Render each section in isolation so one failing section can never blank
+  // out the others (or abort navScrollTo at the end).
+  [renderStats, renderCycling, renderRunning, renderTrends, renderActivities,
+   renderCalendar, renderEddington, renderMonthly, renderBestEfforts,
+   renderMilestones, renderRewind, renderPhotos].forEach(fn => {
+    try { fn(); } catch (e) { console.error('render failed:', fn.name, e); }
+  });
   // API-heavy sections (Gear, Segments, Trophies) are lazy-loaded on first
   // navigation to spare Strava's shared public rate limit — see navScrollTo.
   // Clear their containers so a unit/lang re-render rebuilds them from cache.
