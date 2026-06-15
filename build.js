@@ -17,6 +17,7 @@ function injectIndexHtml() {
   content = content.replace(/__STRAVA_REFRESH_TOKEN__/g, '');
   content = content.replace(/__SUPABASE_URL__/g,         SUPA_URL);
   content = content.replace(/__SUPABASE_KEY__/g,         SUPA_KEY);
+  content = content.replace(/__BUILD__/g,                BUILD); // footer version stamp
   // cache-bust local script/style URLs so a new deploy is always picked up
   content = content.replace(/(src|href)="((?:js|css)\/[^"?]+)"/g, `$1="$2?v=${BUILD}"`);
   return content;
