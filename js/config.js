@@ -17,7 +17,7 @@ const _haveRemote = false;
 const _fnUrl = _haveRemote ? _sbUrl.replace(/\/$/, '') + '/functions/v1/strava-cache' : null;
 const _fnImg = _haveRemote ? _sbUrl.replace(/\/$/, '') + '/functions/v1/img' : null; // image download proxy
 
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — fewer full re-fetches of the public-shared Strava quota
 
 // ── localStorage cache (per athlete, survives offline / no Supabase) ──
 function _lsKey(athleteId) { return 'strava_acts_' + athleteId; }

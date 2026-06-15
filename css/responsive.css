@@ -21,9 +21,12 @@
 
   .btn { padding: 6px 12px; font-size: 11px; }
 
-  #shareBtn, #logoutBtn, #mainBtn {
+  /* top-bar controls move into the hamburger drawer on mobile */
+  #shareBtn, #logoutBtn, #mainBtn, #saveImgBtn,
+  #langToggleApp, #unitToggle, #modeToggle {
     display: none !important;
   }
+  .sidebar-controls { display: flex; }
 
   .nav-right { gap: 6px; }
   .app-layout { margin-left: 0; }

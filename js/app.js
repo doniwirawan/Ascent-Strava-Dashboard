@@ -126,6 +126,15 @@ if (!CONFIG.refreshToken) {
 })();
 
 /* ── SERVICE WORKER ── */
+/* Auto-update: the SW skips waiting + claims clients, so a new version
+   activates right away; controllerchange then reloads once so the user always
+   sees the latest deploy without a manual hard-refresh. */
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  let _swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (_swRefreshing) return; _swRefreshing = true; location.reload();
+  });
+  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+    .then(reg => { reg.update(); setInterval(() => reg.update(), 60 * 60 * 1000); })
+    .catch(() => {});
 }

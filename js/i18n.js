@@ -162,6 +162,8 @@ const I18N = {
     'h.faq.more': 'Detail lengkap ada di <a href="/privacy" style="color:var(--orange);font-weight:700;">Kebijakan Privasi</a> dan <a href="/terms" style="color:var(--orange);font-weight:700;">Ketentuan Layanan</a> kami.',
     'h.muted.1': 'Dibangun sebagai situs statis di Vercel. Data aktivitas Anda tetap terkait dengan akun Strava Anda; preferensi km/mi dan Cyclist/Runner disimpan secara lokal di browser Anda.',
     'h.muted.2': 'Aplikasi ini independen dan tidak berafiliasi dengan atau didukung oleh Strava, Inc.',
+    'eddy.title': 'Angka Eddington Anda',
+    'eddy.desc': 'Angka <em>E</em> terbesar di mana Anda telah menyelesaikan <em>E</em> gowes sejauh minimal <em>E</em> km. Metrik yang digemari komunitas bersepeda — awalnya digagas oleh astronom Sir Arthur Eddington.',
   },
 };
 
@@ -331,6 +333,7 @@ window.t = function (key) {
 
   function apply(lang) {
     _lang = lang;
+    window.LANG = lang;
     const dict = I18N[lang];
     i18nNodes.forEach(el => {
       const key = el.getAttribute('data-i18n');

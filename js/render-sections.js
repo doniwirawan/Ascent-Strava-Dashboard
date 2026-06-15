@@ -149,8 +149,9 @@ function _renderBikeList(el, bikes) {
 
 async function renderGear(){
   const el=document.getElementById('gearGrid');
+  if(_gearCache){ _renderBikeList(el,_gearCache); renderGearTool(_gearCache); return; }
   let bikes=(currentAthlete&&currentAthlete.bikes)||[];
-  if(bikes.length){ _renderBikeList(el,bikes); renderGearTool(bikes); return; }
+  if(bikes.length){ _gearCache=bikes; _renderBikeList(el,bikes); renderGearTool(bikes); return; }
 
   // fallback: fetch each unique gear_id from activities
   const gearIds=[...new Set(acts.map(a=>a.gear_id).filter(Boolean))];
@@ -163,6 +164,7 @@ async function renderGear(){
     const results=await Promise.all(gearIds.map(id=>api(`/gear/${id}`).catch(()=>null)));
     bikes=results.filter(Boolean);
     if(!bikes.length){el.innerHTML='<div class="card" style="color:var(--muted);font-size:13px;">Could not load gear data.</div>';return;}
+    _gearCache=bikes;
     _renderBikeList(el,bikes);
     renderGearTool(bikes);
   }catch(e){
@@ -470,15 +472,18 @@ function renderRewind(filterYear){
 }
 
 /* ── TROPHIES / KOMs ── */
+let _chalCache = null; // {koms, stats} — cached so re-renders don't refetch (rate-limit friendly)
+let _gearCache = null; // fetched bikes — cached likewise
 async function renderChallenges(){
   const el=document.getElementById('challengesGrid');
   el.innerHTML='<p style="color:var(--muted);padding:8px">Loading trophies…</p>';
 
   const athleteId=currentAthlete?.id||(acts[0]?.athlete?.id)||0;
 
-  // parallel: KOMs + lifetime stats
+  // parallel: KOMs + lifetime stats (cached after first fetch)
   let komList=[], st=null;
-  try{
+  if(_chalCache){ komList=_chalCache.koms; st=_chalCache.stats; }
+  else { try{
     [komList, st]=await Promise.all([
       (async()=>{
         let list=[],page=1;
@@ -493,7 +498,8 @@ async function renderChallenges(){
       })(),
       api(`/athletes/${athleteId}/stats`).catch(()=>null),
     ]);
-  }catch{}
+    _chalCache={koms:komList,stats:st};
+  }catch{} }
 
   // from cached activities (last 200)
   const totalAch =acts.reduce((s,a)=>s+(a.achievement_count||0),0);

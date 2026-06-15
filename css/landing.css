@@ -60,7 +60,8 @@ body.logged-out main { display: none !important; }
 .lp-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .lp-feat { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; transition: border-color .15s, transform .15s; }
 .lp-feat:hover { border-color: var(--orange); transform: translateY(-3px); }
-.lp-feat .ico { font-size: 24px; margin-bottom: 10px; }
+.lp-feat .ico { font-size: 24px; margin-bottom: 10px; line-height: 0; }
+.lp-feat .ico svg { width: 26px; height: 26px; fill: none; stroke: var(--orange); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .lp-feat h4 { margin: 0 0 6px; font-size: 16px; }
 .lp-feat p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
 

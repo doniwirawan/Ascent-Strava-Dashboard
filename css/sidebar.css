@@ -29,6 +29,12 @@
 .sidebar-act:hover { border-color: var(--border-hover); background: var(--surface3); }
 .sidebar-act.danger { color: #f87171; }
 
+/* drawer-only settings (language / units / sport) — shown on mobile, where the
+   top-bar toggles are hidden to keep the nav uncluttered */
+.sidebar-controls { display: none; flex-direction: column; gap: 12px; padding: 14px; border-top: 1px solid var(--border); }
+.sc-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sc-lbl { font-size: 12px; font-weight: 600; color: var(--muted); }
+
 /* off-canvas backdrop (used on mobile) */
 .sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 9999998; }
 .sidebar-backdrop.open { opacity: 1; pointer-events: auto; }

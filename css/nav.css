@@ -52,16 +52,23 @@ nav {
 
 .logo-sub { color: var(--muted); font-weight: 600; }
 
-/* floating "Story" action — the headline feature, kept reachable on mobile */
-.share-fab {
+/* floating actions — Save Image + Share Story, side by side, bottom-right */
+.fab-group {
   position: fixed; right: 16px; bottom: 16px; z-index: 9000;
-  display: flex; align-items: center; gap: 8px;
-  background: var(--orange); color: #fff; border: none;
-  border-radius: 999px; padding: 12px 18px; font-weight: 800; font-size: 14px;
-  box-shadow: 0 8px 24px rgba(252, 76, 2, .42); cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
 }
-.share-fab svg { width: 20px; height: 20px; }
-.share-fab:active { transform: scale(.96); }
+.fab {
+  display: flex; align-items: center; gap: 7px;
+  border-radius: 999px; padding: 12px 18px; font-weight: 800; font-size: 14px; cursor: pointer;
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .42);
+}
+.fab.fab-primary {
+  background: var(--orange); color: #fff; border: none;
+  box-shadow: 0 8px 24px rgba(252, 76, 2, .42);
+}
+.fab svg { width: 20px; height: 20px; }
+.fab:active { transform: scale(.96); }
 
 /* "Install app" pill — mobile only, sits bottom-left so it clears the Story FAB */
 .install-pill {

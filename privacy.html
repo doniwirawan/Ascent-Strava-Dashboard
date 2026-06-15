@@ -11,7 +11,7 @@
 <link rel="canonical" href="https://stravadashboard.vercel.app/privacy">
 <link rel="icon" type="image/png" href="/icon.png" />
 <style>
-  :root{--orange:#FC4C02;--bg:#0c0c0c;--surface:#131313;--border:#252525;--text:#eee;--muted:#888;}
+  :root{--orange:#FC4C02;--bg:#0c0c0c;--surface:#131313;--surface2:#1b1b1b;--border:#252525;--text:#eee;--muted:#888;}
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;}
   .wrap{max-width:780px;margin:0 auto;padding:48px 22px 80px;}
@@ -21,87 +21,173 @@
   .meta{color:var(--muted);font-size:13px;margin-bottom:8px;}
   p,li{font-size:14.5px;color:#d6d6d6;}
   ul{padding-left:20px;}
-  .back{display:inline-block;margin-bottom:24px;font-size:13px;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px;}
+  .back{display:inline-block;font-size:13px;}
+  .lang-toggle{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0;}
+  .lang-toggle button{background:transparent;border:none;color:var(--muted);font-size:12px;font-weight:700;padding:7px 11px;cursor:pointer;}
+  .lang-toggle button.active{background:var(--orange);color:#fff;}
   .note{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--muted);}
   strong{color:var(--text);}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="/">← Back to dashboard</a>
-  <h1>Privacy Policy</h1>
-  <div class="meta">Last updated: 12 June 2026</div>
+  <div class="topbar">
+    <a class="back" href="/" data-i18n="back">← Back to dashboard</a>
+    <div class="lang-toggle" id="lt"><button data-l="en">EN</button><button data-l="id">ID</button></div>
+  </div>
+  <h1 data-i18n="h1">Privacy Policy</h1>
+  <div class="meta" data-i18n="updated">Last updated: 12 June 2026</div>
 
-  <p>This Privacy Policy explains how the Ascent web application (the “<strong>App</strong>”, “we”, “us”) collects, uses, stores, and protects information when you use it, and your rights. The App is an independent, free, personal-use analytics dashboard for your own Strava data and is <strong>not affiliated with, endorsed by, or sponsored by Strava, Inc.</strong> By connecting your Strava account and using the App, you consent to the practices described here. If you do not agree, do not use the App.</p>
+  <p data-i18n="intro">This Privacy Policy explains how the Ascent web application (the “<strong>App</strong>”, “we”, “us”) collects, uses, stores, and protects information when you use it, and your rights. The App is an independent, free, personal-use analytics dashboard for your own Strava data and is <strong>not affiliated with, endorsed by, or sponsored by Strava, Inc.</strong> By connecting your Strava account and using the App, you consent to the practices described here. If you do not agree, do not use the App.</p>
 
-  <h2>1. Who is responsible</h2>
-  <p>The App is operated by the individual who deployed it (the “Operator”), who acts as data controller for the limited processing described below. Strava, Inc. is a separate, independent controller of the data it holds about you. Contact for privacy matters: <a href="mailto:doniwirawan166@gmail.com">doniwirawan166@gmail.com</a>.</p>
+  <h2 data-i18n="s1h">1. Who is responsible</h2>
+  <p data-i18n="s1p">The App is operated by the individual who deployed it (the “Operator”), who acts as data controller for the limited processing described below. Strava, Inc. is a separate, independent controller of the data it holds about you. Contact for privacy matters: <a href="mailto:doniwirawan166@gmail.com">doniwirawan166@gmail.com</a>.</p>
 
-  <h2>2. Legal basis &amp; consent</h2>
-  <p>We process your data on the basis of your <strong>consent</strong>, which you give by authorizing the App through Strava’s OAuth and by using the features you choose. You may withdraw consent at any time (see “Your choices &amp; rights” and “Retention &amp; deletion” below). Where applicable law requires another basis (e.g., our legitimate interest in operating and securing the App), we rely on it to the minimum extent necessary.</p>
+  <h2 data-i18n="s2h">2. Legal basis &amp; consent</h2>
+  <p data-i18n="s2p">We process your data on the basis of your <strong>consent</strong>, which you give by authorizing the App through Strava’s OAuth and by using the features you choose. You may withdraw consent at any time (see “Your choices &amp; rights” and “Retention &amp; deletion” below). Where applicable law requires another basis (e.g., our legitimate interest in operating and securing the App), we rely on it to the minimum extent necessary.</p>
 
-  <h2>3. Information we access</h2>
-  <p>With your authorization, the App accesses data associated with your Strava account, which may include:</p>
+  <h2 data-i18n="s3h">3. Information we access</h2>
+  <p data-i18n="s3p">With your authorization, the App accesses data associated with your Strava account, which may include:</p>
   <ul>
-    <li><strong>Profile</strong>: name, profile photo, athlete ID, registered bikes/gear, and all-time totals;</li>
-    <li><strong>Activities</strong>: distance, moving/elapsed time, speed, pace, elevation, heart rate, power, cadence, calories/energy, suffer score, GPS routes and streams, photos, activity names, dates, and locations;</li>
-    <li><strong>Segments</strong>: starred segments, your segment efforts/PRs, and achievements/KOMs.</li>
+    <li data-i18n="s3li1"><strong>Profile</strong>: name, profile photo, athlete ID, registered bikes/gear, and all-time totals;</li>
+    <li data-i18n="s3li2"><strong>Activities</strong>: distance, moving/elapsed time, speed, pace, elevation, heart rate, power, cadence, calories/energy, suffer score, GPS routes and streams, photos, activity names, dates, and locations;</li>
+    <li data-i18n="s3li3"><strong>Segments</strong>: starred segments, your segment efforts/PRs, and achievements/KOMs.</li>
   </ul>
-  <p>The OAuth scopes requested are <em>read</em>, <em>activity:read_all</em>, <em>profile:read_all</em>, and <em>activity:write</em>. <em>activity:write</em> is used <strong>only</strong> when you explicitly choose to reassign gear on selected activities. We do <strong>not</strong> collect your Strava password, payment information, or any special-category data beyond what your activities inherently contain (e.g., heart rate, location), which you choose to share.</p>
+  <p data-i18n="s3p2">The OAuth scopes requested are <em>read</em>, <em>activity:read_all</em>, <em>profile:read_all</em>, and <em>activity:write</em>. <em>activity:write</em> is used <strong>only</strong> when you explicitly choose to reassign gear on selected activities. We do <strong>not</strong> collect your Strava password, payment information, or any special-category data beyond what your activities inherently contain (e.g., heart rate, location), which you choose to share.</p>
 
-  <h2>4. How and why we use information</h2>
+  <h2 data-i18n="s4h">4. How and why we use information</h2>
   <ul>
-    <li>To display your statistics, charts, maps, calendars, segments, and shareable “story” images, primarily computed <strong>in your browser</strong> (purpose: provide the service you requested);</li>
-    <li>To cache your recent activities so the App loads quickly and avoids repeatedly re-fetching from Strava (purpose: performance);</li>
-    <li>To carry out actions you explicitly initiate, such as reassigning gear (purpose: perform your request);</li>
-    <li>To maintain the security and integrity of the App (purpose: legitimate interest).</li>
+    <li data-i18n="s4li1">To display your statistics, charts, maps, calendars, segments, and shareable “story” images, primarily computed <strong>in your browser</strong> (purpose: provide the service you requested);</li>
+    <li data-i18n="s4li2">To cache your recent activities so the App loads quickly and avoids repeatedly re-fetching from Strava (purpose: performance);</li>
+    <li data-i18n="s4li3">To carry out actions you explicitly initiate, such as reassigning gear (purpose: perform your request);</li>
+    <li data-i18n="s4li4">To maintain the security and integrity of the App (purpose: legitimate interest).</li>
   </ul>
-  <p>We do <strong>not</strong> sell, rent, trade, or share your personal data for advertising or marketing, and we do not use it to build profiles for third parties or for any purpose unrelated to operating the features you use.</p>
+  <p data-i18n="s4p">We do <strong>not</strong> sell, rent, trade, or share your personal data for advertising or marketing, and we do not use it to build profiles for third parties or for any purpose unrelated to operating the features you use.</p>
 
-  <h2>5. Where data is stored</h2>
+  <h2 data-i18n="s5h">5. Where data is stored</h2>
   <ul>
-    <li><strong>Your device only (browser <code>localStorage</code>)</strong>: OAuth access/refresh tokens, your preferences (units, sport mode, last page viewed), and a copy of your recent activities.</li>
+    <li data-i18n="s5li1"><strong>Your device only (browser <code>localStorage</code>)</strong>: OAuth access/refresh tokens, your preferences (units, sport mode, last page viewed), and a copy of your recent activities.</li>
   </ul>
-  <p><strong>We do not keep a copy of your activity data, or your access/refresh tokens, on any server.</strong> All processing and caching happens in your browser; the App is a static site with no application database for your data. Your tokens are stored only in your browser and are sent directly from your browser to Strava’s API.</p>
-  <p><strong>OAuth exchange.</strong> The one server-side step is a small serverless function that completes Strava’s OAuth token exchange and refresh. It exists so the App’s confidential Strava <em>client secret</em> stays on the server and is never exposed in your browser. When you connect (or your token is refreshed), your authorization code or refresh token passes <strong>transiently</strong> through this function to Strava and the resulting tokens are returned to your browser; the function does <strong>not</strong> store your code, tokens, or activity data. We never receive or store your Strava password.</p>
+  <p data-i18n="s5p1"><strong>We do not keep a copy of your activity data, or your access/refresh tokens, on any server.</strong> All processing and caching happens in your browser; the App is a static site with no application database for your data. Your tokens are stored only in your browser and are sent directly from your browser to Strava’s API.</p>
+  <p data-i18n="s5p2"><strong>OAuth exchange.</strong> The one server-side step is a small serverless function that completes Strava’s OAuth token exchange and refresh. It exists so the App’s confidential Strava <em>client secret</em> stays on the server and is never exposed in your browser. When you connect (or your token is refreshed), your authorization code or refresh token passes <strong>transiently</strong> through this function to Strava and the resulting tokens are returned to your browser; the function does <strong>not</strong> store your code, tokens, or activity data. We never receive or store your Strava password.</p>
 
-  <h2>6. Third-party services (sub-processors)</h2>
-  <p>The App relies on the following third parties, each governed by its own privacy policy and terms:</p>
+  <h2 data-i18n="s6h">6. Third-party services (sub-processors)</h2>
+  <p data-i18n="s6p">The App relies on the following third parties, each governed by its own privacy policy and terms:</p>
   <ul>
-    <li><strong>Strava, Inc.</strong> — the source of your activity data;</li>
-    <li><strong>Vercel</strong> — website hosting and delivery, and a serverless function that performs the Strava OAuth token exchange/refresh (it processes the code/token transiently and stores nothing);</li>
-    <li><strong>Google Analytics</strong> — aggregate, anonymous usage analytics (page views, basic device/region); does not receive your Strava activity data;</li>
-    <li><strong>Map &amp; asset providers</strong> (e.g., CARTO, OpenStreetMap, and content-delivery networks) — for maps, fonts, and libraries; these providers may receive your IP address and basic request data as a normal part of serving content.</li>
+    <li data-i18n="s6li1"><strong>Strava, Inc.</strong> — the source of your activity data;</li>
+    <li data-i18n="s6li2"><strong>Vercel</strong> — website hosting and delivery, and a serverless function that performs the Strava OAuth token exchange/refresh (it processes the code/token transiently and stores nothing);</li>
+    <li data-i18n="s6li3"><strong>Google Analytics</strong> — aggregate, anonymous usage analytics (page views, basic device/region); does not receive your Strava activity data;</li>
+    <li data-i18n="s6li4"><strong>Map &amp; asset providers</strong> (e.g., CARTO, OpenStreetMap, and content-delivery networks) — for maps, fonts, and libraries; these providers may receive your IP address and basic request data as a normal part of serving content.</li>
   </ul>
-  <p>We are not responsible for the independent practices of these providers.</p>
+  <p data-i18n="s6p2">We are not responsible for the independent practices of these providers.</p>
 
-  <h2>7. Cookies &amp; analytics</h2>
-  <p>The App uses <strong>Google Analytics</strong> (gtag.js) to understand aggregate, largely anonymous usage — such as page views and basic device, browser and approximate region information — so we can improve the App. This may set cookies and share that usage data with Google, governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google’s Privacy Policy</a>. <strong>Your Strava activity data and tokens are not sent to Google Analytics</strong> — they stay in your browser. We do <strong>not</strong> use advertising cookies and we do not sell your data. You can opt out via your browser settings, a tracker-blocking extension, or Google’s <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">opt-out add-on</a>.</p>
+  <h2 data-i18n="s7h">7. Cookies &amp; analytics</h2>
+  <p data-i18n="s7p">The App uses <strong>Google Analytics</strong> (gtag.js) to understand aggregate, largely anonymous usage — such as page views and basic device, browser and approximate region information — so we can improve the App. This may set cookies and share that usage data with Google, governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google’s Privacy Policy</a>. <strong>Your Strava activity data and tokens are not sent to Google Analytics</strong> — they stay in your browser. We do <strong>not</strong> use advertising cookies and we do not sell your data. You can opt out via your browser settings, a tracker-blocking extension, or Google’s <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">opt-out add-on</a>.</p>
 
-  <h2>8. International transfers</h2>
-  <p>Our providers may process and store data on servers located in countries other than your own, which may have different data-protection laws. By using the App you consent to such international processing.</p>
+  <h2 data-i18n="s8h">8. International transfers</h2>
+  <p data-i18n="s8p">Our providers may process and store data on servers located in countries other than your own, which may have different data-protection laws. By using the App you consent to such international processing.</p>
 
-  <h2>9. Retention &amp; deletion</h2>
+  <h2 data-i18n="s9h">9. Retention &amp; deletion</h2>
   <ul>
-    <li>Cached activity data lives only in your browser, refreshes periodically, and is overwritten on refresh;</li>
-    <li>You can clear your tokens and this device’s cached data at any time using <strong>Disconnect</strong>, or by clearing your browser storage;</li>
-    <li>You can revoke the App’s access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava → Settings → My Apps</a>, which prevents further access to your data.</li>
+    <li data-i18n="s9li1">Cached activity data lives only in your browser, refreshes periodically, and is overwritten on refresh;</li>
+    <li data-i18n="s9li2">You can clear your tokens and this device’s cached data at any time using <strong>Disconnect</strong>, or by clearing your browser storage;</li>
+    <li data-i18n="s9li3">You can revoke the App’s access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava → Settings → My Apps</a>, which prevents further access to your data.</li>
   </ul>
 
-  <h2>10. Your choices &amp; rights</h2>
-  <p>Subject to applicable law (which may include Indonesia’s Personal Data Protection Law, the EU/UK GDPR, or the CCPA), you may have the right to access, correct, delete, restrict, or object to the processing of your personal data, to withdraw consent, to data portability, and to lodge a complaint with your data-protection authority. To exercise these rights, contact us at the email below. Note that much of your data can be controlled directly through Strava and through your browser.</p>
+  <h2 data-i18n="s10h">10. Your choices &amp; rights</h2>
+  <p data-i18n="s10p">Subject to applicable law (which may include Indonesia’s Personal Data Protection Law, the EU/UK GDPR, or the CCPA), you may have the right to access, correct, delete, restrict, or object to the processing of your personal data, to withdraw consent, to data portability, and to lodge a complaint with your data-protection authority. To exercise these rights, contact us at the email below. Note that much of your data can be controlled directly through Strava and through your browser.</p>
 
-  <h2>11. Children</h2>
-  <p>The App is not directed to children below the minimum age required to hold a Strava account in their jurisdiction, and we do not knowingly collect their data. If you believe a child has used the App, contact us.</p>
+  <h2 data-i18n="s11h">11. Children</h2>
+  <p data-i18n="s11p">The App is not directed to children below the minimum age required to hold a Strava account in their jurisdiction, and we do not knowingly collect their data. If you believe a child has used the App, contact us.</p>
 
-  <h2>12. Security</h2>
-  <p>We use reasonable technical measures to help protect data: your data and tokens stay in your browser (no server-side data store), the App’s confidential Strava client secret is kept server-side and never shipped to the browser, and traffic uses HTTPS. However, <strong>no method of transmission or storage is completely secure, and we cannot guarantee absolute security.</strong> You use the App at your own risk, as further described in our <a href="/terms">Terms of Service</a>. In the event of a data incident, we will take reasonable steps and provide any notices required by applicable law.</p>
+  <h2 data-i18n="s12h">12. Security</h2>
+  <p data-i18n="s12p">We use reasonable technical measures to help protect data: your data and tokens stay in your browser (no server-side data store), the App’s confidential Strava client secret is kept server-side and never shipped to the browser, and traffic uses HTTPS. However, <strong>no method of transmission or storage is completely secure, and we cannot guarantee absolute security.</strong> You use the App at your own risk, as further described in our <a href="/terms">Terms of Service</a>. In the event of a data incident, we will take reasonable steps and provide any notices required by applicable law.</p>
 
-  <h2>13. Changes to this Policy</h2>
-  <p>We may update this Policy from time to time by posting a revised version with a new “Last updated” date. Your continued use of the App after changes constitutes acceptance of the updated Policy.</p>
+  <h2 data-i18n="s13h">13. Changes to this Policy</h2>
+  <p data-i18n="s13p">We may update this Policy from time to time by posting a revised version with a new “Last updated” date. Your continued use of the App after changes constitutes acceptance of the updated Policy.</p>
 
-  <h2>14. Contact</h2>
+  <h2 data-i18n="s14h">14. Contact</h2>
   <p><a href="mailto:doniwirawan166@gmail.com">doniwirawan166@gmail.com</a></p>
 </div>
+
+<script>
+const T = { id: {
+  'back': '← Kembali ke dasbor',
+  'h1': 'Kebijakan Privasi',
+  'updated': 'Terakhir diperbarui: 12 Juni 2026',
+  'intro': 'Kebijakan Privasi ini menjelaskan bagaimana aplikasi web Ascent (“<strong>Aplikasi</strong>”, “kami”) mengumpulkan, menggunakan, menyimpan, dan melindungi informasi saat Anda menggunakannya, serta hak-hak Anda. Aplikasi ini adalah dasbor analitik independen, gratis, untuk penggunaan pribadi atas data Strava Anda sendiri dan <strong>tidak berafiliasi dengan, didukung oleh, atau disponsori oleh Strava, Inc.</strong> Dengan menghubungkan akun Strava Anda dan menggunakan Aplikasi, Anda menyetujui praktik yang dijelaskan di sini. Jika Anda tidak setuju, jangan gunakan Aplikasi.',
+  's1h': '1. Siapa yang bertanggung jawab',
+  's1p': 'Aplikasi dioperasikan oleh individu yang men-deploy-nya (“Operator”), yang bertindak sebagai pengendali data untuk pemrosesan terbatas yang dijelaskan di bawah. Strava, Inc. adalah pengendali independen yang terpisah atas data yang dimilikinya tentang Anda. Kontak untuk urusan privasi: <a href="mailto:doniwirawan166@gmail.com">doniwirawan166@gmail.com</a>.',
+  's2h': '2. Dasar hukum &amp; persetujuan',
+  's2p': 'Kami memproses data Anda berdasarkan <strong>persetujuan</strong> Anda, yang Anda berikan dengan mengotorisasi Aplikasi melalui OAuth Strava dan dengan menggunakan fitur yang Anda pilih. Anda dapat menarik persetujuan kapan saja (lihat “Pilihan &amp; hak Anda” dan “Retensi &amp; penghapusan” di bawah). Bila hukum yang berlaku mensyaratkan dasar lain (mis. kepentingan sah kami untuk mengoperasikan dan mengamankan Aplikasi), kami mengandalkannya seminimal mungkin.',
+  's3h': '3. Informasi yang kami akses',
+  's3p': 'Dengan otorisasi Anda, Aplikasi mengakses data yang terkait dengan akun Strava Anda, yang dapat meliputi:',
+  's3li1': '<strong>Profil</strong>: nama, foto profil, ID atlet, sepeda/perlengkapan terdaftar, dan total sepanjang waktu;',
+  's3li2': '<strong>Aktivitas</strong>: jarak, waktu bergerak/berlalu, kecepatan, pace, elevasi, detak jantung, daya, kadens, kalori/energi, suffer score, rute &amp; aliran GPS, foto, nama aktivitas, tanggal, dan lokasi;',
+  's3li3': '<strong>Segmen</strong>: segmen berbintang, upaya/PR segmen Anda, dan pencapaian/KOM.',
+  's3p2': 'Scope OAuth yang diminta adalah <em>read</em>, <em>activity:read_all</em>, <em>profile:read_all</em>, dan <em>activity:write</em>. <em>activity:write</em> digunakan <strong>hanya</strong> saat Anda secara eksplisit memilih untuk menetapkan ulang perlengkapan pada aktivitas terpilih. Kami <strong>tidak</strong> mengumpulkan kata sandi Strava, informasi pembayaran, atau data kategori khusus apa pun di luar yang secara inheren terdapat dalam aktivitas Anda (mis. detak jantung, lokasi), yang Anda pilih untuk dibagikan.',
+  's4h': '4. Bagaimana dan mengapa kami menggunakan informasi',
+  's4li1': 'Untuk menampilkan statistik, grafik, peta, kalender, segmen, dan gambar “cerita” yang dapat dibagikan, terutama dihitung <strong>di browser Anda</strong> (tujuan: menyediakan layanan yang Anda minta);',
+  's4li2': 'Untuk meng-cache aktivitas terbaru Anda agar Aplikasi memuat cepat dan menghindari pengambilan ulang berulang dari Strava (tujuan: performa);',
+  's4li3': 'Untuk menjalankan tindakan yang Anda mulai secara eksplisit, seperti menetapkan ulang perlengkapan (tujuan: menjalankan permintaan Anda);',
+  's4li4': 'Untuk menjaga keamanan dan integritas Aplikasi (tujuan: kepentingan sah).',
+  's4p': 'Kami <strong>tidak</strong> menjual, menyewakan, menukar, atau membagikan data pribadi Anda untuk iklan atau pemasaran, dan kami tidak menggunakannya untuk membangun profil bagi pihak ketiga atau untuk tujuan apa pun yang tidak terkait dengan pengoperasian fitur yang Anda gunakan.',
+  's5h': '5. Di mana data disimpan',
+  's5li1': '<strong>Hanya di perangkat Anda (browser <code>localStorage</code>)</strong>: token akses/refresh OAuth, preferensi Anda (satuan, mode olahraga, halaman terakhir dilihat), dan salinan aktivitas terbaru Anda.',
+  's5p1': '<strong>Kami tidak menyimpan salinan data aktivitas Anda, atau token akses/refresh Anda, di server mana pun.</strong> Semua pemrosesan dan caching terjadi di browser Anda; Aplikasi adalah situs statis tanpa basis data aplikasi untuk data Anda. Token Anda disimpan hanya di browser Anda dan dikirim langsung dari browser Anda ke API Strava.',
+  's5p2': '<strong>Pertukaran OAuth.</strong> Satu-satunya langkah sisi-server adalah fungsi serverless kecil yang menyelesaikan pertukaran dan refresh token OAuth Strava. Itu ada agar <em>client secret</em> rahasia Strava milik Aplikasi tetap di server dan tidak pernah terekspos di browser Anda. Saat Anda terhubung (atau token Anda di-refresh), kode otorisasi atau refresh token Anda melewati fungsi ini secara <strong>sesaat</strong> menuju Strava dan token hasilnya dikembalikan ke browser Anda; fungsi tersebut <strong>tidak</strong> menyimpan kode, token, atau data aktivitas Anda. Kami tidak pernah menerima atau menyimpan kata sandi Strava Anda.',
+  's6h': '6. Layanan pihak ketiga (sub-pemroses)',
+  's6p': 'Aplikasi mengandalkan pihak ketiga berikut, masing-masing diatur oleh kebijakan privasi dan ketentuannya sendiri:',
+  's6li1': '<strong>Strava, Inc.</strong> — sumber data aktivitas Anda;',
+  's6li2': '<strong>Vercel</strong> — hosting dan pengiriman situs web, serta fungsi serverless yang melakukan pertukaran/refresh token OAuth Strava (memproses kode/token secara sesaat dan tidak menyimpan apa pun);',
+  's6li3': '<strong>Google Analytics</strong> — analitik penggunaan yang agregat dan anonim (tampilan halaman, perangkat/wilayah dasar); tidak menerima data aktivitas Strava Anda;',
+  's6li4': '<strong>Penyedia peta &amp; aset</strong> (mis. CARTO, OpenStreetMap, dan jaringan pengiriman konten) — untuk peta, font, dan pustaka; penyedia ini dapat menerima alamat IP Anda dan data permintaan dasar sebagai bagian normal dari penyajian konten.',
+  's6p2': 'Kami tidak bertanggung jawab atas praktik independen penyedia ini.',
+  's7h': '7. Cookie &amp; analitik',
+  's7p': 'Aplikasi menggunakan <strong>Google Analytics</strong> (gtag.js) untuk memahami penggunaan yang agregat dan sebagian besar anonim — seperti tampilan halaman serta informasi perangkat, browser, dan perkiraan wilayah dasar — agar kami dapat menyempurnakan Aplikasi. Ini dapat menyetel cookie dan membagikan data penggunaan tersebut dengan Google, yang diatur oleh <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Kebijakan Privasi Google</a>. <strong>Data aktivitas dan token Strava Anda tidak dikirim ke Google Analytics</strong> — semuanya tetap di browser Anda. Kami <strong>tidak</strong> menggunakan cookie iklan dan kami tidak menjual data Anda. Anda dapat menyisih melalui pengaturan browser, ekstensi pemblokir pelacak, atau <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">add-on opt-out Google</a>.',
+  's8h': '8. Transfer internasional',
+  's8p': 'Penyedia kami dapat memproses dan menyimpan data di server yang berlokasi di negara selain negara Anda, yang mungkin memiliki hukum perlindungan data yang berbeda. Dengan menggunakan Aplikasi, Anda menyetujui pemrosesan internasional tersebut.',
+  's9h': '9. Retensi &amp; penghapusan',
+  's9li1': 'Data aktivitas yang di-cache hanya ada di browser Anda, disegarkan secara berkala, dan ditimpa saat refresh;',
+  's9li2': 'Anda dapat menghapus token dan data cache perangkat ini kapan saja menggunakan <strong>Disconnect</strong>, atau dengan menghapus penyimpanan browser Anda;',
+  's9li3': 'Anda dapat mencabut akses Aplikasi sepenuhnya di <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">Strava → Settings → My Apps</a>, yang mencegah akses lebih lanjut ke data Anda.',
+  's10h': '10. Pilihan &amp; hak Anda',
+  's10p': 'Tunduk pada hukum yang berlaku (yang dapat mencakup UU Perlindungan Data Pribadi Indonesia, GDPR UE/Inggris, atau CCPA), Anda mungkin memiliki hak untuk mengakses, memperbaiki, menghapus, membatasi, atau menolak pemrosesan data pribadi Anda, menarik persetujuan, portabilitas data, dan mengajukan keluhan ke otoritas perlindungan data Anda. Untuk menggunakan hak-hak ini, hubungi kami di email di bawah. Perhatikan bahwa sebagian besar data Anda dapat dikendalikan langsung melalui Strava dan melalui browser Anda.',
+  's11h': '11. Anak-anak',
+  's11p': 'Aplikasi tidak ditujukan untuk anak-anak di bawah usia minimum yang disyaratkan untuk memiliki akun Strava di yurisdiksi mereka, dan kami tidak dengan sengaja mengumpulkan data mereka. Jika Anda yakin seorang anak telah menggunakan Aplikasi, hubungi kami.',
+  's12h': '12. Keamanan',
+  's12p': 'Kami menggunakan langkah teknis yang wajar untuk membantu melindungi data: data dan token Anda tetap di browser Anda (tanpa penyimpanan data sisi-server), client secret rahasia Strava Aplikasi disimpan di sisi server dan tidak pernah dikirim ke browser, dan lalu lintas menggunakan HTTPS. Namun, <strong>tidak ada metode transmisi atau penyimpanan yang sepenuhnya aman, dan kami tidak dapat menjamin keamanan mutlak.</strong> Anda menggunakan Aplikasi atas risiko Anda sendiri, sebagaimana dijelaskan lebih lanjut dalam <a href="/terms">Ketentuan Layanan</a> kami. Jika terjadi insiden data, kami akan mengambil langkah yang wajar dan memberikan pemberitahuan apa pun yang disyaratkan oleh hukum yang berlaku.',
+  's13h': '13. Perubahan Kebijakan ini',
+  's13p': 'Kami dapat memperbarui Kebijakan ini dari waktu ke waktu dengan memposting versi revisi beserta tanggal “Terakhir diperbarui” yang baru. Penggunaan Aplikasi yang berkelanjutan setelah perubahan merupakan penerimaan atas Kebijakan yang diperbarui.',
+  's14h': '14. Kontak',
+} };
+(function () {
+  const nodes = document.querySelectorAll('[data-i18n]');
+  const enHTML = new Map();
+  nodes.forEach(n => enHTML.set(n, n.innerHTML));
+  function detect() {
+    try { const s = localStorage.getItem('lang'); if (s) return s; } catch {}
+    const l = (navigator.languages || [navigator.language || '']).join(',').toLowerCase();
+    if (l.includes('id')) return 'id';
+    try { if (/^Asia\/(Jakarta|Pontianak|Makassar|Jayapura)/.test(Intl.DateTimeFormat().resolvedOptions().timeZone || '')) return 'id'; } catch {}
+    return 'en';
+  }
+  function apply(lang) {
+    const d = T[lang];
+    nodes.forEach(n => { const k = n.getAttribute('data-i18n'); n.innerHTML = (d && d[k] != null) ? d[k] : enHTML.get(n); });
+    document.documentElement.lang = lang;
+    document.querySelectorAll('#lt button').forEach(b => b.classList.toggle('active', b.dataset.l === lang));
+  }
+  let cur = detect();
+  apply(cur);
+  document.getElementById('lt').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    cur = b.dataset.l;
+    try { localStorage.setItem('lang', cur); } catch {}
+    apply(cur);
+  });
+})();
+</script>
 </body>
 </html>

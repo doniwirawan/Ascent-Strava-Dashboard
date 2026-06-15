@@ -12,18 +12,18 @@ function renderAll() {
   renderEddington();
   renderMonthly();
   renderBestEfforts();
-  renderGear();
-  // heatmap is lazy-loaded when user navigates to heatSection
   renderMilestones();
   renderRewind();
-  renderChallenges();
-  renderSegments();
   renderPhotos();
+  // API-heavy sections (Gear, Segments, Trophies) are lazy-loaded on first
+  // navigation to spare Strava's shared public rate limit — see navScrollTo.
+  // Clear their containers so a unit/lang re-render rebuilds them from cache.
+  ['gearGrid','segmentsGrid','challengesGrid'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='';});
+  // heatmap is also lazy-loaded when the user opens heatSection
 
-  document.getElementById('shareBtn').style.display = '';
-  document.getElementById('saveImgBtn').style.display = '';
+  // Save Image + Share Story live in the floating FAB group, not the navbar
   document.getElementById('logoutBtn').style.display = '';
-  const _fab=document.getElementById('shareFab'); if(_fab) _fab.style.display='flex'; // mobile-only via CSS
+  const _fg=document.getElementById('fabGroup'); if(_fg) _fg.style.display='flex';
   const lt=document.getElementById('langToggleApp'); if(lt) lt.style.display='';
   const ut=document.getElementById('unitToggle');
   if(ut){ ut.style.display=''; ut.querySelectorAll('[data-unit]').forEach(b=>b.classList.toggle('active',(b.dataset.unit==='mi')===useImperial)); }
@@ -158,8 +158,9 @@ function renderEddington() {
   const next = E+1;
   const have = rides.filter(r=>kmVal(r.distance||0)>=next).length;
   const need = next - have;
-  document.getElementById('eddyNext').innerHTML =
-    `To reach <strong>E=${next}</strong> you need <strong>${need} more ${word}${need!==1?'s':''} of ≥${next} ${distUnit()}</strong> (have ${have}/${next}).`;
+  document.getElementById('eddyNext').innerHTML = (window.LANG==='id')
+    ? `Untuk mencapai <strong>E=${next}</strong> Anda butuh <strong>${need} ${mode==='run'?'lari':'gowes'} lagi sejauh ≥${next} ${distUnit()}</strong> (punya ${have}/${next}).`
+    : `To reach <strong>E=${next}</strong> you need <strong>${need} more ${word}${need!==1?'s':''} of ≥${next} ${distUnit()}</strong> (have ${have}/${next}).`;
 
   // bar chart: last 15 E-values cumulative
   const kms = rides.map(r=>kmVal(r.distance||0)).sort((a,b)=>b-a).slice(0,next+5);
