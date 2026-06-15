@@ -63,7 +63,10 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   if(!btn||!sidebar) return;
   const backdrop=document.createElement('div');
   backdrop.className='sidebar-backdrop';
-  document.body.appendChild(backdrop);
+  // Insert the backdrop as the sidebar's sibling (same parent) so z-index
+  // ordering is guaranteed in one stacking context — appending to <body>
+  // let WebKit/iOS paint the backdrop OVER the sidebar (it darkened the drawer).
+  sidebar.parentNode.insertBefore(backdrop, sidebar);
   const open=()=>{ sidebar.classList.add('open'); backdrop.classList.add('open'); btn.classList.add('open'); document.body.classList.add('drawer-open'); };
   const close=()=>{ sidebar.classList.remove('open'); backdrop.classList.remove('open'); btn.classList.remove('open'); document.body.classList.remove('drawer-open'); };
   btn.addEventListener('click',()=>{ sidebar.classList.contains('open')?close():open(); });
