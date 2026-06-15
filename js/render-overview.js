@@ -24,6 +24,7 @@ function renderAll() {
   document.getElementById('saveImgBtn').style.display = '';
   document.getElementById('logoutBtn').style.display = '';
   const _fab=document.getElementById('shareFab'); if(_fab) _fab.style.display='flex'; // mobile-only via CSS
+  const lt=document.getElementById('langToggleApp'); if(lt) lt.style.display='';
   const ut=document.getElementById('unitToggle');
   if(ut){ ut.style.display=''; ut.querySelectorAll('[data-unit]').forEach(b=>b.classList.toggle('active',(b.dataset.unit==='mi')===useImperial)); }
   const mt=document.getElementById('modeToggle');
@@ -59,19 +60,19 @@ function renderStats() {
   const longest = set.reduce((m,a)=>(a.distance||0)>m?(a.distance||0):m,0);
   let longLbl, avgLbl, avgVal, avgSub, maxLbl, maxVal, maxSub;
   if (mode==='run') {
-    longLbl='Longest Run';
+    longLbl=t('longRun');
     const totD=set.reduce((s,a)=>s+(a.distance||0),0), totT=set.reduce((s,a)=>s+(a.moving_time||0),0);
-    avgLbl='Avg Pace'; avgVal=totT&&totD?_pace(totD/totT):'—'; avgSub='/'+distUnit();
+    avgLbl=t('avgPace'); avgVal=totT&&totD?_pace(totD/totT):'—'; avgSub='/'+distUnit();
     const paced=set.filter(a=>a.average_speed>0);
     const best=paced.length?paced.reduce((m,a)=>a.average_speed>m.average_speed?a:m):null;
-    maxLbl='Best Pace'; maxVal=best?_pace(best.average_speed):'—'; maxSub='/'+distUnit();
+    maxLbl=t('bestPace'); maxVal=best?_pace(best.average_speed):'—'; maxSub='/'+distUnit();
   } else {
-    longLbl='Longest Ride';
+    longLbl=t('longRide');
     const riding=set.filter(a=>a.average_speed>0);
     const avg=riding.length?kmh(riding.reduce((s,a)=>s+a.average_speed,0)/riding.length):0;
-    avgLbl='Avg Speed'; avgVal=avg?avg.toFixed(1):'—'; avgSub=speedUnit()+' riding';
+    avgLbl=t('avgSpeed'); avgVal=avg?avg.toFixed(1):'—'; avgSub=speedUnit()+' '+t('riding');
     const mx=kmh(set.reduce((m,a)=>a.max_speed>m?a.max_speed:m,0));
-    maxLbl='Max Speed'; maxVal=mx?mx.toFixed(1):'—'; maxSub=speedUnit();
+    maxLbl=t('maxSpeed'); maxVal=mx?mx.toFixed(1):'—'; maxSub=speedUnit();
   }
 
   // avg heart rate across activities that have it
@@ -111,12 +112,13 @@ function renderStats() {
 
   document.getElementById('sv-acts').textContent    = set.length;
   document.getElementById('sv-dist').textContent    = fmtD(dist);
-  document.getElementById('sv-dist-sub').textContent= 'avg '+fmtD(dist/(set.length||1));
+  document.getElementById('sv-dist-sub').textContent= t('avg')+' '+fmtD(dist/(set.length||1));
   document.getElementById('sv-time').textContent    = Math.round(time/3600)+'h';
-  document.getElementById('sv-time-sub').textContent= time>=86400 ? '≈ '+fmtDays(time) : 'hours';
-  document.getElementById('sv-elev').textContent    = Math.round(elevVal(elev)/1000)+'k '+elevUnit();
+  document.getElementById('sv-time-sub').textContent= time>=86400 ? '≈ '+fmtDays(time) : t('hours');
+  const elevDisp = elevVal(elev);
+  document.getElementById('sv-elev').textContent    = elevDisp < 1000 ? Math.round(elevDisp)+' '+elevUnit() : Math.round(elevDisp/1000)+'k '+elevUnit();
   document.getElementById('sv-eddy').textContent    = E;
-  document.getElementById('sv-eddy-sub').textContent= (mode==='run'?'running ':'cycling ')+distUnit();
+  document.getElementById('sv-eddy-sub').textContent= (mode==='run'?t('running'):t('cycling'))+' '+distUnit();
   document.getElementById('sv-rides').textContent   = rides.length;
   document.getElementById('sv-runs').textContent    = runs.length;
   document.getElementById('sv-kudos').textContent   = kudos.toLocaleString();

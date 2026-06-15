@@ -44,12 +44,18 @@ async function _doSaveImg() {
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#090909';
   const [W, H] = _SAVE_IMG_DIMS[_saveImgOrient][_saveImgRes];
 
+  // Render at a wide simulated viewport so responsive grids lay out in full
+  // (multiple columns) rather than the phone's 1–2 column stack — this fills
+  // the frame instead of producing a tall, narrow strip on mobile.
+  const winW = _saveImgOrient === 'desktop' ? 1400 : 900;
+
   try {
     const shot = await html2canvas(section, {
       backgroundColor: bg,
       scale: 2,
       useCORS: true,
       logging: false,
+      windowWidth: winW,
     });
 
     const out = document.createElement('canvas');

@@ -40,11 +40,16 @@
 }
 
 .s-icon {
-  font-size: 18px;
-  line-height: 1;
   margin-bottom: 8px;
-  opacity: .85;
+  color: var(--text-3);
+  line-height: 0;
 }
+.s-icon svg {
+  width: 18px; height: 18px; display: block;
+  fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.stat-card.hi .s-icon { color: var(--orange); }
 
 .s-value {
   font-size: 26px;
