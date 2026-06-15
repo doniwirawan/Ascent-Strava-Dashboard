@@ -554,95 +554,95 @@
     <div class="section-title">Help &amp; Data</div>
 
     <div class="help-card">
-      <h3>How your data is loaded</h3>
+      <h3 data-i18n="h.load.t">How your data is loaded</h3>
       <ul class="help-list">
-        <li><b>Source.</b> Everything comes from the official <b>Strava API</b> using your own login — this dashboard has no server and never sees your password.</li>
-        <li><b>Activities.</b> Your <b>full activity history</b> is fetched (<code>/athlete/activities</code>, paged) and cached so revisits are instant. Aggregate "all-time / YTD / last-4-weeks" figures in Trophies come from Strava's totals endpoint (<code>/athletes/&#123;id&#125;/stats</code>).</li>
-        <li><b>Caching.</b> Results are cached <b>only in your browser</b> (localStorage) so revisits are instant — nothing is stored on a server. The cache refreshes about once an hour, or immediately when you hit <b>Refresh</b>.</li>
-        <li><b>Detail on demand.</b> When you open <b>Share Story</b> or <b>Segments</b>, extra data is fetched per item — the detailed activity (for Energy/Calories/power), GPS streams (for the waveform charts), and segment routes.</li>
-        <li><b>Units.</b> The <b>km / mi</b> switch in the top bar converts every distance, speed and elevation across the app. Named metric milestones (e.g. "1,000 km Club", Everest) stay metric on purpose.</li>
+        <li data-i18n="h.load.1"><b>Source.</b> Everything comes from the official <b>Strava API</b> using your own login — this dashboard has no server and never sees your password.</li>
+        <li data-i18n="h.load.2"><b>Activities.</b> Your <b>full activity history</b> is fetched (<code>/athlete/activities</code>, paged) and cached so revisits are instant. Aggregate "all-time / YTD / last-4-weeks" figures in Trophies come from Strava's totals endpoint (<code>/athletes/&#123;id&#125;/stats</code>).</li>
+        <li data-i18n="h.load.3"><b>Caching.</b> Results are cached <b>only in your browser</b> (localStorage) so revisits are instant — nothing is stored on a server. The cache refreshes about once an hour, or immediately when you hit <b>Refresh</b>.</li>
+        <li data-i18n="h.load.4"><b>Detail on demand.</b> When you open <b>Share Story</b> or <b>Segments</b>, extra data is fetched per item — the detailed activity (for Energy/Calories/power), GPS streams (for the waveform charts), and segment routes.</li>
+        <li data-i18n="h.load.5"><b>Units.</b> The <b>km / mi</b> switch in the top bar converts every distance, speed and elevation across the app. Named metric milestones (e.g. "1,000 km Club", Everest) stay metric on purpose.</li>
       </ul>
     </div>
 
     <div class="help-card">
-      <h3>What the metrics mean</h3>
+      <h3 data-i18n="h.met.t">What the metrics mean</h3>
       <dl class="help-gloss">
-        <div><dt>Eddington Number (E)</dt><dd>The largest <i>E</i> where you've ridden at least <i>E</i> km on <i>E</i> separate days. E=70 means 70 rides of ≥70 km. A tough, cumulative measure of consistent big days. (Recomputed in miles when mi is selected.)</dd></div>
-        <div><dt>Consistency</dt><dd>How <i>even</i> your training is week to week, over your active span (up to 26 weeks). It's 100·(1 − the variation of your weekly activity counts), so wildly uneven weeks and gaps lower it — being active most weeks alone won't give 100%.</dd></div>
-        <div><dt>Activity / Day Streak</dt><dd>Your longest run of consecutive calendar days with at least one activity.</dd></div>
-        <div><dt>Moving vs Elapsed Time</dt><dd><b>Moving time</b> excludes pauses/stops; <b>elapsed time</b> is the full wall-clock duration. Stats here use moving time.</dd></div>
-        <div><dt>Avg / Max Speed</dt><dd>Average and peak speed Strava recorded for the activity, shown in km/h or mph.</dd></div>
-        <div><dt>Best Pace</dt><dd>Runner metric — minutes per km/mi for your fastest run.</dd></div>
-        <div><dt>Cadence</dt><dd>Pedalling or step rate — <b>rpm</b> (revolutions per minute) for rides, <b>spm</b> (steps per minute) for runs.</dd></div>
-        <div><dt>Elevation Gain &amp; Highest Point</dt><dd>Total metres (or feet) climbed — the sum of all uphill sections — and the highest altitude reached on the route.</dd></div>
-        <div><dt>Avg / Max / Normalized Power</dt><dd>For rides with a power meter: your mean and peak watts, plus <b>Normalized Power</b> — a weighted average that reflects the metabolic cost of changing efforts better than a plain average.</dd></div>
-        <div><dt>Energy (kJ) &amp; Calories</dt><dd>Work done / energy burned, from Strava's detailed activity (power-based for rides). Some activities have no value if Strava didn't compute one.</dd></div>
-        <div><dt>Temperature</dt><dd>Average ambient temperature recorded by your device during the activity, when available.</dd></div>
-        <div><dt>Suffer Score / Relative Effort</dt><dd>Strava's measure of how hard a session was, based on time spent in heart-rate zones.</dd></div>
-        <div><dt>VAM</dt><dd>Velocità Ascensionale Media — your average vertical climbing speed in metres (or feet) per hour, from your PR time on a climb. Higher = a stronger climb; elite climbs are ~1,600+ m/h.</dd></div>
-        <div><dt>KOM / QOM / CR</dt><dd>King/Queen of the Mountain / Course Record — being the fastest-ever on a segment. "With PR" means you have a personal record on it.</dd></div>
-        <div><dt>PRs &amp; Achievements</dt><dd>Personal records and trophies Strava awarded on your activities (e.g. fastest 5 km, biggest climb).</dd></div>
-        <div><dt>Kudos &amp; Comments</dt><dd>The "likes" and comments your activities received from other athletes.</dd></div>
+        <div><dt data-i18n="h.met.1t">Eddington Number (E)</dt><dd data-i18n="h.met.1d">The largest <i>E</i> where you've ridden at least <i>E</i> km on <i>E</i> separate days. E=70 means 70 rides of ≥70 km. A tough, cumulative measure of consistent big days. (Recomputed in miles when mi is selected.)</dd></div>
+        <div><dt data-i18n="h.met.2t">Consistency</dt><dd data-i18n="h.met.2d">How <i>even</i> your training is week to week, over your active span (up to 26 weeks). It's 100·(1 − the variation of your weekly activity counts), so wildly uneven weeks and gaps lower it — being active most weeks alone won't give 100%.</dd></div>
+        <div><dt data-i18n="h.met.3t">Activity / Day Streak</dt><dd data-i18n="h.met.3d">Your longest run of consecutive calendar days with at least one activity.</dd></div>
+        <div><dt data-i18n="h.met.4t">Moving vs Elapsed Time</dt><dd data-i18n="h.met.4d"><b>Moving time</b> excludes pauses/stops; <b>elapsed time</b> is the full wall-clock duration. Stats here use moving time.</dd></div>
+        <div><dt data-i18n="h.met.5t">Avg / Max Speed</dt><dd data-i18n="h.met.5d">Average and peak speed Strava recorded for the activity, shown in km/h or mph.</dd></div>
+        <div><dt data-i18n="h.met.6t">Best Pace</dt><dd data-i18n="h.met.6d">Runner metric — minutes per km/mi for your fastest run.</dd></div>
+        <div><dt data-i18n="h.met.7t">Cadence</dt><dd data-i18n="h.met.7d">Pedalling or step rate — <b>rpm</b> (revolutions per minute) for rides, <b>spm</b> (steps per minute) for runs.</dd></div>
+        <div><dt data-i18n="h.met.8t">Elevation Gain &amp; Highest Point</dt><dd data-i18n="h.met.8d">Total metres (or feet) climbed — the sum of all uphill sections — and the highest altitude reached on the route.</dd></div>
+        <div><dt data-i18n="h.met.9t">Avg / Max / Normalized Power</dt><dd data-i18n="h.met.9d">For rides with a power meter: your mean and peak watts, plus <b>Normalized Power</b> — a weighted average that reflects the metabolic cost of changing efforts better than a plain average.</dd></div>
+        <div><dt data-i18n="h.met.10t">Energy (kJ) &amp; Calories</dt><dd data-i18n="h.met.10d">Work done / energy burned, from Strava's detailed activity (power-based for rides). Some activities have no value if Strava didn't compute one.</dd></div>
+        <div><dt data-i18n="h.met.11t">Temperature</dt><dd data-i18n="h.met.11d">Average ambient temperature recorded by your device during the activity, when available.</dd></div>
+        <div><dt data-i18n="h.met.12t">Suffer Score / Relative Effort</dt><dd data-i18n="h.met.12d">Strava's measure of how hard a session was, based on time spent in heart-rate zones.</dd></div>
+        <div><dt data-i18n="h.met.13t">VAM</dt><dd data-i18n="h.met.13d">Velocità Ascensionale Media — your average vertical climbing speed in metres (or feet) per hour, from your PR time on a climb. Higher = a stronger climb; elite climbs are ~1,600+ m/h.</dd></div>
+        <div><dt data-i18n="h.met.14t">KOM / QOM / CR</dt><dd data-i18n="h.met.14d">King/Queen of the Mountain / Course Record — being the fastest-ever on a segment. "With PR" means you have a personal record on it.</dd></div>
+        <div><dt data-i18n="h.met.15t">PRs &amp; Achievements</dt><dd data-i18n="h.met.15d">Personal records and trophies Strava awarded on your activities (e.g. fastest 5 km, biggest climb).</dd></div>
+        <div><dt data-i18n="h.met.16t">Kudos &amp; Comments</dt><dd data-i18n="h.met.16d">The "likes" and comments your activities received from other athletes.</dd></div>
       </dl>
     </div>
 
     <div class="help-card">
-      <h3>What each section shows</h3>
+      <h3 data-i18n="h.sec.t">What each section shows</h3>
       <dl class="help-gloss">
-        <div><dt>Overview</dt><dd>Headline stat cards for the selected sport — totals, averages, best efforts, kudos and achievements across your loaded activities.</dd></div>
-        <div><dt>Cycling / Running</dt><dd>Sport-specific performance: your fastest efforts, a speed or pace trend over recent activities, and top rides/runs.</dd></div>
-        <div><dt>Trends</dt><dd>Distance per week and per month, plus a rolling speed/pace chart, so you can see your training direction over time.</dd></div>
-        <div><dt>Activities</dt><dd>Your most recent activities as a list — click any row to open its full detail card — alongside a distance bubble chart.</dd></div>
-        <div><dt>Calendar</dt><dd>A 12-month contribution grid: one cell per day, shaded by how many activities you did, with active-day and streak totals.</dd></div>
-        <div><dt>Eddington</dt><dd>Your Eddington number with a chart of how many more long days you need to reach the next milestone.</dd></div>
-        <div><dt>Monthly</dt><dd>A month-by-month breakdown of distance, time and activity count, and a side-by-side comparison of recent months.</dd></div>
-        <div><dt>Best Efforts</dt><dd>Your longest, fastest and biggest-climbing activities, ranked.</dd></div>
-        <div><dt>Gear</dt><dd>Per-bike and per-shoe totals (distance and rides), pulled from the gear registered on your Strava profile.</dd></div>
-        <div><dt>Heatmap</dt><dd>An interactive map with every route's GPS trace overlaid, so your most-ridden roads glow brightest.</dd></div>
-        <div><dt>Segments</dt><dd>Your starred segments with maps, your PR time, KOM/QOM status and VAM on each. Tap the <b>⤢</b> on any segment to open a big, zoomable map with the full route and every detail.</dd></div>
-        <div><dt>Milestones</dt><dd>Named distance and elevation achievements (e.g. "1,000 km Club", an Everest of climbing) and how close you are to the next.</dd></div>
-        <div><dt>Rewind</dt><dd>A year-in-review summary of a chosen year — totals, highlights and standout activities.</dd></div>
-        <div><dt>Trophies</dt><dd>All-time, year-to-date and last-4-week totals from Strava's stats endpoint, plus any KOMs/CRs.</dd></div>
-        <div><dt>Photos</dt><dd>A gallery of photos attached to your activities, opening in a full-screen lightbox.</dd></div>
-        <div><dt>Share Story</dt><dd>Generate a 9:16 shareable image of any activity, with multiple layouts, colour themes, a custom background and selectable stats.</dd></div>
+        <div><dt data-i18n="h.sec.1t">Overview</dt><dd data-i18n="h.sec.1d">Headline stat cards for the selected sport — totals, averages, best efforts, kudos and achievements across your loaded activities.</dd></div>
+        <div><dt data-i18n="h.sec.2t">Cycling / Running</dt><dd data-i18n="h.sec.2d">Sport-specific performance: your fastest efforts, a speed or pace trend over recent activities, and top rides/runs.</dd></div>
+        <div><dt data-i18n="h.sec.3t">Trends</dt><dd data-i18n="h.sec.3d">Distance per week and per month, plus a rolling speed/pace chart, so you can see your training direction over time.</dd></div>
+        <div><dt data-i18n="h.sec.4t">Activities</dt><dd data-i18n="h.sec.4d">Your most recent activities as a list — click any row to open its full detail card — alongside a distance bubble chart.</dd></div>
+        <div><dt data-i18n="h.sec.5t">Calendar</dt><dd data-i18n="h.sec.5d">A 12-month contribution grid: one cell per day, shaded by how many activities you did, with active-day and streak totals.</dd></div>
+        <div><dt data-i18n="h.sec.6t">Eddington</dt><dd data-i18n="h.sec.6d">Your Eddington number with a chart of how many more long days you need to reach the next milestone.</dd></div>
+        <div><dt data-i18n="h.sec.7t">Monthly</dt><dd data-i18n="h.sec.7d">A month-by-month breakdown of distance, time and activity count, and a side-by-side comparison of recent months.</dd></div>
+        <div><dt data-i18n="h.sec.8t">Best Efforts</dt><dd data-i18n="h.sec.8d">Your longest, fastest and biggest-climbing activities, ranked.</dd></div>
+        <div><dt data-i18n="h.sec.9t">Gear</dt><dd data-i18n="h.sec.9d">Per-bike and per-shoe totals (distance and rides), pulled from the gear registered on your Strava profile.</dd></div>
+        <div><dt data-i18n="h.sec.10t">Heatmap</dt><dd data-i18n="h.sec.10d">An interactive map with every route's GPS trace overlaid, so your most-ridden roads glow brightest.</dd></div>
+        <div><dt data-i18n="h.sec.11t">Segments</dt><dd data-i18n="h.sec.11d">Your starred segments with maps, your PR time, KOM/QOM status and VAM on each. Tap the <b>⤢</b> on any segment to open a big, zoomable map with the full route and every detail.</dd></div>
+        <div><dt data-i18n="h.sec.12t">Milestones</dt><dd data-i18n="h.sec.12d">Named distance and elevation achievements (e.g. "1,000 km Club", an Everest of climbing) and how close you are to the next.</dd></div>
+        <div><dt data-i18n="h.sec.13t">Rewind</dt><dd data-i18n="h.sec.13d">A year-in-review summary of a chosen year — totals, highlights and standout activities.</dd></div>
+        <div><dt data-i18n="h.sec.14t">Trophies</dt><dd data-i18n="h.sec.14d">All-time, year-to-date and last-4-week totals from Strava's stats endpoint, plus any KOMs/CRs.</dd></div>
+        <div><dt data-i18n="h.sec.15t">Photos</dt><dd data-i18n="h.sec.15d">A gallery of photos attached to your activities, opening in a full-screen lightbox.</dd></div>
+        <div><dt data-i18n="h.sec.16t">Share Story</dt><dd data-i18n="h.sec.16d">Generate a 9:16 shareable image of any activity, with multiple layouts, colour themes, a custom background and selectable stats.</dd></div>
       </dl>
     </div>
 
     <div class="help-card">
-      <h3>Tips</h3>
+      <h3 data-i18n="h.tips.t">Tips</h3>
       <ul class="help-list">
-        <li><b>Activity details.</b> In <b>Activities</b>, click any row to open a card with its route map, full metrics (speed/pace, power, heart rate, cadence, energy, kudos and more) and a link to open it on Strava.</li>
-        <li><b>Sport mode.</b> The <b>Cyclist / Runner</b> toggle filters most sections to that sport, so pace, speed and distance charts reflect just those activities.</li>
-        <li><b>Refresh.</b> Data is cached for speed; hit <b>Refresh</b> to pull the latest activities from Strava immediately.</li>
-        <li><b>Privacy.</b> Use <b>Disconnect</b> to clear this device's tokens and cache, and revoke access entirely from <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener" style="color:var(--orange);font-weight:700;">Strava → My Apps</a>.</li>
+        <li data-i18n="h.tips.1"><b>Activity details.</b> In <b>Activities</b>, click any row to open a card with its route map, full metrics (speed/pace, power, heart rate, cadence, energy, kudos and more) and a link to open it on Strava.</li>
+        <li data-i18n="h.tips.2"><b>Sport mode.</b> The <b>Cyclist / Runner</b> toggle filters most sections to that sport, so pace, speed and distance charts reflect just those activities.</li>
+        <li data-i18n="h.tips.3"><b>Refresh.</b> Data is cached for speed; hit <b>Refresh</b> to pull the latest activities from Strava immediately.</li>
+        <li data-i18n="h.tips.4"><b>Privacy.</b> Use <b>Disconnect</b> to clear this device's tokens and cache, and revoke access entirely from <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener" style="color:var(--orange);font-weight:700;">Strava → My Apps</a>.</li>
       </ul>
     </div>
 
     <div class="help-card">
-      <h3>FAQ — Data &amp; Privacy</h3>
+      <h3 data-i18n="h.faq.t">FAQ — Data &amp; Privacy</h3>
       <dl class="help-gloss">
-        <div><dt>What is Ascent?</dt><dd>Ascent is a free, independent web app that turns your Strava activity history into a personal analytics dashboard and a share-card studio — stats, trends, heatmaps, segments, calendar, Eddington number, milestones, and 9:16 story cards. Everything runs in your browser and it's not affiliated with Strava.</dd></div>
-        <div><dt>Do you collect my data?</dt><dd>Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth). We use it to show <i>you</i> your stats — nothing more. We never see your Strava password, and we don't collect payment info or anything beyond what your activities already contain.</dd></div>
-        <div><dt>How is my data processed?</dt><dd>Almost everything (stats, charts, maps, story images) is computed <b>in your browser</b>. Your recent activities are cached so the app loads instantly on repeat visits. The only data we ever <i>write</i> back to Strava is reassigning gear — and only when you explicitly choose to.</dd></div>
-        <div><dt>Where is my data stored?</dt><dd>Only on <b>your device</b> — in your browser's localStorage (login tokens, preferences, and a copy of your recent activities). <b>Nothing is stored on our servers</b> — no activity database, and your tokens are never saved server-side. Your password is never stored.</dd></div>
-        <div><dt>Is Ascent safe? How is it secured?</dt><dd>Your data and tokens live only in your browser (no server-side database to breach); we never see your Strava password; the app's confidential Strava <b>client secret</b> is kept on the server and never shipped to the browser; the only server step is a tiny function that completes Strava's token exchange and stores nothing; and traffic is HTTPS with minimal scopes. You can wipe everything anytime with <b>Disconnect</b>.</dd></div>
-        <div><dt>Why isn't my token stored on a server?</dt><dd>It doesn't need to be, and it's safer not to. Tokens stay in <b>your browser</b> and go straight to Strava. The only thing kept server-side is the app's client secret (so it can't be stolen from the page); the exchange that uses it runs transiently and saves nothing.</dd></div>
-        <div><dt>Do you sell or share my data?</dt><dd><b>No.</b> We never sell, rent, trade, or share your personal data for advertising or marketing, and we don't build profiles for third parties or use it for anything unrelated to the features you use.</dd></div>
-        <div><dt>What permissions does the app request?</dt><dd><code>read</code>, <code>activity:read_all</code>, and <code>profile:read_all</code> (to read your activities &amp; profile), plus <code>activity:write</code> — used <i>only</i> when you reassign gear on an activity yourself.</dd></div>
-        <div><dt>Which third parties are involved?</dt><dd><b>Strava</b> (the source of your data), <b>Vercel</b> (static hosting), and map/asset providers like <b>CARTO</b> &amp; <b>OpenStreetMap</b> (which may see your IP address as a normal part of serving maps and fonts). There's no server-side database for your data.</dd></div>
-        <div><dt>Can I delete my data or disconnect?</dt><dd>Yes, anytime. Use <b>Disconnect</b> to clear this device's tokens and cached data, and revoke the app's access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener" style="color:var(--orange);font-weight:700;">Strava → My Apps</a>. Since nothing is stored on our servers, that fully removes your data.</dd></div>
-        <div><dt>Is this an official Strava app?</dt><dd>No. Ascent is an independent, free, personal-use dashboard for your own Strava data. It is <b>not affiliated with, endorsed by, or sponsored by Strava, Inc.</b></dd></div>
+        <div><dt data-i18n="h.faq.1t">What is Ascent?</dt><dd data-i18n="h.faq.1d">Ascent is a free, independent web app that turns your Strava activity history into a personal analytics dashboard and a share-card studio — stats, trends, heatmaps, segments, calendar, Eddington number, milestones, and 9:16 story cards. Everything runs in your browser and it's not affiliated with Strava.</dd></div>
+        <div><dt data-i18n="h.faq.2t">Do you collect my data?</dt><dd data-i18n="h.faq.2d">Only your own Strava data, and only after you authorize the app through Strava's secure login (OAuth) — we use it to show <i>you</i> your stats. We also use privacy-friendly analytics (Google Analytics) to understand aggregate, anonymous usage so we can improve the app; this never includes your personal Strava data. We never see your Strava password, we don't collect payment info, and we never sell your data.</dd></div>
+        <div><dt data-i18n="h.faq.3t">How is my data processed?</dt><dd data-i18n="h.faq.3d">Almost everything (stats, charts, maps, story images) is computed <b>in your browser</b>. Your recent activities are cached so the app loads instantly on repeat visits. The only data we ever <i>write</i> back to Strava is reassigning gear — and only when you explicitly choose to.</dd></div>
+        <div><dt data-i18n="h.faq.4t">Where is my data stored?</dt><dd data-i18n="h.faq.4d">Only on <b>your device</b> — in your browser's localStorage (login tokens, preferences, and a copy of your recent activities). <b>Nothing is stored on our servers</b> — no activity database, and your tokens are never saved server-side. Your password is never stored.</dd></div>
+        <div><dt data-i18n="h.faq.5t">Is Ascent safe? How is it secured?</dt><dd data-i18n="h.faq.5d">Your data and tokens live only in your browser (no server-side database to breach); we never see your Strava password; the app's confidential Strava <b>client secret</b> is kept on the server and never shipped to the browser; the only server step is a tiny function that completes Strava's token exchange and stores nothing; and traffic is HTTPS with minimal scopes. You can wipe everything anytime with <b>Disconnect</b>.</dd></div>
+        <div><dt data-i18n="h.faq.6t">Why isn't my token stored on a server?</dt><dd data-i18n="h.faq.6d">It doesn't need to be, and it's safer not to. Tokens stay in <b>your browser</b> and go straight to Strava. The only thing kept server-side is the app's client secret (so it can't be stolen from the page); the exchange that uses it runs transiently and saves nothing.</dd></div>
+        <div><dt data-i18n="h.faq.7t">Do you sell or share my data?</dt><dd data-i18n="h.faq.7d"><b>No.</b> We never sell, rent, trade, or share your personal data for advertising or marketing, and we don't build profiles for third parties or use it for anything unrelated to the features you use.</dd></div>
+        <div><dt data-i18n="h.faq.8t">What permissions does the app request?</dt><dd data-i18n="h.faq.8d"><code>read</code>, <code>activity:read_all</code>, and <code>profile:read_all</code> (to read your activities &amp; profile), plus <code>activity:write</code> — used <i>only</i> when you reassign gear on an activity yourself.</dd></div>
+        <div><dt data-i18n="h.faq.9t">Which third parties are involved?</dt><dd data-i18n="h.faq.9d"><b>Strava</b> (the source of your data), <b>Vercel</b> (static hosting), <b>Google Analytics</b> (aggregate, anonymous usage), and map/asset providers like <b>CARTO</b> &amp; <b>OpenStreetMap</b> (which may see your IP address as a normal part of serving maps and fonts). There's no server-side database for your data.</dd></div>
+        <div><dt data-i18n="h.faq.10t">Can I delete my data or disconnect?</dt><dd data-i18n="h.faq.10d">Yes, anytime. Use <b>Disconnect</b> to clear this device's tokens and cached data, and revoke the app's access entirely at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener" style="color:var(--orange);font-weight:700;">Strava → My Apps</a>. Since nothing is stored on our servers, that fully removes your data.</dd></div>
+        <div><dt data-i18n="h.faq.11t">Is this an official Strava app?</dt><dd data-i18n="h.faq.11d">No. Ascent is an independent, free, personal-use dashboard for your own Strava data. It is <b>not affiliated with, endorsed by, or sponsored by Strava, Inc.</b></dd></div>
       </dl>
-      <div style="margin-top:10px;font-size:12px;color:var(--muted);">Full details in our <a href="/privacy" style="color:var(--orange);font-weight:700;">Privacy Policy</a> and <a href="/terms" style="color:var(--orange);font-weight:700;">Terms of Service</a>.</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted);" data-i18n="h.faq.more">Full details in our <a href="/privacy" style="color:var(--orange);font-weight:700;">Privacy Policy</a> and <a href="/terms" style="color:var(--orange);font-weight:700;">Terms of Service</a>.</div>
     </div>
 
     <div class="help-card help-muted">
-      Built as a static site on Vercel. Your activity data stays tied to your Strava account; the km/mi and Cyclist/Runner preferences are stored locally in your browser.
+      <span data-i18n="h.muted.1">Built as a static site on Vercel. Your activity data stays tied to your Strava account; the km/mi and Cyclist/Runner preferences are stored locally in your browser.</span>
       <div style="margin-top:12px;">
-        <a href="/privacy" style="color:var(--orange);font-weight:700;margin-right:18px;">Privacy Policy</a>
-        <a href="/terms" style="color:var(--orange);font-weight:700;">Terms of Service</a>
+        <a href="/privacy" style="color:var(--orange);font-weight:700;margin-right:18px;" data-i18n="foot.privacy">Privacy Policy</a>
+        <a href="/terms" style="color:var(--orange);font-weight:700;" data-i18n="foot.terms">Terms of Service</a>
       </div>
-      <div style="margin-top:10px;font-size:11px;">This app is independent and not affiliated with or endorsed by Strava, Inc.</div>
+      <div style="margin-top:10px;font-size:11px;" data-i18n="h.muted.2">This app is independent and not affiliated with or endorsed by Strava, Inc.</div>
     </div>
   </div>
 
@@ -754,6 +754,7 @@
         </div>
         <div class="modal-actions">
           <button class="btn btn-ghost" id="modalClose2">Cancel</button>
+          <button class="btn btn-primary" id="shareStoryBtn" style="display:none">Share</button>
           <button class="btn btn-primary" id="downloadBtn">Download PNG</button>
         </div>
       </div>

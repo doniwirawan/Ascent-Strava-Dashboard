@@ -28,7 +28,9 @@
   flex-direction: column;
   gap: 14px;
   max-height: 95vh;
+  max-height: 95dvh; /* dvh excludes the mobile address bar so content isn't cut off */
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: var(--shadow-md);
 }
 

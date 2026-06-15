@@ -16,6 +16,34 @@ document.getElementById('downloadBtn').addEventListener('click', ()=>{
   if (activeLayout === 'custom' && wasEditing) { customEditMode = true; drawStoryCanvas(); }
 });
 
+/* ── SHARE STORY (Web Share API → Instagram / WhatsApp / Facebook / … ) ── */
+(function () {
+  const btn = document.getElementById('shareStoryBtn');
+  if (!btn) return;
+  // only show when the browser can share files (mostly mobile); else stick to Download
+  let canShareFiles = false;
+  try {
+    canShareFiles = !!(navigator.canShare &&
+      navigator.canShare({ files: [new File([new Blob()], 'x.png', { type: 'image/png' })] }));
+  } catch { canShareFiles = false; }
+  if (!canShareFiles) return; // leave hidden — Download PNG remains the path
+  btn.style.display = '';
+
+  btn.addEventListener('click', () => {
+    const canvas = document.getElementById('storyCanvas');
+    const wasEditing = customEditMode;
+    if (activeLayout === 'custom' && wasEditing) { customEditMode = false; drawStoryCanvas(); }
+    canvas.toBlob(async (blob) => {
+      if (activeLayout === 'custom' && wasEditing) { customEditMode = true; drawStoryCanvas(); }
+      if (!blob) return;
+      const file = new File([blob], 'strava-story.png', { type: 'image/png' });
+      try {
+        await navigator.share({ files: [file], title: 'My activity', text: 'Made with Ascent' });
+      } catch { /* user cancelled or share failed — no-op */ }
+    }, 'image/png');
+  });
+})();
+
 /* ── MAIN BUTTON EVENTS ── */
 document.getElementById('mainBtn').addEventListener('click', () => loadData(true));
 document.getElementById('logoutBtn').addEventListener('click', () => {
