@@ -21,6 +21,7 @@ function renderAll() {
   renderPhotos();
 
   document.getElementById('shareBtn').style.display = '';
+  document.getElementById('saveImgBtn').style.display = '';
   document.getElementById('logoutBtn').style.display = '';
   const _fab=document.getElementById('shareFab'); if(_fab) _fab.style.display='flex'; // mobile-only via CSS
   const ut=document.getElementById('unitToggle');
