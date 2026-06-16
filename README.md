@@ -136,7 +136,7 @@ Ascent-Strava-Dashboard/
 ├── build.js         # Injects env vars into dist/ at build time
 ├── manifest.json    # PWA manifest
 ├── sw.js            # Service worker (offline cache)
-├── icon.svg         # App icon
+├── icon.png         # App icon
 ├── vercel.json      # Vercel config
 ├── package.json
 ├── .env.example     # Copy to .env.local and fill in values
