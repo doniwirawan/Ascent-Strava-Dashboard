@@ -47,9 +47,35 @@ A personal Strava activity dashboard with an Instagram/TikTok-style story card g
   - Custom color schemes + BG/accent/text color picker
   - Hide title / hide date toggles
   - Calories, power, cadence, heart rate, elevation and more as selectable stats
-- Activity caching via Supabase (optional) — reduces Strava API calls
+- Activity caching in your own browser — reduces Strava API calls (see [Data & Privacy](#data--privacy))
 - PWA — installable on mobile as a home screen app
 - Demo mode — works without a Strava account
+
+---
+
+## Data & Privacy
+
+**This app does not collect, store, or send your data to any server we control.**
+
+- **Everything runs in your browser.** Strava activity data is fetched directly
+  from the Strava API by your browser and is never sent to a backend of ours.
+- **Caching is local only.** Your activities are cached in your browser's
+  `localStorage` (per athlete, 6-hour TTL) so the app doesn't re-fetch on every
+  visit. Clearing your browser storage removes it.
+- **No remote database.** The code includes an *optional* Supabase remote cache
+  for cross-device syncing, but it is **disabled by default** (`_haveRemote = false`
+  in `js/config.js`). As shipped, no copy of your activities is kept on any
+  server — "everything runs in your browser" is literally true.
+- **Login tokens** (Strava access/refresh tokens) are stored only in your
+  browser's `localStorage`. Disconnecting clears them.
+- **The only server-side code** is `api/strava-token.js`, a stateless function
+  that exchanges/refreshes your Strava OAuth token. It keeps the Strava
+  **client secret** server-side (so it never reaches the browser) and stores
+  nothing — it just relays the request to Strava and returns the response.
+
+If you re-enable the optional Supabase cache (see below), your activities would
+then also be stored in *your own* Supabase project — read the privacy note in
+that section before doing so.
 
 ---
 
@@ -62,7 +88,12 @@ A personal Strava activity dashboard with an Instagram/TikTok-style story card g
 3. Set **Authorization Callback Domain** to `localhost` for local dev (change to your domain for production)
 4. Note your **Client ID** and **Client Secret**
 
-### 2. Set up Supabase (optional — for caching)
+### 2. Set up Supabase (optional — disabled by default)
+
+> **Note:** the remote Supabase cache is **off** in this codebase
+> (`_haveRemote = false` in `js/config.js`). The app works fully without it
+> using the browser-local cache. Only follow this step if you want cross-device
+> syncing — then set `_haveRemote` back to the env check to enable it.
 
 1. Create a free project at https://supabase.com
 2. Run this SQL in the Supabase SQL editor:
