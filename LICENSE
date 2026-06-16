@@ -1,0 +1,40 @@
+Ascent — Strava Dashboard
+Personal-Use, Non-Commercial License
+
+Copyright (c) 2026 Doni Wirawan. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated files (the "Software"), to use, copy, and modify
+the Software SOLELY for personal, private, non-commercial purposes, subject to
+the following conditions:
+
+1. Personal use only. You may run your own copy of the Software for your own
+   personal use, and you may study and modify the source code for your own
+   personal use.
+
+2. No commercial use. You may NOT sell, license, sublicense, rent, or otherwise
+   monetize the Software or any derivative of it, in whole or in part, and you
+   may NOT use it (or any part of it) in any commercial or paid product or
+   service.
+
+3. No production / hosted service. You may NOT deploy or operate the Software,
+   or any derivative of it, as a hosted or production service made available to
+   any third party.
+
+4. No competing use. You may NOT use the Software, or any derivative of it, to
+   build, launch, or operate any product or service that competes with the
+   Ascent dashboard (https://ascent-analytics.vercel.app/).
+
+5. Attribution and notice. The above copyright notice and this license shall be
+   included in all copies or substantial portions of the Software.
+
+For any use not expressly permitted above — including any commercial,
+production, or competing use — you must obtain prior written permission from the
+copyright holder.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

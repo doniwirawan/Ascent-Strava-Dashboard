@@ -6,7 +6,7 @@
 
 A personal Strava activity dashboard with an Instagram/TikTok-style story card generator. Built as a static single-page app — no framework, no backend.
 
-**Live demo:** https://donistravadashboard.vercel.app
+**Live demo:** https://ascent-analytics.vercel.app/
 
 ![Overview](images/screenshots/overview.png)
 
@@ -157,4 +157,14 @@ Ascent-Strava-Dashboard/
 
 ## License
 
-MIT
+**Personal, non-commercial use only.** You're welcome to clone this repo and run
+your own copy for your own personal use, and to learn from or modify the code.
+
+You may **not**:
+
+- sell it, or use it (in whole or in part) in any commercial or paid product or service;
+- run it as a hosted/production service offered to others;
+- use it to build or operate anything that competes with the Ascent dashboard
+  (https://ascent-analytics.vercel.app/).
+
+See [LICENSE](LICENSE) for the full terms. Not affiliated with Strava, Inc.
