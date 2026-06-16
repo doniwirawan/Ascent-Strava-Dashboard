@@ -4,6 +4,8 @@
 
 <h1 align="center">Ascent — Strava Dashboard</h1>
 
+<p align="center"><a href="README.md">🇬🇧 English</a> · <a href="README.id.md">🇮🇩 Bahasa Indonesia</a></p>
+
 A personal Strava activity dashboard with an Instagram/TikTok-style story card generator. Built as a static single-page app — no framework, no backend.
 
 **Live demo:** https://ascent-analytics.vercel.app/
@@ -55,27 +57,64 @@ A personal Strava activity dashboard with an Instagram/TikTok-style story card g
 
 ## Data & Privacy
 
+> 🇬🇧 English · [🇮🇩 Bahasa Indonesia](README.id.md#data--privasi)
+
 **This app does not collect, store, or send your data to any server we control.**
+There is no analytics, no tracking pixels, and no third-party advertising. The
+whole app runs client-side in your browser.
 
-- **Everything runs in your browser.** Strava activity data is fetched directly
-  from the Strava API by your browser and is never sent to a backend of ours.
-- **Caching is local only.** Your activities are cached in your browser's
-  `localStorage` (per athlete, 6-hour TTL) so the app doesn't re-fetch on every
-  visit. Clearing your browser storage removes it.
+### What data is involved
+
+When you connect Strava, you authorise the app with these OAuth scopes:
+
+| Scope | Why it's requested |
+|---|---|
+| `read` | Basic public profile info |
+| `activity:read_all` | Read all your activities (incl. private) to build the dashboard |
+| `profile:read_all` | Read your full profile (name, avatar, stats) |
+| `activity:write` | Optional — lets you push a generated story image / update an activity |
+
+Using those scopes, your **browser** fetches from the Strava API:
+- your athlete profile (name, photo, follower/following counts),
+- your activities (distance, time, speed, heart rate, power, GPS map polyline, etc.),
+- aggregate stats, segments/KOMs, and gear.
+
+All of this is requested **directly by your browser from Strava** — it never
+passes through a server of ours.
+
+### How the connection works
+
+1. You click **Connect with Strava** and sign in **on Strava's own site** — the
+   app never sees your Strava password.
+2. Strava redirects back with a one-time `code`.
+3. Your browser sends that `code` to `api/strava-token.js`, a tiny stateless
+   serverless function. It adds the confidential Strava **client secret** (kept
+   server-side, never shipped to the browser), exchanges the code with Strava,
+   and returns the tokens. **It stores nothing** — it just relays the request.
+4. The returned access/refresh tokens are saved **only in your browser's
+   `localStorage`** and are auto-refreshed when they expire.
+
+### Where data is stored
+
+- **Activities cache** — your browser's `localStorage`, keyed per athlete, with a
+  6-hour TTL, so the app doesn't re-fetch on every visit.
+- **Login tokens** — your browser's `localStorage`.
+- **App shell (offline)** — a service worker (`sw.js`) caches HTML/CSS/JS so the
+  PWA works offline. It does **not** cache your Strava data.
 - **No remote database.** The code includes an *optional* Supabase remote cache
-  for cross-device syncing, but it is **disabled by default** (`_haveRemote = false`
-  in `js/config.js`). As shipped, no copy of your activities is kept on any
-  server — "everything runs in your browser" is literally true.
-- **Login tokens** (Strava access/refresh tokens) are stored only in your
-  browser's `localStorage`. Disconnecting clears them.
-- **The only server-side code** is `api/strava-token.js`, a stateless function
-  that exchanges/refreshes your Strava OAuth token. It keeps the Strava
-  **client secret** server-side (so it never reaches the browser) and stores
-  nothing — it just relays the request to Strava and returns the response.
+  for cross-device syncing, but it is **disabled by default**
+  (`_haveRemote = false` in `js/config.js`). As shipped, no copy of your
+  activities is kept on any server — "everything runs in your browser" is
+  literally true. If you re-enable it (see the Supabase step below), your
+  activities would be stored in *your own* Supabase project, not ours.
 
-If you re-enable the optional Supabase cache (see below), your activities would
-then also be stored in *your own* Supabase project — read the privacy note in
-that section before doing so.
+### Deleting your data
+
+- Click **Disconnect** in the app to clear your tokens and cached activities, or
+- clear your browser's site data / `localStorage`, and
+- revoke the app at <https://www.strava.com/settings/apps> any time.
+
+*Independent project — not affiliated with or endorsed by Strava, Inc.*
 
 ---
 
