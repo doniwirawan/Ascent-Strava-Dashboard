@@ -1,8 +1,34 @@
-# Strava Dashboard
+# Ascent — Strava Dashboard
 
 A personal Strava activity dashboard with an Instagram/TikTok-style story card generator. Built as a static single-page app — no framework, no backend.
 
 **Live demo:** https://donistravadashboard.vercel.app
+
+![Overview](images/screenshots/overview.png)
+
+---
+
+## Screenshots
+
+> All screenshots use the built-in **demo mode** (sample data — no real account).
+
+| Trends | Heatmap |
+|---|---|
+| ![Trends](images/screenshots/trendsSection.png) | ![Heatmap](images/screenshots/heatSection.png) |
+
+| Calendar | Eddington number |
+|---|---|
+| ![Calendar](images/screenshots/calSection.png) | ![Eddington](images/screenshots/eddington.png) |
+
+| Activity detail | Story card generator |
+|---|---|
+| ![Activity detail](images/screenshots/activity-detail.png) | ![Story generator](images/screenshots/story-popup.png) |
+
+**Story card layouts:**
+
+| Strava | Pace | Map |
+|---|---|---|
+| ![Strava layout](images/screenshots/story-strava.png) | ![Pace layout](images/screenshots/story-pace.png) | ![Map layout](images/screenshots/story.png) |
 
 ---
 
@@ -58,8 +84,8 @@ CREATE TABLE IF NOT EXISTS strava_cache (
 ### 3. Local development
 
 ```bash
-git clone https://github.com/doniwirawan/strava_dashboard.git
-cd strava_dashboard
+git clone https://github.com/doniwirawan/Ascent-Strava-Dashboard.git
+cd Ascent-Strava-Dashboard
 
 # Install dependencies
 npm install
@@ -80,7 +106,7 @@ Open http://localhost:3000 and click **Connect with Strava**.
 
 ## Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/doniwirawan/strava_dashboard)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/doniwirawan/Ascent-Strava-Dashboard)
 
 1. Fork or clone this repo and import it in the [Vercel dashboard](https://vercel.com/new)
 2. Add environment variables in **Project Settings → Environment Variables**:
@@ -100,7 +126,7 @@ Open http://localhost:3000 and click **Connect with Strava**.
 ## Project Structure
 
 ```
-strava_dashboard/
+Ascent-Strava-Dashboard/
 ├── index.html       # Main app — all JS is inline
 ├── callback.html    # OAuth callback page
 ├── build.js         # Injects env vars into dist/ at build time
