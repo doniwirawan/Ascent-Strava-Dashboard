@@ -1,4 +1,8 @@
-# Ascent — Strava Dashboard
+<p align="center">
+  <img src="images/non_transparent.png" alt="Ascent logo" width="120">
+</p>
+
+<h1 align="center">Ascent — Strava Dashboard</h1>
 
 A personal Strava activity dashboard with an Instagram/TikTok-style story card generator. Built as a static single-page app — no framework, no backend.
 
