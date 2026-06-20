@@ -316,7 +316,9 @@
 .seg-card.is-kom:hover { border-color: rgba(255, 215, 0, .6); box-shadow: 0 12px 34px rgba(255,215,0,.1); }
 
 /* Map hero */
-.seg-map-wrap { position: relative; height: 180px; background: var(--surface2); flex-shrink: 0; overflow: hidden; }
+/* isolate: keep the badge/overlay z-index (500/600) inside the card so it can
+   never paint above the fixed top bar (z-index 100) when scrolled under it */
+.seg-map-wrap { position: relative; height: 180px; background: var(--surface2); flex-shrink: 0; overflow: hidden; isolation: isolate; }
 .seg-map { position: absolute; inset: 0; background: var(--surface2); }
 
 .seg-badges {
