@@ -48,7 +48,7 @@ async function _mapToCanvas(map) {
   cv.width = W * dpr; cv.height = H * dpr;
   const ctx = cv.getContext('2d');
   ctx.scale(dpr, dpr);
-  ctx.fillStyle = '#0e0e0e';
+  ctx.fillStyle = '#e9e7e2'; // Voyager land tone — only shows if a tile is missing
   ctx.fillRect(0, 0, W, H);
 
   // ── basemap tiles (CARTO supports CORS, so crossOrigin keeps the canvas
@@ -62,7 +62,7 @@ async function _mapToCanvas(map) {
     for (let y = y0; y <= y1; y++) {
       if (y < 0 || y >= max) continue;
       const tx = ((x % max) + max) % max;
-      const url = `https://${subs[((x % 4) + 4) % 4]}.basemaps.cartocdn.com/dark_all/${z}/${tx}/${y}@2x.png`;
+      const url = `https://${subs[((x % 4) + 4) % 4]}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${tx}/${y}@2x.png`;
       const dx = x * ts - origin.x, dy = y * ts - origin.y;
       loads.push(new Promise(res => {
         const img = new Image();
@@ -138,7 +138,13 @@ async function _freezeMapsIn(section) {
 
 async function _doSaveImg() {
   const section = _currentSectionEl();
-  if (!section || typeof html2canvas === 'undefined') return;
+  if (!section) return;
+
+  // The heatmap is a single full-bleed map: render it directly so html2canvas's
+  // simulated-viewport relayout can't stretch it (which would visibly drift the
+  // basemap from the routes). Other sections keep the html2canvas path.
+  const isHeatmap = section.id === 'heatSection' && typeof leafletMapInst !== 'undefined' && leafletMapInst;
+  if (!isHeatmap && typeof html2canvas === 'undefined') return;
 
   const go = document.getElementById('saveImgGo');
   const prev = go.textContent;
@@ -155,17 +161,21 @@ async function _doSaveImg() {
 
   let restoreMaps = null;
   try {
-    // Leaflet maps in the section (heatmap, segment thumbnails) are rasterised
-    // separately — html2canvas can't read their transform-positioned tiles.
-    restoreMaps = await _freezeMapsIn(section);
-
-    const shot = await html2canvas(section, {
-      backgroundColor: bg,
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      windowWidth: winW,
-    });
+    let shot;
+    if (isHeatmap) {
+      shot = await _mapToCanvas(leafletMapInst);
+    } else {
+      // Leaflet maps in the section (e.g. segment thumbnails) are rasterised
+      // separately — html2canvas can't read their transform-positioned tiles.
+      restoreMaps = await _freezeMapsIn(section);
+      shot = await html2canvas(section, {
+        backgroundColor: bg,
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: winW,
+      });
+    }
 
     const out = document.createElement('canvas');
     out.width = W; out.height = H;
