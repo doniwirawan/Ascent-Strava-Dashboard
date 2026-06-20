@@ -706,7 +706,6 @@ async function renderChallenges(){
 
 /* ── SEGMENTS ── */
 let segMaps = []; // {m, line} — re-fitted when the section becomes visible (maps build hidden)
-const segDetailCache = {}; // segment id → detailed segment (has map.polyline)
 // ── "Your Segments": starred + segments scanned from your rides, cached in
 // localStorage per athlete so repeat visits make ZERO API calls. We only hit
 // Strava on the very first open (no cache) or when the user taps Refresh.
@@ -727,8 +726,10 @@ function _segStoreSave(){ try{ localStorage.setItem(_segStoreKey(), JSON.stringi
 
 const _isKomSeg = s => !!((s.athlete_segment_stats && s.athlete_segment_stats.pr_rank===1) || s._hasKom);
 
-// Normalise a segment effort (from an activity detail) into the card shape
-function _normEffortSeg(e){
+// Normalise a segment effort (from an activity detail) into the card shape.
+// _srcAct = the activity it was ridden in, so we can carve its route shape out
+// of that ride's GPS track (no extra Strava call needed).
+function _normEffortSeg(e, actId){
   const seg=e.segment||{};
   const gain=(seg.elevation_high!=null&&seg.elevation_low!=null)?Math.max(0,seg.elevation_high-seg.elevation_low):null;
   return { id:seg.id, name:seg.name||e.name, distance:seg.distance||e.distance||0,
@@ -737,7 +738,7 @@ function _normEffortSeg(e){
     climb_category:seg.climb_category||0, city:seg.city, state:seg.state, country:seg.country,
     activity_type:seg.activity_type||'Ride', start_latlng:seg.start_latlng, end_latlng:seg.end_latlng,
     athlete_pr_effort:{elapsed_time:e.elapsed_time||e.moving_time||0}, effort_count:1,
-    _hasKom:e.kom_rank!=null, _hasPr:e.pr_rank===1, _scanned:true };
+    _hasKom:e.kom_rank!=null, _hasPr:e.pr_rank===1, _srcAct:actId, _scanned:true };
 }
 
 // Scan up to _SEG_SCAN_BATCH not-yet-scanned recent activities for segment efforts
@@ -751,9 +752,10 @@ async function _scanForSegs(onProgress){
       (det&&det.segment_efforts||[]).forEach(e=>{
         const id=e.segment&&e.segment.id; if(!id) return;
         const ex=store.segs[id], t=e.elapsed_time||e.moving_time||0;
-        if(!ex) store.segs[id]=_normEffortSeg(e);
+        if(!ex) store.segs[id]=_normEffortSeg(e,a.id);
         else{ ex.effort_count=(ex.effort_count||1)+1;
           if(t&&(!ex.athlete_pr_effort.elapsed_time||t<ex.athlete_pr_effort.elapsed_time)) ex.athlete_pr_effort.elapsed_time=t;
+          if(!ex._srcAct) ex._srcAct=a.id;
           ex._hasKom=ex._hasKom||e.kom_rank!=null; ex._hasPr=ex._hasPr||e.pr_rank===1; }
       });
       store.ids.push(a.id);
@@ -763,12 +765,79 @@ async function _scanForSegs(onProgress){
   _segStoreSave();
 }
 
-// Merge starred (rich, authoritative) with scanned segments, deduped by id
+// Merge starred (rich, authoritative) with scanned segments, deduped by id.
+// Carry _srcAct onto starred entries you've also ridden, so they too get the
+// route-from-ride treatment instead of a per-segment API call.
 function _mergeSegs(){
   const byId={};
   (_segScanStore.starred||[]).forEach(s=>{ byId[s.id]={...s,_starred:true}; });
-  Object.values(_segScanStore.segs).forEach(ss=>{ if(!byId[ss.id]) byId[ss.id]=ss; });
+  Object.values(_segScanStore.segs).forEach(ss=>{
+    if(byId[ss.id]){ if(!byId[ss.id]._srcAct && ss._srcAct) byId[ss.id]._srcAct=ss._srcAct; }
+    else byId[ss.id]=ss;
+  });
   _allSegs=Object.values(byId);
+}
+
+// ── Route geometry resolution (road-following, API-frugal) ──
+let _segPolyCache = null; // {segId: encoded polyline} cached in localStorage
+function _segPolyKey(){ return 'strava_segpoly_' + (localStorage.getItem('strava_athlete_id') || 'x'); }
+function _segPolyLoad(){ try{ return JSON.parse(localStorage.getItem(_segPolyKey())||'{}')||{}; }catch{ return {}; } }
+function _segPolySave(){ try{ localStorage.setItem(_segPolyKey(), JSON.stringify(_segPolyCache||{})); }catch{ /* quota */ } }
+
+// Throttle /segments/{id} polyline fetches (max 2 in flight) so scrolling the
+// list can't burst into a 429; results are cached in localStorage forever.
+let _segFetchActive = 0; const _segFetchQ = [];
+function _fetchSegPoly(id){
+  return new Promise(resolve=>{ _segFetchQ.push({id,resolve}); _segFetchPump(); });
+}
+function _segFetchPump(){
+  while(_segFetchActive<2 && _segFetchQ.length){
+    const {id,resolve}=_segFetchQ.shift(); _segFetchActive++;
+    (async()=>{
+      let poly=null;
+      try{ const det=await api(`/segments/${id}`); poly=(det&&det.map&&(det.map.polyline||det.map.summary_polyline))||null; }catch{}
+      if(poly){ if(!_segPolyCache) _segPolyCache=_segPolyLoad(); _segPolyCache[id]=poly; _segPolySave(); }
+      _segFetchActive--; resolve(poly); _segFetchPump();
+    })();
+  }
+}
+
+// Carve a segment's route out of the GPS track of the ride it was done on —
+// the sub-path of the activity polyline between the segment's start and end.
+function _sliceRouteFromActivity(actId, startLL, endLL){
+  const a=(acts||[]).find(x=>x&&String(x.id)===String(actId));
+  const poly=a&&a.map&&a.map.summary_polyline;
+  if(!poly||!startLL||!endLL) return null;
+  let pts; try{ pts=decodePolyline(poly); }catch{ return null; }
+  if(pts.length<2) return null;
+  const d2=(p,ll)=>{ const dy=p[0]-ll[0], dx=p[1]-ll[1]; return dy*dy+dx*dx; };
+  const nearest=ll=>{ let bi=0,bd=Infinity; for(let i=0;i<pts.length;i++){ const d=d2(pts[i],ll); if(d<bd){bd=d;bi=i;} } return bi; };
+  let i0=nearest(startLL), i1=nearest(endLL);
+  if(i0>i1){ const t=i0; i0=i1; i1=t; }
+  let seg=pts.slice(i0, i1+1);
+  if(seg.length<2) return null;
+  // orient so the path begins at the segment's start point
+  if(d2(seg[0],startLL) > d2(seg[seg.length-1],startLL)) seg=seg.slice().reverse();
+  return seg;
+}
+
+// Best available coordinates for a segment, cheapest source first:
+// 1) polyline already on the object  2) sliced from the parent ride (no API)
+// 3) cached/throttled Strava segment polyline  4) straight start→finish
+async function _segCoords(s){
+  let coords=[];
+  const own=s.map&&(s.map.polyline||s.map.summary_polyline);
+  if(own) try{coords=decodePolyline(own);}catch{}
+  if(coords.length<2 && s._srcAct && s.start_latlng && s.end_latlng){
+    const sl=_sliceRouteFromActivity(s._srcAct, s.start_latlng, s.end_latlng); if(sl) coords=sl;
+  }
+  if(coords.length<2){
+    if(!_segPolyCache) _segPolyCache=_segPolyLoad();
+    const p=_segPolyCache[s.id] || await _fetchSegPoly(s.id);
+    if(p) try{coords=decodePolyline(p);}catch{}
+  }
+  if(coords.length<2 && s.start_latlng && s.end_latlng) coords=[s.start_latlng, s.end_latlng];
+  return coords;
 }
 
 // Lazily build a card's mini-map when it scrolls into view (the list can be long)
@@ -777,12 +846,8 @@ function _initSegMapEl(mapEl){
   const s=(_allSegs||[]).find(x=>String(x.id)===String(id));
   if(!s){ mapEl.style.display='none'; return; }
   (async()=>{
-    let poly=s.map&&(s.map.polyline||s.map.summary_polyline);
-    if(!poly){ try{ const det=segDetailCache[id]||(segDetailCache[id]=await api(`/segments/${id}`)); poly=det&&det.map&&(det.map.polyline||det.map.summary_polyline); }catch{} }
-    let coords=[];
-    if(poly) try{coords=decodePolyline(poly);}catch{}
-    if(!coords.length&&s.start_latlng&&s.end_latlng) coords=[s.start_latlng,s.end_latlng];
-    if(!coords.length){ mapEl.style.display='none'; return; }
+    const coords=await _segCoords(s);
+    if(coords.length<2){ mapEl.style.display='none'; return; }
     try{
       const m=L.map(mapEl,{zoomControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,attributionControl:false});
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
@@ -1028,17 +1093,9 @@ async function openSegMap(id){
 
   modal.classList.add('open');
 
-  // build the route polyline (starred summaries lack it — fetch detailed segment, cached)
-  let poly=s.map&&(s.map.polyline||s.map.summary_polyline);
-  if(!poly){
-    try{
-      const det=segDetailCache[s.id]||(segDetailCache[s.id]=await api(`/segments/${s.id}`));
-      poly=det&&det.map&&(det.map.polyline||det.map.summary_polyline);
-    }catch{}
-  }
-  let coords=[];
-  if(poly) try{coords=decodePolyline(poly);}catch{}
-  if(!coords.length&&s.start_latlng&&s.end_latlng) coords=[s.start_latlng,s.end_latlng];
+  // route geometry: own polyline → sliced from the parent ride → cached Strava
+  // polyline → straight line (shared with the card mini-maps)
+  const coords=await _segCoords(s);
 
   const mapEl=document.getElementById('segMapBig');
   if(_segBigMap){try{_segBigMap.remove();}catch{} _segBigMap=null;}
