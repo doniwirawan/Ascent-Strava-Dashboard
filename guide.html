@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4VRDE800Q"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-Y4VRDE800Q');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Self-host Ascent — Install Guide</title>
+<meta name="description" content="Step-by-step guide to deploy your own free, private copy of the Ascent Strava dashboard on Vercel in about 10 minutes.">
+<link rel="canonical" href="https://ascent-analytics.vercel.app/guide">
+<link rel="icon" type="image/png" href="/icon.png" />
+<style>
+  :root{--orange:#FC4C02;--bg:#0c0c0c;--surface:#131313;--surface2:#1b1b1b;--border:#252525;--text:#eee;--muted:#888;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;}
+  .wrap{max-width:820px;margin:0 auto;padding:48px 22px 80px;}
+  a{color:var(--orange);}
+  h1{font-size:30px;margin:0 0 6px;letter-spacing:-.5px;}
+  .lead{color:var(--muted);font-size:15px;margin:0 0 8px;}
+  h2{font-size:20px;margin:38px 0 12px;border-top:1px solid var(--border);padding-top:26px;display:flex;align-items:center;gap:12px;}
+  h2 .num{flex:0 0 auto;width:30px;height:30px;border-radius:8px;background:rgba(252,76,2,.15);color:var(--orange);font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+  p,li{font-size:15px;color:#d6d6d6;}
+  ul,ol{padding-left:22px;}
+  li{margin:5px 0;}
+  code{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#f0c9b8;}
+  pre{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;overflow:auto;font-size:13px;line-height:1.6;}
+  pre code{background:none;border:none;padding:0;color:#dcdcdc;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px;}
+  .back{display:inline-block;font-size:13px;}
+  .note{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:10px;padding:13px 16px;font-size:14px;color:#cfcfcf;margin:14px 0;}
+  .note strong{color:var(--text);}
+  strong{color:var(--text);}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--orange);color:#fff;font-weight:800;font-size:15px;padding:12px 22px;border-radius:12px;text-decoration:none;margin-top:8px;}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px;}
+  th,td{border:1px solid var(--border);padding:9px 12px;text-align:left;vertical-align:top;}
+  th{background:var(--surface2);font-size:13px;}
+  td code{white-space:nowrap;}
+  .muted{color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="/">← Back to dashboard</a>
+    <a class="back" href="https://github.com/doniwirawan/Ascent-Strava-Dashboard" target="_blank" rel="noopener">View source on GitHub →</a>
+  </div>
+
+  <h1>Self-host your own Ascent</h1>
+  <p class="lead">Ascent is free and open source. This guide walks you through deploying your own private copy on Vercel — it takes about <strong>10 minutes</strong> and costs nothing. No coding required; you'll just click through a few sign-ups and paste in some keys.</p>
+
+  <div class="note">
+    <strong>Just want to use it?</strong> You don't need to install anything — the hosted version at <a href="/">ascent-analytics.vercel.app</a> is free and ready to go. This guide is only for people who want to run their own copy.
+  </div>
+
+  <h2><span class="num">0</span> What you'll need</h2>
+  <ul>
+    <li>A <a href="https://github.com/join" target="_blank" rel="noopener">GitHub</a> account (free)</li>
+    <li>A <a href="https://vercel.com/signup" target="_blank" rel="noopener">Vercel</a> account (free — sign up with GitHub)</li>
+    <li>A <a href="https://www.strava.com" target="_blank" rel="noopener">Strava</a> account</li>
+    <li><em>(Optional)</em> A <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a> account if you want cloud caching of activities</li>
+  </ul>
+
+  <h2><span class="num">1</span> Fork the repository</h2>
+  <p>Open the repo and click <strong>Fork</strong> (top-right) to copy it into your own GitHub account:</p>
+  <p><a class="btn" href="https://github.com/doniwirawan/Ascent-Strava-Dashboard/fork" target="_blank" rel="noopener">Fork the repo on GitHub</a></p>
+
+  <h2><span class="num">2</span> Create a Strava API application</h2>
+  <p>This gives your copy permission to read your Strava data through Strava's official login.</p>
+  <ol>
+    <li>Go to <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a> and create an application.</li>
+    <li>Fill in any name (e.g. "My Ascent"), category, and website.</li>
+    <li>For <strong>Authorization Callback Domain</strong>, enter <code>localhost</code> for now — you'll update it in Step 5 once you know your deploy URL.</li>
+    <li>After creating it, copy your <strong>Client ID</strong> and <strong>Client Secret</strong> — you'll paste them into Vercel next.</li>
+  </ol>
+  <div class="note"><strong>Keep the Client Secret private.</strong> It lives only in your Vercel project settings and is never exposed in the browser.</div>
+
+  <h2><span class="num">3</span> <span class="muted">(Optional)</span> Set up Supabase caching</h2>
+  <p>Ascent works fine without this — activities are cached in your browser. Supabase only adds a shared cloud cache so you don't re-fetch when switching devices. To enable it:</p>
+  <ol>
+    <li>Create a free project at <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a>.</li>
+    <li>In <strong>Project Settings → API</strong>, copy the <strong>Project URL</strong> and the <strong>anon public</strong> key.</li>
+  </ol>
+  <p class="muted">If you skip this step, just leave the two <code>SUPABASE_*</code> variables blank in the next step.</p>
+
+  <h2><span class="num">4</span> Deploy to Vercel</h2>
+  <ol>
+    <li>Go to <a href="https://vercel.com/new" target="_blank" rel="noopener">vercel.com/new</a> and import your forked repository.</li>
+    <li>Vercel auto-detects the build settings from <code>vercel.json</code> — leave them as-is.</li>
+    <li>Before deploying, open <strong>Environment Variables</strong> and add the following:</li>
+  </ol>
+  <table>
+    <tr><th>Name</th><th>Value</th></tr>
+    <tr><td><code>STRAVA_CLIENT_ID</code></td><td>From Step 2</td></tr>
+    <tr><td><code>STRAVA_CLIENT_SECRET</code></td><td>From Step 2</td></tr>
+    <tr><td><code>SUPABASE_URL</code></td><td>From Step 3 <span class="muted">(or leave blank)</span></td></tr>
+    <tr><td><code>SUPABASE_ANON_KEY</code></td><td>From Step 3 <span class="muted">(or leave blank)</span></td></tr>
+  </table>
+  <p>Click <strong>Deploy</strong>. After a minute you'll get a live URL like <code>your-app.vercel.app</code>.</p>
+
+  <h2><span class="num">5</span> Point Strava back to your URL</h2>
+  <p>Return to <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a> and set <strong>Authorization Callback Domain</strong> to your Vercel domain — just the host, no <code>https://</code> and no path:</p>
+  <pre><code>your-app.vercel.app</code></pre>
+  <p>Save. That's it — open your URL, click <strong>Connect with Strava</strong>, and your dashboard is live. 🎉</p>
+
+  <h2><span class="num">6</span> <span class="muted">(Optional)</span> Run it locally</h2>
+  <p>To develop or test on your own machine:</p>
+  <pre><code>git clone https://github.com/&lt;your-username&gt;/Ascent-Strava-Dashboard.git
+cd Ascent-Strava-Dashboard
+npm install
+
+# create .env.local with your keys:
+#   STRAVA_CLIENT_ID=...
+#   STRAVA_CLIENT_SECRET=...
+#   SUPABASE_URL=...
+#   SUPABASE_ANON_KEY=...
+
+node build.js     # generates the dist/ folder
+npx vercel dev    # serves locally with the API routes</code></pre>
+  <p class="muted">Add <code>localhost</code> to your Strava app's callback domain to test the login flow locally.</p>
+
+  <h2><span class="num">7</span> Troubleshooting</h2>
+  <ul>
+    <li><strong>"Bad Request" / login fails:</strong> your Strava <strong>Authorization Callback Domain</strong> doesn't match your deploy URL. It must be the bare host (no <code>https://</code>, no trailing slash).</li>
+    <li><strong>Stats don't load:</strong> double-check <code>STRAVA_CLIENT_ID</code> and <code>STRAVA_CLIENT_SECRET</code> in Vercel → Settings → Environment Variables, then redeploy.</li>
+    <li><strong>Changed an env var?</strong> Trigger a fresh deploy in Vercel so the new value is picked up.</li>
+  </ul>
+
+  <div class="note" style="margin-top:30px;">
+    Questions or found a bug? Open an issue on <a href="https://github.com/doniwirawan/Ascent-Strava-Dashboard/issues" target="_blank" rel="noopener">GitHub</a>. If Ascent is useful to you, a ⭐ on the repo is appreciated.
+  </div>
+
+  <p style="margin-top:26px;"><a class="back" href="/">← Back to dashboard</a></p>
+</div>
+</body>
+</html>

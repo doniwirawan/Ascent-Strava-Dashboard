@@ -45,6 +45,36 @@ body.logged-out main { display: none !important; }
 .lp-connect svg { width: 20px; height: 20px; fill: currentColor; }
 .lp-note { margin-top: 14px; font-size: 12px; color: var(--muted); }
 
+/* ── GitHub star button (nav) ── */
+.lp-github {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--surface); color: var(--text); font-weight: 700; font-size: 13px;
+  padding: 8px 12px; border-radius: 9px; border: 1px solid var(--border);
+  text-decoration: none; transition: border-color .12s, transform .12s;
+}
+.lp-github:hover { border-color: var(--orange); transform: translateY(-1px); }
+.lp-github svg { width: 16px; height: 16px; fill: currentColor; }
+.lp-github .lp-stars {
+  display: none; align-items: center; gap: 4px;
+  padding-left: 7px; margin-left: 1px; border-left: 1px solid var(--border);
+  color: var(--muted); font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.lp-github .lp-stars.show { display: inline-flex; }
+.lp-github .lp-stars::before { content: "★"; color: var(--orange); }
+@media (max-width: 560px) { .lp-github span[data-i18n] { display: none; } }
+
+/* ── open-source / self-host CTA ── */
+.lp-os { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.lp-os-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px; border-radius: 12px; font-weight: 800; font-size: 15px;
+  text-decoration: none; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  transition: transform .12s, border-color .12s;
+}
+.lp-os-btn:hover { transform: translateY(-2px); border-color: var(--orange); }
+.lp-os-btn.primary { background: var(--orange); color: #fff; border-color: transparent; box-shadow: 0 10px 30px rgba(252,76,2,.25); }
+.lp-os-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
 /* ── steps ── */
 .lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 56px 0; }
 .lp-step { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }

@@ -6,6 +6,7 @@
 const I18N = {
   id: {
     'nav.connect': 'Hubungkan',
+    'nav.star': 'Bintang',
     'hero.h1': 'Data Strava Anda,<br><span class="accent">disajikan dengan indah.</span>',
     'hero.sub': 'Ascent mengubah aktivitas bersepeda dan lari Anda menjadi dasbor analitik yang cepat dan privat — statistik, tren, heatmap, segmen, milestone — plus studio untuk berbagi kartu aktivitas 9:16 yang memukau.',
     'cta.connect': 'Hubungkan dengan Strava',
@@ -57,6 +58,11 @@ const I18N = {
     'cta.h2': 'Siap melihat tahun Anda bergerak?',
     'foot.privacy': 'Kebijakan Privasi',
     'foot.terms': 'Ketentuan Layanan',
+    'foot.guide': 'Hosting Sendiri',
+    'opensource.h2': 'Open source — jalankan salinan Anda sendiri',
+    'opensource.sub': 'Ascent gratis dan open source. Fork repo-nya dan deploy salinan pribadi Anda dalam ~10 menit — tanpa biaya.',
+    'opensource.guide': 'Panduan pemasangan',
+    'opensource.repo': 'Lihat di GitHub',
     'foot.disclaim': 'Ascent bersifat independen dan tidak berafiliasi dengan, didukung oleh, atau disponsori oleh Strava, Inc.',
     // ── Help & Data section ──
     'h.load.t': 'Bagaimana data Anda dimuat',

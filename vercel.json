@@ -4,6 +4,7 @@
   "rewrites": [
     { "source": "/callback", "destination": "/callback.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/terms", "destination": "/terms.html" }
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/guide", "destination": "/guide.html" }
   ]
 }

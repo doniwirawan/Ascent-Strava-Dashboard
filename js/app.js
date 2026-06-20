@@ -121,6 +121,14 @@ if (!CONFIG.refreshToken) {
     track.addEventListener('pointerleave',play);
     sync(); play();
   }
+  // GitHub star count — fetched live, fails silently (button still links out)
+  const starEl=document.getElementById('ghStars');
+  if(starEl){
+    fetch('https://api.github.com/repos/doniwirawan/Ascent-Strava-Dashboard')
+      .then(r=>r.ok?r.json():Promise.reject())
+      .then(d=>{ const n=d.stargazers_count; if(typeof n==='number'){ starEl.textContent=n>=1000?(n/1000).toFixed(1)+'k':n; starEl.classList.add('show'); } })
+      .catch(()=>{});
+  }
   const rev=document.querySelectorAll('.reveal');
   if(rev.length && 'IntersectionObserver' in window){
     const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }),{threshold:0.12});
