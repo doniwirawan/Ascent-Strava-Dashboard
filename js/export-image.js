@@ -32,6 +32,110 @@ function _closeSaveImg() {
   document.getElementById('saveImgModal').classList.remove('open');
 }
 
+// Rasterise a Leaflet map (tiles + route polylines) to a canvas using
+// Leaflet's own projection math. html2canvas can't do this: Leaflet positions
+// its panes with CSS transforms it mis-reads, so tiles land at the wrong offset
+// and the SVG route overlay (the heatmap traces) is dropped entirely.
+async function _mapToCanvas(map) {
+  const size = map.getSize();                 // CSS px
+  const W = size.x, H = size.y;
+  const z = map.getZoom();
+  const ts = 256;                             // tile size in CSS px
+  const origin = map.getPixelBounds().min;    // world-px coord of top-left corner
+
+  const dpr = 2;
+  const cv = document.createElement('canvas');
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#0e0e0e';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── basemap tiles (CARTO supports CORS, so crossOrigin keeps the canvas
+  // untainted and exportable; @2x tiles match the dpr=2 device resolution) ──
+  const subs = ['a', 'b', 'c', 'd'];
+  const max = Math.pow(2, z);
+  const x0 = Math.floor(origin.x / ts), x1 = Math.floor((origin.x + W) / ts);
+  const y0 = Math.floor(origin.y / ts), y1 = Math.floor((origin.y + H) / ts);
+  const loads = [];
+  for (let x = x0; x <= x1; x++) {
+    for (let y = y0; y <= y1; y++) {
+      if (y < 0 || y >= max) continue;
+      const tx = ((x % max) + max) % max;
+      const url = `https://${subs[((x % 4) + 4) % 4]}.basemaps.cartocdn.com/dark_all/${z}/${tx}/${y}@2x.png`;
+      const dx = x * ts - origin.x, dy = y * ts - origin.y;
+      loads.push(new Promise(res => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => { try { ctx.drawImage(img, dx, dy, ts, ts); } catch {} res(); };
+        img.onerror = () => res();
+        img.src = url;
+      }));
+    }
+  }
+  await Promise.all(loads);
+
+  // project a latlng to container px the same way Leaflet does, so vectors
+  // line up exactly with the tiles
+  const toPx = ll => map.project(ll, z).subtract(origin);
+
+  // ── route polylines ──
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  map.eachLayer(layer => {
+    if (!(layer instanceof L.Polyline) || !layer.getLatLngs) return;
+    const o = layer.options;
+    ctx.strokeStyle = o.color || '#FC4C02';
+    ctx.globalAlpha = o.opacity != null ? o.opacity : 1;
+    ctx.lineWidth = o.weight || 2;
+    const drawRing = lls => {
+      ctx.beginPath();
+      lls.forEach((ll, i) => { const p = toPx(ll); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); });
+      ctx.stroke();
+    };
+    const rings = layer.getLatLngs();
+    Array.isArray(rings[0]) ? rings.forEach(drawRing) : drawRing(rings);
+  });
+
+  // ── circle markers (segment start/end dots) — drawn on top of the route ──
+  map.eachLayer(layer => {
+    if (!(layer instanceof L.CircleMarker) || layer instanceof L.Circle) return;
+    const o = layer.options;
+    const p = toPx(layer.getLatLng());
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, o.radius || 4, 0, Math.PI * 2);
+    ctx.globalAlpha = o.fillOpacity != null ? o.fillOpacity : 1;
+    ctx.fillStyle = o.fillColor || o.color || '#FC4C02';
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  return cv;
+}
+
+// Before html2canvas captures a section, replace every live Leaflet map in it
+// with a static, correctly-projected canvas snapshot (html2canvas mangles
+// Leaflet's transform-positioned panes). Returns a restore() to undo it.
+async function _freezeMapsIn(section) {
+  const candidates = [];
+  if (typeof leafletMapInst !== 'undefined' && leafletMapInst) candidates.push(leafletMapInst);
+  if (typeof segMaps !== 'undefined' && Array.isArray(segMaps)) segMaps.forEach(s => s && s.m && candidates.push(s.m));
+
+  const restores = [];
+  for (const map of candidates) {
+    let el; try { el = map.getContainer(); } catch { continue; }
+    if (!el || !section.contains(el) || !el.offsetParent) continue; // skip hidden / out-of-section maps
+    let cv; try { cv = await _mapToCanvas(map); } catch { continue; }
+    cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:1000;';
+    const pane = el.querySelector('.leaflet-map-pane');
+    const ctrl = el.querySelector('.leaflet-control-container');
+    const pv = pane && pane.style.visibility, cvv = ctrl && ctrl.style.visibility;
+    if (pane) pane.style.visibility = 'hidden';
+    if (ctrl) ctrl.style.visibility = 'hidden';
+    el.appendChild(cv);
+    restores.push(() => { cv.remove(); if (pane) pane.style.visibility = pv || ''; if (ctrl) ctrl.style.visibility = cvv || ''; });
+  }
+  return () => restores.forEach(r => { try { r(); } catch {} });
+}
+
 async function _doSaveImg() {
   const section = _currentSectionEl();
   if (!section || typeof html2canvas === 'undefined') return;
@@ -49,7 +153,12 @@ async function _doSaveImg() {
   // the frame instead of producing a tall, narrow strip on mobile.
   const winW = _saveImgOrient === 'desktop' ? 1400 : 900;
 
+  let restoreMaps = null;
   try {
+    // Leaflet maps in the section (heatmap, segment thumbnails) are rasterised
+    // separately — html2canvas can't read their transform-positioned tiles.
+    restoreMaps = await _freezeMapsIn(section);
+
     const shot = await html2canvas(section, {
       backgroundColor: bg,
       scale: 2,
@@ -82,6 +191,7 @@ async function _doSaveImg() {
     console.error('Save image failed', e);
     setStatus('Could not render image — try again.', '');
   } finally {
+    if (restoreMaps) restoreMaps();
     go.textContent = prev;
     go.disabled = false;
   }
