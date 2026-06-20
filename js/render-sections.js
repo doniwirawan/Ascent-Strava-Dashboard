@@ -873,7 +873,7 @@ function _renderSegGrid(el, segs){
           <option value="ridden">Most ridden</option>
           <option value="name">Name A–Z</option>
         </select>
-        <button class="seg-scan" id="segRefresh" title="Refetch starred segments and scan more of your rides for new segments">${ic('repeat')} Refresh</button>
+        <button class="seg-scan seg-refresh-btn" id="segRefresh" title="Refetch starred segments and scan more of your rides for new segments">${ic('repeat')} Refresh</button>
       </div>
     </div>`;
 
@@ -981,14 +981,19 @@ function _renderSegGrid(el, segs){
     });
     const sortSel=document.getElementById('segSort'); if(sortSel) sortSel.onchange=applySeg;
 
-    // Refresh: refetch starred + scan the next batch of rides (rate-limit safe)
-    const refreshBtn=document.getElementById('segRefresh');
-    if(refreshBtn) refreshBtn.onclick=()=>{ if(_segScanning) return; refreshBtn.disabled=true; refreshBtn.textContent='Refreshing…'; renderSegments(true); };
+    // Refresh: refetch starred + scan the next batch of rides (rate-limit safe).
+    // Wired to both the top control and a button at the very bottom.
+    const _doRefresh=()=>{ if(_segScanning) return; document.querySelectorAll('.seg-refresh-btn').forEach(b=>{b.disabled=true;b.textContent='Refreshing…';}); renderSegments(true); };
 
-    // coverage status line below the grid
+    // coverage status line + bottom Refresh button below the grid
     const remaining=acts.filter(a=>a&&a.id&&!_segScanStore.ids.includes(a.id)).length;
     const results=document.getElementById('segScanResults');
-    if(results) results.innerHTML=`<div class="seg-scan-title">${segs.length} segments · starred + ${_segScanStore.ids.length} rides scanned${remaining>0?` · ${remaining} more rides — tap Refresh to scan them`:' · all rides scanned'}</div>`;
+    if(results) results.innerHTML=`<div class="seg-scan-foot">
+      <span class="seg-scan-title">${segs.length} segments · starred + ${_segScanStore.ids.length} rides scanned${remaining>0?` · ${remaining} more rides to scan`:' · all rides scanned'}</span>
+      <button class="seg-scan seg-refresh-btn" id="segRefreshBottom">${ic('repeat')} Refresh</button>
+    </div>`;
+
+    document.querySelectorAll('.seg-refresh-btn').forEach(b=>b.onclick=_doRefresh);
 }
 
 /* ── SEGMENT MAP MODAL — full details on a big, interactive map ── */

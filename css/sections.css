@@ -289,6 +289,8 @@
 .seg-scan:hover { border-color: var(--border-hover); color: var(--text); }
 .seg-scan:disabled { opacity: .6; cursor: default; }
 .seg-scan-title { font-size: 12px; font-weight: 700; color: var(--text-2); margin: 24px 0 10px; }
+.seg-scan-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 24px 0 8px; }
+.seg-scan-foot .seg-scan-title { margin: 0; }
 
 /* Card grid */
 .seg-grid {
