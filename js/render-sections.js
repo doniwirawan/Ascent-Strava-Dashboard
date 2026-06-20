@@ -707,13 +707,122 @@ async function renderChallenges(){
 /* ── SEGMENTS ── */
 let segMaps = []; // {m, line} — re-fitted when the section becomes visible (maps build hidden)
 const segDetailCache = {}; // segment id → detailed segment (has map.polyline)
-let _segsData = null; // cached starred segments — re-rendered (not refetched) on unit toggle
-async function renderSegments(){
+// ── "Your Segments": starred + segments scanned from your rides, cached in
+// localStorage per athlete so repeat visits make ZERO API calls. We only hit
+// Strava on the very first open (no cache) or when the user taps Refresh.
+let _segsData = null;       // starred segments (mirror of the cached store)
+let _allSegs = null;        // merged starred + scanned (rebuilt on unit toggle)
+let _segScanStore = null;   // {starred:[], ids:[scanned act ids], segs:{id:seg}, ts}
+let _segScanCache = {};     // activity id → detail (in-memory, avoids refetch in a session)
+let _segScanning = false, _segMapObs = null;
+const _SEG_SCAN_BATCH = 50; // rides scanned per fetch (rate-limit friendly)
+
+function _segStoreKey(){ return 'strava_segs_' + (localStorage.getItem('strava_athlete_id') || 'x'); }
+function _segStoreLoad(){
+  try{ const s=JSON.parse(localStorage.getItem(_segStoreKey())||'null');
+       if(s&&Array.isArray(s.ids)&&s.segs) return { starred:s.starred||[], ids:s.ids, segs:s.segs, ts:s.ts||0 }; }catch{}
+  return { starred:[], ids:[], segs:{}, ts:0 };
+}
+function _segStoreSave(){ try{ localStorage.setItem(_segStoreKey(), JSON.stringify(_segScanStore)); }catch{ /* quota — non-fatal */ } }
+
+const _isKomSeg = s => !!((s.athlete_segment_stats && s.athlete_segment_stats.pr_rank===1) || s._hasKom);
+
+// Normalise a segment effort (from an activity detail) into the card shape
+function _normEffortSeg(e){
+  const seg=e.segment||{};
+  const gain=(seg.elevation_high!=null&&seg.elevation_low!=null)?Math.max(0,seg.elevation_high-seg.elevation_low):null;
+  return { id:seg.id, name:seg.name||e.name, distance:seg.distance||e.distance||0,
+    average_grade:seg.average_grade!=null?seg.average_grade:null, maximum_grade:seg.maximum_grade,
+    total_elevation_gain:gain, elevation_high:seg.elevation_high, elevation_low:seg.elevation_low,
+    climb_category:seg.climb_category||0, city:seg.city, state:seg.state, country:seg.country,
+    activity_type:seg.activity_type||'Ride', start_latlng:seg.start_latlng, end_latlng:seg.end_latlng,
+    athlete_pr_effort:{elapsed_time:e.elapsed_time||e.moving_time||0}, effort_count:1,
+    _hasKom:e.kom_rank!=null, _hasPr:e.pr_rank===1, _scanned:true };
+}
+
+// Scan up to _SEG_SCAN_BATCH not-yet-scanned recent activities for segment efforts
+async function _scanForSegs(onProgress){
+  const store=_segScanStore, scanned=new Set(store.ids);
+  const todo=acts.filter(a=>a&&a.id&&!scanned.has(a.id)).slice(0,_SEG_SCAN_BATCH);
+  let n=0;
+  for(const a of todo){
+    try{
+      const det=_segScanCache[a.id]||(_segScanCache[a.id]=await api(`/activities/${a.id}`));
+      (det&&det.segment_efforts||[]).forEach(e=>{
+        const id=e.segment&&e.segment.id; if(!id) return;
+        const ex=store.segs[id], t=e.elapsed_time||e.moving_time||0;
+        if(!ex) store.segs[id]=_normEffortSeg(e);
+        else{ ex.effort_count=(ex.effort_count||1)+1;
+          if(t&&(!ex.athlete_pr_effort.elapsed_time||t<ex.athlete_pr_effort.elapsed_time)) ex.athlete_pr_effort.elapsed_time=t;
+          ex._hasKom=ex._hasKom||e.kom_rank!=null; ex._hasPr=ex._hasPr||e.pr_rank===1; }
+      });
+      store.ids.push(a.id);
+    }catch(err){ if(/ 429 /.test(' '+err.message+' ')) break; } // rate limit — keep what we got
+    n++; if(onProgress) onProgress(n,todo.length);
+  }
+  _segStoreSave();
+}
+
+// Merge starred (rich, authoritative) with scanned segments, deduped by id
+function _mergeSegs(){
+  const byId={};
+  (_segScanStore.starred||[]).forEach(s=>{ byId[s.id]={...s,_starred:true}; });
+  Object.values(_segScanStore.segs).forEach(ss=>{ if(!byId[ss.id]) byId[ss.id]=ss; });
+  _allSegs=Object.values(byId);
+}
+
+// Lazily build a card's mini-map when it scrolls into view (the list can be long)
+function _initSegMapEl(mapEl){
+  const id=mapEl.id.replace('segmap-','');
+  const s=(_allSegs||[]).find(x=>String(x.id)===String(id));
+  if(!s){ mapEl.style.display='none'; return; }
+  (async()=>{
+    let poly=s.map&&(s.map.polyline||s.map.summary_polyline);
+    if(!poly){ try{ const det=segDetailCache[id]||(segDetailCache[id]=await api(`/segments/${id}`)); poly=det&&det.map&&(det.map.polyline||det.map.summary_polyline); }catch{} }
+    let coords=[];
+    if(poly) try{coords=decodePolyline(poly);}catch{}
+    if(!coords.length&&s.start_latlng&&s.end_latlng) coords=[s.start_latlng,s.end_latlng];
+    if(!coords.length){ mapEl.style.display='none'; return; }
+    try{
+      const m=L.map(mapEl,{zoomControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,attributionControl:false});
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
+      const line=L.polyline(coords,{color:'#FC4C02',weight:3,opacity:.95}).addTo(m);
+      L.circleMarker(coords[0],{radius:5,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m);
+      L.circleMarker(coords[coords.length-1],{radius:5,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m);
+      m.fitBounds(line.getBounds(),{padding:[16,16]});
+      segMaps.push({m,line});
+      setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}},300);
+    }catch{}
+  })();
+}
+
+async function renderSegments(refresh){
   const el=document.getElementById('segmentsGrid');
-  el.innerHTML='<p style="color:var(--muted);padding:8px">Loading starred segments…</p>';
+  const note=m=>{ el.innerHTML='<p style="color:var(--muted);padding:8px">'+m+'</p>'; };
   try{
-    const segs=_segsData||(_segsData=await api('/segments/starred?per_page=50'));
-    if(!segs||!segs.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No starred segments.</p>';return;}
+    if(!_segScanStore) _segScanStore=_segStoreLoad();
+    const cached = (_segScanStore.starred&&_segScanStore.starred.length) || Object.keys(_segScanStore.segs).length;
+
+    // Fetch only on first-ever open (no cache) or explicit Refresh; otherwise
+    // render straight from localStorage with no API calls.
+    if(!_segScanning && (refresh===true || !cached)){
+      _segScanning=true;
+      try{
+        note(cached?'Refreshing your segments…':'Loading your segments…');
+        try{ const st=await api('/segments/starred?per_page=50'); if(Array.isArray(st)) _segScanStore.starred=st; }catch{}
+        await _scanForSegs((n,t)=>note(`Scanning your rides for segments… ${n}/${t}`));
+        _segScanStore.ts=Date.now(); _segStoreSave();
+      } finally { _segScanning=false; }
+    }
+
+    _segsData=_segScanStore.starred||[];
+    _mergeSegs();
+    if(!_allSegs.length){ note('No segments yet — star some on Strava or ride a few segments, then tap Refresh.'); return; }
+    _renderSegGrid(el, _allSegs);
+  }catch(e){ note('Segments unavailable ('+e.message+').'); }
+}
+
+function _renderSegGrid(el, segs){
 
     // compute segment records
     const withPR = segs.filter(s=>s.athlete_pr_effort&&s.distance&&s.athlete_pr_effort.elapsed_time);
@@ -747,7 +856,7 @@ async function renderSegments(){
       ride:segs.filter(s=>(s.activity_type||'').toLowerCase()==='ride').length,
       run:segs.filter(s=>(s.activity_type||'').toLowerCase()==='run').length,
       climb:segs.filter(s=>(s.climb_category||0)>0).length,
-      kom:segs.filter(s=>s.athlete_segment_stats&&s.athlete_segment_stats.pr_rank===1).length,
+      kom:segs.filter(_isKomSeg).length,
       pr:segs.filter(s=>s.athlete_pr_effort).length,
     };
     const _chip=(f,lbl)=>`<button class="seg-chip-btn${f==='all'?' active':''}" data-filter="${f}">${lbl} <span class="seg-chip-n">${_cnt[f]}</span></button>`;
@@ -764,7 +873,7 @@ async function renderSegments(){
           <option value="ridden">Most ridden</option>
           <option value="name">Name A–Z</option>
         </select>
-        <button class="seg-scan" id="segScan" title="Find fastest segments from your recent activities (not just starred)">${ic('search')} Scan rides</button>
+        <button class="seg-scan" id="segRefresh" title="Refetch starred segments and scan more of your rides for new segments">${ic('repeat')} Refresh</button>
       </div>
     </div>`;
 
@@ -782,7 +891,7 @@ async function renderSegments(){
       const kom     =s.xoms&&s.xoms.kom?s.xoms.kom:null;
       const efforts =s.effort_count?s.effort_count.toLocaleString():null;
       const location=[s.city,s.state,s.country].filter(Boolean).join(', ');
-      const isKom   =s.athlete_segment_stats&&s.athlete_segment_stats.pr_rank===1;
+      const isKom   =_isKomSeg(s);
 
       const gc=gradeNum==null?'#666'
         :gradeNum<2?'#4ade80'
@@ -828,36 +937,17 @@ async function renderSegments(){
     }).join('')+'</div><div id="segScanResults"></div>';
     if (window.applyI18n) window.applyI18n();
 
-    // init mini maps
-    if(!window.L) return;
+    // mini-maps load lazily as cards scroll into view — with the full segment
+    // list this avoids spinning up dozens of Leaflet maps (and /segments calls)
+    // up front; each polyline is fetched once and cached.
     segMaps = [];
-    segs.forEach(async s=>{
-      const mapEl=document.getElementById(`segmap-${s.id}`);
-      if(!mapEl) return;
-      // starred segments are summaries without a route polyline — fetch the
-      // detailed segment (cached) so we draw the real path, not a straight line
-      let poly=s.map&&(s.map.polyline||s.map.summary_polyline);
-      if(!poly){
-        try{
-          const det=segDetailCache[s.id]||(segDetailCache[s.id]=await api(`/segments/${s.id}`));
-          poly=det&&det.map&&(det.map.polyline||det.map.summary_polyline);
-        }catch{}
-      }
-      let coords=[];
-      if(poly) try{coords=decodePolyline(poly);}catch{}
-      if(!coords.length&&s.start_latlng&&s.end_latlng) coords=[s.start_latlng,s.end_latlng];
-      if(!coords.length){ mapEl.style.display='none'; return; }
-      try{
-        const m=L.map(mapEl,{zoomControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,attributionControl:false});
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
-        const line=L.polyline(coords,{color:'#FC4C02',weight:3,opacity:.95}).addTo(m);
-        L.circleMarker(coords[0],{radius:5,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m);
-        L.circleMarker(coords[coords.length-1],{radius:5,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m);
-        m.fitBounds(line.getBounds(),{padding:[16,16]});
-        segMaps.push({m,line});
-        setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}},300);
-      }catch{}
-    });
+    if(window.L){
+      if(_segMapObs) _segMapObs.disconnect();
+      _segMapObs=new IntersectionObserver(ents=>ents.forEach(en=>{
+        if(en.isIntersecting){ _segMapObs.unobserve(en.target); _initSegMapEl(en.target); }
+      }),{rootMargin:'200px'});
+      el.querySelectorAll('.seg-map').forEach(t=>_segMapObs.observe(t));
+    }
 
     // category filter + sort
     const grid=document.getElementById('segGrid');
@@ -890,16 +980,21 @@ async function renderSegments(){
       b.classList.add('active'); if(grid) grid._filter=b.dataset.filter; applySeg();
     });
     const sortSel=document.getElementById('segSort'); if(sortSel) sortSel.onchange=applySeg;
-    const scanBtn=document.getElementById('segScan'); if(scanBtn) scanBtn.onclick=scanSegments;
-  }catch(e){
-    el.innerHTML=`<p style="color:var(--muted);padding:8px">Segments unavailable (${e.message}).</p>`;
-  }
+
+    // Refresh: refetch starred + scan the next batch of rides (rate-limit safe)
+    const refreshBtn=document.getElementById('segRefresh');
+    if(refreshBtn) refreshBtn.onclick=()=>{ if(_segScanning) return; refreshBtn.disabled=true; refreshBtn.textContent='Refreshing…'; renderSegments(true); };
+
+    // coverage status line below the grid
+    const remaining=acts.filter(a=>a&&a.id&&!_segScanStore.ids.includes(a.id)).length;
+    const results=document.getElementById('segScanResults');
+    if(results) results.innerHTML=`<div class="seg-scan-title">${segs.length} segments · starred + ${_segScanStore.ids.length} rides scanned${remaining>0?` · ${remaining} more rides — tap Refresh to scan them`:' · all rides scanned'}</div>`;
 }
 
 /* ── SEGMENT MAP MODAL — full details on a big, interactive map ── */
 let _segBigMap = null;
 async function openSegMap(id){
-  const s=(_segsData||[]).find(x=>String(x.id)===String(id));
+  const s=(_allSegs||_segsData||[]).find(x=>String(x.id)===String(id));
   if(!s) return;
   const modal=document.getElementById('segMapModal');
   document.getElementById('segMapTitle').textContent=s.name||'Segment';
@@ -959,43 +1054,6 @@ function closeSegMap(){
   if(_segBigMap){try{_segBigMap.remove();}catch{} _segBigMap=null;}
 }
 document.getElementById('segMapModal').addEventListener('click', e=>{ if(e.target.id==='segMapModal') closeSegMap(); });
-
-/* Scan recent activities for segment efforts (not just starred) */
-const _segScanCache={};
-async function scanSegments(){
-  const btn=document.getElementById('segScan'), out=document.getElementById('segScanResults');
-  if(!out) return;
-  const list=acts.slice(0,30);
-  if(btn) btn.disabled=true;
-  out.innerHTML='<p style="color:var(--muted);padding:8px">Scanning your recent activities for segments…</p>';
-  const best={}; let done=0, stopped=false;
-  for(const a of list){
-    if(a.id){
-      try{
-        const det=_segScanCache[a.id]||(_segScanCache[a.id]=await api(`/activities/${a.id}`));
-        (det&&det.segment_efforts||[]).forEach(e=>{
-          const seg=e.segment||{}, id=seg.id, t=e.elapsed_time||e.moving_time;
-          if(!id||!t) return;
-          const gain=(seg.elevation_high!=null&&seg.elevation_low!=null)?Math.max(0,seg.elevation_high-seg.elevation_low):0;
-          if(!best[id]||t<best[id].t) best[id]={t,name:seg.name||e.name,dist:seg.distance||e.distance||0,gain,pr:e.pr_rank===1,kom:e.kom_rank!=null,sid:id};
-        });
-      }catch(err){ if(/ 429 /.test(' '+err.message+' ')){ stopped=true; break; } }
-    }
-    done++; if(btn) btn.textContent=`Scanning ${done}/${list.length}…`;
-  }
-  if(btn){ btn.disabled=false; btn.innerHTML=ic('search')+' Rescan'; }
-  const arr=Object.values(best).map(b=>({...b,spd:b.dist&&b.t?b.dist/b.t:0})).sort((x,y)=>y.spd-x.spd).slice(0,30);
-  if(!arr.length){ out.innerHTML='<p style="color:var(--muted);padding:8px">No segments found in your recent activities.</p>'; return; }
-  out.innerHTML=`<div class="seg-scan-title">${stopped?'Partial — rate limit hit · ':''}Fastest segments from your last ${list.length} activities</div>
-    <div class="ctop-list">
-      ${arr.map((b,i)=>`<a class="ctop-row" href="https://www.strava.com/segments/${b.sid}" target="_blank" rel="noopener">
-        <span class="ctop-rank">${i+1}</span>
-        <span class="ctop-info"><span class="ctop-name">${b.name||'Segment'}${b.kom?' '+ic('crown'):''}${b.pr?' '+ic('star'):''}</span><span class="ctop-meta">${kmVal(b.dist).toFixed(2)} ${distUnit()} · ${fmtT(b.t)}${b.gain>0?' · '+Math.round(elevVal(b.gain)/(b.t/3600))+' '+elevUnit()+'/h VAM':''}</span></span>
-        <span class="ctop-val">${kmh(b.spd).toFixed(1)}<i>${speedUnit()}</i></span>
-      </a>`).join('')}
-    </div>`;
-  if (window.applyI18n) window.applyI18n();
-}
 
 /* ── PHOTOS ── */
 let photoItems = [], photoIdx = 0; // backing data for the lightbox
