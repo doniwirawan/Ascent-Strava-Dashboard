@@ -281,7 +281,7 @@ function renderHeatmap(){
   if(leafletMapInst){leafletMapInst.remove();leafletMapInst=null;}
 
   leafletMapInst=L.map(el,{zoomControl:true,scrollWheelZoom:true,center:[-8.34,115.09],zoom:12});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
     attribution:'&copy; <a href="https://carto.com">CARTO</a>',maxZoom:19,subdomains:'abcd'
   }).addTo(leafletMapInst);
 

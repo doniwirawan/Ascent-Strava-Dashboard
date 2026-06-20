@@ -48,7 +48,7 @@ async function _mapToCanvas(map) {
   cv.width = W * dpr; cv.height = H * dpr;
   const ctx = cv.getContext('2d');
   ctx.scale(dpr, dpr);
-  ctx.fillStyle = '#e9e7e2'; // Voyager land tone — only shows if a tile is missing
+  ctx.fillStyle = '#0e0e0e'; // dark basemap tone — only shows if a tile is missing
   ctx.fillRect(0, 0, W, H);
 
   // ── basemap tiles (CARTO supports CORS, so crossOrigin keeps the canvas
@@ -62,7 +62,7 @@ async function _mapToCanvas(map) {
     for (let y = y0; y <= y1; y++) {
       if (y < 0 || y >= max) continue;
       const tx = ((x % max) + max) % max;
-      const url = `https://${subs[((x % 4) + 4) % 4]}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${tx}/${y}@2x.png`;
+      const url = `https://${subs[((x % 4) + 4) % 4]}.basemaps.cartocdn.com/dark_all/${z}/${tx}/${y}@2x.png`;
       const dx = x * ts - origin.x, dy = y * ts - origin.y;
       loads.push(new Promise(res => {
         const img = new Image();
