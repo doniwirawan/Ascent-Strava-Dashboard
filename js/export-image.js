@@ -36,14 +36,48 @@ function _closeSaveImg() {
 // Leaflet's own projection math. html2canvas can't do this: Leaflet positions
 // its panes with CSS transforms it mis-reads, so tiles land at the wrong offset
 // and the SVG route overlay (the heatmap traces) is dropped entirely.
-async function _mapToCanvas(map) {
-  const size = map.getSize();                 // CSS px
-  const W = size.x, H = size.y;
-  const z = map.getZoom();
-  const ts = 256;                             // tile size in CSS px
-  const origin = map.getPixelBounds().min;    // world-px coord of top-left corner
+//
+// With no target size it mirrors the on-screen map (used as a live overlay for
+// other sections). Given targetW/targetH it re-frames the current view to fill
+// that aspect ratio at full output resolution — so a mobile (9:16) export is a
+// full-bleed map, not the wide on-screen strip letterboxed into a tall frame.
+async function _mapToCanvas(map, targetW, targetH) {
+  const ts = 256; // tile size in px
+  let W, H, z, origin, dpr;
 
-  const dpr = 2;
+  if (targetW && targetH) {
+    W = targetW; H = targetH;
+    dpr = 1; // already rendering at output resolution; @2x tiles supersample
+
+    // frame to the routes themselves (not the wide on-screen viewport) so they
+    // fill the chosen aspect; fall back to the current view if no routes
+    let b = null;
+    map.eachLayer(l => {
+      if (!(l instanceof L.Polyline) || !l.getBounds) return;
+      const lb = l.getBounds();
+      if (!lb.isValid()) return;
+      b ? b.extend(lb) : (b = L.latLngBounds(lb.getSouthWest(), lb.getNorthEast()));
+    });
+    if (!b) b = map.getBounds();
+
+    // largest integer zoom whose route bounds still fit the frame (with a small
+    // margin so traces don't touch the edges)
+    const pad = 0.9, nw = b.getNorthWest(), se = b.getSouthEast();
+    z = Math.min(19, map.getMaxZoom ? map.getMaxZoom() : 19);
+    while (z > 0) {
+      const a = map.project(nw, z), c = map.project(se, z);
+      if (Math.abs(c.x - a.x) <= W * pad && Math.abs(c.y - a.y) <= H * pad) break;
+      z--;
+    }
+    origin = map.project(b.getCenter(), z).subtract([W / 2, H / 2])._round();
+  } else {
+    const size = map.getSize();              // CSS px
+    W = size.x; H = size.y;
+    z = map.getZoom();
+    origin = map.getPixelBounds().min;       // world-px coord of top-left corner
+    dpr = 2;
+  }
+
   const cv = document.createElement('canvas');
   cv.width = W * dpr; cv.height = H * dpr;
   const ctx = cv.getContext('2d');
@@ -163,7 +197,7 @@ async function _doSaveImg() {
   try {
     let shot;
     if (isHeatmap) {
-      shot = await _mapToCanvas(leafletMapInst);
+      shot = await _mapToCanvas(leafletMapInst, W, H);
     } else {
       // Leaflet maps in the section (e.g. segment thumbnails) are rasterised
       // separately — html2canvas can't read their transform-positioned tiles.
@@ -182,15 +216,20 @@ async function _doSaveImg() {
     const ctx = out.getContext('2d');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
-
-    // contain-fit the capture into the frame with a small margin
-    const pad = Math.round(Math.min(W, H) * 0.04);
-    const availW = W - pad * 2, availH = H - pad * 2;
-    const scale = Math.min(availW / shot.width, availH / shot.height);
-    const dw = shot.width * scale, dh = shot.height * scale;
-    const dx = (W - dw) / 2, dy = (H - dh) / 2;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(shot, dx, dy, dw, dh);
+
+    if (isHeatmap) {
+      // the map was rendered at the frame's exact aspect → fill edge to edge
+      ctx.drawImage(shot, 0, 0, W, H);
+    } else {
+      // contain-fit the capture into the frame with a small margin
+      const pad = Math.round(Math.min(W, H) * 0.04);
+      const availW = W - pad * 2, availH = H - pad * 2;
+      const scale = Math.min(availW / shot.width, availH / shot.height);
+      const dw = shot.width * scale, dh = shot.height * scale;
+      const dx = (W - dw) / 2, dy = (H - dh) / 2;
+      ctx.drawImage(shot, dx, dy, dw, dh);
+    }
 
     const a = document.createElement('a');
     a.download = `ascent-${_currentSectionName()}.png`;
