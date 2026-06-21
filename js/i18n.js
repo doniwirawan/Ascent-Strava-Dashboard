@@ -63,6 +63,7 @@ const I18N = {
     'opensource.sub': 'Ascent gratis dan open source. Fork repo-nya dan deploy salinan pribadi Anda dalam ~10 menit — tanpa biaya.',
     'opensource.guide': 'Panduan pemasangan',
     'opensource.repo': 'Lihat di GitHub',
+    'foot.creator': 'Dibuat oleh',
     'foot.disclaim': 'Ascent bersifat independen dan tidak berafiliasi dengan, didukung oleh, atau disponsori oleh Strava, Inc.',
     // ── Help & Data section ──
     'h.load.t': 'Bagaimana data Anda dimuat',

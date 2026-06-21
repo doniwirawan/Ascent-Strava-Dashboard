@@ -148,6 +148,8 @@ body.logged-out main { display: none !important; }
 .lp-cta h2 { font-size: clamp(22px, 4vw, 32px); font-weight: 800; letter-spacing: -.8px; margin: 0 0 20px; }
 .lp-foot { text-align: center; color: var(--muted); font-size: 13px; }
 .lp-foot a { color: var(--orange); font-weight: 700; text-decoration: none; margin: 0 10px; }
+.lp-foot .creator { margin-top: 12px; font-size: 13px; }
+.lp-foot .creator a { margin: 0 0 0 4px; }
 .lp-foot .disclaim { margin-top: 12px; font-size: 11px; opacity: .8; }
 
 @media (max-width: 760px) {
