@@ -60,11 +60,16 @@ body.logged-out main { display: none !important; }
    onerror handler in index.html). Replace the fallback with the official
    asset before submitting to Strava — recreations are not brand-compliant. */
 .strava-badge { display: inline-flex; align-items: center; justify-content: center; }
-.strava-logo-img { height: 24px; width: auto; display: inline-block; vertical-align: middle; }
+/* White pill so the official orange logo (its "POWERED BY" text is dark) stays
+   legible on the app's dark UI. Padding gives the logo its required clear space. */
+.strava-logo-img {
+  height: 24px; width: auto; display: inline-block; vertical-align: middle;
+  background: #fff; padding: 7px 12px; border-radius: 8px;
+}
 .lp-hero .strava-badge { margin-top: 12px; }
 .lp-foot .strava-badge { margin-top: 14px; }
 .app-footer .strava-badge { vertical-align: middle; }
-.app-footer .strava-logo-img { height: 16px; }
+.app-footer .strava-logo-img { height: 15px; padding: 5px 9px; border-radius: 6px; }
 .app-footer .powered-strava { font-size: 11px; gap: 5px; }
 .app-footer .powered-strava svg { width: 13px; height: 13px; }
 
