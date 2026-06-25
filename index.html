@@ -239,6 +239,7 @@
     <button class="nav-link" onclick="navScrollTo('rewindSection',this)">Rewind</button>
     <button class="nav-link" onclick="navScrollTo('challengesSection',this)">Trophies</button>
     <button class="nav-link" onclick="navScrollTo('photosSection',this)">Photos</button>
+    <button class="nav-link" onclick="navScrollTo('aiSection',this)">AI Coach</button>
     <button class="nav-link" onclick="navScrollTo('helpSection',this)">Help</button>
   </div>
   <button class="hamburger" id="hamburgerBtn" aria-label="Menu">
@@ -388,6 +389,10 @@
 
     <div class="sidebar-group-label">About</div>
 
+    <button class="nav-link" onclick="navScrollTo('aiSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7Z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+      AI Coach
+    </button>
     <button class="nav-link" onclick="navScrollTo('helpSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Help &amp; Data
@@ -591,6 +596,37 @@
   <div id="photosSection" style="display:none">
     <div class="section-title">Photos</div>
     <div id="photosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;"></div>
+  </div>
+
+  <!-- AI COACH -->
+  <div id="aiSection" style="display:none">
+    <div class="section-title">AI Coach</div>
+    <div class="ai-wrap">
+      <p class="ai-intro">Ask an AI about your training. It sees a compact summary of your activities — totals, per-sport, recent weeks and trend — never your raw GPS.</p>
+      <div class="ai-provider">
+        <label for="aiProvider">AI</label>
+        <select id="aiProvider" class="ai-select">
+          <option value="deepseek">DeepSeek (cheapest)</option>
+          <option value="openrouter">OpenRouter (any model)</option>
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Claude</option>
+          <option value="groq">Groq (fast)</option>
+          <option value="mistral">Mistral</option>
+        </select>
+        <input id="aiModel" class="ai-model" type="text" placeholder="model (optional, e.g. deepseek-chat)" />
+      </div>
+      <div class="ai-quick">
+        <button class="ai-chip" data-ai-prompt="Analyse my training over the last 4 weeks versus the previous 4 weeks. Comment on volume, consistency and trend, then suggest one focus for next week.">Training insights</button>
+        <button class="ai-chip" data-ai-prompt="Give me a short, friendly summary of my recent training based on my last activities.">Summarise recent</button>
+        <button class="ai-chip" data-ai-prompt="__goal__">Goal check</button>
+      </div>
+      <input id="aiGoal" class="ai-goal" type="text" placeholder="Optional goal for 'Goal check' — e.g. ride 1,000 km this year" />
+      <div id="aiLog" class="ai-log"></div>
+      <form id="aiForm" class="ai-form">
+        <textarea id="aiInput" class="ai-input" rows="1" placeholder="Ask anything about your data…"></textarea>
+        <button type="submit" class="ai-send">Send</button>
+      </form>
+    </div>
   </div>
 
   <!-- HELP / DATA -->
@@ -882,6 +918,7 @@
 <script src="js/export-image.js"></script>
 <script src="js/pwa-install.js"></script>
 <script src="js/i18n.js"></script>
+<script src="js/ai-coach.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

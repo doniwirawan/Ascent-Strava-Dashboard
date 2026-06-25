@@ -14,6 +14,8 @@ function renderAll() {
   // navigation to spare Strava's shared public rate limit — see navScrollTo.
   // Clear their containers so a unit/lang re-render rebuilds them from cache.
   ['gearGrid','segmentsGrid','challengesGrid'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='';});
+  // AI Coach summary is derived from `acts` — drop it so a reload rebuilds it
+  if(typeof clearAISummary==='function') clearAISummary();
   // heatmap is also lazy-loaded when the user opens heatSection
 
   // Save Image + Share Story live in the floating FAB group, not the navbar
