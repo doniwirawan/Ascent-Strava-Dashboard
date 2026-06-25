@@ -240,6 +240,7 @@
     <button class="nav-link" onclick="navScrollTo('challengesSection',this)">Trophies</button>
     <button class="nav-link" onclick="navScrollTo('photosSection',this)">Photos</button>
     <button class="nav-link" onclick="navScrollTo('aiSection',this)">AI Coach</button>
+    <button class="nav-link" onclick="navScrollTo('settingsSection',this)">Settings</button>
     <button class="nav-link" onclick="navScrollTo('helpSection',this)">Help</button>
   </div>
   <button class="hamburger" id="hamburgerBtn" aria-label="Menu">
@@ -392,6 +393,10 @@
     <button class="nav-link" onclick="navScrollTo('aiSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7Z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
       AI Coach
+    </button>
+    <button class="nav-link" onclick="navScrollTo('settingsSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+      Settings
     </button>
     <button class="nav-link" onclick="navScrollTo('helpSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -602,19 +607,7 @@
   <div id="aiSection" style="display:none">
     <div class="section-title">AI Coach</div>
     <div class="ai-wrap">
-      <p class="ai-intro">Ask an AI about your training. It sees a compact summary of your activities — totals, per-sport, recent weeks and trend — never your raw GPS.</p>
-      <div class="ai-provider">
-        <label for="aiProvider">AI</label>
-        <select id="aiProvider" class="ai-select">
-          <option value="deepseek">DeepSeek (cheapest)</option>
-          <option value="openrouter">OpenRouter (any model)</option>
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Claude</option>
-          <option value="groq">Groq (fast)</option>
-          <option value="mistral">Mistral</option>
-        </select>
-        <input id="aiModel" class="ai-model" type="text" placeholder="model (optional, e.g. deepseek-chat)" />
-      </div>
+      <p class="ai-intro">Ask an AI about your training. It sees a compact summary of your activities — totals, per-sport, recent weeks and trend — never your raw GPS. Pick your AI provider in <a href="#" onclick="navScrollTo('settingsSection');return false;" style="color:var(--orange)">Settings</a>.</p>
       <div class="ai-quick">
         <button class="ai-chip" data-ai-prompt="Analyse my training over the last 4 weeks versus the previous 4 weeks. Comment on volume, consistency and trend, then suggest one focus for next week.">Training insights</button>
         <button class="ai-chip" data-ai-prompt="Give me a short, friendly summary of my recent training based on my last activities.">Summarise recent</button>
@@ -626,6 +619,42 @@
         <textarea id="aiInput" class="ai-input" rows="1" placeholder="Ask anything about your data…"></textarea>
         <button type="submit" class="ai-send">Send</button>
       </form>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settingsSection" style="display:none">
+    <div class="section-title">Settings</div>
+    <div class="ai-wrap">
+      <div class="help-card">
+        <h3>AI provider</h3>
+        <p class="ai-intro">Choose which AI analyses your data in the AI Coach. Saved on this device only.</p>
+        <div class="ai-provider">
+          <label for="aiProvider">Provider</label>
+          <select id="aiProvider" class="ai-select">
+            <option value="deepseek">DeepSeek (cheapest)</option>
+            <option value="openrouter">OpenRouter (any model)</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Claude</option>
+            <option value="groq">Groq (fast)</option>
+            <option value="mistral">Mistral</option>
+          </select>
+          <input id="aiModel" class="ai-model" type="text" placeholder="model (optional, e.g. deepseek-chat)" />
+        </div>
+        <button class="ai-chip" id="aiTestBtn" type="button">Test connection</button>
+        <div id="aiTestResult" class="ai-test-result"></div>
+      </div>
+
+      <div class="help-card ai-keynotice">
+        <h3>🔒 Your API key is safe — it never touches this page</h3>
+        <ul class="help-list">
+          <li><b>We never store your API key in the browser.</b> It is <b>not</b> saved in <code>localStorage</code>, cookies, or anywhere on this device — so it can't be read by scripts, browser dev-tools, or extensions. There is nothing here to steal.</li>
+          <li><b>Where it actually lives:</b> as a server-side environment variable on Vercel (<code>DEEPSEEK_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, …). Only the server can read it, and it never gets sent to your browser.</li>
+          <li><b>Only your account can use it.</b> Every request is verified against your Strava identity, so nobody else can spend your credits.</li>
+          <li><b>Stored on this device:</b> only your provider choice and optional model name — neither is secret.</li>
+          <li><b>To set or change a key:</b> add it in Vercel → Settings → Environment Variables, then redeploy. Never paste a key into this page.</li>
+        </ul>
+      </div>
     </div>
   </div>
 

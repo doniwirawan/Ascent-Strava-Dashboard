@@ -82,7 +82,7 @@ function chartOpts(unit='', legend=false) {
 
 const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','trendsSection','actSection','calSection',
   'eddySection','monthlySection','bestSection','gearSection','heatSection',
-  'segmentsSection','milestonesSection','rewindSection','challengesSection','photosSection','aiSection','helpSection'];
+  'segmentsSection','milestonesSection','rewindSection','challengesSection','photosSection','aiSection','settingsSection','helpSection'];
 
 function navScrollTo(id, btn) {
   _ALL_SECTIONS.forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});

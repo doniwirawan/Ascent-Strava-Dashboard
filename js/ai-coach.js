@@ -93,6 +93,38 @@ function aiAppend(role, html, cls) {
   return div;
 }
 
+/* Turn an /api/ai error response into a clear, specific message. */
+function aiErrorMessage(data, status) {
+  const code = data && data.error;
+  const fixed = {
+    provider_not_configured: 'No API key is set on the server for this provider yet. Add <code>' + ((data && data.envVar) || 'the API key') + '</code> in Vercel → Settings → Environment Variables, then redeploy.',
+    not_authorized: 'The AI Coach is limited to the dashboard owner\'s Strava account.',
+    invalid_strava_token: 'Your Strava session expired — hit Refresh and try again.',
+    unknown_provider: 'That AI provider isn\'t supported.',
+    bad_request: 'The request was malformed. Try reloading the page.',
+  };
+  if (fixed[code]) return fixed[code];
+
+  if (code === 'provider_error') {
+    const detail = String((data && data.detail) || ('HTTP ' + (data && data.status))).trim();
+    const d = detail.toLowerCase();
+    const st = data && data.status;
+    let hint;
+    if (st === 402 || /balance|credit|quota|insufficient|billing|payment/.test(d))
+      hint = '💳 This usually means the account is <b>out of credit</b>. Top up your provider account (DeepSeek is prepaid — add a few dollars in the DeepSeek console).';
+    else if (st === 401 || st === 403 || /invalid.*key|unauthor|authentication|api key/.test(d))
+      hint = '🔑 Your <b>API key looks invalid</b>. Double-check the value you set in Vercel for this provider.';
+    else if (st === 429 || /rate.?limit|too many/.test(d))
+      hint = '⏳ You\'ve hit the provider\'s <b>rate limit</b>. Wait a moment and try again.';
+    else if (st === 404 || /model/.test(d))
+      hint = 'ℹ️ The model name may be wrong. Clear the model box in Settings to use the default, or check the provider\'s model list.';
+    return 'The AI provider rejected the request:<br><b>“' + detail + '”</b>' + (hint ? '<br>' + hint : '');
+  }
+
+  if (code === 'upstream_error') return 'Could not reach the AI provider (network/upstream error). Try again shortly.';
+  return 'Something went wrong' + (status ? ' (HTTP ' + status + ')' : '') + '. Try again.';
+}
+
 async function aiSend(userText) {
   if (typeof acts === 'undefined' || !acts.length) { aiAppend('bot', 'Load your activities first.', 'err'); return; }
   const token = localStorage.getItem('strava_access_token');
@@ -117,13 +149,7 @@ async function aiSend(userText) {
     const data = await r.json().catch(() => ({}));
     thinking.remove();
     if (!r.ok || !data.text) {
-      const map = {
-        provider_not_configured: 'This provider\'s key isn\'t set on the server yet (add ' + (data.envVar || 'the API key') + ' in Vercel).',
-        not_authorized: 'This AI Coach is limited to the dashboard owner\'s account.',
-        invalid_strava_token: 'Your Strava session expired — refresh and try again.',
-        unknown_provider: 'That AI provider isn\'t supported.',
-      };
-      aiAppend('bot', map[data.error] || ('Something went wrong (' + (data.error || r.status) + ').'), 'err');
+      aiAppend('bot', aiErrorMessage(data, r.status), 'err');
       return;
     }
     aiAppend('bot', aiMd(data.text));
@@ -162,6 +188,30 @@ async function aiSend(userText) {
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
   });
+
+  // Settings → Test connection (verifies key + auth without spending tokens)
+  const testBtn = document.getElementById('aiTestBtn');
+  if (testBtn) {
+    testBtn.addEventListener('click', async () => {
+      const out = document.getElementById('aiTestResult');
+      const token = localStorage.getItem('strava_access_token');
+      if (!token) { out.className = 'ai-test-result err'; out.textContent = 'Connect to Strava first.'; return; }
+      const provider = (prov && prov.value) || 'deepseek';
+      const model = (mdl && mdl.value.trim()) || undefined;
+      out.className = 'ai-test-result'; out.textContent = 'Testing ' + provider + '…';
+      testBtn.disabled = true;
+      try {
+        const r = await fetch('/api/ai', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, provider, model, test: true }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && data.ok) { out.className = 'ai-test-result ok'; out.innerHTML = '✓ ' + provider + ' is configured and ready.'; }
+        else { out.className = 'ai-test-result err'; out.innerHTML = aiErrorMessage(data, r.status); }
+      } catch { out.className = 'ai-test-result err'; out.textContent = 'Network error — could not reach the server.'; }
+      finally { testBtn.disabled = false; }
+    });
+  }
 
   document.querySelectorAll('#aiSection [data-ai-prompt]').forEach(btn => {
     btn.addEventListener('click', () => {

@@ -23,8 +23,9 @@ module.exports = async (req, res) => {
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
-  const { token, messages, provider = 'deepseek', model } = body;
-  if (!token || !Array.isArray(messages) || !messages.length) {
+  const { token, messages, provider = 'deepseek', model, test } = body;
+  if (!token) { res.status(400).json({ error: 'bad_request' }); return; }
+  if (!test && (!Array.isArray(messages) || !messages.length)) {
     res.status(400).json({ error: 'bad_request' }); return;
   }
 
@@ -44,6 +45,10 @@ module.exports = async (req, res) => {
 
   const OWNER = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
   if (OWNER && String(athleteId) !== OWNER) { res.status(403).json({ error: 'not_authorized' }); return; }
+
+  // "Test connection" — confirms the key is set + you're authorized, without
+  // spending any tokens on the LLM.
+  if (test) { res.status(200).json({ ok: true, provider, model: model || cfg.model }); return; }
 
   const useModel = model || cfg.model;
   try {
@@ -65,13 +70,17 @@ module.exports = async (req, res) => {
     }
 
     const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
-    const data = await r.json();
-    res.status(r.status).json({
-      text: pickText(data) || '',
-      usage: (data && data.usage) || null,
-      error: (data && data.error) || null,
-      provider, model: useModel,
-    });
+    const data = await r.json().catch(() => ({}));
+    const text = pickText(data);
+    if (!r.ok || !text) {
+      // Surface the upstream provider's own message (e.g. "Insufficient Balance",
+      // "invalid api key") as a plain string so the UI can show the real reason.
+      const e = data && data.error;
+      const detail = (e && (e.message || e.type)) || (typeof e === 'string' ? e : null) || ('HTTP ' + r.status);
+      res.status(r.status >= 400 ? r.status : 502).json({ error: 'provider_error', detail, status: r.status, provider, model: useModel });
+      return;
+    }
+    res.status(200).json({ text, usage: (data && data.usage) || null, provider, model: useModel });
   } catch (e) {
     res.status(502).json({ error: 'upstream_error', detail: String((e && e.message) || e) });
   }

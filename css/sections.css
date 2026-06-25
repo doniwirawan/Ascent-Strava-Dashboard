@@ -576,3 +576,34 @@
 .ai-select:focus { border-color: var(--orange); }
 .ai-model { flex: 1; min-width: 160px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; padding: 7px 10px; outline: none; }
 .ai-model:focus { border-color: var(--orange); }
+
+/* ── AI COACH: chat-like refinements ── */
+.ai-wrap { max-width: 820px; }
+.ai-quick { gap: 8px; margin: 4px 0 14px; }
+.ai-chip { transition: background .15s, border-color .15s; }
+.ai-chip:hover { background: var(--surface); }
+/* conversation window */
+.ai-log {
+  min-height: 340px; max-height: 60vh; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; gap: 14px;
+}
+.ai-log:empty::before {
+  content: 'Ask a question or tap a suggestion above to start.';
+  color: var(--muted); font-size: 13px; margin: auto; text-align: center;
+}
+.ai-log:empty { align-items: center; justify-content: center; }
+.ai-msg { max-width: 78%; padding: 12px 15px; font-size: 13.5px; line-height: 1.6; border-radius: 16px; }
+.ai-user { align-self: flex-end; background: var(--orange); color: #1a1200; border-bottom-right-radius: 5px; }
+.ai-bot { align-self: flex-start; background: var(--surface2); border: 1px solid var(--border); border-bottom-left-radius: 5px; }
+.ai-bot.err { background: rgba(248,113,113,.08); border-color: rgba(248,113,113,.35); color: #fca5a5; }
+.ai-bot.err b, .ai-bot.err code { color: #fecaca; }
+/* input bar */
+.ai-form { margin-top: 14px; gap: 10px; }
+.ai-input { border-radius: 22px; padding: 12px 16px; }
+.ai-send { border-radius: 22px; padding: 12px 22px; }
+/* settings: test result + key notice */
+.ai-test-result { font-size: 12.5px; line-height: 1.5; margin-top: 10px; min-height: 16px; color: var(--muted); }
+.ai-test-result.ok { color: #4ade80; font-weight: 600; }
+.ai-test-result.err { color: #fca5a5; }
+.ai-keynotice { border-left: 3px solid var(--orange); }
