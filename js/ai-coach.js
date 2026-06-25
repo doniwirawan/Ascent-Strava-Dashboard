@@ -162,6 +162,54 @@ function aiActivityData(a) {
   };
 }
 
+/* WMO weather codes → plain words. */
+const AI_WMO = { 0: 'clear sky', 1: 'mainly clear', 2: 'partly cloudy', 3: 'overcast', 45: 'fog', 48: 'fog', 51: 'light drizzle', 53: 'drizzle', 55: 'heavy drizzle', 56: 'freezing drizzle', 57: 'freezing drizzle', 61: 'light rain', 63: 'rain', 65: 'heavy rain', 66: 'freezing rain', 67: 'freezing rain', 71: 'light snow', 73: 'snow', 75: 'heavy snow', 77: 'snow grains', 80: 'light showers', 81: 'showers', 82: 'heavy showers', 85: 'snow showers', 86: 'snow showers', 95: 'thunderstorm', 96: 'thunderstorm with hail', 99: 'thunderstorm with hail' };
+
+/* Historical weather at the activity's place + hour (Open-Meteo, free, no key).
+   Archive API for older dates, forecast API for the last few days. Cached. */
+async function aiWeather(a) {
+  const ll = a.start_latlng;
+  const when = a.start_date_local || a.start_date || '';
+  const date = when.slice(0, 10);
+  if (!ll || ll.length !== 2 || !date) return a.average_temp != null ? { temp_c: Math.round(a.average_temp) } : null;
+  const hour = parseInt(when.slice(11, 13) || '0', 10) || 0;
+  const key = 'ai_wx_' + ll[0].toFixed(2) + '_' + ll[1].toFixed(2) + '_' + date + '_' + hour;
+  const cached = localStorage.getItem(key);
+  if (cached !== null) { try { return JSON.parse(cached); } catch { return null; } }
+
+  const ageDays = (Date.now() - new Date(date).getTime()) / 86400000;
+  const base = ageDays > 5 ? 'https://archive-api.open-meteo.com/v1/archive' : 'https://api.open-meteo.com/v1/forecast';
+  const url = base + '?latitude=' + ll[0] + '&longitude=' + ll[1] + '&start_date=' + date + '&end_date=' + date
+    + '&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation&timezone=auto';
+  let wx = null;
+  try {
+    const r = await fetch(url);
+    if (r.ok) {
+      const h = ((await r.json()) || {}).hourly;
+      if (h && h.time && h.time.length) {
+        let idx = h.time.findIndex(t => t.slice(11, 13) === String(hour).padStart(2, '0'));
+        if (idx < 0) idx = Math.min(hour, h.time.length - 1);
+        wx = {
+          temp_c: h.temperature_2m ? Math.round(h.temperature_2m[idx]) : null,
+          condition: h.weather_code ? (AI_WMO[h.weather_code[idx]] || null) : null,
+          wind_kmh: h.wind_speed_10m ? Math.round(h.wind_speed_10m[idx]) : null,
+          precip_mm: h.precipitation ? h.precipitation[idx] : null,
+        };
+      }
+    }
+  } catch {}
+  if (!wx && a.average_temp != null) wx = { temp_c: Math.round(a.average_temp) };
+  localStorage.setItem(key, JSON.stringify(wx));
+  return wx;
+}
+
+/* Activity data + weather, for the caption prompt. */
+async function aiWithWeather(a) {
+  const data = aiActivityData(a);
+  try { const wx = await aiWeather(a); if (wx) data.weather = wx; } catch {}
+  return data;
+}
+
 async function aiCaptionActivity(id) {
   const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
   const panel = document.getElementById('actAiPanel');
@@ -179,8 +227,9 @@ async function aiCaptionActivity(id) {
       + (roast ? 'Be fun and witty with a light, good-natured ROAST of the effort. ' : 'Keep an upbeat, motivating tone. ')
       + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. '
       + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
+      + 'If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind, etc.). '
       + 'Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
-    { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(aiActivityData(a)) + '\n\nWrite my new title and description.' },
+    { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
   ];
   try {
     const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
@@ -276,8 +325,9 @@ async function aiBulkRewrite() {
         { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). '
           + 'Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). '
           + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ')
+          + 'If a "weather" field is present, weave the conditions in naturally. '
           + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
-        { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(aiActivityData(a)) + '\n\nWrite my new title and description.' },
+        { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
       ];
       const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
       const data = await r.json().catch(() => ({}));

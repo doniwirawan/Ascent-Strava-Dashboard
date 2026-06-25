@@ -25,6 +25,35 @@ async function ownerAccessToken() {
   return (await r.json()).access_token || null;
 }
 
+const WMO = { 0: 'clear sky', 1: 'mainly clear', 2: 'partly cloudy', 3: 'overcast', 45: 'fog', 48: 'fog', 51: 'light drizzle', 53: 'drizzle', 55: 'heavy drizzle', 61: 'light rain', 63: 'rain', 65: 'heavy rain', 71: 'light snow', 73: 'snow', 75: 'heavy snow', 80: 'light showers', 81: 'showers', 82: 'heavy showers', 95: 'thunderstorm', 96: 'thunderstorm with hail', 99: 'thunderstorm with hail' };
+
+async function fetchWeather(a) {
+  const ll = a.start_latlng;
+  const when = a.start_date_local || a.start_date || '';
+  const date = when.slice(0, 10);
+  if (!ll || ll.length !== 2 || !date) return a.average_temp != null ? { temp_c: Math.round(a.average_temp) } : null;
+  const hour = parseInt(when.slice(11, 13) || '0', 10) || 0;
+  const ageDays = (Date.now() - new Date(date).getTime()) / 86400000;
+  const base = ageDays > 5 ? 'https://archive-api.open-meteo.com/v1/archive' : 'https://api.open-meteo.com/v1/forecast';
+  try {
+    const r = await fetch(base + '?latitude=' + ll[0] + '&longitude=' + ll[1] + '&start_date=' + date + '&end_date=' + date + '&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation&timezone=auto');
+    if (r.ok) {
+      const h = ((await r.json()) || {}).hourly;
+      if (h && h.time && h.time.length) {
+        let idx = h.time.findIndex(t => t.slice(11, 13) === String(hour).padStart(2, '0'));
+        if (idx < 0) idx = Math.min(hour, h.time.length - 1);
+        return {
+          temp_c: h.temperature_2m ? Math.round(h.temperature_2m[idx]) : null,
+          condition: h.weather_code ? (WMO[h.weather_code[idx]] || null) : null,
+          wind_kmh: h.wind_speed_10m ? Math.round(h.wind_speed_10m[idx]) : null,
+          precip_mm: h.precipitation ? h.precipitation[idx] : null,
+        };
+      }
+    }
+  } catch {}
+  return a.average_temp != null ? { temp_c: Math.round(a.average_temp) } : null;
+}
+
 async function generateCaption(a) {
   const KEY = (process.env.DEEPSEEK_API_KEY || '').replace(/\s+/g, '');
   if (!KEY) return null;
@@ -40,9 +69,11 @@ async function generateCaption(a) {
     location: [a.location_city, a.location_state, a.location_country].filter(Boolean).join(', ') || null,
     prs: a.pr_count || 0,
   };
+  const wx = await fetchWeather(a);
+  if (wx) data.weather = wx;
   const messages = [
     { role: 'system', content:
-      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
+      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nWrite my new title and description.' },
   ];
   const r = await fetch('https://api.deepseek.com/chat/completions', {
