@@ -127,6 +127,82 @@ function aiProviderModel() {
   return { provider, model };
 }
 
+/* ── AI activity caption/title rewrite (in the activity modal) ─────────────── */
+function aiActivityData(a) {
+  const ride = isRide(a);
+  return {
+    type: a.sport_type || a.type,
+    current_name: a.name,
+    date: (a.start_date_local || a.start_date || '').slice(0, 10),
+    km: +(((a.distance || 0) / 1000).toFixed(1)),
+    moving_min: Math.round((a.moving_time || 0) / 60),
+    elev_m: Math.round(a.total_elevation_gain || 0),
+    avg_kmh: a.average_speed ? +((a.average_speed * 3.6).toFixed(1)) : null,
+    max_kmh: a.max_speed ? +((a.max_speed * 3.6).toFixed(1)) : null,
+    avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
+    avg_watts: a.average_watts ? Math.round(a.average_watts) : null,
+    kj: a.kilojoules ? Math.round(a.kilojoules) : null,
+    location: [a.location_city, a.location_state, a.location_country].filter(Boolean).join(', ') || null,
+    prs: a.pr_count || 0, kudos: a.kudos_count || 0, is_ride: ride,
+  };
+}
+
+async function aiCaptionActivity(id) {
+  const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
+  const panel = document.getElementById('actAiPanel');
+  if (!a || !panel) return;
+  const token = localStorage.getItem('strava_access_token');
+  if (!token) { panel.innerHTML = '<div class="ai-cap-status err">Connect to Strava first.</div>'; return; }
+
+  const roast = document.getElementById('aiCapRoast') ? document.getElementById('aiCapRoast').checked : true;
+  panel.innerHTML = '<div class="ai-cap-loading"><span class="ai-dots"><span></span><span></span><span></span></span> Writing your caption…</div>';
+  const { provider, model } = aiProviderModel();
+  const messages = [
+    { role: 'system', content:
+      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). '
+      + (roast ? 'Be fun and witty with a light, good-natured ROAST of the effort. ' : 'Keep an upbeat, motivating tone. ')
+      + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. '
+      + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
+      + 'Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
+    { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(aiActivityData(a)) + '\n\nWrite my new title and description.' },
+  ];
+  try {
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.text) { panel.innerHTML = '<div class="ai-cap-status err">' + aiErrorMessage(data, r.status) + '</div>'; return; }
+    const lines = data.text.trim().split('\n');
+    const title = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '');
+    const desc = lines.join('\n').replace(/^\s+/, '').trim();
+    const esc = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    panel.innerHTML =
+      '<div class="ai-cap-field"><label>Title</label><input id="aiCapTitle" class="ai-cap-input" maxlength="100" value="' + esc(title) + '"></div>'
+      + '<div class="ai-cap-field"><label>Description</label><textarea id="aiCapDesc" class="ai-cap-input" rows="5">' + esc(desc) + '</textarea></div>'
+      + '<label class="ai-cap-roast"><input type="checkbox" id="aiCapRoast"' + (roast ? ' checked' : '') + '> add roast</label>'
+      + '<div class="ai-cap-actions">'
+      + '<button class="btn btn-primary" type="button" onclick="aiCaptionApply(\'' + id + '\')">Apply to Strava</button>'
+      + '<button class="btn" type="button" onclick="aiCaptionActivity(\'' + id + '\')">Regenerate</button>'
+      + '<button class="btn" type="button" onclick="document.getElementById(\'actAiPanel\').innerHTML=\'\'">Cancel</button></div>'
+      + '<div id="aiCapStatus" class="ai-cap-status"></div>';
+  } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error — try again.</div>'; }
+}
+
+async function aiCaptionApply(id) {
+  const title = (document.getElementById('aiCapTitle') || {}).value || '';
+  const desc = (document.getElementById('aiCapDesc') || {}).value || '';
+  const status = document.getElementById('aiCapStatus');
+  if (!title.trim()) { if (status) { status.className = 'ai-cap-status err'; status.textContent = 'Title cannot be empty.'; } return; }
+  if (status) { status.className = 'ai-cap-status'; status.textContent = 'Updating Strava…'; }
+  try {
+    await apiPut('/activities/' + id, { name: title.trim(), description: desc.trim() });
+    const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
+    if (a) { a.name = title.trim(); a.description = desc.trim(); }
+    const t = document.getElementById('actModalTitle'); if (t) t.textContent = title.trim();
+    if (status) { status.className = 'ai-cap-status ok'; status.textContent = '✓ Updated on Strava.'; }
+  } catch (e) {
+    if (status) { status.className = 'ai-cap-status err'; status.textContent = 'Update failed (' + ((e && e.message) || e) + '). Your login may need the activity:write permission — reconnect Strava.'; }
+  }
+}
+
 /* Verify the selected provider works (no tokens spent). Reused by the Test
    button and auto-run when the provider/model changes, so the choice is clearly
    saved AND confirmed working. */
