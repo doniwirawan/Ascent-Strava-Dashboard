@@ -633,8 +633,8 @@
 
       <div class="help-card">
         <h3>🔑 How to get an API key &amp; where to put it</h3>
-        <p class="ai-intro">You set the key <b>once in Vercel</b> (your hosting), not in this page — that's what keeps it safe. Two steps:</p>
-        <p style="font-weight:700;color:var(--text);margin:14px 0 6px">1 · Get a key from your provider</p>
+        <p class="ai-intro">Grab a key from your preferred AI provider below. (The key is configured on the server, never in this page — see the developer notes.)</p>
+        <p style="font-weight:700;color:var(--text);margin:14px 0 6px">Get a key from your provider</p>
         <ul class="help-list">
           <li><b>DeepSeek</b> (cheapest, prepaid) — <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a> → API keys → Create. <b>Top up a few dollars</b> first (it starts at $0). Env var: <code>DEEPSEEK_API_KEY</code></li>
           <li><b>OpenRouter</b> (one key, hundreds of models) — <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>. Env var: <code>OPENROUTER_API_KEY</code></li>
@@ -643,18 +643,20 @@
           <li><b>Claude (Anthropic)</b> — <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. Env var: <code>ANTHROPIC_API_KEY</code></li>
           <li><b>Mistral</b> — <a href="https://console.mistral.ai/api-keys" target="_blank" rel="noopener">console.mistral.ai/api-keys</a>. Env var: <code>MISTRAL_API_KEY</code></li>
         </ul>
-        <p style="font-weight:700;color:var(--text);margin:14px 0 6px">2 · Paste it into Vercel (one time)</p>
-        <ul class="help-list">
-          <li>Open <a href="https://vercel.com/dashboard" target="_blank" rel="noopener">vercel.com/dashboard</a> → your project → <b>Settings → Environment Variables</b>.</li>
-          <li>Add <b>Key</b> = the env var name above (e.g. <code>DEEPSEEK_API_KEY</code>), <b>Value</b> = your key (e.g. <code>sk-…</code>). Save.</li>
-          <li>Also add <code>OWNER_ATHLETE_ID</code> = your Strava athlete id (so only you can use the key).</li>
-          <li><b>Redeploy</b> for it to take effect (Vercel → Deployments → ⋯ → Redeploy, or run <code>vercel --prod</code>).</li>
-          <li>Back here, hit <b>Test connection</b> above — green means you're ready. ✅</li>
-        </ul>
+        <div class="dev-only">
+          <p style="font-weight:700;color:var(--text);margin:14px 0 6px">2 · Paste it into Vercel (one time) <span class="dev-tag">dev</span></p>
+          <ul class="help-list">
+            <li>Open <a href="https://vercel.com/dashboard" target="_blank" rel="noopener">vercel.com/dashboard</a> → your project → <b>Settings → Environment Variables</b>.</li>
+            <li>Add <b>Key</b> = the env var name above (e.g. <code>DEEPSEEK_API_KEY</code>), <b>Value</b> = your key (e.g. <code>sk-…</code>). Save.</li>
+            <li>Also add <code>OWNER_ATHLETE_ID</code> = your Strava athlete id (so only you can use the key).</li>
+            <li><b>Redeploy</b> for it to take effect (Vercel → Deployments → ⋯ → Redeploy, or run <code>vercel --prod</code>).</li>
+            <li>Back here, hit <b>Test connection</b> above — green means you're ready. ✅</li>
+          </ul>
+        </div>
       </div>
 
-      <div class="help-card ai-keynotice">
-        <h3>🔒 Your API key is safe — it never touches this page</h3>
+      <div class="help-card ai-keynotice dev-only">
+        <h3>🔒 Your API key is safe — it never touches this page <span class="dev-tag">dev</span></h3>
         <ul class="help-list">
           <li><b>We never store your API key in the browser.</b> It is <b>not</b> saved in <code>localStorage</code>, cookies, or anywhere on this device — so it can't be read by scripts, browser dev-tools, or extensions. There is nothing here to steal.</li>
           <li><b>Where it actually lives:</b> as a server-side environment variable on Vercel (<code>DEEPSEEK_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, …). Only the server can read it, and it never gets sent to your browser.</li>
@@ -812,6 +814,7 @@
     </div>
     <div class="ai-modal-body">
       <p class="ai-intro">Ask an AI about your training. It sees a compact summary of your activities — totals, per-sport, recent weeks and trend — never your raw GPS. Pick your provider in <a href="#" onclick="closeAIModal();navScrollTo('settingsSection');return false;" style="color:var(--orange)">Settings</a>.</p>
+      <div id="aiHighlight" class="ai-highlight" style="display:none"></div>
       <div class="ai-quick">
         <button class="ai-chip" data-ai-prompt="Analyse my training over the last 4 weeks versus the previous 4 weeks. Comment on volume, consistency and trend, then suggest one focus for next week.">Training insights</button>
         <button class="ai-chip" data-ai-prompt="Give me a short, friendly summary of my recent training based on my last activities.">Summarise recent</button>

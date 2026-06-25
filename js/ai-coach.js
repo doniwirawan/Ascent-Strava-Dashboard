@@ -36,17 +36,72 @@ function aiClearChat() {
   if (log) log.innerHTML = '';
 }
 
+/* A signature of the current activity data — changes when a new activity
+   appears (or a refresh adds data), so we can cache the highlight until then. */
+function aiDataSig() {
+  if (typeof acts === 'undefined' || !acts.length) return 'none';
+  const a = acts[0] || {};
+  return acts.length + ':' + (a.id || '') + ':' + (a.start_date || '');
+}
+
+/* Auto "highlight" shown at the top of the popup. Cached in localStorage and
+   only regenerated when the data signature changes (new activity / refresh). */
+async function aiLoadHighlight() {
+  const el = document.getElementById('aiHighlight');
+  if (!el) return;
+  if (typeof acts === 'undefined' || !acts.length) { el.style.display = 'none'; return; }
+  const sig = aiDataSig();
+  const show = inner => { el.style.display = ''; el.innerHTML = '<div class="ai-hl-label">✨ Highlight</div><div class="ai-hl-body">' + inner + '</div>'; };
+
+  // serve cached highlight unless new data has arrived
+  if (localStorage.getItem('ai_highlight_sig') === sig) {
+    const cached = localStorage.getItem('ai_highlight');
+    if (cached) { show(aiMd(cached)); return; }
+  }
+  const token = localStorage.getItem('strava_access_token');
+  if (!token) { el.style.display = 'none'; return; }
+  const provider = (document.getElementById('aiProvider') || {}).value || localStorage.getItem('ai_provider') || 'deepseek';
+  const model = ((document.getElementById('aiModel') || {}).value || localStorage.getItem('ai_model') || '').trim() || undefined;
+  const summary = aiSummaryCache || (aiSummaryCache = aiBuildSummary());
+  const messages = [
+    { role: 'system', content: AI_SYS + '\n\nAthlete data (JSON):\n' + JSON.stringify(summary) },
+    { role: 'user', content: 'In ONE short sentence (max 25 words), give the single most noteworthy highlight about my recent training. No preamble, no headings, no markdown.' },
+  ];
+  show('<span class="ai-dots"><span></span><span></span><span></span></span>');
+  try {
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.text) {
+      localStorage.setItem('ai_highlight', data.text);
+      localStorage.setItem('ai_highlight_sig', sig);
+      show(aiMd(data.text));
+    } else { el.style.display = 'none'; }
+  } catch { el.style.display = 'none'; }
+}
+
 /* Popup open/close (global so inline onclick can call them). */
 function openAIModal() {
   const m = document.getElementById('aiModal');
   if (!m) return;
   m.classList.add('open');
+  aiLoadHighlight();
   setTimeout(() => { const i = document.getElementById('aiInput'); if (i) i.focus(); }, 60);
 }
 function closeAIModal() {
   const m = document.getElementById('aiModal');
   if (m) m.classList.remove('open');
 }
+
+/* Developer mode: visit with ?dev=1 to reveal owner/dev-only setup notes
+   (Vercel env-var steps, key-safety disclaimer). Persists; ?dev=0 turns it off. */
+(function () {
+  try {
+    const p = new URLSearchParams(location.search);
+    if (p.get('dev') === '1') localStorage.setItem('dev_mode', '1');
+    if (p.get('dev') === '0') localStorage.removeItem('dev_mode');
+    if (localStorage.getItem('dev_mode') === '1' && document.body) document.body.classList.add('dev');
+  } catch {}
+})();
 
 /* Aggregate `acts` into a small JSON blob. Metric throughout, independent of the
    km/mi UI toggle, so the model always gets stable units. */
@@ -150,12 +205,21 @@ function aiMd(s) {
 
 function aiAppend(role, html, cls) {
   const log = document.getElementById('aiLog');
+  const row = document.createElement('div');
+  row.className = 'ai-row ai-row-' + role;
+  if (role === 'bot') {
+    const av = document.createElement('div');
+    av.className = 'ai-avatar';
+    av.textContent = '🤖';
+    row.appendChild(av);
+  }
   const div = document.createElement('div');
   div.className = 'ai-msg ai-' + role + (cls ? ' ' + cls : '');
   div.innerHTML = html;
-  log.appendChild(div);
+  row.appendChild(div);
+  log.appendChild(row);
   log.scrollTop = log.scrollHeight;
-  return div;
+  return row; // return the row so the "thinking" placeholder removes cleanly
 }
 
 /* Turn an /api/ai error response into a clear, specific message. */
