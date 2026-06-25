@@ -618,9 +618,9 @@
 .ai-table code { background: rgba(255,255,255,.06); padding: 1px 5px; border-radius: 4px; }
 
 /* AI Coach popup modal */
-.ai-modal { width: 100%; max-width: 640px; display: flex; flex-direction: column; max-height: 88vh; }
-.ai-modal-body { display: flex; flex-direction: column; gap: 0; padding: 18px; flex: 1; min-height: 0; }
+.ai-modal { width: 94%; max-width: 940px; display: flex; flex-direction: column; height: 92vh; max-height: 92vh; }
+.ai-modal-body { display: flex; flex-direction: column; gap: 0; padding: 20px 22px; flex: 1; min-height: 0; }
 .ai-modal-body .ai-intro { margin-bottom: 12px; }
-.ai-modal-body .ai-log { flex: 1; min-height: 200px; max-height: none; }
+.ai-modal-body .ai-log { flex: 1; min-height: 280px; max-height: none; }
 .ai-clear-btn { margin-left: auto; margin-right: 12px; background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 12px; font-weight: 600; padding: 6px 13px; border-radius: 999px; cursor: pointer; }
 .ai-clear-btn:hover { border-color: var(--border-hover); color: var(--text); }
