@@ -16,6 +16,38 @@ let aiSummaryCache = null; // rebuilt whenever data reloads (see clearAISummary)
 
 function clearAISummary() { aiSummaryCache = null; }
 
+/* Persist the conversation so it survives reloads. SAFE: we store only the
+   question/answer TEXT — never the API key (server-side only) or Strava tokens.
+   localStorage is per-origin, readable only by this site. */
+try { aiMessages = JSON.parse(localStorage.getItem('ai_chat') || '[]'); if (!Array.isArray(aiMessages)) aiMessages = []; } catch { aiMessages = []; }
+function aiPersist() { try { localStorage.setItem('ai_chat', JSON.stringify(aiMessages.slice(-40))); } catch {} }
+
+function aiRenderHistory() {
+  const log = document.getElementById('aiLog');
+  if (!log) return;
+  log.innerHTML = '';
+  aiMessages.forEach(m => aiAppend(m.role === 'user' ? 'user' : 'bot', aiMd(m.content)));
+}
+
+function aiClearChat() {
+  aiMessages = [];
+  aiPersist();
+  const log = document.getElementById('aiLog');
+  if (log) log.innerHTML = '';
+}
+
+/* Popup open/close (global so inline onclick can call them). */
+function openAIModal() {
+  const m = document.getElementById('aiModal');
+  if (!m) return;
+  m.classList.add('open');
+  setTimeout(() => { const i = document.getElementById('aiInput'); if (i) i.focus(); }, 60);
+}
+function closeAIModal() {
+  const m = document.getElementById('aiModal');
+  if (m) m.classList.remove('open');
+}
+
 /* Aggregate `acts` into a small JSON blob. Metric throughout, independent of the
    km/mi UI toggle, so the model always gets stable units. */
 function aiBuildSummary() {
@@ -165,6 +197,7 @@ async function aiSend(userText) {
 
   aiAppend('user', aiMd(userText));
   aiMessages.push({ role: 'user', content: userText });
+  aiPersist();
   const thinking = aiAppend('bot', '<span class="ai-dots"><span></span><span></span><span></span></span>');
 
   const summary = aiSummaryCache || (aiSummaryCache = aiBuildSummary());
@@ -187,6 +220,7 @@ async function aiSend(userText) {
     }
     aiAppend('bot', aiMd(data.text));
     aiMessages.push({ role: 'assistant', content: data.text });
+    aiPersist();
   } catch (e) {
     thinking.remove();
     aiAppend('bot', 'Network error — could not reach the AI.', 'err');
@@ -246,7 +280,13 @@ async function aiSend(userText) {
     });
   }
 
-  document.querySelectorAll('#aiSection [data-ai-prompt]').forEach(btn => {
+  // restore saved conversation; close modal on backdrop click or Esc
+  aiRenderHistory();
+  const aiModal = document.getElementById('aiModal');
+  if (aiModal) aiModal.addEventListener('click', e => { if (e.target === aiModal) closeAIModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && aiModal && aiModal.classList.contains('open')) closeAIModal(); });
+
+  document.querySelectorAll('#aiModal [data-ai-prompt]').forEach(btn => {
     btn.addEventListener('click', () => {
       let p = btn.getAttribute('data-ai-prompt');
       if (p === '__goal__') {

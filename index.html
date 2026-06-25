@@ -239,7 +239,7 @@
     <button class="nav-link" onclick="navScrollTo('rewindSection',this)">Rewind</button>
     <button class="nav-link" onclick="navScrollTo('challengesSection',this)">Trophies</button>
     <button class="nav-link" onclick="navScrollTo('photosSection',this)">Photos</button>
-    <button class="nav-link" onclick="navScrollTo('aiSection',this)">AI Coach</button>
+    <button class="nav-link" onclick="openAIModal()">AI Coach</button>
     <button class="nav-link" onclick="navScrollTo('settingsSection',this)">Settings</button>
     <button class="nav-link" onclick="navScrollTo('helpSection',this)">Help</button>
   </div>
@@ -272,6 +272,10 @@
 
 <!-- floating actions: Save Image + Share Story, side by side -->
 <div class="fab-group" id="fabGroup" style="display:none">
+  <button class="fab" id="aiFab" onclick="openAIModal()" aria-label="AI Coach">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V18a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7Z"/><path d="M9 22h6"/></svg>
+    <span>AI</span>
+  </button>
   <button class="fab" id="saveFab" onclick="document.getElementById('saveImgBtn').click()" aria-label="Save Image">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
     <span data-i18n="fab.image">Image</span>
@@ -390,7 +394,7 @@
 
     <div class="sidebar-group-label">About</div>
 
-    <button class="nav-link" onclick="navScrollTo('aiSection',this)">
+    <button class="nav-link" onclick="openAIModal()">
       <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7Z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
       AI Coach
     </button>
@@ -604,24 +608,6 @@
   </div>
 
   <!-- AI COACH -->
-  <div id="aiSection" style="display:none">
-    <div class="section-title">AI Coach</div>
-    <div class="ai-wrap">
-      <p class="ai-intro">Ask an AI about your training. It sees a compact summary of your activities — totals, per-sport, recent weeks and trend — never your raw GPS. Pick your AI provider in <a href="#" onclick="navScrollTo('settingsSection');return false;" style="color:var(--orange)">Settings</a>.</p>
-      <div class="ai-quick">
-        <button class="ai-chip" data-ai-prompt="Analyse my training over the last 4 weeks versus the previous 4 weeks. Comment on volume, consistency and trend, then suggest one focus for next week.">Training insights</button>
-        <button class="ai-chip" data-ai-prompt="Give me a short, friendly summary of my recent training based on my last activities.">Summarise recent</button>
-        <button class="ai-chip" data-ai-prompt="__goal__">Goal check</button>
-      </div>
-      <input id="aiGoal" class="ai-goal" type="text" placeholder="Optional goal for 'Goal check' — e.g. ride 1,000 km this year" />
-      <div id="aiLog" class="ai-log"></div>
-      <form id="aiForm" class="ai-form">
-        <textarea id="aiInput" class="ai-input" rows="1" placeholder="Ask anything about your data…"></textarea>
-        <button type="submit" class="ai-send">Send</button>
-      </form>
-    </div>
-  </div>
-
   <!-- SETTINGS -->
   <div id="settingsSection" style="display:none">
     <div class="section-title">Settings</div>
@@ -643,6 +629,28 @@
         </div>
         <button class="ai-chip" id="aiTestBtn" type="button">Test connection</button>
         <div id="aiTestResult" class="ai-test-result"></div>
+      </div>
+
+      <div class="help-card">
+        <h3>🔑 How to get an API key &amp; where to put it</h3>
+        <p class="ai-intro">You set the key <b>once in Vercel</b> (your hosting), not in this page — that's what keeps it safe. Two steps:</p>
+        <p style="font-weight:700;color:var(--text);margin:14px 0 6px">1 · Get a key from your provider</p>
+        <ul class="help-list">
+          <li><b>DeepSeek</b> (cheapest, prepaid) — <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a> → API keys → Create. <b>Top up a few dollars</b> first (it starts at $0). Env var: <code>DEEPSEEK_API_KEY</code></li>
+          <li><b>OpenRouter</b> (one key, hundreds of models) — <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>. Env var: <code>OPENROUTER_API_KEY</code></li>
+          <li><b>Groq</b> (has a free tier) — <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>. Env var: <code>GROQ_API_KEY</code></li>
+          <li><b>OpenAI</b> — <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a>. Env var: <code>OPENAI_API_KEY</code></li>
+          <li><b>Claude (Anthropic)</b> — <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. Env var: <code>ANTHROPIC_API_KEY</code></li>
+          <li><b>Mistral</b> — <a href="https://console.mistral.ai/api-keys" target="_blank" rel="noopener">console.mistral.ai/api-keys</a>. Env var: <code>MISTRAL_API_KEY</code></li>
+        </ul>
+        <p style="font-weight:700;color:var(--text);margin:14px 0 6px">2 · Paste it into Vercel (one time)</p>
+        <ul class="help-list">
+          <li>Open <a href="https://vercel.com/dashboard" target="_blank" rel="noopener">vercel.com/dashboard</a> → your project → <b>Settings → Environment Variables</b>.</li>
+          <li>Add <b>Key</b> = the env var name above (e.g. <code>DEEPSEEK_API_KEY</code>), <b>Value</b> = your key (e.g. <code>sk-…</code>). Save.</li>
+          <li>Also add <code>OWNER_ATHLETE_ID</code> = your Strava athlete id (so only you can use the key).</li>
+          <li><b>Redeploy</b> for it to take effect (Vercel → Deployments → ⋯ → Redeploy, or run <code>vercel --prod</code>).</li>
+          <li>Back here, hit <b>Test connection</b> above — green means you're ready. ✅</li>
+        </ul>
       </div>
 
       <div class="help-card ai-keynotice">
@@ -794,6 +802,31 @@
 </div><!-- /.app-layout -->
 
 <!-- STORY MODAL -->
+<!-- AI COACH MODAL -->
+<div class="modal-overlay" id="aiModal">
+  <div class="modal ai-modal">
+    <div class="modal-header">
+      <div class="modal-title">🤖 AI Coach</div>
+      <button class="ai-clear-btn" id="aiClearBtn" onclick="aiClearChat()" title="Start a new conversation">New chat</button>
+      <button class="modal-close" id="aiModalClose" onclick="closeAIModal()">✕</button>
+    </div>
+    <div class="ai-modal-body">
+      <p class="ai-intro">Ask an AI about your training. It sees a compact summary of your activities — totals, per-sport, recent weeks and trend — never your raw GPS. Pick your provider in <a href="#" onclick="closeAIModal();navScrollTo('settingsSection');return false;" style="color:var(--orange)">Settings</a>.</p>
+      <div class="ai-quick">
+        <button class="ai-chip" data-ai-prompt="Analyse my training over the last 4 weeks versus the previous 4 weeks. Comment on volume, consistency and trend, then suggest one focus for next week.">Training insights</button>
+        <button class="ai-chip" data-ai-prompt="Give me a short, friendly summary of my recent training based on my last activities.">Summarise recent</button>
+        <button class="ai-chip" data-ai-prompt="__goal__">Goal check</button>
+      </div>
+      <input id="aiGoal" class="ai-goal" type="text" placeholder="Optional goal for 'Goal check' — e.g. ride 1,000 km this year" />
+      <div id="aiLog" class="ai-log"></div>
+      <form id="aiForm" class="ai-form">
+        <textarea id="aiInput" class="ai-input" rows="1" placeholder="Ask anything about your data…"></textarea>
+        <button type="submit" class="ai-send">Send</button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="storyModal">
   <div class="modal" style="max-width:1000px;">
     <div class="modal-header">
