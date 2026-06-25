@@ -7,7 +7,9 @@ const AI_SYS =
   'You are a concise, encouraging endurance-sports coach analysing ONE athlete\'s ' +
   'Strava history. Use only the numbers in the provided JSON — never invent data. ' +
   'Reply in short markdown (a heading or two, bullets). Stay under ~250 words unless ' +
-  'asked for more. Distances are km, elevation m, durations as given, speed km/h.';
+  'asked for more. Distances are km, elevation m, durations as given, speed km/h. ' +
+  'avg_kmh is average speed, max_kmh is peak/top speed — never confuse the two. ' +
+  '`fastest_rides_all_time` covers the ENTIRE history; `recent` is only the latest activities.';
 
 let aiMessages = [];      // {role,content} chat turns (display + context)
 let aiSummaryCache = null; // rebuilt whenever data reloads (see clearAISummary)
@@ -49,18 +51,27 @@ function aiBuildSummary() {
     monthly[k] = +((monthly[k] || 0) + km(a.distance)).toFixed(1);
   });
 
+  const kmh = ms => +(((ms || 0) * 3.6)).toFixed(1);
+  const rideRow = a => ({
+    date: a.start_date.slice(0, 10), type: a.type, km: km(a.distance),
+    elev_m: Math.round(a.total_elevation_gain || 0),
+    avg_kmh: kmh(a.average_speed), max_kmh: kmh(a.max_speed),
+  });
+
+  // fastest rides across the ENTIRE history (by average speed) — so the AI is
+  // never blind to a fast ride just because it's older than the recent few.
+  const fastest = sorted.filter(a => (a.average_speed || 0) > 0)
+    .sort((x, y) => (y.average_speed || 0) - (x.average_speed || 0))
+    .slice(0, 5).map(rideRow);
+
   return {
     totals: { ...agg(sorted), date_range: [sorted.at(-1)?.start_date.slice(0, 10), sorted[0]?.start_date.slice(0, 10)] },
     by_sport: bySport,
     last_4_weeks: agg(sorted.filter(a => ageDays(a.start_date) <= 28)),
     prev_4_weeks: agg(sorted.filter(a => ageDays(a.start_date) > 28 && ageDays(a.start_date) <= 56)),
     monthly_km_last_6mo: monthly,
-    recent: sorted.slice(0, 8).map(a => ({
-      date: a.start_date.slice(0, 10), type: a.type, name: a.name,
-      km: km(a.distance), elev_m: Math.round(a.total_elevation_gain || 0),
-      min: Math.round((a.moving_time || 0) / 60),
-      kmh: +(((a.average_speed || 0) * 3.6)).toFixed(1),
-    })),
+    fastest_rides_all_time: fastest,
+    recent: sorted.slice(0, 8).map(a => ({ name: a.name, min: Math.round((a.moving_time || 0) / 60), ...rideRow(a) })),
   };
 }
 
@@ -136,7 +147,7 @@ async function aiSend(userText) {
 
   const summary = aiSummaryCache || (aiSummaryCache = aiBuildSummary());
   const sys = { role: 'system', content: AI_SYS + '\n\nAthlete data (JSON):\n' + JSON.stringify(summary) };
-  const messages = [sys, ...aiMessages.slice(-6)]; // cap history → cheaper, stable
+  const messages = [sys, ...aiMessages.slice(-16)]; // keep ~8 exchanges of memory
 
   const provider = (document.getElementById('aiProvider') || {}).value || 'deepseek';
   const model = ((document.getElementById('aiModel') || {}).value || '').trim() || undefined;
