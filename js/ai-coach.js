@@ -172,12 +172,32 @@ const AI_SECTION_EXTRA = {
   async heatSection() {
     const mapped = acts.filter(a => a.start_latlng && a.start_latlng.length === 2);
     if (!mapped.length) return 'No GPS-mapped activities.';
-    const lats = mapped.map(a => a.start_latlng[0]), lngs = mapped.map(a => a.start_latlng[1]);
-    const cLat = lats.reduce((s, v) => s + v, 0) / lats.length, cLng = lngs.reduce((s, v) => s + v, 0) / lngs.length;
-    const kmSpan = Math.round(((Math.max(...lats) - Math.min(...lats)) + (Math.max(...lngs) - Math.min(...lngs))) * 111);
-    const place = await aiReverseGeocode(cLat, cLng);
-    return mapped.length + ' of ' + acts.length + ' activities have GPS routes' + (place ? ', mostly around ' + place : '')
-      + '; start points span roughly ' + kmSpan + ' km, so training is ' + (kmSpan < 30 ? 'highly local' : kmSpan < 150 ? 'regional' : 'spread across distant areas') + '.';
+
+    // densest ~1km cell = the area ridden most often
+    const cells = {};
+    mapped.forEach(a => {
+      const k = a.start_latlng[0].toFixed(2) + ',' + a.start_latlng[1].toFixed(2);
+      (cells[k] || (cells[k] = { n: 0, lat: 0, lng: 0 }));
+      cells[k].n++; cells[k].lat += a.start_latlng[0]; cells[k].lng += a.start_latlng[1];
+    });
+    const top = Object.values(cells).sort((x, y) => y.n - x.n)[0];
+    const mainLat = top.lat / top.n, mainLng = top.lng / top.n;
+    const mainArea = await aiReverseGeocode(mainLat, mainLng, 14);
+
+    // rides furthest from that main area, with their location names
+    const byDist = mapped.map(a => ({ a, d: aiHaversine(mainLat, mainLng, a.start_latlng[0], a.start_latlng[1]) }))
+      .sort((x, y) => y.d - x.d);
+    const far = [];
+    for (let i = 0; i < byDist.length && far.length < 2; i++) {
+      if (byDist[i].d < 5) break; // not meaningfully far from home
+      const w = byDist[i];
+      const loc = await aiReverseGeocode(w.a.start_latlng[0], w.a.start_latlng[1], 12);
+      far.push('"' + ((w.a.name || 'a ride').slice(0, 40)) + '"' + (loc ? ' in ' + loc : '') + ' (~' + Math.round(w.d) + ' km from home)');
+    }
+
+    let s = mapped.length + ' of ' + acts.length + ' activities have GPS routes. Most-ridden area: ' + (mainArea || 'home area') + ' — ' + top.n + ' rides start there.';
+    if (far.length) s += ' Furthest rides from there: ' + far.join('; ') + '.';
+    return s;
   },
   calSection() {
     const now = Date.now(), DAY = 86400000, days = new Set();
@@ -193,17 +213,28 @@ const AI_SECTION_EXTRA = {
 
 function aiHash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h.toString(36); }
 
-/* Reverse-geocode a centroid to a city/region name (cached, ~city-level zoom for
-   privacy). Returns '' on failure; '' is cached so we don't refetch repeatedly. */
-async function aiReverseGeocode(lat, lng) {
-  const key = 'ai_geo_' + lat.toFixed(2) + '_' + lng.toFixed(2);
+/* Distance between two lat/lng points in km (haversine). */
+function aiHaversine(aLat, aLng, bLat, bLng) {
+  const R = 6371, rad = Math.PI / 180;
+  const dLat = (bLat - aLat) * rad, dLng = (bLng - aLng) * rad;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/* Reverse-geocode to a place name (cached). zoom controls granularity:
+   ~14 → district/suburb, ~12 → town/city. Returns '' on failure (also cached). */
+async function aiReverseGeocode(lat, lng, zoom) {
+  zoom = zoom || 12;
+  const key = 'ai_geo_' + zoom + '_' + lat.toFixed(3) + '_' + lng.toFixed(3);
   const cached = localStorage.getItem(key);
   if (cached !== null) return cached;
   try {
-    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&lat=' + lat + '&lon=' + lng, { headers: { Accept: 'application/json' } });
+    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=' + zoom + '&lat=' + lat + '&lon=' + lng, { headers: { Accept: 'application/json' } });
     if (r.ok) {
-      const d = await r.json(), a = (d && d.address) || {};
-      const place = [a.city || a.town || a.village || a.county, a.state || a.country].filter(Boolean).slice(0, 2).join(', ');
+      const a = ((await r.json()) || {}).address || {};
+      const local = a.suburb || a.neighbourhood || a.city_district || a.village || a.town || a.municipality || a.city || a.county || a.state_district || '';
+      const region = a.city || a.county || a.state || a.country || '';
+      const place = [local, region && region !== local ? region : ''].filter(Boolean).join(', ');
       localStorage.setItem(key, place);
       return place;
     }
