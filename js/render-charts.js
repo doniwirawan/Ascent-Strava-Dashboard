@@ -380,7 +380,7 @@ function openActivityModal(ref){
     </div>
     ${loc?`<div class="actd-loc">📍 ${loc}</div>`:''}
     <div class="actd-grid">${stats}</div>
-    ${a.id ? `<a class="btn btn-primary actd-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener">Open in Strava ↗</a>` : ''}
+    ${a.id ? `<a class="btn btn-primary actd-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener">View on Strava ↗</a>` : ''}
   `;
   if (window.applyI18n) window.applyI18n();
   document.getElementById('actModal').classList.add('open');

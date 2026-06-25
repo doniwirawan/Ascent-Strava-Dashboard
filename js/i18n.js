@@ -231,7 +231,7 @@ const APP_ID = {
   'Comments': 'Komentar',
   // badges + links
   'Commute': 'Komuter', 'Indoor': 'Dalam Ruangan', 'Manual': 'Manual', 'Private': 'Privat', 'Race': 'Balapan',
-  'Open in Strava ↗': 'Buka di Strava ↗', 'Open on Strava ↗': 'Buka di Strava ↗',
+  'View on Strava ↗': 'Lihat di Strava ↗',
   // calendar
   'activities': 'aktivitas', 'active days': 'hari aktif', 'day streak': 'rentetan hari',
   'busiest day': 'hari tersibuk', 'Less': 'Sedikit', 'More': 'Banyak',
