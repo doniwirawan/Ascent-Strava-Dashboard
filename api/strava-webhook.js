@@ -97,7 +97,7 @@ async function processActivity(activityId) {
   const name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100);
   let description = lines.join('\n').trim();
   if (!name) return;
-  if (description) description += '\n\n— AI-written · Ascent';
+  if (description) description += '\n\n— AI-written by Ascent Analytics';
   await fetch(STRAVA + '/activities/' + activityId, {
     method: 'PUT', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, description }),

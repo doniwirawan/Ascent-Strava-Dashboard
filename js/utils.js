@@ -113,7 +113,7 @@ function navScrollTo(id, btn) {
   setTimeout(()=>{Object.values(charts).forEach(c=>{try{if(c&&c.resize)c.resize();}catch{}});},80);
   // AI insight for relevant sections (cached per data signature, lazy)
   try { if (typeof aiSectionInsight === 'function') aiSectionInsight(id); } catch {}
-  // Build the bulk-rewrite activity list when Settings opens
-  try { if (id === 'settingsSection' && typeof renderAiBulkList === 'function') renderAiBulkList(); } catch {}
+  // Build the bulk caption tool lists when the Activities page opens
+  try { if (id === 'actSection' && typeof bulkBuildList === 'function') { bulkBuildList('aiBulk'); bulkBuildList('stBulk'); } } catch {}
   if (window.applyI18n) window.applyI18n();
 }

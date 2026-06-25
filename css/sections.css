@@ -703,3 +703,11 @@ body.dev .dev-tag { display: inline-block; }
 
 .actd-stats-btn { border: 1px solid var(--border); color: var(--text); background: transparent; }
 .actd-stats-btn:hover { border-color: var(--border-hover); background: var(--surface2); }
+
+/* Bulk caption tools (Activities page, collapsible) */
+.bulk-tools { margin-top: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.bulk-tools > summary { cursor: pointer; padding: 14px 18px; font-weight: 700; font-size: 14px; color: var(--text); list-style: none; }
+.bulk-tools > summary::-webkit-details-marker { display: none; }
+.bulk-tools > summary::before { content: '▸ '; color: var(--orange); }
+.bulk-tools[open] > summary::before { content: '▾ '; }
+.bulk-tools .help-card { margin: 0 14px 14px; }

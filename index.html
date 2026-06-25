@@ -515,6 +515,53 @@
         <div id="bubbleWrap"></div>
       </div>
     </div>
+
+    <details class="bulk-tools">
+      <summary>Bulk caption tools — rewrite titles &amp; descriptions on Strava</summary>
+
+      <div class="help-card">
+        <h3>Bulk AI rewrite <span class="gr-sub">AI captions with stats, roast &amp; weather</span></h3>
+        <p class="ai-intro">Tick activities and hit Rewrite. <b>Overwrites them on Strava</b> (can't be undone) — you'll confirm the count.</p>
+        <div class="gr-panel">
+          <div class="gr-controls">
+            <label class="gr-selall"><input type="checkbox" id="aiBulkAll"> Select all visible</label>
+            <input type="text" id="aiBulkSearch" class="gr-search" placeholder="Filter activities…">
+            <div class="gr-apply">
+              <select id="aiBulkWhat" class="gr-select">
+                <option value="both">Title + description</option>
+                <option value="title">Title only</option>
+              </select>
+              <label class="ai-cap-roast"><input type="checkbox" id="aiBulkRoast" checked> roast</label>
+              <button id="aiBulkBtn" class="btn btn-primary" type="button" data-label="Rewrite" onclick="bulkRun('aiBulk','ai')">Rewrite (<span id="aiBulkCount">0</span>)</button>
+            </div>
+          </div>
+          <div id="aiBulkStatus" class="gr-status"></div>
+          <div class="ai-bulk-progress"><div id="aiBulkBar" class="ai-bulk-bar"></div></div>
+          <div class="gr-list" id="aiBulkList"></div>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <h3>Bulk stats captions <span class="gr-sub">no AI — built from the numbers, free &amp; instant</span></h3>
+        <p class="ai-intro">Same multi-select, plain stat captions (no AI, no cost). <b>Overwrites them on Strava</b> — you'll confirm the count.</p>
+        <div class="gr-panel">
+          <div class="gr-controls">
+            <label class="gr-selall"><input type="checkbox" id="stBulkAll"> Select all visible</label>
+            <input type="text" id="stBulkSearch" class="gr-search" placeholder="Filter activities…">
+            <div class="gr-apply">
+              <select id="stBulkWhat" class="gr-select">
+                <option value="both">Title + description</option>
+                <option value="title">Title only</option>
+              </select>
+              <button id="stBulkBtn" class="btn btn-primary" type="button" data-label="Apply" onclick="bulkRun('stBulk','stats')">Apply (<span id="stBulkCount">0</span>)</button>
+            </div>
+          </div>
+          <div id="stBulkStatus" class="gr-status"></div>
+          <div class="ai-bulk-progress"><div id="stBulkBar" class="ai-bulk-bar"></div></div>
+          <div class="gr-list" id="stBulkList"></div>
+        </div>
+      </div>
+    </details>
   </div>
 
   <!-- CALENDAR HEATMAP -->
@@ -634,27 +681,6 @@
         <div id="aiTestResult" class="ai-test-result"></div>
       </div>
 
-      <div class="help-card">
-        <h3>Bulk AI rewrite <span class="gr-sub">select activities, then rewrite their title/description with AI</span></h3>
-        <p class="ai-intro">Tick the activities you want and hit Rewrite. This <b>overwrites them on Strava</b> and can't be undone — you'll confirm the count first.</p>
-        <div class="gr-panel" id="aiBulkPanel">
-          <div class="gr-controls">
-            <label class="gr-selall"><input type="checkbox" id="aiBulkAll"> Select all visible</label>
-            <input type="text" id="aiBulkSearch" class="gr-search" placeholder="Filter activities…">
-            <div class="gr-apply">
-              <select id="aiBulkWhat" class="gr-select">
-                <option value="both">Title + description</option>
-                <option value="title">Title only</option>
-              </select>
-              <label class="ai-cap-roast"><input type="checkbox" id="aiBulkRoast" checked> roast</label>
-              <button id="aiBulkBtn" class="btn btn-primary" type="button" onclick="aiBulkRewrite()">Rewrite (<span id="aiBulkCount">0</span>)</button>
-            </div>
-          </div>
-          <div id="aiBulkStatus" class="gr-status"></div>
-          <div class="ai-bulk-progress"><div id="aiBulkBar" class="ai-bulk-bar"></div></div>
-          <div class="gr-list" id="aiBulkList"></div>
-        </div>
-      </div>
 
       <div class="help-card">
         <h3>🔑 How to get an API key &amp; where to put it</h3>

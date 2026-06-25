@@ -15,12 +15,11 @@ const AI_SYS =
 /* Inline SVG used wherever the assistant is represented (no emoji). */
 const AI_ICON = '<svg class="ai-icon-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6l1.5 4.1 4.1 1.5-4.1 1.5L12 13.8l-1.5-4.1L6.4 8.2l4.1-1.5L12 2.6zM18.5 12l.85 2.35 2.35.85-2.35.85-.85 2.35-.85-2.35-2.35-.85 2.35-.85L18.5 12zM5.4 12.6l.75 2.05 2.05.75-2.05.75-.75 2.05-.75-2.05L4.6 15.4l2.05-.75L5.4 12.6z"/></svg>';
 
-/* Tag appended to AI-written Strava descriptions so they're identifiable. */
-const AI_TAG = '\n\n— AI-written · Ascent';
-function aiTagDesc(desc) {
+/* Credit appended to captions written via the app, so they're identifiable. */
+function aiCredit(desc, isAI) {
   desc = (desc || '').trim();
-  if (!desc) return desc;
-  return desc.includes('AI-written · Ascent') ? desc : desc + AI_TAG;
+  if (!desc || /by Ascent Analytics/.test(desc)) return desc;
+  return desc + (isAI ? '\n\n— AI-written by Ascent Analytics' : '\n\n— by Ascent Analytics');
 }
 
 /* Persist edited acts (new names/descriptions) to the local + remote cache so a
@@ -302,7 +301,7 @@ async function aiCaptionApply(id) {
   if (status) { status.className = 'ai-cap-status'; status.textContent = 'Updating Strava…'; }
   try {
     const src = (document.getElementById('actAiPanel') || {}).dataset ? document.getElementById('actAiPanel').dataset.aiSource : 'ai';
-    const tagged = src === 'stats' ? desc.trim() : aiTagDesc(desc);
+    const tagged = aiCredit(desc, src !== 'stats');
     await apiPut('/activities/' + id, { name: title.trim(), description: tagged });
     const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
     if (a) { a.name = title.trim(); a.description = tagged; }
@@ -314,88 +313,83 @@ async function aiCaptionApply(id) {
   }
 }
 
-/* ── Bulk AI rewrite (gear-style multi-select in Settings) ─────────────────── */
-let aiBulkStop = false;
+/* ── Bulk caption tools (gear-style multi-select; AI and no-AI/stats) ─────────
+   One generic implementation, instantiated twice via a prefix: 'aiBulk' (mode
+   'ai') and 'stBulk' (mode 'stats'). Lives on the Activities page. */
+const bulkStop = {};
 
-function renderAiBulkList() {
-  const list = document.getElementById('aiBulkList');
+function bulkBuildList(p) {
+  const list = document.getElementById(p + 'List');
   if (!list || typeof acts === 'undefined') return;
   list.innerHTML = (acts || []).map(a => '<label class="gr-row" data-name="' + (a.name || '').toLowerCase().replace(/"/g, '') + '">'
-    + '<input type="checkbox" class="ai-bulk-cb" value="' + a.id + '">'
+    + '<input type="checkbox" class="bulk-cb" value="' + a.id + '">'
     + '<span class="gr-date">' + fmtDt(a.start_date) + '</span>'
     + '<span class="gr-name">' + (a.name || 'Activity').replace(/</g, '&lt;') + '</span>'
     + '<span class="gr-dist">' + fmtD(a.distance) + '</span>'
     + '</label>').join('');
-  const cbs = () => [...list.querySelectorAll('.ai-bulk-cb')];
-  const upd = () => { const c = document.getElementById('aiBulkCount'); if (c) c.textContent = cbs().filter(x => x.checked).length; };
+  const cbs = () => [...list.querySelectorAll('.bulk-cb')];
+  const upd = () => { const c = document.getElementById(p + 'Count'); if (c) c.textContent = cbs().filter(x => x.checked).length; };
   list.onchange = upd;
-  const all = document.getElementById('aiBulkAll');
+  const all = document.getElementById(p + 'All');
   if (all) { all.checked = false; all.onchange = e => { cbs().forEach(cb => { if (cb.closest('.gr-row').style.display !== 'none') cb.checked = e.target.checked; }); upd(); }; }
-  const search = document.getElementById('aiBulkSearch');
+  const search = document.getElementById(p + 'Search');
   if (search) search.oninput = e => { const q = e.target.value.toLowerCase(); list.querySelectorAll('.gr-row').forEach(r => { r.style.display = r.dataset.name.includes(q) ? '' : 'none'; }); };
   upd();
 }
 
-async function aiBulkRewrite() {
-  const list = document.getElementById('aiBulkList');
-  const status = document.getElementById('aiBulkStatus');
-  const btn = document.getElementById('aiBulkBtn');
-  const bar = document.getElementById('aiBulkBar');
+async function bulkRun(p, mode) {
+  const list = document.getElementById(p + 'List'), status = document.getElementById(p + 'Status'), btn = document.getElementById(p + 'Btn'), bar = document.getElementById(p + 'Bar');
   if (!list || !btn) return;
-
-  // running → this click acts as Stop
-  if (btn.dataset.running === '1') { aiBulkStop = true; btn.textContent = 'Stopping…'; return; }
+  if (btn.dataset.running === '1') { bulkStop[p] = true; btn.textContent = 'Stopping…'; return; }
 
   const token = localStorage.getItem('strava_access_token');
   if (!token) { status.className = 'gr-status err'; status.textContent = 'Connect to Strava first.'; return; }
-  const ids = [...list.querySelectorAll('.ai-bulk-cb')].filter(c => c.checked).map(c => c.value);
+  const ids = [...list.querySelectorAll('.bulk-cb')].filter(c => c.checked).map(c => c.value);
   if (!ids.length) { status.className = 'gr-status warn'; status.textContent = 'Select at least one activity first.'; return; }
-  const what = (document.getElementById('aiBulkWhat') || {}).value || 'both';
-  const roast = !!(document.getElementById('aiBulkRoast') || {}).checked;
-  if (!confirm('Rewrite the ' + (what === 'title' ? 'title' : 'title and description') + ' of ' + ids.length + ' activit' + (ids.length > 1 ? 'ies' : 'y') + ' on Strava with AI?\nThis overwrites them and cannot be undone.')) return;
+  const what = (document.getElementById(p + 'What') || {}).value || 'both';
+  const roast = !!(document.getElementById(p + 'Roast') || {}).checked;
+  if (!confirm('Rewrite the ' + (what === 'title' ? 'title' : 'title and description') + ' of ' + ids.length + ' activit' + (ids.length > 1 ? 'ies' : 'y') + ' on Strava' + (mode === 'ai' ? ' with AI' : ' from stats') + '?\nThis overwrites them and cannot be undone.')) return;
 
-  aiBulkStop = false;
-  btn.dataset.running = '1'; btn.textContent = 'Stop';
-  const restore = () => { btn.dataset.running = ''; btn.innerHTML = 'Rewrite (<span id="aiBulkCount">' + [...list.querySelectorAll('.ai-bulk-cb')].filter(c => c.checked).length + '</span>)'; };
+  bulkStop[p] = false; btn.dataset.running = '1'; btn.textContent = 'Stop';
+  const label = btn.dataset.label || 'Apply';
+  const restore = () => { btn.dataset.running = ''; btn.innerHTML = label + ' (<span id="' + p + 'Count">' + [...list.querySelectorAll('.bulk-cb')].filter(c => c.checked).length + '</span>)'; };
   const { provider, model } = aiProviderModel();
   let ok = 0, fail = 0;
   for (let i = 0; i < ids.length; i++) {
-    if (aiBulkStop) break;
-    status.className = 'gr-status'; status.textContent = 'Rewriting ' + (i + 1) + ' / ' + ids.length + '…';
+    if (bulkStop[p]) break;
+    status.className = 'gr-status'; status.textContent = 'Updating ' + (i + 1) + ' / ' + ids.length + '…';
     const a = (acts || []).find(x => String(x.id) === String(ids[i]));
     if (!a) { fail++; continue; }
     try {
-      const messages = [
-        { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). '
-          + 'Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). '
-          + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ')
-          + 'If a "weather" field is present, weave the conditions in naturally. '
-          + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
-        { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
-      ];
-      const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
-      const data = await r.json().catch(() => ({}));
-      if (r.ok && data.text) {
-        const lines = data.text.trim().split('\n');
-        const name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100);
-        const desc = lines.join('\n').trim();
-        if (name) {
-          const tagged = aiTagDesc(desc);
-          await apiPut('/activities/' + a.id, what === 'title' ? { name } : { name, description: tagged });
-          a.name = name; if (what !== 'title') a.description = tagged;
-          const cb = list.querySelector('.ai-bulk-cb[value="' + a.id + '"]');
-          if (cb) { const row = cb.closest('.gr-row'); const nm = row.querySelector('.gr-name'); if (nm) nm.textContent = name; cb.checked = false; row.classList.add('gr-done'); }
-          ok++;
-        } else fail++;
-      } else { fail++; }
+      let name = '', desc = '';
+      if (mode === 'stats') {
+        let wx = null; try { wx = await aiWeather(a); } catch {}
+        const t = aiStatsTemplate(a, wx); name = t.title; desc = t.desc;
+      } else {
+        const messages = [
+          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If a "weather" field is present, weave the conditions in naturally. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
+          { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
+        ];
+        const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && data.text) { const lines = data.text.trim().split('\n'); name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100); desc = lines.join('\n').trim(); }
+      }
+      if (name) {
+        const credited = aiCredit(desc, mode !== 'stats');
+        await apiPut('/activities/' + a.id, what === 'title' ? { name } : { name, description: credited });
+        a.name = name; if (what !== 'title') a.description = credited;
+        const cb = list.querySelector('.bulk-cb[value="' + a.id + '"]');
+        if (cb) { const row = cb.closest('.gr-row'); const nm = row.querySelector('.gr-name'); if (nm) nm.textContent = name; cb.checked = false; row.classList.add('gr-done'); }
+        ok++;
+      } else fail++;
     } catch { fail++; }
     if (bar) bar.style.width = Math.round((i + 1) / ids.length * 100) + '%';
-    await new Promise(res => setTimeout(res, 800)); // throttle for Strava rate limits
+    await new Promise(res => setTimeout(res, mode === 'stats' ? 400 : 800)); // throttle for Strava rate limits
   }
   restore();
   if (ok) { aiSyncCache(); if (typeof renderAll === 'function') { try { renderAll(); } catch {} } }
   status.className = 'gr-status ' + (fail && !ok ? 'err' : 'ok');
-  status.textContent = (aiBulkStop ? 'Stopped. ' : 'Done. ') + 'Updated ' + ok + (fail ? ', ' + fail + ' failed' : '') + '.';
+  status.textContent = (bulkStop[p] ? 'Stopped. ' : 'Done. ') + 'Updated ' + ok + (fail ? ', ' + fail + ' failed' : '') + '.';
   setTimeout(() => { if (bar) bar.style.width = '0%'; }, 1500);
 }
 
