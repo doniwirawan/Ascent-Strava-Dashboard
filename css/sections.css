@@ -711,3 +711,7 @@ body.dev .dev-tag { display: inline-block; }
 .bulk-tools > summary::before { content: '▸ '; color: var(--orange); }
 .bulk-tools[open] > summary::before { content: '▾ '; }
 .bulk-tools .help-card { margin: 0 14px 14px; }
+
+/* brief highlight when redirected to Settings to set up AI */
+.ai-flash { animation: aiFlash 1.6s ease; }
+@keyframes aiFlash { 0%, 100% { box-shadow: none; } 25%, 60% { box-shadow: 0 0 0 2px var(--orange); } }

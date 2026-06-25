@@ -639,10 +639,39 @@ async function aiLoadHighlight() {
   } catch { el.style.display = 'none'; }
 }
 
+/* Whether an AI provider is configured server-side. null = not yet checked. */
+let aiConfigured = null;
+async function aiCheckConfigured() {
+  const token = localStorage.getItem('strava_access_token');
+  if (!token) return true; // not connected → let the chat show its own message
+  try {
+    const { provider, model } = aiProviderModel();
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, provider, model, test: true }) });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.ok) { aiConfigured = true; return true; }
+    if (data.error === 'provider_not_configured' || data.error === 'not_authorized') { aiConfigured = false; return false; }
+    return true; // ambiguous (rate limit / network) → don't block
+  } catch { return true; }
+}
+
+/* Send the user to Settings to set up a provider (when AI isn't configured). */
+function aiGoSetup() {
+  closeAIModal();
+  if (typeof navScrollTo === 'function') navScrollTo('settingsSection');
+  const card = document.querySelector('#settingsSection .help-card');
+  if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.classList.add('ai-flash'); setTimeout(() => card.classList.remove('ai-flash'), 1600); }
+  const out = document.getElementById('aiTestResult');
+  if (out) { out.className = 'ai-test-result err'; out.innerHTML = 'Pick an AI provider and tap <b>Test connection</b> to set up the AI Coach.'; }
+}
+
 /* Popup open/close (global so inline onclick can call them). */
-function openAIModal() {
+async function openAIModal() {
   const m = document.getElementById('aiModal');
   if (!m) return;
+  if (aiConfigured !== true) {
+    const okConf = await aiCheckConfigured();
+    if (!okConf) { aiGoSetup(); return; }
+  }
   m.classList.add('open');
   aiLoadHighlight();
   setTimeout(() => { const i = document.getElementById('aiInput'); if (i) i.focus(); }, 60);
