@@ -640,3 +640,15 @@
 body.dev .dev-only { display: block; }
 .dev-tag { display: none; font-size: 9px; font-weight: 800; color: var(--orange); border: 1px solid rgba(252,76,2,.4); border-radius: 4px; padding: 1px 5px; vertical-align: middle; letter-spacing: .05em; text-transform: uppercase; }
 body.dev .dev-tag { display: inline-block; }
+
+/* Per-page AI insight banner */
+.ai-insight {
+  grid-column: 1 / -1; flex-basis: 100%; width: 100%; box-sizing: border-box;
+  display: flex; gap: 10px; align-items: flex-start;
+  background: linear-gradient(135deg, rgba(252,76,2,.09), rgba(252,76,2,.02));
+  border: 1px solid rgba(252,76,2,.25); border-radius: var(--radius-sm);
+  padding: 11px 14px; margin: 0 0 18px; font-size: 13px; line-height: 1.5; color: var(--text);
+}
+.ai-ins-icon { flex: 0 0 auto; font-size: 16px; line-height: 1.4; }
+.ai-ins-text { min-width: 0; }
+.ai-ins-text p { margin: 0; }

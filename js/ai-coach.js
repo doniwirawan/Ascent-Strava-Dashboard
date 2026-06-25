@@ -36,6 +36,84 @@ function aiClearChat() {
   if (log) log.innerHTML = '';
 }
 
+let aiInsightOff = false; // set true once we learn the provider isn't configured
+
+/* Read the current provider/model (from Settings selects, falling back to saved). */
+function aiProviderModel() {
+  const provider = (document.getElementById('aiProvider') || {}).value || localStorage.getItem('ai_provider') || 'deepseek';
+  const model = ((document.getElementById('aiModel') || {}).value || localStorage.getItem('ai_model') || '').trim() || undefined;
+  return { provider, model };
+}
+
+/* Verify the selected provider works (no tokens spent). Reused by the Test
+   button and auto-run when the provider/model changes, so the choice is clearly
+   saved AND confirmed working. */
+async function aiTestConnection(savedHint) {
+  const out = document.getElementById('aiTestResult');
+  const btn = document.getElementById('aiTestBtn');
+  if (!out) return;
+  const token = localStorage.getItem('strava_access_token');
+  if (!token) { out.className = 'ai-test-result err'; out.textContent = 'Connect to Strava first.'; return; }
+  const { provider, model } = aiProviderModel();
+  out.className = 'ai-test-result'; out.textContent = (savedHint ? 'Saved ✓ — ' : '') + 'checking ' + provider + '…';
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, provider, model, test: true }) });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.ok) { aiInsightOff = false; out.className = 'ai-test-result ok'; out.innerHTML = '✓ Saved — <b>' + provider + '</b> is configured and ready.'; }
+    else { out.className = 'ai-test-result err'; out.innerHTML = aiErrorMessage(data, r.status); }
+  } catch { out.className = 'ai-test-result err'; out.textContent = 'Network error — could not reach the server.'; }
+  finally { if (btn) btn.disabled = false; }
+}
+
+/* Per-section AI insight — a short, data-grounded line at the top of the page,
+   focused on what that page shows. Cached per section + data signature, so it
+   only calls the AI once per section per data change. */
+const AI_SECTION_FOCUS = {
+  statRow:         'overall training — volume, consistency and the balance across sports',
+  cyclingSection:  'cycling — distance, average and peak speed, and the fastest rides',
+  runningSection:  'running — distance and volume',
+  trendsSection:   'recent trend — the last 4 weeks versus the previous 4 weeks, plus the 6-month monthly distances',
+  monthlySection:  'the month-by-month distance pattern over the last 6 months',
+  bestSection:     'standout efforts — the fastest rides in the data',
+};
+
+async function aiSectionInsight(sectionId) {
+  const focus = AI_SECTION_FOCUS[sectionId];
+  if (!focus || aiInsightOff) return;
+  if (typeof acts === 'undefined' || !acts.length) return;
+  const sec = document.getElementById(sectionId);
+  if (!sec) return;
+
+  let el = sec.querySelector(':scope > .ai-insight');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'ai-insight';
+    const title = sec.querySelector(':scope > .section-title');
+    if (title) title.insertAdjacentElement('afterend', el); else sec.insertBefore(el, sec.firstChild);
+  }
+  const render = txt => { el.style.display = ''; el.innerHTML = '<span class="ai-ins-icon">🤖</span><div class="ai-ins-text">' + txt + '</div>'; };
+
+  const sig = aiDataSig(), key = 'ai_ins_' + sectionId;
+  try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.sig === sig && c.text) { render(aiMd(c.text)); return; } } catch {}
+
+  const token = localStorage.getItem('strava_access_token');
+  if (!token) { el.remove(); return; }
+  const { provider, model } = aiProviderModel();
+  const summary = aiSummaryCache || (aiSummaryCache = aiBuildSummary());
+  const messages = [
+    { role: 'system', content: AI_SYS + '\n\nAthlete data (JSON):\n' + JSON.stringify(summary) },
+    { role: 'user', content: 'In 1–2 short sentences (max 35 words), give one useful, specific insight focused on ' + focus + '. Use ONLY numbers present in the JSON. No headings, no preamble.' },
+  ];
+  render('<span class="ai-dots"><span></span><span></span><span></span></span>');
+  try {
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.text) { localStorage.setItem(key, JSON.stringify({ sig, text: data.text })); render(aiMd(data.text)); }
+    else { if (data.error === 'provider_not_configured' || data.error === 'not_authorized') aiInsightOff = true; el.remove(); }
+  } catch { el.remove(); }
+}
+
 /* A signature of the current activity data — changes when a new activity
    appears (or a refresh adds data), so we can cache the highlight until then. */
 function aiDataSig() {
@@ -297,15 +375,16 @@ async function aiSend(userText) {
   if (!form) return;
   const input = document.getElementById('aiInput');
 
-  // remember the chosen provider/model across visits
+  // remember the chosen provider/model across visits — and on change, save +
+  // auto-check so it's obvious the choice stuck and whether that provider works
   const prov = document.getElementById('aiProvider'), mdl = document.getElementById('aiModel');
   if (prov) {
     const saved = localStorage.getItem('ai_provider'); if (saved) prov.value = saved;
-    prov.onchange = () => localStorage.setItem('ai_provider', prov.value);
+    prov.onchange = () => { localStorage.setItem('ai_provider', prov.value); aiTestConnection(true); };
   }
   if (mdl) {
     mdl.value = localStorage.getItem('ai_model') || '';
-    mdl.onchange = () => localStorage.setItem('ai_model', mdl.value.trim());
+    mdl.onchange = () => { localStorage.setItem('ai_model', mdl.value.trim()); aiTestConnection(true); };
   }
 
   form.addEventListener('submit', e => {
@@ -322,27 +401,7 @@ async function aiSend(userText) {
 
   // Settings → Test connection (verifies key + auth without spending tokens)
   const testBtn = document.getElementById('aiTestBtn');
-  if (testBtn) {
-    testBtn.addEventListener('click', async () => {
-      const out = document.getElementById('aiTestResult');
-      const token = localStorage.getItem('strava_access_token');
-      if (!token) { out.className = 'ai-test-result err'; out.textContent = 'Connect to Strava first.'; return; }
-      const provider = (prov && prov.value) || 'deepseek';
-      const model = (mdl && mdl.value.trim()) || undefined;
-      out.className = 'ai-test-result'; out.textContent = 'Testing ' + provider + '…';
-      testBtn.disabled = true;
-      try {
-        const r = await fetch('/api/ai', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, provider, model, test: true }),
-        });
-        const data = await r.json().catch(() => ({}));
-        if (r.ok && data.ok) { out.className = 'ai-test-result ok'; out.innerHTML = '✓ ' + provider + ' is configured and ready.'; }
-        else { out.className = 'ai-test-result err'; out.innerHTML = aiErrorMessage(data, r.status); }
-      } catch { out.className = 'ai-test-result err'; out.textContent = 'Network error — could not reach the server.'; }
-      finally { testBtn.disabled = false; }
-    });
-  }
+  if (testBtn) testBtn.addEventListener('click', () => aiTestConnection(false));
 
   // restore saved conversation; close modal on backdrop click or Esc
   aiRenderHistory();

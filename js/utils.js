@@ -111,5 +111,7 @@ function navScrollTo(id, btn) {
   } catch(e){ console.error('lazy render failed:', id, e); }
   // Resize charts after section becomes visible
   setTimeout(()=>{Object.values(charts).forEach(c=>{try{if(c&&c.resize)c.resize();}catch{}});},80);
+  // AI insight for relevant sections (cached per data signature, lazy)
+  try { if (typeof aiSectionInsight === 'function') aiSectionInsight(id); } catch {}
   if (window.applyI18n) window.applyI18n();
 }
