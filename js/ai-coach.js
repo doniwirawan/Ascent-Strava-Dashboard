@@ -6,6 +6,7 @@
 const AI_SYS =
   'You are a concise, encouraging endurance-sports coach analysing ONE athlete\'s ' +
   'Strava history. Use only the numbers in the provided JSON — never invent data. ' +
+  'Always reply in English. ' +
   'Reply in short markdown (a heading or two, bullets). Stay under ~250 words unless ' +
   'asked for more. Distances are km, elevation m, durations as given, speed km/h. ' +
   'avg_kmh is average speed, max_kmh is peak/top speed — never confuse the two. ' +
@@ -20,6 +21,12 @@ function aiTagDesc(desc) {
   desc = (desc || '').trim();
   if (!desc) return desc;
   return desc.includes('AI-written · Ascent') ? desc : desc + AI_TAG;
+}
+
+/* Persist edited acts (new names/descriptions) to the local + remote cache so a
+   reload doesn't restore the old names. */
+function aiSyncCache() {
+  try { const aid = localStorage.getItem('strava_athlete_id'); if (aid && typeof cacheSave === 'function') cacheSave(acts, aid); } catch {}
 }
 
 let aiMessages = [];      // {role,content} chat turns (display + context)
@@ -168,6 +175,7 @@ async function aiCaptionActivity(id) {
   const messages = [
     { role: 'system', content:
       'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). '
+      + 'Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). '
       + (roast ? 'Be fun and witty with a light, good-natured ROAST of the effort. ' : 'Keep an upbeat, motivating tone. ')
       + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. '
       + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
@@ -205,6 +213,7 @@ async function aiCaptionApply(id) {
     await apiPut('/activities/' + id, { name: title.trim(), description: tagged });
     const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
     if (a) { a.name = title.trim(); a.description = tagged; }
+    aiSyncCache();
     const t = document.getElementById('actModalTitle'); if (t) t.textContent = title.trim();
     if (status) { status.className = 'ai-cap-status ok'; status.textContent = '✓ Updated on Strava.'; }
   } catch (e) {
@@ -265,6 +274,7 @@ async function aiBulkRewrite() {
     try {
       const messages = [
         { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). '
+          + 'Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). '
           + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ')
           + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
         { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(aiActivityData(a)) + '\n\nWrite my new title and description.' },
@@ -289,6 +299,7 @@ async function aiBulkRewrite() {
     await new Promise(res => setTimeout(res, 800)); // throttle for Strava rate limits
   }
   restore();
+  if (ok) { aiSyncCache(); if (typeof renderAll === 'function') { try { renderAll(); } catch {} } }
   status.className = 'gr-status ' + (fail && !ok ? 'err' : 'ok');
   status.textContent = (aiBulkStop ? 'Stopped. ' : 'Done. ') + 'Updated ' + ok + (fail ? ', ' + fail + ' failed' : '') + '.';
   setTimeout(() => { if (bar) bar.style.width = '0%'; }, 1500);
@@ -485,7 +496,7 @@ async function aiSectionInsight(sectionId, tries = 0) {
   const messages = [
     { role: 'system', content:
       'You are a sharp, neutral sports-data analyst. From what is shown on one dashboard page, surface ONE specific, non-obvious insight that CONNECTS multiple numbers — e.g. how speed relates to distance or elevation, a trend across weeks/months, the balance between sports, consistency, or an outlier and what it implies. '
-      + 'Do NOT just praise a single headline stat (like top speed) and do NOT use motivational filler or exclamations. Use ONLY the numbers given; never invent data or mention metrics that are not present. 1–2 plain sentences, max 40 words. No headings, no preamble.' },
+      + 'Do NOT just praise a single headline stat (like top speed) and do NOT use motivational filler or exclamations. Use ONLY the numbers given; never invent data or mention metrics that are not present. Always reply in English. 1–2 plain sentences, max 40 words. No headings, no preamble.' },
     { role: 'user', content: 'This is the "' + label + '" page. On-screen content (headings, stats and chart data):\n"""\n' + combined + '\n"""\nGive one analytical insight connecting these numbers.' },
   ];
   render('<span class="ai-dots"><span></span><span></span><span></span></span>');
