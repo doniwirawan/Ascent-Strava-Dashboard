@@ -14,6 +14,14 @@ const AI_SYS =
 /* Inline SVG used wherever the assistant is represented (no emoji). */
 const AI_ICON = '<svg class="ai-icon-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6l1.5 4.1 4.1 1.5-4.1 1.5L12 13.8l-1.5-4.1L6.4 8.2l4.1-1.5L12 2.6zM18.5 12l.85 2.35 2.35.85-2.35.85-.85 2.35-.85-2.35-2.35-.85 2.35-.85L18.5 12zM5.4 12.6l.75 2.05 2.05.75-2.05.75-.75 2.05-.75-2.05L4.6 15.4l2.05-.75L5.4 12.6z"/></svg>';
 
+/* Tag appended to AI-written Strava descriptions so they're identifiable. */
+const AI_TAG = '\n\n— AI-written · Ascent';
+function aiTagDesc(desc) {
+  desc = (desc || '').trim();
+  if (!desc) return desc;
+  return desc.includes('AI-written · Ascent') ? desc : desc + AI_TAG;
+}
+
 let aiMessages = [];      // {role,content} chat turns (display + context)
 let aiSummaryCache = null; // rebuilt whenever data reloads (see clearAISummary)
 
@@ -193,9 +201,10 @@ async function aiCaptionApply(id) {
   if (!title.trim()) { if (status) { status.className = 'ai-cap-status err'; status.textContent = 'Title cannot be empty.'; } return; }
   if (status) { status.className = 'ai-cap-status'; status.textContent = 'Updating Strava…'; }
   try {
-    await apiPut('/activities/' + id, { name: title.trim(), description: desc.trim() });
+    const tagged = aiTagDesc(desc);
+    await apiPut('/activities/' + id, { name: title.trim(), description: tagged });
     const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
-    if (a) { a.name = title.trim(); a.description = desc.trim(); }
+    if (a) { a.name = title.trim(); a.description = tagged; }
     const t = document.getElementById('actModalTitle'); if (t) t.textContent = title.trim();
     if (status) { status.className = 'ai-cap-status ok'; status.textContent = '✓ Updated on Strava.'; }
   } catch (e) {
@@ -267,8 +276,9 @@ async function aiBulkRewrite() {
         const name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100);
         const desc = lines.join('\n').trim();
         if (name) {
-          await apiPut('/activities/' + a.id, what === 'title' ? { name } : { name, description: desc });
-          a.name = name; if (what !== 'title') a.description = desc;
+          const tagged = aiTagDesc(desc);
+          await apiPut('/activities/' + a.id, what === 'title' ? { name } : { name, description: tagged });
+          a.name = name; if (what !== 'title') a.description = tagged;
           const cb = list.querySelector('.ai-bulk-cb[value="' + a.id + '"]');
           if (cb) { const row = cb.closest('.gr-row'); const nm = row.querySelector('.gr-name'); if (nm) nm.textContent = name; cb.checked = false; row.classList.add('gr-done'); }
           ok++;
