@@ -169,12 +169,15 @@ const AI_SECTION_LABEL = {
 /* Per-section computed context for pages whose data isn't readable from the DOM
    (a map, a calendar grid). Kept factual and aggregate — no place names. */
 const AI_SECTION_EXTRA = {
-  heatSection() {
+  async heatSection() {
     const mapped = acts.filter(a => a.start_latlng && a.start_latlng.length === 2);
     if (!mapped.length) return 'No GPS-mapped activities.';
     const lats = mapped.map(a => a.start_latlng[0]), lngs = mapped.map(a => a.start_latlng[1]);
+    const cLat = lats.reduce((s, v) => s + v, 0) / lats.length, cLng = lngs.reduce((s, v) => s + v, 0) / lngs.length;
     const kmSpan = Math.round(((Math.max(...lats) - Math.min(...lats)) + (Math.max(...lngs) - Math.min(...lngs))) * 111);
-    return mapped.length + ' of ' + acts.length + ' activities have GPS routes; start points span roughly ' + kmSpan + ' km, so training is ' + (kmSpan < 30 ? 'highly local' : kmSpan < 150 ? 'regional' : 'spread across distant areas') + '.';
+    const place = await aiReverseGeocode(cLat, cLng);
+    return mapped.length + ' of ' + acts.length + ' activities have GPS routes' + (place ? ', mostly around ' + place : '')
+      + '; start points span roughly ' + kmSpan + ' km, so training is ' + (kmSpan < 30 ? 'highly local' : kmSpan < 150 ? 'regional' : 'spread across distant areas') + '.';
   },
   calSection() {
     const now = Date.now(), DAY = 86400000, days = new Set();
@@ -189,6 +192,24 @@ const AI_SECTION_EXTRA = {
 };
 
 function aiHash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h.toString(36); }
+
+/* Reverse-geocode a centroid to a city/region name (cached, ~city-level zoom for
+   privacy). Returns '' on failure; '' is cached so we don't refetch repeatedly. */
+async function aiReverseGeocode(lat, lng) {
+  const key = 'ai_geo_' + lat.toFixed(2) + '_' + lng.toFixed(2);
+  const cached = localStorage.getItem(key);
+  if (cached !== null) return cached;
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&lat=' + lat + '&lon=' + lng, { headers: { Accept: 'application/json' } });
+    if (r.ok) {
+      const d = await r.json(), a = (d && d.address) || {};
+      const place = [a.city || a.town || a.village || a.county, a.state || a.country].filter(Boolean).slice(0, 2).join(', ');
+      localStorage.setItem(key, place);
+      return place;
+    }
+  } catch {}
+  return '';
+}
 
 /* Visible text of a section, excluding the insight banner itself. */
 function aiSectionText(sec) {
@@ -248,7 +269,7 @@ async function aiSectionInsight(sectionId, tries = 0) {
   const screen = aiSectionText(sec);
   const chartTxt = aiChartData(sec);
   let extra = '';
-  try { const fn = AI_SECTION_EXTRA[sectionId]; extra = fn ? fn() : ''; } catch {}
+  try { const fn = AI_SECTION_EXTRA[sectionId]; extra = fn ? await fn() : ''; } catch {}
   const combined = [screen, chartTxt && ('Chart data (label=value):\n' + chartTxt), extra].filter(Boolean).join('\n\n').trim();
 
   // Some pages (Trophies, Gear, Segments) load asynchronously — retry until ready.
