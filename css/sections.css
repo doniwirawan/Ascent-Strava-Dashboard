@@ -673,3 +673,7 @@ body.dev .dev-tag { display: inline-block; }
 .ai-settings-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .ai-chip-primary { background: var(--orange); color: #1a1200; border-color: var(--orange); }
 .ai-chip-primary:hover { filter: brightness(1.05); background: var(--orange); }
+
+/* Readable links inside help/settings cards */
+.help-card a { color: var(--orange); text-decoration: underline; text-underline-offset: 2px; font-weight: 600; }
+.help-card a:hover { filter: brightness(1.12); }
