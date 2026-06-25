@@ -4,3 +4,8 @@ dist/
 node_modules/
 .claude/
 supabase/.temp/
+# Downloaded Strava brand-asset packs (the SVGs we use are copied into images/strava/)
+1.1-Connect-with-Strava-Buttons/
+1.2-Strava-API-Logos/
+1.1-Connect-with-Strava-Buttons.zip
+1.2-Strava-API-Logos.zip

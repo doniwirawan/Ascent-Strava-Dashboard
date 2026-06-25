@@ -110,9 +110,11 @@
       <img class="lp-icon" src="/icon.png" alt="Ascent">
       <h1 data-i18n="hero.h1">Your Strava data,<br><span class="accent">beautifully unpacked.</span></h1>
       <p class="sub" data-i18n="hero.sub">Ascent turns your rides and runs into a fast, private analytics dashboard — stats, trends, heatmaps, segments, milestones — plus a studio for sharing gorgeous 9:16 activity cards.</p>
-      <a class="lp-connect js-connect" href="#">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.172"/></svg>
-        <span data-i18n="cta.connect">Connect with Strava</span>
+      <a class="lp-connect js-connect" href="#" aria-label="Connect with Strava">
+        <img class="lp-connect-img" src="/images/strava/connect-with-strava-orange.svg" alt="Connect with Strava"
+             onload="this.closest('.lp-connect').classList.add('lp-connect--official');" onerror="this.remove();">
+        <svg class="lp-connect-fallback" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.172"/></svg>
+        <span class="lp-connect-fallback" data-i18n="cta.connect">Connect with Strava</span>
       </a>
       <div class="lp-note" data-i18n="hero.note">Free · Private · No new account — sign in with your Strava</div>
       <span class="strava-badge" aria-label="Powered by Strava">
@@ -190,9 +192,11 @@
 
     <div class="lp-cta">
       <h2 data-i18n="cta.h2">Ready to see your year in motion?</h2>
-      <a class="lp-connect js-connect" href="#">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.172"/></svg>
-        <span data-i18n="cta.connect">Connect with Strava</span>
+      <a class="lp-connect js-connect" href="#" aria-label="Connect with Strava">
+        <img class="lp-connect-img" src="/images/strava/connect-with-strava-orange.svg" alt="Connect with Strava"
+             onload="this.closest('.lp-connect').classList.add('lp-connect--official');" onerror="this.remove();">
+        <svg class="lp-connect-fallback" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.172"/></svg>
+        <span class="lp-connect-fallback" data-i18n="cta.connect">Connect with Strava</span>
       </a>
     </div>
 

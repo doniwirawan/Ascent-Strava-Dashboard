@@ -43,6 +43,15 @@ body.logged-out main { display: none !important; }
 .lp-connect:hover { transform: translateY(-2px); box-shadow: 0 14px 38px rgba(252,76,2,.40); filter: brightness(1.05); }
 .lp-connect:active { transform: translateY(0); }
 .lp-connect svg { width: 20px; height: 20px; fill: currentColor; }
+
+/* Official "Connect with Strava" button: shown only once the official image
+   in images/strava/ loads, in which case the button's own chrome is dropped
+   (the image IS the button). Otherwise the styled fallback below stays. */
+.lp-connect-img { display: none; height: 48px; width: auto; }
+.lp-connect--official { background: none; box-shadow: none; padding: 0; border-radius: 0; }
+.lp-connect--official:hover { box-shadow: none; filter: brightness(1.04); }
+.lp-connect--official .lp-connect-img { display: inline-block; }
+.lp-connect--official .lp-connect-fallback { display: none; }
 .lp-note { margin-top: 14px; font-size: 12px; color: var(--muted); }
 
 /* ── "Powered by Strava" attribution (Strava brand requirement) ──

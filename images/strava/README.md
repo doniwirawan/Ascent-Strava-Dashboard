@@ -4,43 +4,44 @@ Strava's brand guidelines **forbid recreating their logos** ("Never modify,
 alter or animate Strava logos"). To be fully brand-compliant you must use
 Strava's official files, not a homemade version.
 
-The app references one file from this folder:
+The app references two files from this folder:
 
 ```
-images/strava/powered-by-strava-orange.svg
+images/strava/powered-by-strava-orange.svg   ← IN PLACE (official horiz orange)
+images/strava/connect-with-strava-orange.svg ← not added yet (see below)
 ```
 
-Until that file exists, the landing page and dashboard fall back to a
-brand-coloured text badge ("Powered by **Strava**") so nothing looks broken —
-but that fallback is **not** brand-compliant for submission.
+If either file is missing, the app falls back to a brand-coloured text badge /
+styled button so nothing looks broken — but those fallbacks are **not**
+brand-compliant for submission. The "Powered by Strava" logo above is the
+official file copied from `1.2-Strava-API-Logos`, so it is compliant.
 
-## How to add the official logo (2 minutes)
+The logo source is the official pack:
+https://developers.strava.com/downloads/1.2-Strava-API-Logos.zip
+(`Powered by Strava/pwrdBy_strava_orange/api_logo_pwrdBy_strava_horiz_orange.svg`).
+To switch to the white version on a darker background, copy
+`api_logo_pwrdBy_strava_horiz_white.svg` over `powered-by-strava-orange.svg`.
 
-1. Download the official logo pack:
-   https://developers.strava.com/downloads/1.2-Strava-API-Logos.zip
-2. Unzip it and pick the **horizontal "Powered by Strava"** logo in **orange**
-   (it sits well on this app's dark UI). The white version works too if you
-   ever switch to a light background.
-3. Save/rename it to exactly:
-   `images/strava/powered-by-strava-orange.svg`
-4. Run `node build.js` and redeploy. The official logo now shows everywhere
-   the badge appears (landing hero, landing footer, dashboard footer) and the
-   text fallback disappears automatically.
+## Official "Connect with Strava" button (last step)
 
-## Optional: official "Connect with Strava" button
+The hero/CTA "Connect with Strava" buttons are wired the same drop-in way but
+their official file isn't added yet, so they show the styled fallback. To make
+them compliant:
 
-The hero/CTA "Connect with Strava" buttons are currently a styled
-approximation. For strict compliance, download the official buttons:
-https://developers.strava.com/downloads/1.1-Connect-with-Strava-Buttons.zip
-and swap them in. (Not wired up yet — ask if you want this done.)
+1. Download → https://developers.strava.com/downloads/1.1-Connect-with-Strava-Buttons.zip
+2. Pick the **orange** "Connect with Strava" button SVG.
+3. Save it as exactly:
+   `images/strava/connect-with-strava-orange.svg`
+4. Run `node build.js` and redeploy. The official button replaces the fallback
+   automatically (its own chrome is dropped — the image *is* the button).
 
 ## Compliance checklist (per Strava's guidelines)
 
 - [x] "Powered by Strava" logo on every view showing Strava data
-      (landing + dashboard) — wired up; drop in the official file above.
-- [x] "View on Strava" / "Open on Strava" links on activities & segments.
+      (landing hero + landing footer + dashboard footer).
+- [x] "View on Strava" links on activities & segments.
 - [x] Disclaimer of non-affiliation with Strava, Inc.
-- [ ] Replace the text fallback with the official logo SVG (this folder).
-- [ ] (Optional) Official "Connect with Strava" button image.
+- [x] Official "Powered by Strava" logo SVG in place (this folder).
+- [ ] Official "Connect with Strava" button image (see above).
 
 Reference: https://developers.strava.com/guidelines/
