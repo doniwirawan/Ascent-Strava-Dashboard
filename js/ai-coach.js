@@ -11,6 +11,9 @@ const AI_SYS =
   'avg_kmh is average speed, max_kmh is peak/top speed — never confuse the two. ' +
   '`fastest_rides_all_time` covers the ENTIRE history; `recent` is only the latest activities.';
 
+/* Inline SVG used wherever the assistant is represented (no emoji). */
+const AI_ICON = '<svg class="ai-icon-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6l1.5 4.1 4.1 1.5-4.1 1.5L12 13.8l-1.5-4.1L6.4 8.2l4.1-1.5L12 2.6zM18.5 12l.85 2.35 2.35.85-2.35.85-.85 2.35-.85-2.35-2.35-.85 2.35-.85L18.5 12zM5.4 12.6l.75 2.05 2.05.75-2.05.75-.75 2.05-.75-2.05L4.6 15.4l2.05-.75L5.4 12.6z"/></svg>';
+
 let aiMessages = [];      // {role,content} chat turns (display + context)
 let aiSummaryCache = null; // rebuilt whenever data reloads (see clearAISummary)
 
@@ -99,7 +102,7 @@ function aiDeleteChat(id) {
 function aiToggleHistory() {
   const h = document.getElementById('aiHistory');
   if (!h) return;
-  const open = h.style.display === 'none' || !h.style.display;
+  const open = h.style.display === 'none'; // currently hidden → we're opening it
   const others = [
     document.getElementById('aiLog'), document.getElementById('aiGoal'), document.getElementById('aiHighlight'),
     document.querySelector('#aiModal .ai-form'), document.querySelector('#aiModal .ai-quick'),
@@ -158,7 +161,31 @@ const AI_SECTION_LABEL = {
   bestSection:       'Best Efforts',
   milestonesSection: 'Milestones',
   rewindSection:     'Rewind',
-  challengesSection: 'Trophies',
+  challengesSection: 'Trophies — all-time, year-to-date and last-4-week training totals (these are training stats, NOT KOM/segment awards)',
+  calSection:        'Calendar — activity frequency and consistency',
+  heatSection:       'Heatmap — where you train (geographic spread of routes)',
+};
+
+/* Per-section computed context for pages whose data isn't readable from the DOM
+   (a map, a calendar grid). Kept factual and aggregate — no place names. */
+const AI_SECTION_EXTRA = {
+  heatSection() {
+    const mapped = acts.filter(a => a.start_latlng && a.start_latlng.length === 2);
+    if (!mapped.length) return 'No GPS-mapped activities.';
+    const lats = mapped.map(a => a.start_latlng[0]), lngs = mapped.map(a => a.start_latlng[1]);
+    const kmSpan = Math.round(((Math.max(...lats) - Math.min(...lats)) + (Math.max(...lngs) - Math.min(...lngs))) * 111);
+    return mapped.length + ' of ' + acts.length + ' activities have GPS routes; start points span roughly ' + kmSpan + ' km, so training is ' + (kmSpan < 30 ? 'highly local' : kmSpan < 150 ? 'regional' : 'spread across distant areas') + '.';
+  },
+  calSection() {
+    const now = Date.now(), DAY = 86400000, days = new Set();
+    let d30 = 0, d90 = 0;
+    acts.forEach(a => {
+      if (a.start_date) days.add(a.start_date.slice(0, 10));
+      const age = (now - new Date(a.start_date).getTime()) / DAY;
+      if (age <= 30) d30++; if (age <= 90) d90++;
+    });
+    return acts.length + ' activities across ' + days.size + ' distinct days. Last 30 days: ' + d30 + ' activities; last 90 days: ' + d90 + '.';
+  },
 };
 
 function aiHash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h.toString(36); }
@@ -172,6 +199,32 @@ function aiSectionText(sec) {
     if (t) parts.push(t);
   });
   return parts.join('\n').replace(/[ \t]{2,}/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, 1800);
+}
+
+/* Data behind the charts on a page (Chart.js draws numbers into <canvas>, so
+   they're invisible to text scraping). Reads each chart's labels + series. */
+function aiChartData(sec) {
+  if (typeof charts === 'undefined' || !charts) return '';
+  const out = [];
+  sec.querySelectorAll('canvas').forEach(cv => {
+    const ch = charts[cv.id];
+    if (!ch || !ch.data || !ch.data.datasets) return;
+    let title = '', p = cv.parentElement, hops = 0;
+    while (p && p !== sec && hops < 4 && !title) {
+      const head = p.querySelector('[class*="title" i], h2, h3, h4');
+      if (head && head.innerText) title = head.innerText.trim().split('\n')[0];
+      p = p.parentElement; hops++;
+    }
+    const labels = ch.data.labels || [];
+    ch.data.datasets.forEach(ds => {
+      const vals = (ds.data || []).map((v, i) => {
+        const num = (v && typeof v === 'object') ? (v.y != null ? v.y : (v.r != null ? v.r : '')) : v;
+        return (labels[i] != null ? labels[i] : i) + '=' + num;
+      });
+      if (vals.length) out.push((title || ds.label || 'series') + (title && ds.label ? ' / ' + ds.label : '') + ': ' + vals.join(', '));
+    });
+  });
+  return out.join('\n').slice(0, 2600);
 }
 
 async function aiSectionInsight(sectionId, tries = 0) {
@@ -188,25 +241,33 @@ async function aiSectionInsight(sectionId, tries = 0) {
     const title = sec.querySelector(':scope > .section-title');
     if (title) title.insertAdjacentElement('afterend', el); else sec.insertBefore(el, sec.firstChild);
   }
-  const render = txt => { el.style.display = ''; el.innerHTML = '<span class="ai-ins-icon">🤖</span><div class="ai-ins-text">' + txt + '</div>'; };
+  const render = txt => { el.style.display = ''; el.innerHTML = '<span class="ai-ins-icon">' + AI_ICON + '</span><div class="ai-ins-text">' + txt + '</div>'; };
 
-  // read what's actually on screen now. Some pages (Trophies, Gear, Segments)
-  // load their data asynchronously, so retry until the content has rendered.
+  // Build context from what's on the page: visible text + chart data + any
+  // per-section computed extras (for map/calendar pages with no on-screen text).
   const screen = aiSectionText(sec);
-  if (!screen || screen.length < 30) {
+  const chartTxt = aiChartData(sec);
+  let extra = '';
+  try { const fn = AI_SECTION_EXTRA[sectionId]; extra = fn ? fn() : ''; } catch {}
+  const combined = [screen, chartTxt && ('Chart data (label=value):\n' + chartTxt), extra].filter(Boolean).join('\n\n').trim();
+
+  // Some pages (Trophies, Gear, Segments) load asynchronously — retry until ready.
+  if (combined.length < 30) {
     if (tries < 8) { render('<span class="ai-dots"><span></span><span></span><span></span></span>'); setTimeout(() => aiSectionInsight(sectionId, tries + 1), 500); }
     else el.remove();
     return;
   }
-  const key = 'ai_ins_' + sectionId, sig = aiHash(screen); // changes if displayed numbers/units change
+  const key = 'ai_ins_' + sectionId, sig = aiHash(combined); // changes if displayed numbers/units change
   try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.sig === sig && c.text) { render(aiMd(c.text)); return; } } catch {}
 
   const token = localStorage.getItem('strava_access_token');
   if (!token) { el.remove(); return; }
   const { provider, model } = aiProviderModel();
   const messages = [
-    { role: 'system', content: 'You are a concise sports-analytics assistant. You are shown exactly what is currently displayed on one page of a Strava dashboard. Give ONE short, specific, encouraging insight (1–2 sentences, max 35 words) based ONLY on those on-screen numbers. Never invent data. No headings, no preamble.' },
-    { role: 'user', content: 'This is the "' + label + '" page. On-screen content:\n"""\n' + screen + '\n"""\nGive one insight about what is shown here.' },
+    { role: 'system', content:
+      'You are a sharp, neutral sports-data analyst. From what is shown on one dashboard page, surface ONE specific, non-obvious insight that CONNECTS multiple numbers — e.g. how speed relates to distance or elevation, a trend across weeks/months, the balance between sports, consistency, or an outlier and what it implies. '
+      + 'Do NOT just praise a single headline stat (like top speed) and do NOT use motivational filler or exclamations. Use ONLY the numbers given; never invent data or mention metrics that are not present. 1–2 plain sentences, max 40 words. No headings, no preamble.' },
+    { role: 'user', content: 'This is the "' + label + '" page. On-screen content (headings, stats and chart data):\n"""\n' + combined + '\n"""\nGive one analytical insight connecting these numbers.' },
   ];
   render('<span class="ai-dots"><span></span><span></span><span></span></span>');
   try {
@@ -232,7 +293,7 @@ async function aiLoadHighlight() {
   if (!el) return;
   if (typeof acts === 'undefined' || !acts.length) { el.style.display = 'none'; return; }
   const sig = aiDataSig();
-  const show = inner => { el.style.display = ''; el.innerHTML = '<div class="ai-hl-label">✨ Highlight</div><div class="ai-hl-body">' + inner + '</div>'; };
+  const show = inner => { el.style.display = ''; el.innerHTML = '<div class="ai-hl-label">' + AI_ICON + ' Highlight</div><div class="ai-hl-body">' + inner + '</div>'; };
 
   // serve cached highlight unless new data has arrived
   if (localStorage.getItem('ai_highlight_sig') === sig) {
@@ -391,7 +452,7 @@ function aiAppend(role, html, cls) {
   if (role === 'bot') {
     const av = document.createElement('div');
     av.className = 'ai-avatar';
-    av.textContent = '🤖';
+    av.innerHTML = AI_ICON;
     row.appendChild(av);
   }
   const div = document.createElement('div');
@@ -502,7 +563,14 @@ async function aiSend(userText) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
   });
 
-  // Settings → Test connection (verifies key + auth without spending tokens)
+  // Settings → Save (persist choice) and Test connection (token-free check)
+  const saveBtn = document.getElementById('aiSaveBtn');
+  if (saveBtn) saveBtn.addEventListener('click', () => {
+    if (prov) localStorage.setItem('ai_provider', prov.value);
+    if (mdl) localStorage.setItem('ai_model', mdl.value.trim());
+    const out = document.getElementById('aiTestResult');
+    if (out) { out.className = 'ai-test-result ok'; out.innerHTML = 'Saved ✓ — <b>' + (prov ? prov.value : 'provider') + '</b> selected. Tap “Test connection” to verify it works.'; }
+  });
   const testBtn = document.getElementById('aiTestBtn');
   if (testBtn) testBtn.addEventListener('click', () => aiTestConnection(false));
 

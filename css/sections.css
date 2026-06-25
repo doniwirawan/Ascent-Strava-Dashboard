@@ -664,3 +664,12 @@ body.dev .dev-tag { display: inline-block; }
 .ai-hist-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .ai-hist-del { flex: 0 0 auto; background: transparent; border: none; color: var(--muted); font-size: 14px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
 .ai-hist-del:hover { color: #f87171; background: rgba(248,113,113,.1); }
+
+/* AI assistant SVG icon (replaces emoji) */
+.ai-icon-svg { width: 15px; height: 15px; display: inline-block; vertical-align: middle; color: var(--orange); }
+.ai-avatar .ai-icon-svg { width: 16px; height: 16px; }
+.ai-hl-label .ai-icon-svg { vertical-align: -2px; margin-right: 2px; }
+/* Settings provider actions */
+.ai-settings-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ai-chip-primary { background: var(--orange); color: #1a1200; border-color: var(--orange); }
+.ai-chip-primary:hover { filter: brightness(1.05); background: var(--orange); }
