@@ -29,11 +29,90 @@ function aiRenderHistory() {
   aiMessages.forEach(m => aiAppend(m.role === 'user' ? 'user' : 'bot', aiMd(m.content)));
 }
 
+/* Saved past conversations (the chat log). SAFE: only Q&A text, no secrets. */
+function aiLoadChats() { try { const a = JSON.parse(localStorage.getItem('ai_chats') || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } }
+function aiSaveChats(a) { try { localStorage.setItem('ai_chats', JSON.stringify(a.slice(0, 40))); } catch {} }
+
+/* Archive the current conversation into the chat log (if it has any messages). */
+function aiArchiveCurrent() {
+  if (!aiMessages.length) return;
+  const firstUser = aiMessages.find(m => m.role === 'user');
+  const title = (firstUser ? firstUser.content : 'Conversation').replace(/\s+/g, ' ').trim().slice(0, 60);
+  const chats = aiLoadChats();
+  chats.unshift({ id: Date.now(), ts: Date.now(), title, messages: aiMessages.slice() });
+  aiSaveChats(chats);
+}
+
+/* "New chat" — archive the current conversation, then start fresh (not lost). */
 function aiClearChat() {
+  aiArchiveCurrent();
   aiMessages = [];
   aiPersist();
   const log = document.getElementById('aiLog');
   if (log) log.innerHTML = '';
+  const h = document.getElementById('aiHistory');
+  if (h && h.style.display !== 'none') aiToggleHistory(); // back to chat view
+}
+
+function aiTimeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60); if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
+  const d = Math.floor(h / 24); if (d < 7) return d + 'd ago';
+  return new Date(ts).toLocaleDateString();
+}
+
+function aiRenderChatList() {
+  const wrap = document.getElementById('aiHistory');
+  if (!wrap) return;
+  const chats = aiLoadChats();
+  if (!chats.length) { wrap.innerHTML = '<div class="ai-hist-empty">No saved conversations yet. Your chats are saved here when you start a new one.</div>'; return; }
+  wrap.innerHTML = '<div class="ai-hist-title">Past conversations</div>' + chats.map(c =>
+    '<div class="ai-hist-row" onclick="aiOpenChat(' + c.id + ')">'
+    + '<div class="ai-hist-info"><div class="ai-hist-name">' + (c.title || 'Conversation').replace(/</g, '&lt;') + '</div>'
+    + '<div class="ai-hist-meta">' + aiTimeAgo(c.ts) + ' · ' + Math.ceil(c.messages.length / 2) + ' messages</div></div>'
+    + '<button class="ai-hist-del" title="Delete" onclick="event.stopPropagation();aiDeleteChat(' + c.id + ')">✕</button></div>'
+  ).join('');
+}
+
+function aiOpenChat(id) {
+  const chats = aiLoadChats();
+  const idx = chats.findIndex(c => c.id === id);
+  if (idx < 0) return;
+  aiArchiveCurrent();                    // keep the current chat too
+  const chat = chats.splice(idx, 1)[0];  // becomes the active one
+  aiSaveChats(chats);
+  aiMessages = (chat.messages || []).slice();
+  aiPersist();
+  aiRenderHistory();                     // render into the log
+  if (document.getElementById('aiHistory').style.display !== 'none') aiToggleHistory();
+}
+
+function aiDeleteChat(id) {
+  aiSaveChats(aiLoadChats().filter(c => c.id !== id));
+  aiRenderChatList();
+}
+
+/* Toggle the history panel (hides the chat composer/log while browsing, then
+   restores exactly what was visible before). */
+function aiToggleHistory() {
+  const h = document.getElementById('aiHistory');
+  if (!h) return;
+  const open = h.style.display === 'none' || !h.style.display;
+  const others = [
+    document.getElementById('aiLog'), document.getElementById('aiGoal'), document.getElementById('aiHighlight'),
+    document.querySelector('#aiModal .ai-form'), document.querySelector('#aiModal .ai-quick'),
+  ].filter(Boolean);
+  if (open) {
+    aiRenderChatList();
+    others.forEach(e => { if (e.style.display !== 'none') e.dataset.histHidden = '1'; e.style.display = 'none'; });
+    h.style.display = '';
+  } else {
+    h.style.display = 'none';
+    others.forEach(e => { if (e.dataset.histHidden) { delete e.dataset.histHidden; e.style.display = ''; } });
+  }
+  const hb = document.getElementById('aiHistBtn'); if (hb) hb.textContent = open ? 'Back' : 'History';
 }
 
 let aiInsightOff = false; // set true once we learn the provider isn't configured
@@ -66,21 +145,38 @@ async function aiTestConnection(savedHint) {
   finally { if (btn) btn.disabled = false; }
 }
 
-/* Per-section AI insight — a short, data-grounded line at the top of the page,
-   focused on what that page shows. Cached per section + data signature, so it
-   only calls the AI once per section per data change. */
-const AI_SECTION_FOCUS = {
-  statRow:         'overall training — volume, consistency and the balance across sports',
-  cyclingSection:  'cycling — distance, average and peak speed, and the fastest rides',
-  runningSection:  'running — distance and volume',
-  trendsSection:   'recent trend — the last 4 weeks versus the previous 4 weeks, plus the 6-month monthly distances',
-  monthlySection:  'the month-by-month distance pattern over the last 6 months',
-  bestSection:     'standout efforts — the fastest rides in the data',
+/* Per-section AI insight — analyses exactly what is RENDERED ON THE PAGE (the
+   actual stat cards / tables / numbers the user sees, in their chosen units),
+   not the global summary. Cached per section by a hash of the on-screen text,
+   so it only calls the AI when what's shown actually changes. */
+const AI_SECTION_LABEL = {
+  statRow:           'Overview',
+  cyclingSection:    'Cycling',
+  runningSection:    'Running',
+  trendsSection:     'Trends',
+  monthlySection:    'Monthly',
+  bestSection:       'Best Efforts',
+  milestonesSection: 'Milestones',
+  rewindSection:     'Rewind',
+  challengesSection: 'Trophies',
 };
 
-async function aiSectionInsight(sectionId) {
-  const focus = AI_SECTION_FOCUS[sectionId];
-  if (!focus || aiInsightOff) return;
+function aiHash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h.toString(36); }
+
+/* Visible text of a section, excluding the insight banner itself. */
+function aiSectionText(sec) {
+  const parts = [];
+  sec.childNodes.forEach(n => {
+    if (n.nodeType === 1 && n.classList && n.classList.contains('ai-insight')) return;
+    const t = (n.innerText || n.textContent || '').trim();
+    if (t) parts.push(t);
+  });
+  return parts.join('\n').replace(/[ \t]{2,}/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, 1800);
+}
+
+async function aiSectionInsight(sectionId, tries = 0) {
+  const label = AI_SECTION_LABEL[sectionId];
+  if (!label || aiInsightOff) return;
   if (typeof acts === 'undefined' || !acts.length) return;
   const sec = document.getElementById(sectionId);
   if (!sec) return;
@@ -94,16 +190,23 @@ async function aiSectionInsight(sectionId) {
   }
   const render = txt => { el.style.display = ''; el.innerHTML = '<span class="ai-ins-icon">🤖</span><div class="ai-ins-text">' + txt + '</div>'; };
 
-  const sig = aiDataSig(), key = 'ai_ins_' + sectionId;
+  // read what's actually on screen now. Some pages (Trophies, Gear, Segments)
+  // load their data asynchronously, so retry until the content has rendered.
+  const screen = aiSectionText(sec);
+  if (!screen || screen.length < 30) {
+    if (tries < 8) { render('<span class="ai-dots"><span></span><span></span><span></span></span>'); setTimeout(() => aiSectionInsight(sectionId, tries + 1), 500); }
+    else el.remove();
+    return;
+  }
+  const key = 'ai_ins_' + sectionId, sig = aiHash(screen); // changes if displayed numbers/units change
   try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.sig === sig && c.text) { render(aiMd(c.text)); return; } } catch {}
 
   const token = localStorage.getItem('strava_access_token');
   if (!token) { el.remove(); return; }
   const { provider, model } = aiProviderModel();
-  const summary = aiSummaryCache || (aiSummaryCache = aiBuildSummary());
   const messages = [
-    { role: 'system', content: AI_SYS + '\n\nAthlete data (JSON):\n' + JSON.stringify(summary) },
-    { role: 'user', content: 'In 1–2 short sentences (max 35 words), give one useful, specific insight focused on ' + focus + '. Use ONLY numbers present in the JSON. No headings, no preamble.' },
+    { role: 'system', content: 'You are a concise sports-analytics assistant. You are shown exactly what is currently displayed on one page of a Strava dashboard. Give ONE short, specific, encouraging insight (1–2 sentences, max 35 words) based ONLY on those on-screen numbers. Never invent data. No headings, no preamble.' },
+    { role: 'user', content: 'This is the "' + label + '" page. On-screen content:\n"""\n' + screen + '\n"""\nGive one insight about what is shown here.' },
   ];
   render('<span class="ai-dots"><span></span><span></span><span></span></span>');
   try {

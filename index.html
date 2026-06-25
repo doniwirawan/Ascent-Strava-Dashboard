@@ -809,7 +809,8 @@
   <div class="modal ai-modal">
     <div class="modal-header">
       <div class="modal-title">🤖 AI Coach</div>
-      <button class="ai-clear-btn" id="aiClearBtn" onclick="aiClearChat()" title="Start a new conversation">New chat</button>
+      <button class="ai-clear-btn" id="aiHistBtn" onclick="aiToggleHistory()" title="Past conversations">History</button>
+      <button class="ai-clear-btn" id="aiClearBtn" onclick="aiClearChat()" title="Save this chat and start a new one">New chat</button>
       <button class="modal-close" id="aiModalClose" onclick="closeAIModal()">✕</button>
     </div>
     <div class="ai-modal-body">
@@ -821,6 +822,7 @@
         <button class="ai-chip" data-ai-prompt="__goal__">Goal check</button>
       </div>
       <input id="aiGoal" class="ai-goal" type="text" placeholder="Optional goal for 'Goal check' — e.g. ride 1,000 km this year" />
+      <div id="aiHistory" class="ai-history" style="display:none"></div>
       <div id="aiLog" class="ai-log"></div>
       <form id="aiForm" class="ai-form">
         <textarea id="aiInput" class="ai-input" rows="1" placeholder="Ask anything about your data…"></textarea>
