@@ -75,19 +75,41 @@ function aiBuildSummary() {
   };
 }
 
-/* Tiny markdown → HTML (headings, bold, bullets, numbered, paragraphs). */
+/* Tiny markdown → HTML (headings, bold, bullets, numbered, tables, paragraphs). */
 function aiMd(s) {
   const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const lines = esc(s).split('\n');
+  const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  const cells = l => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+  const isDelim = l => /^\s*\|?(\s*:?-{2,}:?\s*\|)+\s*:?-{2,}:?\s*\|?\s*$/.test(l) || /^\s*\|(\s*:?-+:?\s*\|)+\s*$/.test(l);
+
+  const lines = s.split('\n');
   let html = '', inUl = false, inOl = false;
   const closeLists = () => { if (inUl) { html += '</ul>'; inUl = false; } if (inOl) { html += '</ol>'; inOl = false; } };
-  for (let ln of lines) {
-    ln = ln.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  for (let i = 0; i < lines.length; i++) {
+    let ln = lines[i];
+
+    // GitHub-style table: header row + delimiter row + body rows
+    if (ln.includes('|') && i + 1 < lines.length && isDelim(lines[i + 1])) {
+      closeLists();
+      const head = cells(ln);
+      const body = [];
+      let j = i + 2;
+      while (j < lines.length && lines[j].includes('|') && lines[j].trim()) { body.push(cells(lines[j])); j++; }
+      html += '<div class="ai-tablewrap"><table class="ai-table"><thead><tr>'
+        + head.map(h => '<th>' + inline(h) + '</th>').join('')
+        + '</tr></thead><tbody>'
+        + body.map(r => '<tr>' + head.map((_, c) => '<td>' + inline(r[c] || '') + '</td>').join('') + '</tr>').join('')
+        + '</tbody></table></div>';
+      i = j - 1;
+      continue;
+    }
+
     let m;
-    if ((m = ln.match(/^#{1,6}\s+(.*)/))) { closeLists(); html += `<h4>${m[1]}</h4>`; }
-    else if ((m = ln.match(/^\s*[-*]\s+(.*)/))) { if (inOl) { html += '</ol>'; inOl = false; } if (!inUl) { html += '<ul>'; inUl = true; } html += `<li>${m[1]}</li>`; }
-    else if ((m = ln.match(/^\s*\d+\.\s+(.*)/))) { if (inUl) { html += '</ul>'; inUl = false; } if (!inOl) { html += '<ol>'; inOl = true; } html += `<li>${m[1]}</li>`; }
-    else if (ln.trim()) { closeLists(); html += `<p>${ln}</p>`; }
+    if ((m = ln.match(/^#{1,6}\s+(.*)/))) { closeLists(); html += `<h4>${inline(m[1])}</h4>`; }
+    else if ((m = ln.match(/^\s*[-*]\s+(.*)/))) { if (inOl) { html += '</ol>'; inOl = false; } if (!inUl) { html += '<ul>'; inUl = true; } html += `<li>${inline(m[1])}</li>`; }
+    else if ((m = ln.match(/^\s*\d+\.\s+(.*)/))) { if (inUl) { html += '</ul>'; inUl = false; } if (!inOl) { html += '<ol>'; inOl = true; } html += `<li>${inline(m[1])}</li>`; }
+    else if (ln.trim()) { closeLists(); html += `<p>${inline(ln)}</p>`; }
     else closeLists();
   }
   closeLists();

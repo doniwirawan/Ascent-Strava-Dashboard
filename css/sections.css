@@ -607,3 +607,12 @@
 .ai-test-result.ok { color: #4ade80; font-weight: 600; }
 .ai-test-result.err { color: #fca5a5; }
 .ai-keynotice { border-left: 3px solid var(--orange); }
+
+/* AI chat: pretty tables */
+.ai-tablewrap { overflow-x: auto; margin: 8px 0; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.ai-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ai-table th, .ai-table td { padding: 8px 12px; text-align: left; white-space: nowrap; }
+.ai-table thead th { background: var(--surface); color: var(--orange); font-weight: 700; border-bottom: 1px solid var(--border); }
+.ai-table tbody tr { border-top: 1px solid var(--border); }
+.ai-table tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+.ai-table code { background: rgba(255,255,255,.06); padding: 1px 5px; border-radius: 4px; }
