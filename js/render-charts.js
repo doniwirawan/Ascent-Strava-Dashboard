@@ -382,6 +382,7 @@ function openActivityModal(ref){
     <div class="actd-grid">${stats}</div>
     ${a.id ? `<div class="actd-actions">
       <button class="btn actd-ai-btn" type="button" onclick="aiCaptionActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} AI title &amp; description</button>
+      <button class="btn actd-stats-btn" type="button" onclick="aiStatsCaption('${a.id}')">Stats title &amp; description</button>
       <a class="btn btn-primary actd-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener">View on Strava ↗</a>
     </div>
     <div id="actAiPanel" class="ai-cap-panel"></div>` : ''}

@@ -238,17 +238,60 @@ async function aiCaptionActivity(id) {
     const lines = data.text.trim().split('\n');
     const title = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '');
     const desc = lines.join('\n').replace(/^\s+/, '').trim();
-    const esc = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    panel.innerHTML =
-      '<div class="ai-cap-field"><label>Title</label><input id="aiCapTitle" class="ai-cap-input" maxlength="100" value="' + esc(title) + '"></div>'
-      + '<div class="ai-cap-field"><label>Description</label><textarea id="aiCapDesc" class="ai-cap-input" rows="5">' + esc(desc) + '</textarea></div>'
-      + '<label class="ai-cap-roast"><input type="checkbox" id="aiCapRoast"' + (roast ? ' checked' : '') + '> add roast</label>'
-      + '<div class="ai-cap-actions">'
-      + '<button class="btn btn-primary" type="button" onclick="aiCaptionApply(\'' + id + '\')">Apply to Strava</button>'
-      + '<button class="btn" type="button" onclick="aiCaptionActivity(\'' + id + '\')">Regenerate</button>'
-      + '<button class="btn" type="button" onclick="document.getElementById(\'actAiPanel\').innerHTML=\'\'">Cancel</button></div>'
-      + '<div id="aiCapStatus" class="ai-cap-status"></div>';
+    aiShowCaptionPreview(id, title, desc, 'ai', roast);
   } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error — try again.</div>'; }
+}
+
+/* Shared editable preview used by both the AI and the stats (no-AI) buttons. */
+function aiShowCaptionPreview(id, title, desc, source, roast) {
+  const panel = document.getElementById('actAiPanel');
+  if (!panel) return;
+  panel.dataset.aiSource = source;
+  const esc = s => (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  const regen = source === 'stats' ? "aiStatsCaption('" + id + "')" : "aiCaptionActivity('" + id + "')";
+  panel.innerHTML =
+    '<div class="ai-cap-field"><label>Title</label><input id="aiCapTitle" class="ai-cap-input" maxlength="100" value="' + esc(title) + '"></div>'
+    + '<div class="ai-cap-field"><label>Description</label><textarea id="aiCapDesc" class="ai-cap-input" rows="6">' + esc(desc) + '</textarea></div>'
+    + (source === 'ai' ? '<label class="ai-cap-roast"><input type="checkbox" id="aiCapRoast"' + (roast ? ' checked' : '') + '> add roast</label>' : '')
+    + '<div class="ai-cap-actions">'
+    + '<button class="btn btn-primary" type="button" onclick="aiCaptionApply(\'' + id + '\')">Apply to Strava</button>'
+    + '<button class="btn" type="button" onclick="' + regen + '">Regenerate</button>'
+    + '<button class="btn" type="button" onclick="document.getElementById(\'actAiPanel\').innerHTML=\'\'">Cancel</button></div>'
+    + '<div id="aiCapStatus" class="ai-cap-status"></div>';
+}
+
+/* Build a title + stats description purely from the numbers — no AI, no cost. */
+function aiStatsTemplate(a, wx) {
+  const ride = isRide(a);
+  const when = a.start_date_local || a.start_date || '';
+  const h = parseInt(when.slice(11, 13) || '0', 10) || 0;
+  const tod = h < 11 ? 'Morning' : h < 15 ? 'Afternoon' : h < 19 ? 'Evening' : 'Night';
+  const typeLabel = String(a.sport_type || a.type || 'Activity').replace(/([a-z])([A-Z])/g, '$1 $2');
+  const title = (tod + ' ' + typeLabel + ' · ' + fmtD(a.distance) + (a.total_elevation_gain > 100 ? ' · ' + fmtElev(a.total_elevation_gain) : '')).slice(0, 100);
+
+  const L = ['Distance: ' + fmtD(a.distance)];
+  if (a.moving_time) L.push('Time: ' + fmtT(a.moving_time));
+  if (a.total_elevation_gain) L.push('Elevation: ' + fmtElev(a.total_elevation_gain));
+  if (a.average_speed) L.push(ride ? 'Avg speed: ' + fmtSpeed(a.average_speed) : 'Avg pace: ' + fmtPace(a.average_speed));
+  if (a.max_speed && ride) L.push('Max speed: ' + fmtSpeed(a.max_speed));
+  if (a.average_heartrate) L.push('Avg HR: ' + Math.round(a.average_heartrate) + ' bpm');
+  if (a.average_watts) L.push('Avg power: ' + Math.round(a.average_watts) + ' W');
+  if (a.kilojoules) L.push('Energy: ' + Math.round(a.kilojoules).toLocaleString() + ' kJ');
+  if (wx && (wx.temp_c != null || wx.condition)) {
+    L.push('Weather: ' + [wx.temp_c != null ? wx.temp_c + '°C' : '', wx.condition || ''].filter(Boolean).join(', ')
+      + (wx.wind_kmh ? ', wind ' + wx.wind_kmh + ' km/h' : ''));
+  }
+  return { title, desc: L.join('\n') };
+}
+
+async function aiStatsCaption(id) {
+  const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
+  const panel = document.getElementById('actAiPanel');
+  if (!a || !panel) return;
+  panel.innerHTML = '<div class="ai-cap-loading"><span class="ai-dots"><span></span><span></span><span></span></span> Building from stats…</div>';
+  let wx = null; try { wx = await aiWeather(a); } catch {}
+  const { title, desc } = aiStatsTemplate(a, wx);
+  aiShowCaptionPreview(id, title, desc, 'stats');
 }
 
 async function aiCaptionApply(id) {
@@ -258,7 +301,8 @@ async function aiCaptionApply(id) {
   if (!title.trim()) { if (status) { status.className = 'ai-cap-status err'; status.textContent = 'Title cannot be empty.'; } return; }
   if (status) { status.className = 'ai-cap-status'; status.textContent = 'Updating Strava…'; }
   try {
-    const tagged = aiTagDesc(desc);
+    const src = (document.getElementById('actAiPanel') || {}).dataset ? document.getElementById('actAiPanel').dataset.aiSource : 'ai';
+    const tagged = src === 'stats' ? desc.trim() : aiTagDesc(desc);
     await apiPut('/activities/' + id, { name: title.trim(), description: tagged });
     const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
     if (a) { a.name = title.trim(); a.description = tagged; }

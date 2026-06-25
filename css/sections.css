@@ -700,3 +700,6 @@ body.dev .dev-tag { display: inline-block; }
 .ai-bulk-bar { height: 100%; width: 0; background: var(--orange); transition: width .25s; }
 .gr-row.gr-done { opacity: .55; }
 .gr-row.gr-done .gr-name { color: #4ade80; }
+
+.actd-stats-btn { border: 1px solid var(--border); color: var(--text); background: transparent; }
+.actd-stats-btn:hover { border-color: var(--border-hover); background: var(--surface2); }
