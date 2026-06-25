@@ -635,6 +635,28 @@
       </div>
 
       <div class="help-card">
+        <h3>Bulk AI rewrite <span class="gr-sub">select activities, then rewrite their title/description with AI</span></h3>
+        <p class="ai-intro">Tick the activities you want and hit Rewrite. This <b>overwrites them on Strava</b> and can't be undone — you'll confirm the count first.</p>
+        <div class="gr-panel" id="aiBulkPanel">
+          <div class="gr-controls">
+            <label class="gr-selall"><input type="checkbox" id="aiBulkAll"> Select all visible</label>
+            <input type="text" id="aiBulkSearch" class="gr-search" placeholder="Filter activities…">
+            <div class="gr-apply">
+              <select id="aiBulkWhat" class="gr-select">
+                <option value="both">Title + description</option>
+                <option value="title">Title only</option>
+              </select>
+              <label class="ai-cap-roast"><input type="checkbox" id="aiBulkRoast" checked> roast</label>
+              <button id="aiBulkBtn" class="btn btn-primary" type="button" onclick="aiBulkRewrite()">Rewrite (<span id="aiBulkCount">0</span>)</button>
+            </div>
+          </div>
+          <div id="aiBulkStatus" class="gr-status"></div>
+          <div class="ai-bulk-progress"><div id="aiBulkBar" class="ai-bulk-bar"></div></div>
+          <div class="gr-list" id="aiBulkList"></div>
+        </div>
+      </div>
+
+      <div class="help-card">
         <h3>🔑 How to get an API key &amp; where to put it</h3>
         <p class="ai-intro">Grab a key from your preferred AI provider below. (The key is configured on the server, never in this page — see the developer notes.)</p>
         <p style="font-weight:700;color:var(--text);margin:14px 0 6px">Get a key from your provider</p>

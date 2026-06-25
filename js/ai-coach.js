@@ -203,6 +203,87 @@ async function aiCaptionApply(id) {
   }
 }
 
+/* ── Bulk AI rewrite (gear-style multi-select in Settings) ─────────────────── */
+let aiBulkStop = false;
+
+function renderAiBulkList() {
+  const list = document.getElementById('aiBulkList');
+  if (!list || typeof acts === 'undefined') return;
+  list.innerHTML = (acts || []).map(a => '<label class="gr-row" data-name="' + (a.name || '').toLowerCase().replace(/"/g, '') + '">'
+    + '<input type="checkbox" class="ai-bulk-cb" value="' + a.id + '">'
+    + '<span class="gr-date">' + fmtDt(a.start_date) + '</span>'
+    + '<span class="gr-name">' + (a.name || 'Activity').replace(/</g, '&lt;') + '</span>'
+    + '<span class="gr-dist">' + fmtD(a.distance) + '</span>'
+    + '</label>').join('');
+  const cbs = () => [...list.querySelectorAll('.ai-bulk-cb')];
+  const upd = () => { const c = document.getElementById('aiBulkCount'); if (c) c.textContent = cbs().filter(x => x.checked).length; };
+  list.onchange = upd;
+  const all = document.getElementById('aiBulkAll');
+  if (all) { all.checked = false; all.onchange = e => { cbs().forEach(cb => { if (cb.closest('.gr-row').style.display !== 'none') cb.checked = e.target.checked; }); upd(); }; }
+  const search = document.getElementById('aiBulkSearch');
+  if (search) search.oninput = e => { const q = e.target.value.toLowerCase(); list.querySelectorAll('.gr-row').forEach(r => { r.style.display = r.dataset.name.includes(q) ? '' : 'none'; }); };
+  upd();
+}
+
+async function aiBulkRewrite() {
+  const list = document.getElementById('aiBulkList');
+  const status = document.getElementById('aiBulkStatus');
+  const btn = document.getElementById('aiBulkBtn');
+  const bar = document.getElementById('aiBulkBar');
+  if (!list || !btn) return;
+
+  // running → this click acts as Stop
+  if (btn.dataset.running === '1') { aiBulkStop = true; btn.textContent = 'Stopping…'; return; }
+
+  const token = localStorage.getItem('strava_access_token');
+  if (!token) { status.className = 'gr-status err'; status.textContent = 'Connect to Strava first.'; return; }
+  const ids = [...list.querySelectorAll('.ai-bulk-cb')].filter(c => c.checked).map(c => c.value);
+  if (!ids.length) { status.className = 'gr-status warn'; status.textContent = 'Select at least one activity first.'; return; }
+  const what = (document.getElementById('aiBulkWhat') || {}).value || 'both';
+  const roast = !!(document.getElementById('aiBulkRoast') || {}).checked;
+  if (!confirm('Rewrite the ' + (what === 'title' ? 'title' : 'title and description') + ' of ' + ids.length + ' activit' + (ids.length > 1 ? 'ies' : 'y') + ' on Strava with AI?\nThis overwrites them and cannot be undone.')) return;
+
+  aiBulkStop = false;
+  btn.dataset.running = '1'; btn.textContent = 'Stop';
+  const restore = () => { btn.dataset.running = ''; btn.innerHTML = 'Rewrite (<span id="aiBulkCount">' + [...list.querySelectorAll('.ai-bulk-cb')].filter(c => c.checked).length + '</span>)'; };
+  const { provider, model } = aiProviderModel();
+  let ok = 0, fail = 0;
+  for (let i = 0; i < ids.length; i++) {
+    if (aiBulkStop) break;
+    status.className = 'gr-status'; status.textContent = 'Rewriting ' + (i + 1) + ' / ' + ids.length + '…';
+    const a = (acts || []).find(x => String(x.id) === String(ids[i]));
+    if (!a) { fail++; continue; }
+    try {
+      const messages = [
+        { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). '
+          + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ')
+          + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
+        { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(aiActivityData(a)) + '\n\nWrite my new title and description.' },
+      ];
+      const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok && data.text) {
+        const lines = data.text.trim().split('\n');
+        const name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100);
+        const desc = lines.join('\n').trim();
+        if (name) {
+          await apiPut('/activities/' + a.id, what === 'title' ? { name } : { name, description: desc });
+          a.name = name; if (what !== 'title') a.description = desc;
+          const cb = list.querySelector('.ai-bulk-cb[value="' + a.id + '"]');
+          if (cb) { const row = cb.closest('.gr-row'); const nm = row.querySelector('.gr-name'); if (nm) nm.textContent = name; cb.checked = false; row.classList.add('gr-done'); }
+          ok++;
+        } else fail++;
+      } else { fail++; }
+    } catch { fail++; }
+    if (bar) bar.style.width = Math.round((i + 1) / ids.length * 100) + '%';
+    await new Promise(res => setTimeout(res, 800)); // throttle for Strava rate limits
+  }
+  restore();
+  status.className = 'gr-status ' + (fail && !ok ? 'err' : 'ok');
+  status.textContent = (aiBulkStop ? 'Stopped. ' : 'Done. ') + 'Updated ' + ok + (fail ? ', ' + fail + ' failed' : '') + '.';
+  setTimeout(() => { if (bar) bar.style.width = '0%'; }, 1500);
+}
+
 /* Verify the selected provider works (no tokens spent). Reused by the Test
    button and auto-run when the provider/model changes, so the choice is clearly
    saved AND confirmed working. */

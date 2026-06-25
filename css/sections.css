@@ -694,3 +694,9 @@ body.dev .dev-tag { display: inline-block; }
 .ai-cap-status.ok { color: #4ade80; font-weight: 600; }
 .ai-cap-status.err { color: #fca5a5; }
 .ai-chip-roast { border-color: rgba(252,76,2,.5); }
+
+/* Bulk AI rewrite progress + done rows */
+.ai-bulk-progress { height: 4px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+.ai-bulk-bar { height: 100%; width: 0; background: var(--orange); transition: width .25s; }
+.gr-row.gr-done { opacity: .55; }
+.gr-row.gr-done .gr-name { color: #4ade80; }
