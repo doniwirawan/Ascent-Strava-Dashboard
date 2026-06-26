@@ -2,20 +2,36 @@
    Generates a brand-new road loop of your chosen distance via OpenRouteService
    (round-trip routing), proxied through /api/route so the ORS key stays server
    side. You pick sport, start area, elevation preference and distance tolerance;
-   a few candidate loops are generated and the best match is drawn on the map.
+   a few candidate loops are generated (in parallel) and the best match is drawn.
    An optional AI pass (reuses the AI Coach provider) names & describes it, and
-   the loop downloads as a GPX you can load onto a head unit. */
+   the loop downloads as a GPX. Last-used inputs and every generated route are
+   remembered in localStorage. */
 
 let _rbRoute = null;   // { coordinates:[[lng,lat,ele]], distance, ascent, descent, name }
 let _rbMap = null, _rbLine = null;
+
+const rbEsc = s => String(s == null ? '' : s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+const _rbVal = id => (document.getElementById(id) || {}).value;
+function _rbSetVal(id, v) {
+  if (v == null) return;
+  const el = document.getElementById(id); if (!el) return;
+  if (el.tagName === 'SELECT') { if ([...el.options].some(o => o.value === String(v))) el.value = v; }
+  else el.value = v;
+}
 
 function openRouteModal() {
   const m = document.getElementById('routeModal');
   if (!m) return;
   rbBuildStartOptions();
+  rbRestorePrefs();
+  // Save selections whenever they change (reassign, never stack listeners).
+  ['rb-dist', 'rb-sport', 'rb-start', 'rb-elev', 'rb-tol'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.onchange = rbSavePrefs;
+  });
+  rbRenderHistory();
   m.classList.add('open');
   // Map containers measure 0×0 while hidden — fix once visible.
-  if (_rbMap) setTimeout(() => { try { _rbMap.invalidateSize(); } catch {} }, 200);
+  if (_rbMap) setTimeout(() => { try { _rbMap.invalidateSize(); if (_rbLine) _rbMap.fitBounds(_rbLine.getBounds(), { padding: [24, 24] }); } catch {} }, 200);
 }
 function closeRouteModal() {
   const m = document.getElementById('routeModal');
@@ -36,11 +52,91 @@ function rbBuildStartOptions() {
     if (seen.has(key)) continue;
     seen.add(key);
     const where = a.location_city || a.name || 'Activity start';
-    html += `<option value="${ll[0]},${ll[1]}">${where}</option>`;
+    html += `<option value="${ll[0]},${ll[1]}">${rbEsc(where)}</option>`;
     if (seen.size >= 15) break;
   }
   sel.innerHTML = html;
   sel.dataset.built = '1';
+}
+
+/* ── Remember last-used inputs ── */
+function rbSavePrefs() {
+  try {
+    localStorage.setItem('route_prefs', JSON.stringify({
+      dist: _rbVal('rb-dist'), sport: _rbVal('rb-sport'), start: _rbVal('rb-start'),
+      elev: _rbVal('rb-elev'), tol: _rbVal('rb-tol'),
+    }));
+  } catch {}
+}
+function rbRestorePrefs() {
+  let p; try { p = JSON.parse(localStorage.getItem('route_prefs') || '{}'); } catch { p = {}; }
+  _rbSetVal('rb-dist', p.dist); _rbSetVal('rb-sport', p.sport); _rbSetVal('rb-start', p.start);
+  _rbSetVal('rb-elev', p.elev); _rbSetVal('rb-tol', p.tol);
+}
+
+/* ── Remember generated routes (history) ── */
+function rbLoadHistory() {
+  try { const a = JSON.parse(localStorage.getItem('route_history') || '[]'); return Array.isArray(a) ? a : []; }
+  catch { return []; }
+}
+function rbSaveHistory(list) {
+  let arr = list.slice(0, 25); // newest first, capped
+  while (arr.length) {
+    try { localStorage.setItem('route_history', JSON.stringify(arr)); return; }
+    catch { arr = arr.slice(0, arr.length - 1); } // over quota — drop the oldest and retry
+  }
+  try { localStorage.removeItem('route_history'); } catch {}
+}
+function rbPushHistory(route) {
+  const list = rbLoadHistory();
+  const id = Date.now();
+  list.unshift({
+    id, ts: id, name: route.name || 'Route', sport: route.sport, target: route.target,
+    distance: route.distance, ascent: route.ascent || 0, descent: route.descent || 0,
+    coordinates: route.coordinates,
+  });
+  rbSaveHistory(list);
+  rbRenderHistory();
+  return id;
+}
+function rbUpdateHistoryName(id, name) {
+  const list = rbLoadHistory();
+  const e = list.find(r => r.id === id);
+  if (e) { e.name = name; rbSaveHistory(list); rbRenderHistory(); }
+}
+function rbDeleteHistory(id) {
+  rbSaveHistory(rbLoadHistory().filter(r => r.id !== id));
+  rbRenderHistory();
+}
+function rbClearHistory() {
+  if (!confirm('Delete all saved routes?')) return;
+  try { localStorage.removeItem('route_history'); } catch {}
+  rbRenderHistory();
+}
+function rbRenderHistory() {
+  const el = document.getElementById('rb-history');
+  if (!el) return;
+  const list = rbLoadHistory();
+  if (!list.length) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    `<div class="rb-hist-head"><span>Saved routes (${list.length})</span><button class="rb-hist-clear" onclick="rbClearHistory()">Clear all</button></div>` +
+    list.map(r => `<div class="rb-hist-item">
+      <button class="rb-hist-main" onclick="rbLoadFromHistory(${r.id})" title="Load on map">
+        <span class="rb-hist-name">${rbEsc(r.name)}</span>
+        <span class="rb-hist-meta">${(r.sport === 'run' ? 'Run' : 'Ride')} · ${fmtKm(r.distance)} ${distUnit()} · ${Math.round(elevVal(r.ascent || 0)).toLocaleString()} ${elevUnit()} · ${fmtDt(r.ts)}</span>
+      </button>
+      <button class="rb-hist-del" onclick="rbDeleteHistory(${r.id})" title="Delete" aria-label="Delete">✕</button>
+    </div>`).join('');
+}
+function rbLoadFromHistory(id) {
+  const r = rbLoadHistory().find(x => x.id === id);
+  if (!r) return;
+  _rbRoute = { coordinates: r.coordinates, distance: r.distance, ascent: r.ascent, descent: r.descent, name: r.name, sport: r.sport, target: r.target, histId: r.id };
+  rbDrawRoute(_rbRoute);
+  rbShowStats(_rbRoute);
+  document.getElementById('rb-ai').innerHTML = `<div class="rb-ai-name">${rbEsc(r.name)}</div>`;
+  document.getElementById('rb-download').disabled = false;
+  rbStatus('Loaded a saved route — download the GPX, or generate a new one.', 'ok');
 }
 
 function rbStatus(msg, cls) {
@@ -52,7 +148,7 @@ function rbStatus(msg, cls) {
 
 /* Resolve the chosen start to {lat,lng}. Uses geolocation for the GPS option. */
 function rbResolveStart() {
-  const v = (document.getElementById('rb-start') || {}).value || 'geo';
+  const v = _rbVal('rb-start') || 'geo';
   if (v !== 'geo') {
     const [lat, lng] = v.split(',').map(Number);
     return Promise.resolve({ lat, lng });
@@ -72,13 +168,28 @@ async function rbToken() {
   return localStorage.getItem('strava_access_token');
 }
 
+/* One candidate request, with a hard timeout so it can never hang the UI. */
+async function rbFetchRoute(body) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 35000);
+  try {
+    const r = await fetch('/api/route', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body), signal: ctrl.signal,
+    });
+    const data = await r.json().catch(() => ({}));
+    return { ok: r.ok, data };
+  } finally { clearTimeout(t); }
+}
+
 async function routeGenerate() {
   const btn = document.getElementById('rb-generate');
-  const dist = Math.max(2, Math.min(200, parseFloat((document.getElementById('rb-dist') || {}).value) || 0));
-  const sport = (document.getElementById('rb-sport') || {}).value || 'ride';
-  const elev = (document.getElementById('rb-elev') || {}).value || 'any';
-  const tol = (parseInt((document.getElementById('rb-tol') || {}).value, 10) || 15) / 100;
+  const dist = Math.max(2, Math.min(200, parseFloat(_rbVal('rb-dist')) || 0));
+  const sport = _rbVal('rb-sport') || 'ride';
+  const elev = _rbVal('rb-elev') || 'any';
+  const tol = (parseInt(_rbVal('rb-tol'), 10) || 15) / 100;
   if (!dist) { rbStatus('Enter a distance first.', 'err'); return; }
+  rbSavePrefs();
 
   btn.disabled = true;
   document.getElementById('rb-download').disabled = true;
@@ -93,19 +204,19 @@ async function routeGenerate() {
   const targetM = dist * 1000;
 
   rbStatus('<span class="rb-spin"></span> Generating candidate loops…');
-  const seeds = [1, 7, 23]; // a few different shapes to choose from
+  // Fire all candidates in PARALLEL — total wait ≈ one request, not the sum.
+  const seeds = [1, 7, 23];
+  const results = await Promise.allSettled(seeds.map(seed =>
+    rbFetchRoute({ token, sport, lat: start.lat, lng: start.lng, length: targetM, points: 5, seed })
+  ));
+
   const cands = [];
   let lastErr = null;
-  for (const seed of seeds) {
-    try {
-      const r = await fetch('/api/route', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, sport, lat: start.lat, lng: start.lng, length: targetM, points: 5, seed }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) { lastErr = data; continue; }
-      if (data.coordinates && data.coordinates.length > 1) cands.push(data);
-    } catch { lastErr = null; /* network — try next seed */ }
+  for (const res of results) {
+    if (res.status !== 'fulfilled') continue; // aborted/network — ignore
+    const { ok, data } = res.value;
+    if (ok && data.coordinates && data.coordinates.length > 1) cands.push(data);
+    else if (!ok) lastErr = data;
   }
   if (!cands.length) {
     rbStatus(lastErr ? rbErr(lastErr) : 'No route could be generated from that point. Try another start or distance.', 'err');
@@ -116,19 +227,24 @@ async function routeGenerate() {
   const within = cands.filter(c => Math.abs(c.distance - targetM) / targetM <= tol);
   const pool = within.length ? within : cands;
   let pick;
-  if (elev === 'flat')      pick = pool.reduce((a, c) => c.ascent < a.ascent ? c : a);
+  if (elev === 'flat')       pick = pool.reduce((a, c) => c.ascent < a.ascent ? c : a);
   else if (elev === 'hilly') pick = pool.reduce((a, c) => c.ascent > a.ascent ? c : a);
-  else                      pick = pool.reduce((a, c) => Math.abs(c.distance - targetM) < Math.abs(a.distance - targetM) ? c : a);
+  else                       pick = pool.reduce((a, c) => Math.abs(c.distance - targetM) < Math.abs(a.distance - targetM) ? c : a);
 
+  pick.sport = sport;
+  pick.target = targetM;
+  pick.name = `${Math.round(dist)} ${distUnit()} ${sport === 'run' ? 'run' : 'ride'} loop`; // until AI renames
   _rbRoute = pick;
   rbDrawRoute(pick);
   rbShowStats(pick);
-  rbStatus('Route ready — download the GPX or generate again for a different loop.', 'ok');
+  pick.histId = rbPushHistory(pick);           // remember it now (AI may rename it shortly)
+  rbStatus(within.length ? 'Route ready — download the GPX or generate again for a different loop.'
+                         : 'Closest match shown (none hit your tolerance) — try a wider tolerance or different start.', within.length ? 'ok' : '');
   document.getElementById('rb-download').disabled = false;
   btn.disabled = false;
 
   // Optional AI naming/description — only if a provider is configured.
-  rbNameRoute(pick, { dist, sport, elev, start });
+  rbNameRoute(pick, { dist, sport, elev });
 }
 
 function rbDrawRoute(route) {
@@ -146,13 +262,11 @@ function rbDrawRoute(route) {
 }
 
 function rbShowStats(route) {
-  const km = (route.distance / 1000);
   const asc = Math.round(elevVal(route.ascent || 0));
   document.getElementById('rb-stats').innerHTML = `
     <div class="rb-stat"><div class="rb-stat-v">${fmtKm(route.distance)}</div><div class="rb-stat-l">${distUnit()}</div></div>
     <div class="rb-stat"><div class="rb-stat-v">${asc.toLocaleString()}</div><div class="rb-stat-l">${elevUnit()} climb</div></div>
     <div class="rb-stat"><div class="rb-stat-v">${route.coordinates.length}</div><div class="rb-stat-l">points</div></div>`;
-  void km;
 }
 
 /* Ask the AI Coach provider for a name + one-line description (best-effort). */
@@ -162,10 +276,9 @@ async function rbNameRoute(route, opts) {
   aiBox.innerHTML = '';
   // Reuse the AI Coach provider/model if that helper is loaded.
   const pm = (typeof aiProviderModel === 'function') ? aiProviderModel() : null;
-  const fallback = `${Math.round(opts.dist)} ${distUnit()} ${opts.sport === 'run' ? 'run' : 'ride'} loop`;
-  if (!pm) { _rbRoute.name = fallback; return; }
+  if (!pm) return;
 
-  const place = (document.getElementById('rb-start') || {}).selectedOptions?.[0]?.textContent || 'the start';
+  const place = document.getElementById('rb-start')?.selectedOptions?.[0]?.textContent || 'the start';
   const ascDisp = Math.round(elevVal(route.ascent || 0)) + ' ' + elevUnit();
   const prompt = `Name a ${opts.sport} route loop and describe it in one short sentence. ` +
     `It is ${fmtKm(route.distance)} ${distUnit()} long with ${ascDisp} of climbing, starting near "${place}". ` +
@@ -179,26 +292,25 @@ async function rbNameRoute(route, opts) {
       body: JSON.stringify({ token, provider: pm.provider, model: pm.model, messages: [{ role: 'user', content: prompt }] }),
     });
     const data = await r.json().catch(() => ({}));
-    if (!r.ok || !data.text) { aiBox.innerHTML = ''; _rbRoute.name = fallback; return; }
-    const name = (data.text.match(/Name:\s*(.+)/i) || [])[1]?.trim() || fallback;
+    if (!r.ok || !data.text) { aiBox.innerHTML = ''; return; }
+    const name = (data.text.match(/Name:\s*(.+)/i) || [])[1]?.trim();
     const desc = (data.text.match(/Desc:\s*(.+)/i) || [])[1]?.trim() || '';
-    _rbRoute.name = name;
-    aiBox.innerHTML = `<div class="rb-ai-name">${name}</div>${desc ? `<div class="rb-ai-desc">${desc}</div>` : ''}`;
-  } catch { aiBox.innerHTML = ''; _rbRoute.name = fallback; }
+    if (name && _rbRoute) { _rbRoute.name = name; if (_rbRoute.histId) rbUpdateHistoryName(_rbRoute.histId, name); }
+    aiBox.innerHTML = `<div class="rb-ai-name">${rbEsc(name || (_rbRoute && _rbRoute.name))}</div>${desc ? `<div class="rb-ai-desc">${rbEsc(desc)}</div>` : ''}`;
+  } catch { aiBox.innerHTML = ''; }
 }
 
 /* Build GPX 1.1 from the route's [lng,lat,ele] points and trigger a download. */
 function routeDownloadGpx() {
   if (!_rbRoute || !_rbRoute.coordinates.length) return;
   const name = _rbRoute.name || 'Ascent route';
-  const esc = s => String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
   const pts = _rbRoute.coordinates.map(c =>
     `<trkpt lat="${c[1].toFixed(6)}" lon="${c[0].toFixed(6)}">${c[2] != null ? `<ele>${(+c[2]).toFixed(1)}</ele>` : ''}</trkpt>`
   ).join('\n');
   const gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Ascent — Strava Dashboard" xmlns="http://www.topografix.com/GPX/1/1">
-  <metadata><name>${esc(name)}</name></metadata>
-  <trk><name>${esc(name)}</name><trkseg>
+  <metadata><name>${rbEsc(name)}</name></metadata>
+  <trk><name>${rbEsc(name)}</name><trkseg>
 ${pts}
   </trkseg></trk>
 </gpx>`;

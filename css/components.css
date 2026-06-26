@@ -207,8 +207,8 @@
 .ic { width: 1em; height: 1em; vertical-align: -0.14em; display: inline-block; flex-shrink: 0; }
 
 /* ── Route Builder modal ── */
-.rb-modal { max-width: 880px; width: 100%; }
-.rb-body { padding: 18px 20px 20px; overflow-y: auto; }
+.rb-modal { width: 96%; max-width: 1180px; height: 92vh; max-height: 92dvh; display: flex; flex-direction: column; }
+.rb-body { padding: 2px; overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .rb-intro { font-size: 13px; color: var(--muted); margin: 0 0 14px; line-height: 1.5; }
 .rb-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
 .rb-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
@@ -239,11 +239,24 @@
 .rb-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; text-align: center; flex: 1; min-width: 90px; }
 .rb-stat-v { font-size: 20px; font-weight: 800; color: var(--text); }
 .rb-stat-l { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
-.rb-map { width: 100%; height: 340px; border-radius: 10px; overflow: hidden; background: var(--surface2); border: 1px solid var(--border); }
+.rb-map { width: 100%; height: 46vh; min-height: 300px; border-radius: 10px; overflow: hidden; background: var(--surface2); border: 1px solid var(--border); }
 .rb-download {
   margin-top: 14px; width: 100%; background: var(--surface2); color: var(--text);
   border: 1px solid var(--orange); border-radius: 8px; padding: 11px; font-size: 14px;
   font-weight: 700; cursor: pointer;
 }
 .rb-download:disabled { opacity: .45; cursor: default; border-color: var(--border); }
+
+/* Saved-routes history list */
+.rb-history { margin-top: 16px; }
+.rb-hist-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 8px; }
+.rb-hist-clear { background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; text-decoration: underline; }
+.rb-hist-clear:hover { color: #f87171; }
+.rb-hist-item { display: flex; align-items: stretch; gap: 6px; margin-bottom: 6px; }
+.rb-hist-main { flex: 1; text-align: left; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; cursor: pointer; color: var(--text); display: flex; flex-direction: column; gap: 2px; }
+.rb-hist-main:hover { border-color: var(--orange); }
+.rb-hist-name { font-size: 13px; font-weight: 700; }
+.rb-hist-meta { font-size: 11px; color: var(--muted); }
+.rb-hist-del { width: 38px; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; font-size: 13px; }
+.rb-hist-del:hover { border-color: #f87171; color: #f87171; }
 @media (max-width: 560px) { .rb-field input, .rb-field select { min-width: 0; flex: 1; } .rb-controls { gap: 8px; } }
