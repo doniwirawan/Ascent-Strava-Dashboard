@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
-  const { token, sport = 'ride', lat, lng, length, points, seed, test } = body;
+  const { token, sport = 'ride', lat, lng, length, points, seed, coordinates, radiuses, test } = body;
   if (!token) { res.status(400).json({ error: 'bad_request' }); return; }
 
   const KEY = (process.env.ORS_API_KEY || '').replace(/\s+/g, '');
@@ -42,16 +42,25 @@ module.exports = async (req, res) => {
   if (test) { res.status(200).json({ ok: true }); return; }
 
   const profile = PROFILES[sport] || PROFILES.ride;
-  if (typeof lat !== 'number' || typeof lng !== 'number' || !(length > 0)) {
+
+  // Two modes:
+  //  (a) waypoint loop — client sends an ordered ring of coordinates to route
+  //      through (preferred: produces sensible circuits, not back-and-forth).
+  //  (b) round_trip — legacy fallback (start + target length).
+  let payload;
+  if (Array.isArray(coordinates) && coordinates.length >= 2) {
+    payload = { coordinates, elevation: true, instructions: false };
+    if (Array.isArray(radiuses) && radiuses.length === coordinates.length) payload.radiuses = radiuses;
+  } else if (typeof lat === 'number' && typeof lng === 'number' && length > 0) {
+    payload = {
+      coordinates: [[lng, lat]],
+      options: { round_trip: { length: Math.round(length), points: points || 5, seed: seed || 1 } },
+      elevation: true,
+      instructions: false,
+    };
+  } else {
     res.status(400).json({ error: 'bad_request' }); return;
   }
-
-  const payload = {
-    coordinates: [[lng, lat]],
-    options: { round_trip: { length: Math.round(length), points: points || 5, seed: seed || 1 } },
-    elevation: true,
-    instructions: false,
-  };
 
   try {
     const r = await fetch('https://api.openrouteservice.org/v2/directions/' + profile + '/geojson', {

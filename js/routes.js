@@ -62,6 +62,59 @@ const RB_SPORTS = { road: 'Road ride', gravel: 'Gravel ride', ride: 'Ride', run:
 const RB_SPORT_WORD = { road: 'road', gravel: 'gravel', ride: 'ride', run: 'run' };
 const rbSportLabel = s => RB_SPORTS[s] || 'Ride';
 
+/* ── Learn from ridden roads ──────────────────────────────────────────────────
+   Sample GPS points from past activities (real, rideable roads). Route waypoints
+   are then chosen from these so loops follow roads you've actually used — far
+   more sensible than ORS's random round-trip points. */
+let _rbPts = null;
+function rbAllPoints() {
+  if (_rbPts) return _rbPts;
+  const pool = [];
+  for (const a of (typeof acts !== 'undefined' ? acts : [])) {
+    const enc = a.map && a.map.summary_polyline; if (!enc) continue;
+    let pts; try { pts = decodePolyline(enc); } catch { continue; } // [[lat,lng], ...]
+    for (let i = 0; i < pts.length; i += 4) pool.push(pts[i]);
+    if (pool.length > 8000) break;
+  }
+  _rbPts = pool;
+  return pool;
+}
+/* Pick ~`sectors` waypoints from ridden roads near ring radius r, one per compass
+   sector, ordered by bearing → a convex-ish loop. null if too little data. */
+function rbDataWaypoints(hlat, hlng, r, sectors, rot) {
+  const raw = rbAllPoints();
+  if (raw.length < sectors * 3) return null;
+  const R = 6371000, rad = Math.PI / 180, half = (360 / sectors) / 2 + 12;
+  const best = new Array(sectors).fill(null), bestErr = new Array(sectors).fill(Infinity);
+  for (const pt of raw) {
+    const x = (pt[1] - hlng) * rad * Math.cos(hlat * rad), y = (pt[0] - hlat) * rad;
+    const dist = Math.sqrt(x * x + y * y) * R;
+    if (dist < r * 0.45 || dist > r * 1.7) continue;
+    const brng = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360; // 0=N, 90=E
+    for (let s = 0; s < sectors; s++) {
+      const center = (rot + s * 360 / sectors) % 360;
+      let diff = Math.abs(brng - center); if (diff > 180) diff = 360 - diff;
+      if (diff > half) continue;
+      const err = Math.abs(dist - r) + diff * 25; // near the ring radius & sector centre
+      if (err < bestErr[s]) { bestErr[s] = err; best[s] = { lng: pt[1], lat: pt[0], brng }; }
+    }
+  }
+  const wps = best.filter(Boolean);
+  if (wps.length < 3) return null;
+  wps.sort((a, b) => a.brng - b.brng);
+  return [[hlng, hlat], ...wps.map(p => [p.lng, p.lat]), [hlng, hlat]];
+}
+/* Geometric ring fallback when there isn't enough ridden data near a sector. */
+function rbGeoRing(hlat, hlng, r, n, rot) {
+  const c = [[hlng, hlat]];
+  for (let i = 0; i < n; i++) {
+    const b = (rot + i * 360 / n) * Math.PI / 180;
+    c.push([hlng + (r * Math.sin(b)) / (111320 * Math.cos(hlat * Math.PI / 180)), hlat + (r * Math.cos(b)) / 111320]);
+  }
+  c.push([hlng, hlat]);
+  return c;
+}
+
 /* Build the "start area" dropdown from the start points of recent activities,
    de-duplicated by rough location, plus a live-GPS option. */
 function rbBuildStartOptions() {
@@ -287,16 +340,19 @@ async function routeGenerate() {
   const token = await rbToken();
   const targetM = dist * 1000;
 
-  rbStatus('<span class="rb-spin"></span> Generating candidate loops…');
-  // Fire candidates in PARALLEL. points:4 makes rounder circuits (fewer
-  // back-and-forth/out-and-back loops than 3); two length scales bracket ORS's
-  // overshoot so some land near the target. Several seeds give variety.
+  rbStatus('<span class="rb-spin"></span> Building loops from your roads…');
+  // Build each candidate as a ring of waypoints (from your ridden roads where
+  // possible, else a geometric ring), then route through them on real roads —
+  // this yields proper circuits instead of ORS round-trip's back-and-forth.
+  // Several radius scales + rotations bracket the target distance and add variety.
   const combos = [];
-  for (const sc of [0.8, 1.0]) for (const seed of [7, 23, 42]) {
-    combos.push({ length: Math.round(targetM * sc), points: 4, seed });
+  for (const sc of [0.5, 0.65, 0.8]) for (const rot of [0, 36]) {
+    const r = targetM / (2 * Math.PI) * sc;
+    const coords = rbDataWaypoints(start.lat, start.lng, r, 6, rot) || rbGeoRing(start.lat, start.lng, r, 6, rot);
+    combos.push(coords);
   }
-  const results = await Promise.allSettled(combos.map(c =>
-    rbFetchRoute({ token, sport, lat: start.lat, lng: start.lng, length: c.length, points: c.points, seed: c.seed })
+  const results = await Promise.allSettled(combos.map(coords =>
+    rbFetchRoute({ token, sport, coordinates: coords, radiuses: coords.map(() => 5000) })
   ));
 
   const cands = [];
