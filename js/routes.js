@@ -223,6 +223,49 @@ async function rbFetchRoute(body) {
   } finally { clearTimeout(t); }
 }
 
+/* "Loopiness": enclosed area ÷ perimeter² on the route polygon. A real circuit
+   encloses a lot of area (≈0.08 for a perfect circle); an out-and-back / U-turn
+   "bolak-balik" route retraces itself and encloses ≈0. Used to reject the weird
+   back-and-forth routes. Planar (degrees) — fine for ranking small loops. */
+function rbLoopiness(coords) {
+  if (!coords || coords.length < 4) return 0;
+  let area = 0, per = 0;
+  for (let i = 0; i < coords.length; i++) {
+    const a = coords[i], b = coords[(i + 1) % coords.length];
+    area += a[0] * b[1] - b[0] * a[1];
+    per += Math.hypot(b[0] - a[0], b[1] - a[1]);
+  }
+  return per > 0 ? Math.abs(area) / 2 / (per * per) : 0;
+}
+
+/* Let the AI Coach provider (DeepSeek by default) pick the best finalist.
+   Returns an index, or -1 if AI isn't available / fails (caller falls back). */
+async function rbAIPickIndex(cands, opts) {
+  const pm = (typeof aiProviderModel === 'function') ? aiProviderModel() : null;
+  if (!pm || cands.length < 2) return -1;
+  const lines = cands.map((c, i) =>
+    `${i}: ${(c.distance / 1000).toFixed(1)}km, climb ${Math.round(c.ascent || 0)}m, loopScore ${(c.loop * 1000).toFixed(1)}`
+  ).join('\n');
+  const prompt =
+    `You pick the best ${rbSportLabel(opts.sport)} loop for a rider. Target ≈${opts.dist} km, ` +
+    `elevation preference: ${opts.elev}. STRONGLY prefer a sensible round circuit — high loopScore ` +
+    `(higher = rounder; low = back-and-forth/out-and-back, which is bad) — that is close to the target ` +
+    `distance and matches the elevation preference. Candidates:\n${lines}\n` +
+    `Reply with ONLY the index number of your pick.`;
+  try {
+    const token = await rbToken();
+    const r = await fetch('/api/ai', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, provider: pm.provider, model: pm.model, messages: [{ role: 'user', content: prompt }] }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.text) return -1;
+    const m = d.text.match(/\d+/);
+    const idx = m ? parseInt(m[0], 10) : -1;
+    return (idx >= 0 && idx < cands.length) ? idx : -1;
+  } catch { return -1; }
+}
+
 async function routeGenerate() {
   const btn = document.getElementById('rb-generate');
   const dist = Math.max(2, Math.min(200, parseFloat(_rbVal('rb-dist')) || 0));
@@ -245,12 +288,15 @@ async function routeGenerate() {
   const targetM = dist * 1000;
 
   rbStatus('<span class="rb-spin"></span> Generating candidate loops…');
-  // Fire all candidates in PARALLEL — total wait ≈ one request, not the sum.
-  // points:3 keeps loops tight (5 overshoots badly); several seeds give the
-  // picker good options since round-trip distance varies a lot by seed.
-  const seeds = [3, 7, 11, 23, 31];
-  const results = await Promise.allSettled(seeds.map(seed =>
-    rbFetchRoute({ token, sport, lat: start.lat, lng: start.lng, length: targetM, points: 3, seed })
+  // Fire candidates in PARALLEL. points:4 makes rounder circuits (fewer
+  // back-and-forth/out-and-back loops than 3); two length scales bracket ORS's
+  // overshoot so some land near the target. Several seeds give variety.
+  const combos = [];
+  for (const sc of [0.8, 1.0]) for (const seed of [7, 23, 42]) {
+    combos.push({ length: Math.round(targetM * sc), points: 4, seed });
+  }
+  const results = await Promise.allSettled(combos.map(c =>
+    rbFetchRoute({ token, sport, lat: start.lat, lng: start.lng, length: c.length, points: c.points, seed: c.seed })
   ));
 
   const cands = [];
@@ -258,7 +304,7 @@ async function routeGenerate() {
   for (const res of results) {
     if (res.status !== 'fulfilled') continue; // aborted/network — ignore
     const { ok, data } = res.value;
-    if (ok && data.coordinates && data.coordinates.length > 1) cands.push(data);
+    if (ok && data.coordinates && data.coordinates.length > 1) { data.loop = rbLoopiness(data.coordinates); cands.push(data); }
     else if (!ok) lastErr = data;
   }
   if (!cands.length) {
@@ -266,13 +312,21 @@ async function routeGenerate() {
     btn.disabled = false; return;
   }
 
-  // Prefer candidates within tolerance of the target distance.
+  // Candidates close enough to the target distance (fall back to the 3 closest).
   const within = cands.filter(c => Math.abs(c.distance - targetM) / targetM <= tol);
-  const pool = within.length ? within : cands;
-  let pick;
-  if (elev === 'flat')       pick = pool.reduce((a, c) => c.ascent < a.ascent ? c : a);
-  else if (elev === 'hilly') pick = pool.reduce((a, c) => c.ascent > a.ascent ? c : a);
-  else                       pick = pool.reduce((a, c) => Math.abs(c.distance - targetM) < Math.abs(a.distance - targetM) ? c : a);
+  const pool = within.length ? within
+    : [...cands].sort((a, b) => Math.abs(a.distance - targetM) - Math.abs(b.distance - targetM)).slice(0, 3);
+  // Sensible loops first (reject bolak-balik), keep the top few as finalists.
+  const finalists = [...pool].sort((a, b) => b.loop - a.loop).slice(0, 4);
+  // Heuristic default per elevation preference (used if AI can't pick).
+  let hi = 0;
+  if (elev === 'flat')       hi = finalists.reduce((bi, c, i, a) => c.ascent < a[bi].ascent ? i : bi, 0);
+  else if (elev === 'hilly') hi = finalists.reduce((bi, c, i, a) => c.ascent > a[bi].ascent ? i : bi, 0);
+
+  rbStatus('<span class="rb-spin"></span> Choosing the best loop…');
+  let idx = await rbAIPickIndex(finalists, { dist, sport, elev });
+  if (idx < 0) idx = hi;
+  const pick = finalists[idx];
 
   pick.sport = sport;
   pick.target = targetM;
