@@ -256,8 +256,11 @@ function rbDrawRoute(route) {
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(_rbMap);
   }
   if (_rbLine) { try { _rbMap.removeLayer(_rbLine); } catch {} }
-  _rbLine = L.polyline(latlngs, { color: '#FC4C02', weight: 4, opacity: .95 }).addTo(_rbMap);
-  L.circleMarker(latlngs[0], { radius: 6, color: '#22c55e', fillColor: '#22c55e', fillOpacity: 1, weight: 0 }).addTo(_rbLine);
+  // Group the route line + start marker so they draw, fit and clear together.
+  _rbLine = L.featureGroup([
+    L.polyline(latlngs, { color: '#FC4C02', weight: 4, opacity: .95 }),
+    L.circleMarker(latlngs[0], { radius: 6, color: '#22c55e', fillColor: '#22c55e', fillOpacity: 1, weight: 0 }),
+  ]).addTo(_rbMap);
   setTimeout(() => { try { _rbMap.invalidateSize(); _rbMap.fitBounds(_rbLine.getBounds(), { padding: [24, 24] }); } catch {} }, 120);
 }
 
