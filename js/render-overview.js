@@ -37,13 +37,7 @@ function renderAll() {
   try { const s = localStorage.getItem('lastSection'); if (s && _ALL_SECTIONS.includes(s)) last = s; } catch {}
   const navBtn = document.querySelector('#sidebarNav .nav-link[onclick*="'+last+'"]') || document.querySelector('#sidebarNav .nav-link');
   navScrollTo(last, navBtn);
-  // Reopen the Route Builder modal if it was the last thing the user had open
-  try {
-    if (localStorage.getItem('route_modal_open') === '1' && typeof openRouteModal === 'function') {
-      const rm = document.getElementById('routeModal');
-      if (!rm || !rm.classList.contains('open')) openRouteModal();
-    }
-  } catch {}
+  // Route Builder hidden for now — don't auto-reopen it on load.
   if (window.applyI18n) window.applyI18n();
 }
 
