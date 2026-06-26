@@ -32,8 +32,22 @@ function openRouteModal() {
   rbRenderHistory();
   m.classList.add('open');
   try { localStorage.setItem('route_modal_open', '1'); } catch {} // remember it was open
+  rbInitMap(); // show the map (centred on Home) right away — before any route is generated
+}
+
+/* Create the map centred on Home so it's visible the moment the modal opens.
+   Safe to call repeatedly; only builds the map once. */
+function rbInitMap() {
+  const el = document.getElementById('rb-map');
+  if (!el || !window.L) return;
+  const [hlat, hlng] = RB_HOME.split(',').map(Number);
+  if (!_rbMap) {
+    _rbMap = L.map(el, { zoomControl: true, scrollWheelZoom: true, attributionControl: false }).setView([hlat, hlng], 13);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(_rbMap);
+    L.circleMarker([hlat, hlng], { radius: 6, color: '#22c55e', fillColor: '#22c55e', fillOpacity: 1, weight: 0 }).addTo(_rbMap);
+  }
   // Map containers measure 0×0 while hidden — fix once visible.
-  if (_rbMap) setTimeout(() => { try { _rbMap.invalidateSize(); if (_rbLine) _rbMap.fitBounds(_rbLine.getBounds(), { padding: [24, 24] }); } catch {} }, 200);
+  setTimeout(() => { try { _rbMap.invalidateSize(); if (_rbLine) _rbMap.fitBounds(_rbLine.getBounds(), { padding: [24, 24] }); } catch {} }, 200);
 }
 function closeRouteModal() {
   const m = document.getElementById('routeModal');
