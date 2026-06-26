@@ -105,10 +105,19 @@ function rbLoadHistory() {
   catch { return []; }
 }
 function rbSaveHistory(list) {
-  let arr = list.slice(0, 25); // newest first, capped
+  // Keep every loved route; cap the rest (newest first). On quota errors, drop
+  // the oldest NON-loved entry first so favourites are never lost.
+  const cap = 30;
+  const favCount = list.filter(r => r.fav).length;
+  let kept = 0;
+  let arr = list.filter(r => r.fav || (++kept <= cap - favCount));
   while (arr.length) {
     try { localStorage.setItem('route_history', JSON.stringify(arr)); return; }
-    catch { arr = arr.slice(0, arr.length - 1); } // over quota — drop the oldest and retry
+    catch {
+      let idx = -1;
+      for (let i = arr.length - 1; i >= 0; i--) { if (!arr[i].fav) { idx = i; break; } }
+      arr.splice(idx === -1 ? arr.length - 1 : idx, 1);
+    }
   }
   try { localStorage.removeItem('route_history'); } catch {}
 }
@@ -133,23 +142,30 @@ function rbDeleteHistory(id) {
   rbSaveHistory(rbLoadHistory().filter(r => r.id !== id));
   rbRenderHistory();
 }
+function rbToggleFav(id) {
+  const list = rbLoadHistory();
+  const e = list.find(r => r.id === id);
+  if (e) { e.fav = !e.fav; rbSaveHistory(list); rbRenderHistory(); }
+}
 function rbClearHistory() {
-  if (!confirm('Delete all saved routes?')) return;
-  try { localStorage.removeItem('route_history'); } catch {}
+  if (!confirm('Clear generation history? Loved routes (♥) are kept.')) return;
+  rbSaveHistory(rbLoadHistory().filter(r => r.fav)); // keep only loved routes
   rbRenderHistory();
 }
 function rbRenderHistory() {
   const el = document.getElementById('rb-history');
   if (!el) return;
-  const list = rbLoadHistory();
+  let list = rbLoadHistory();
   if (!list.length) { el.innerHTML = ''; return; }
+  list = [...list].sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0)); // loved routes first
   el.innerHTML =
-    `<div class="rb-hist-head"><span>Saved routes (${list.length})</span><button class="rb-hist-clear" onclick="rbClearHistory()">Clear all</button></div>` +
+    `<div class="rb-hist-head"><span>Generation history (${list.length})</span><button class="rb-hist-clear" onclick="rbClearHistory()">Clear history</button></div>` +
     list.map(r => `<div class="rb-hist-item">
       <button class="rb-hist-main" onclick="rbLoadFromHistory(${r.id})" title="Load on map">
         <span class="rb-hist-name">${rbEsc(r.name)}</span>
         <span class="rb-hist-meta">${rbSportLabel(r.sport)} · ${fmtKm(r.distance)} ${distUnit()} · ${Math.round(elevVal(r.ascent || 0)).toLocaleString()} ${elevUnit()} · ${fmtDt(r.ts)}</span>
       </button>
+      <button class="rb-hist-fav${r.fav ? ' on' : ''}" onclick="rbToggleFav(${r.id})" title="${r.fav ? 'Loved — click to remove' : 'Love this route (keeps it when clearing)'}" aria-label="Love">${r.fav ? '♥' : '♡'}</button>
       <button class="rb-hist-del" onclick="rbDeleteHistory(${r.id})" title="Delete" aria-label="Delete">✕</button>
     </div>`).join('');
 }

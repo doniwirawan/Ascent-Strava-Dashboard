@@ -257,6 +257,9 @@
 .rb-hist-main:hover { border-color: var(--orange); }
 .rb-hist-name { font-size: 13px; font-weight: 700; }
 .rb-hist-meta { font-size: 11px; color: var(--muted); }
+.rb-hist-fav { width: 38px; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; }
+.rb-hist-fav:hover { border-color: #f87171; color: #f87171; }
+.rb-hist-fav.on { color: #f87171; border-color: #f87171; }
 .rb-hist-del { width: 38px; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; font-size: 13px; }
 .rb-hist-del:hover { border-color: #f87171; color: #f87171; }
 @media (max-width: 560px) { .rb-field input, .rb-field select { min-width: 0; flex: 1; } .rb-controls { gap: 8px; } }
