@@ -319,19 +319,44 @@ function rbLoopiness(coords) {
   return per > 0 ? Math.abs(area) / 2 / (per * per) : 0;
 }
 
+/* "Backtrack" fraction: how much the route retraces itself — out-and-back tails
+   and little detour spurs (the "muter balik" problem). For each sampled point,
+   check if a NON-adjacent earlier point is within ~45 m (i.e. the road is reused).
+   0 = clean loop, higher = more spurs/U-turns. Used to reject ugly candidates. */
+function rbBacktrack(coords) {
+  if (!coords || coords.length < 8) return 0;
+  const step = Math.max(1, Math.floor(coords.length / 150));
+  const s = [];
+  for (let i = 0; i < coords.length; i += step) s.push(coords[i]);
+  const R = 6371000, rad = Math.PI / 180;
+  let hits = 0;
+  for (let i = 0; i < s.length; i++) {
+    for (let j = i + 3; j < s.length - (i === 0 ? 1 : 0); j++) { // skip the start/end closure
+      const dlat = (s[j][1] - s[i][1]) * rad;
+      const dlng = (s[j][0] - s[i][0]) * rad * Math.cos(s[i][1] * rad);
+      if (Math.sqrt(dlat * dlat + dlng * dlng) * R < 45) { hits++; break; }
+    }
+  }
+  return hits / s.length;
+}
+/* Combined quality score for a candidate: rounder loop is better, retracing is
+   bad. Higher = a more sensible circuit. */
+function rbScore(c) { return c.loop * 1000 - c.back * 60; }
+
 /* Let the AI Coach provider (DeepSeek by default) pick the best finalist.
    Returns an index, or -1 if AI isn't available / fails (caller falls back). */
 async function rbAIPickIndex(cands, opts) {
   const pm = (typeof aiProviderModel === 'function') ? aiProviderModel() : null;
   if (!pm || cands.length < 2) return -1;
   const lines = cands.map((c, i) =>
-    `${i}: ${(c.distance / 1000).toFixed(1)}km, climb ${Math.round(c.ascent || 0)}m, loopScore ${(c.loop * 1000).toFixed(1)}`
+    `${i}: ${(c.distance / 1000).toFixed(1)}km, climb ${Math.round(c.ascent || 0)}m, loopScore ${(c.loop * 1000).toFixed(1)}, spurScore ${(c.back * 100).toFixed(0)}`
   ).join('\n');
   const prompt =
     `You pick the best ${rbSportLabel(opts.sport)} loop for a rider. Target ≈${opts.dist} km, ` +
-    `elevation preference: ${opts.elev}. STRONGLY prefer a sensible round circuit — high loopScore ` +
-    `(higher = rounder; low = back-and-forth/out-and-back, which is bad) — that is close to the target ` +
-    `distance and matches the elevation preference. Candidates:\n${lines}\n` +
+    `elevation preference: ${opts.elev}. STRONGLY prefer a sensible round circuit: high loopScore ` +
+    `(rounder) AND low spurScore (spurScore = how much the route retraces itself / back-and-forth / ` +
+    `U-turns — lower is much better, reject high ones), close to the target distance and matching the ` +
+    `elevation preference. Candidates:\n${lines}\n` +
     `Reply with ONLY the index number of your pick.`;
   try {
     const token = await rbToken();
@@ -381,7 +406,7 @@ async function routeGenerate() {
   // Several radius scales + rotations bracket the target distance and add variety;
   // route through the waypoints on real roads (proper circuits, not back-and-forth).
   const combos = [];
-  for (const sc of [0.5, 0.65, 0.8]) for (const rot of [0, 36]) {
+  for (const sc of [0.5, 0.65, 0.8]) for (const rot of [0, 24, 48]) {
     const r = targetM / (2 * Math.PI) * sc;
     const coords = rbPickWaypoints(wpPool, start.lat, start.lng, r, 6, rot) || rbGeoRing(start.lat, start.lng, r, 6, rot);
     combos.push(coords);
@@ -395,8 +420,11 @@ async function routeGenerate() {
   for (const res of results) {
     if (res.status !== 'fulfilled') continue; // aborted/network — ignore
     const { ok, data } = res.value;
-    if (ok && data.coordinates && data.coordinates.length > 1) { data.loop = rbLoopiness(data.coordinates); cands.push(data); }
-    else if (!ok) lastErr = data;
+    if (ok && data.coordinates && data.coordinates.length > 1) {
+      data.loop = rbLoopiness(data.coordinates);
+      data.back = rbBacktrack(data.coordinates);
+      cands.push(data);
+    } else if (!ok) lastErr = data;
   }
   if (!cands.length) {
     rbStatus(lastErr ? rbErr(lastErr) : 'No route could be generated from that point. Try another start or distance.', 'err');
@@ -407,8 +435,8 @@ async function routeGenerate() {
   const within = cands.filter(c => Math.abs(c.distance - targetM) / targetM <= tol);
   const pool = within.length ? within
     : [...cands].sort((a, b) => Math.abs(a.distance - targetM) - Math.abs(b.distance - targetM)).slice(0, 3);
-  // Sensible loops first (reject bolak-balik), keep the top few as finalists.
-  const finalists = [...pool].sort((a, b) => b.loop - a.loop).slice(0, 4);
+  // Best quality first: rounder loops with the least retracing/spurs.
+  const finalists = [...pool].sort((a, b) => rbScore(b) - rbScore(a)).slice(0, 4);
   // Heuristic default per elevation preference (used if AI can't pick).
   let hi = 0;
   if (elev === 'flat')       hi = finalists.reduce((bi, c, i, a) => c.ascent < a[bi].ascent ? i : bi, 0);
