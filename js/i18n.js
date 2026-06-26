@@ -21,6 +21,8 @@ const I18N = {
     'feat.sub': 'Dasbor analitik lengkap — dengan studio kartu-bagikan sebagai bintang utamanya.',
     'feat1.h': 'Story-card Studio <span class="flag">flagship</span>',
     'feat1.p': 'Ubah aktivitas bersepeda atau lari apa pun menjadi kartu bagikan 9:16 yang menakjubkan — 28 template, tema warna, foto latar Anda sendiri, peta topografi asli, dan editor seret-dan-lepas. Inilah inti dari Ascent.',
+    'featAI.h': 'AI Coach',
+    'featAI.p': 'Mengobrol dengan pelatih AI yang membaca riwayat latihan Anda — temukan tren, dapatkan saran, dan tulis otomatis judul & caption aktivitas. Pakai penyedia AI Anda sendiri; kuncinya tetap di perangkat Anda.',
     'feat2.h': 'Ikhtisar & Tren',
     'feat2.p': 'Total, rata-rata, jarak mingguan/bulanan, dan tren kecepatan/pace bergulir untuk bersepeda dan lari.',
     'feat3.h': 'Heatmap',

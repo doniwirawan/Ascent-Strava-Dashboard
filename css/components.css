@@ -73,6 +73,15 @@
 }
 .actd-stat-val { font-size: 18px; font-weight: 800; color: var(--text); }
 .actd-stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
+
+/* Heart-rate zone pill (next to HR figures) */
+.hrz-pill {
+  display: inline-block; margin-left: 6px; vertical-align: middle;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  padding: 3px 7px; border-radius: 999px; white-space: nowrap;
+  color: var(--zc, var(--orange)); background: color-mix(in srgb, var(--zc, var(--orange)) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--zc, var(--orange)) 40%, transparent);
+}
 .actd-strava { text-decoration: none; text-align: center; padding: 11px; }
 @media (max-width: 520px) { .actd-grid { grid-template-columns: repeat(2, 1fr); } }
 
@@ -196,3 +205,45 @@
 
 /* small inline icons (replace decorative emoji in text), sized to the text */
 .ic { width: 1em; height: 1em; vertical-align: -0.14em; display: inline-block; flex-shrink: 0; }
+
+/* ── Route Builder modal ── */
+.rb-modal { max-width: 880px; width: 100%; }
+.rb-body { padding: 18px 20px 20px; overflow-y: auto; }
+.rb-intro { font-size: 13px; color: var(--muted); margin: 0 0 14px; line-height: 1.5; }
+.rb-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.rb-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
+.rb-field span { text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+.rb-field input, .rb-field select {
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 10px; font-size: 13px; min-width: 110px;
+}
+.rb-field input#rb-dist { width: 90px; min-width: 0; }
+.rb-generate {
+  background: var(--orange); color: #fff; border: none; border-radius: 6px;
+  padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; height: 37px;
+}
+.rb-generate:disabled { opacity: .6; cursor: default; }
+.rb-status { font-size: 12.5px; margin: 12px 0 0; min-height: 18px; color: var(--muted); }
+.rb-status.ok { color: #22c55e; }
+.rb-status.err { color: #f87171; }
+.rb-spin {
+  display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px;
+  border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%;
+  animation: rb-spin .7s linear infinite;
+}
+@keyframes rb-spin { to { transform: rotate(360deg); } }
+.rb-ai { margin-top: 10px; }
+.rb-ai-name { font-size: 18px; font-weight: 800; letter-spacing: -.3px; }
+.rb-ai-desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.rb-stats { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+.rb-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; text-align: center; flex: 1; min-width: 90px; }
+.rb-stat-v { font-size: 20px; font-weight: 800; color: var(--text); }
+.rb-stat-l { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+.rb-map { width: 100%; height: 340px; border-radius: 10px; overflow: hidden; background: var(--surface2); border: 1px solid var(--border); }
+.rb-download {
+  margin-top: 14px; width: 100%; background: var(--surface2); color: var(--text);
+  border: 1px solid var(--orange); border-radius: 8px; padding: 11px; font-size: 14px;
+  font-weight: 700; cursor: pointer;
+}
+.rb-download:disabled { opacity: .45; cursor: default; border-color: var(--border); }
+@media (max-width: 560px) { .rb-field input, .rb-field select { min-width: 0; flex: 1; } .rb-controls { gap: 8px; } }

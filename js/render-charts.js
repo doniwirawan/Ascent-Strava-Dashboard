@@ -126,7 +126,7 @@ function renderRunning() {
     <div class="hero-box"><div class="hero-label">Total Runs</div><div class="hero-value">${runs.length}</div></div>
     <div class="hero-box"><div class="hero-label">Total Distance</div><div class="hero-value">${fmtD(totDist)}</div></div>
     <div class="hero-box"><div class="hero-label">Total Time</div><div class="hero-value">${Math.round(totTime/3600)} <span class="hero-unit">h</span></div></div>
-    <div class="hero-box"><div class="hero-label">Avg Heart Rate</div><div class="hero-value">${avgHR||'—'} <span class="hero-unit">bpm</span></div></div>
+    <div class="hero-box"><div class="hero-label">Avg Heart Rate</div><div class="hero-value">${avgHR||'—'} <span class="hero-unit">bpm</span></div>${avgHR?hrZonePill(avgHR):''}</div>
   `;
 
   // Top 5 fastest pace
@@ -341,8 +341,8 @@ function openActivityModal(ref){
     _actStat('Elevation', a.total_elevation_gain?fmtElev(a.total_elevation_gain):''),
     _actStat('Highest Pt', a.elev_high!=null?fmtElev(a.elev_high):''),
     _actStat('Avg Cadence', a.average_cadence?(ride?Math.round(a.average_cadence)+' rpm':Math.round(a.average_cadence*2)+' spm'):''),
-    _actStat('Avg HR', a.average_heartrate?Math.round(a.average_heartrate)+' bpm':''),
-    _actStat('Max HR', a.max_heartrate?Math.round(a.max_heartrate)+' bpm':''),
+    _actStat('Avg HR', a.average_heartrate?Math.round(a.average_heartrate)+' bpm'+hrZonePill(a.average_heartrate):''),
+    _actStat('Max HR', a.max_heartrate?Math.round(a.max_heartrate)+' bpm'+hrZonePill(a.max_heartrate):''),
     _actStat('Avg Power', a.average_watts?Math.round(a.average_watts)+' W':''),
     _actStat('Norm Power', a.weighted_average_watts?Math.round(a.weighted_average_watts)+' W':''),
     _actStat('Max Power', a.max_watts?Math.round(a.max_watts)+' W':''),

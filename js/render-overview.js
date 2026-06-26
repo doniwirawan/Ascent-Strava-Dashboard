@@ -126,6 +126,8 @@ function renderStats() {
   document.getElementById('sv-avgspd').textContent  = avgVal;
   document.getElementById('sv-maxspd').textContent  = maxVal;
   document.getElementById('sv-avghr').textContent   = avgHR||'—';
+  const avgHrZone = avgHR ? hrZoneLabel(avgHR) : '';
+  document.getElementById('sv-avghr-sub').innerHTML = avgHrZone ? 'bpm · '+avgHrZone : 'bpm';
   document.getElementById('sv-streak').textContent  = bestStreak||'—';
   document.getElementById('sv-cal').textContent     = totalCal?Math.round(totalCal/1000)+'k':'—';
   const csEl=document.getElementById('sv-consistency'); if(csEl) csEl.textContent = consistency+'%';

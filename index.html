@@ -138,6 +138,7 @@
     <p class="lp-h2-sub reveal" data-i18n="feat.sub">A full analytics dashboard — with a share-card studio as the headline act.</p>
     <div class="lp-features">
       <div class="lp-feat feat-star reveal"><div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div><h4 data-i18n="feat1.h">Story-card Studio <span class="flag">flagship</span></h4><p data-i18n="feat1.p">Turn any ride or run into a stunning 9:16 share card — 28 templates, color themes, your own background photo, real topographic maps, and a drag-and-drop editor. This is what Ascent is built around.</p></div>
+      <div class="lp-feat reveal"><div class="ico"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2.6l1.5 4.1 4.1 1.5-4.1 1.5L12 13.8l-1.5-4.1L6.4 8.2l4.1-1.5L12 2.6zM18.5 12l.85 2.35 2.35.85-2.35.85-.85 2.35-.85-2.35-2.35-.85 2.35-.85L18.5 12zM5.4 12.6l.75 2.05 2.05.75-2.05.75-.75 2.05-.75-2.05L4.6 15.4l2.05-.75L5.4 12.6z"/></svg></div><h4 data-i18n="featAI.h">AI Coach</h4><p data-i18n="featAI.p">Chat with an AI coach that reads your training history — spot trends, get advice, and auto-write activity titles &amp; captions. Bring your own AI provider; the key stays on your device.</p></div>
       <div class="lp-feat reveal"><div class="ico"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><h4 data-i18n="feat2.h">Overview & Trends</h4><p data-i18n="feat2.p">Totals, averages, weekly/monthly distance and a rolling speed/pace trend for cycling and running.</p></div>
       <div class="lp-feat reveal"><div class="ico"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div><h4 data-i18n="feat3.h">Heatmap</h4><p data-i18n="feat3.p">Every GPS trace overlaid on an interactive map — your most-ridden roads glow brightest.</p></div>
       <div class="lp-feat reveal"><div class="ico"><svg viewBox="0 0 24 24"><path d="m3 20 6-12 4 7 3-5 5 10z"/></svg></div><h4 data-i18n="feat4.h">Segments & KOMs</h4><p data-i18n="feat4.p">Your starred segments with PRs, KOM/QOM status and VAM, each with a zoomable map.</p></div>
@@ -240,6 +241,7 @@
     <button class="nav-link" onclick="navScrollTo('challengesSection',this)">Trophies</button>
     <button class="nav-link" onclick="navScrollTo('photosSection',this)">Photos</button>
     <button class="nav-link" onclick="openAIModal()">AI Coach</button>
+    <button class="nav-link" onclick="openRouteModal()">Route Builder</button>
     <button class="nav-link" onclick="navScrollTo('settingsSection',this)">Settings</button>
     <button class="nav-link" onclick="navScrollTo('helpSection',this)">Help</button>
   </div>
@@ -398,6 +400,10 @@
       <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7Z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
       AI Coach
     </button>
+    <button class="nav-link" onclick="openRouteModal()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h7a3 3 0 0 0 0-6H8a3 3 0 0 1 0-6h7"/></svg>
+      Route Builder
+    </button>
     <button class="nav-link" onclick="navScrollTo('settingsSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
       Settings
@@ -433,7 +439,7 @@
     <div class="stat-card"><div class="s-label" id="sv-avgspd-lbl">Avg Speed</div><div class="s-icon"><svg viewBox="0 0 24 24"><path d="M4 20a8 8 0 1 1 16 0"/><line x1="12" y1="20" x2="8" y2="13"/></svg></div><div class="s-value" id="sv-avgspd">—</div><div class="s-sub" id="sv-avgspd-sub">km/h riding</div></div>
     <div class="stat-card"><div class="s-label">Achievements</div><div class="s-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="s-value" id="sv-ach">—</div><div class="s-sub">total</div></div>
     <div class="stat-card"><div class="s-label" id="sv-maxspd-lbl">Max Speed</div><div class="s-icon"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><div class="s-value" id="sv-maxspd">—</div><div class="s-sub" id="sv-maxspd-sub">km/h</div></div>
-    <div class="stat-card"><div class="s-label">Avg Heart Rate</div><div class="s-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div><div class="s-value" id="sv-avghr">—</div><div class="s-sub">bpm</div></div>
+    <div class="stat-card"><div class="s-label">Avg Heart Rate</div><div class="s-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div><div class="s-value" id="sv-avghr">—</div><div class="s-sub" id="sv-avghr-sub">bpm</div></div>
     <div class="stat-card"><div class="s-label">Best Streak</div><div class="s-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg></div><div class="s-value" id="sv-streak">—</div><div class="s-sub">days in a row</div></div>
     <div class="stat-card hi"><div class="s-label">Consistency</div><div class="s-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="s-value" id="sv-consistency">—</div><div class="s-sub">weekly regularity</div></div>
     <div class="stat-card"><div class="s-label">Calories</div><div class="s-icon"><svg viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></div><div class="s-value" id="sv-cal">—</div><div class="s-sub">total kcal</div></div>
@@ -884,6 +890,32 @@
   </div>
 </div>
 
+<!-- ROUTE BUILDER MODAL -->
+<div class="modal-overlay" id="routeModal">
+  <div class="modal rb-modal">
+    <div class="modal-header">
+      <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h7a3 3 0 0 0 0-6H8a3 3 0 0 1 0-6h7"/></svg> Route Builder</div>
+      <button class="modal-close" onclick="closeRouteModal()">✕</button>
+    </div>
+    <div class="rb-body">
+      <p class="rb-intro">Generate a brand-new road loop of your chosen distance from a start point, then download it as a GPX for your head unit. Routes are built on real roads via OpenRouteService; an AI names &amp; describes them when your AI Coach provider is set.</p>
+      <div class="rb-controls">
+        <label class="rb-field"><span>Distance (km)</span><input type="number" id="rb-dist" min="2" max="200" step="1" value="40"></label>
+        <label class="rb-field"><span>Sport</span><select id="rb-sport"><option value="ride">Ride</option><option value="run">Run</option></select></label>
+        <label class="rb-field"><span>Start area</span><select id="rb-start"></select></label>
+        <label class="rb-field"><span>Elevation</span><select id="rb-elev"><option value="any">Any</option><option value="flat">Flatter</option><option value="hilly">Hillier</option></select></label>
+        <label class="rb-field"><span>Tolerance</span><select id="rb-tol"><option value="10">±10%</option><option value="15" selected>±15%</option><option value="25">±25%</option></select></label>
+        <button class="rb-generate" id="rb-generate" onclick="routeGenerate()">Generate route</button>
+      </div>
+      <div id="rb-status" class="rb-status"></div>
+      <div id="rb-ai" class="rb-ai"></div>
+      <div id="rb-stats" class="rb-stats"></div>
+      <div id="rb-map" class="rb-map"></div>
+      <button class="rb-download" id="rb-download" onclick="routeDownloadGpx()" disabled>⬇ Download GPX</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="storyModal">
   <div class="modal" style="max-width:1000px;">
     <div class="modal-header">
@@ -1026,6 +1058,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/fitness.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/render-overview.js"></script>
 <script src="js/render-charts.js"></script>
@@ -1038,6 +1071,7 @@
 <script src="js/pwa-install.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/ai-coach.js"></script>
+<script src="js/routes.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

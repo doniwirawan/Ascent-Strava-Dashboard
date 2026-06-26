@@ -373,14 +373,14 @@ function renderMilestones(){
     {icon:'bolt',c:'#4da8ff',label:'Best Pace',val:fastest.average_speed?_pace(fastest.average_speed):'—',unit:'/'+distUnit(),desc:fastest.name},
     {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
     {icon:'clock',c:'#00cc88',label:'Longest Duration',val:longDur.moving_time?fmtT(longDur.moving_time):'—',unit:'',desc:longDur.name},
-    {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.name},
+    {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
     {icon:'flame',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
   ] : [
     {icon:'bike',c:'#fc4c02',label:'Longest Ride',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
     {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
     {icon:'gauge',c:'#4da8ff',label:'Fastest Avg',val:fastest.average_speed?kmh(fastest.average_speed).toFixed(1):'—',unit:speedUnit(),desc:fastest.name},
     {icon:'bolt',c:'#facc15',label:'Top Speed',val:topSpd.max_speed?kmh(topSpd.max_speed).toFixed(1):'—',unit:speedUnit(),desc:topSpd.name},
-    {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.name},
+    {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
     {icon:'flame',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
   ];
 
@@ -565,7 +565,7 @@ async function renderChallenges(){
     const since=currentAthlete.created_at?new Date(currentAthlete.created_at).getFullYear():null;
     const followers=currentAthlete.follower_count||null;
     const following=currentAthlete.friend_count||null;
-    const ftp=currentAthlete.ftp||null;
+    const ftpEst=estimateFtp();
 
     html+=`<div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;border-color:rgba(252,76,2,.25);background:linear-gradient(135deg,rgba(252,76,2,.07) 0%,transparent 55%)">
       <div style="display:flex;align-items:center;gap:20px;padding:22px 24px">
@@ -575,7 +575,7 @@ async function renderChallenges(){
           <div style="font-size:12px;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">
             ${city?`<span>${city}</span>`:''}
             ${since?`<span>Since ${since}</span>`:''}
-            ${ftp?`<span>FTP ${ftp}w</span>`:''}
+            ${ftpEst?`<span title="${ftpEst.estimated?'Estimated from '+(ftpEst.basis==='power'?'your best sustained power':'body weight')+' — Strava has no FTP set':'From your Strava profile'}">FTP ${ftpEst.value}w${ftpEst.estimated?' (est.)':''}</span>`:''}
           </div>
           <div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap">
             <div><span style="font-size:20px;font-weight:800;color:var(--orange)">${komList.length}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">KOMs</span></div>

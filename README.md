@@ -41,7 +41,10 @@ A personal Strava activity dashboard with an Instagram/TikTok-style story card g
 ## Features
 
 - Connect your Strava account via OAuth
-- View stats: total distance, elevation, moving time, speed, heart rate, and more
+- **AI Coach** — chat with an AI that analyses your training history for trends, advice and activity captions; pick your own provider (key saved on your device only)
+- **Route Builder** — generate a brand-new road loop of your chosen distance (sport, start area, elevation preference) and download it as a GPX; powered by OpenRouteService, with optional AI naming
+- View stats: total distance, elevation, moving time, speed, heart rate (with training-zone labels), and more
+- Heart-rate zones from your Strava profile (or estimated from your max HR), plus FTP estimation when Strava has no power data
 - Activity list, bubble chart, Eddington number, weekly/monthly charts, calendar heatmap
 - **Story card generator** — export your activity as a 1080×1920 PNG
   - 13+ layouts: Strip, Grid, Hero, Map, Minimal, Split, Stacked, Cinema, Neon, Sport, Gradient, Badge, Tiles, Ink, Neon 6
@@ -191,6 +194,8 @@ Open http://localhost:3000 and click **Connect with Strava**.
 | `STRAVA_CLIENT_SECRET` | From https://www.strava.com/settings/api |
 | `SUPABASE_URL` | Your Supabase project URL *(optional)* |
 | `SUPABASE_ANON_KEY` | Your Supabase anon/public key *(optional)* |
+| `ORS_API_KEY` | [OpenRouteService](https://openrouteservice.org) key for the Route Builder *(optional, free tier)* |
+| `OWNER_ATHLETE_ID` | Your Strava athlete id — gates the AI/Route proxies to you *(optional, recommended)* |
 
 3. Update your Strava app's **Authorization Callback Domain** to your Vercel domain (e.g. `yourdomain.vercel.app`)
 4. Vercel will automatically run `npm install && node build.js` on each deploy

@@ -41,7 +41,10 @@ Dashboard aktivitas Strava pribadi dengan pembuat kartu cerita (story card) berg
 ## Fitur
 
 - Hubungkan akun Strava lewat OAuth
-- Lihat statistik: total jarak, elevasi, waktu bergerak, kecepatan, detak jantung, dan lainnya
+- **AI Coach** — mengobrol dengan AI yang menganalisis riwayat latihan Anda untuk tren, saran, dan caption aktivitas; pilih penyedia AI sendiri (kunci hanya disimpan di perangkat Anda)
+- **Route Builder** — buat loop rute jalan baru sesuai jarak pilihan Anda (olahraga, area mulai, preferensi elevasi) dan unduh sebagai GPX; ditenagai OpenRouteService, dengan penamaan AI opsional
+- Lihat statistik: total jarak, elevasi, waktu bergerak, kecepatan, detak jantung (dengan label zona latihan), dan lainnya
+- Zona detak jantung dari profil Strava Anda (atau diperkirakan dari HR maksimum), plus perkiraan FTP saat Strava tidak punya data daya
 - Daftar aktivitas, bubble chart, angka Eddington, grafik mingguan/bulanan, heatmap kalender
 - **Pembuat kartu cerita** — ekspor aktivitas sebagai PNG 1080×1920
   - 13+ tata letak: Strip, Grid, Hero, Map, Minimal, Split, Stacked, Cinema, Neon, Sport, Gradient, Badge, Tiles, Ink, Neon 6
@@ -194,6 +197,8 @@ Buka http://localhost:3000 dan klik **Connect with Strava**.
 | `STRAVA_CLIENT_SECRET` | Dari https://www.strava.com/settings/api |
 | `SUPABASE_URL` | URL proyek Supabase Anda *(opsional)* |
 | `SUPABASE_ANON_KEY` | Anon/public key Supabase Anda *(opsional)* |
+| `ORS_API_KEY` | Kunci [OpenRouteService](https://openrouteservice.org) untuk Route Builder *(opsional, free tier)* |
+| `OWNER_ATHLETE_ID` | ID atlet Strava Anda — membatasi proxy AI/Route ke Anda *(opsional, disarankan)* |
 
 3. Perbarui **Authorization Callback Domain** aplikasi Strava Anda ke domain Vercel (mis. `domainanda.vercel.app`)
 4. Vercel akan otomatis menjalankan `npm install && node build.js` di setiap deploy

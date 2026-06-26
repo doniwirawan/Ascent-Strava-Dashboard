@@ -84,6 +84,7 @@ async function loadData(forceRefresh = false) {
         try {
           if (isTokenExpired()) await doRefresh();
           renderAthlete(await api('/athlete'));
+          await loadHrZones();
           renderGear();
         } catch {}
         return;
@@ -95,6 +96,7 @@ async function loadData(forceRefresh = false) {
     setStatus('Loading profile…', 'loading');
     const athlete = await api('/athlete');
     renderAthlete(athlete);
+    await loadHrZones();
 
     // 2) Remote cache (e.g. first visit on a new device), now that the token
     //    is valid so the Edge Function can identify this athlete.
