@@ -30,20 +30,30 @@ function openRouteModal() {
   });
   rbRenderHistory();
   m.classList.add('open');
+  try { localStorage.setItem('route_modal_open', '1'); } catch {} // remember it was open
   // Map containers measure 0×0 while hidden — fix once visible.
   if (_rbMap) setTimeout(() => { try { _rbMap.invalidateSize(); if (_rbLine) _rbMap.fitBounds(_rbLine.getBounds(), { padding: [24, 24] }); } catch {} }, 200);
 }
 function closeRouteModal() {
   const m = document.getElementById('routeModal');
   if (m) m.classList.remove('open');
+  try { localStorage.setItem('route_modal_open', '0'); } catch {}
 }
+
+/* Default start/end (Bali home) — appears first and is selected by default. */
+const RB_HOME = '-8.606198,115.283307';
+/* Sport labels + the short word used in auto-generated names. */
+const RB_SPORTS = { road: 'Road ride', gravel: 'Gravel ride', ride: 'Ride', run: 'Run' };
+const RB_SPORT_WORD = { road: 'road', gravel: 'gravel', ride: 'ride', run: 'run' };
+const rbSportLabel = s => RB_SPORTS[s] || 'Ride';
 
 /* Build the "start area" dropdown from the start points of recent activities,
    de-duplicated by rough location, plus a live-GPS option. */
 function rbBuildStartOptions() {
   const sel = document.getElementById('rb-start');
   if (!sel || sel.dataset.built) return;
-  let html = '<option value="geo">📍 My current location (GPS)</option>';
+  let html = '<option value="' + RB_HOME + '">🏠 Home (start &amp; finish)</option>'
+           + '<option value="geo">📍 My current location (GPS)</option>';
   const seen = new Set();
   for (const a of (typeof acts !== 'undefined' ? acts : [])) {
     const ll = a.start_latlng;
@@ -123,7 +133,7 @@ function rbRenderHistory() {
     list.map(r => `<div class="rb-hist-item">
       <button class="rb-hist-main" onclick="rbLoadFromHistory(${r.id})" title="Load on map">
         <span class="rb-hist-name">${rbEsc(r.name)}</span>
-        <span class="rb-hist-meta">${(r.sport === 'run' ? 'Run' : 'Ride')} · ${fmtKm(r.distance)} ${distUnit()} · ${Math.round(elevVal(r.ascent || 0)).toLocaleString()} ${elevUnit()} · ${fmtDt(r.ts)}</span>
+        <span class="rb-hist-meta">${rbSportLabel(r.sport)} · ${fmtKm(r.distance)} ${distUnit()} · ${Math.round(elevVal(r.ascent || 0)).toLocaleString()} ${elevUnit()} · ${fmtDt(r.ts)}</span>
       </button>
       <button class="rb-hist-del" onclick="rbDeleteHistory(${r.id})" title="Delete" aria-label="Delete">✕</button>
     </div>`).join('');
@@ -205,9 +215,11 @@ async function routeGenerate() {
 
   rbStatus('<span class="rb-spin"></span> Generating candidate loops…');
   // Fire all candidates in PARALLEL — total wait ≈ one request, not the sum.
-  const seeds = [1, 7, 23];
+  // points:3 keeps loops tight (5 overshoots badly); several seeds give the
+  // picker good options since round-trip distance varies a lot by seed.
+  const seeds = [3, 7, 11, 23, 31];
   const results = await Promise.allSettled(seeds.map(seed =>
-    rbFetchRoute({ token, sport, lat: start.lat, lng: start.lng, length: targetM, points: 5, seed })
+    rbFetchRoute({ token, sport, lat: start.lat, lng: start.lng, length: targetM, points: 3, seed })
   ));
 
   const cands = [];
@@ -233,7 +245,7 @@ async function routeGenerate() {
 
   pick.sport = sport;
   pick.target = targetM;
-  pick.name = `${Math.round(dist)} ${distUnit()} ${sport === 'run' ? 'run' : 'ride'} loop`; // until AI renames
+  pick.name = `${Math.round(dist)} ${distUnit()} ${RB_SPORT_WORD[sport] || 'ride'} loop`; // until AI renames
   _rbRoute = pick;
   rbDrawRoute(pick);
   rbShowStats(pick);
@@ -283,7 +295,7 @@ async function rbNameRoute(route, opts) {
 
   const place = document.getElementById('rb-start')?.selectedOptions?.[0]?.textContent || 'the start';
   const ascDisp = Math.round(elevVal(route.ascent || 0)) + ' ' + elevUnit();
-  const prompt = `Name a ${opts.sport} route loop and describe it in one short sentence. ` +
+  const prompt = `Name a ${rbSportLabel(opts.sport)} route loop and describe it in one short sentence. ` +
     `It is ${fmtKm(route.distance)} ${distUnit()} long with ${ascDisp} of climbing, starting near "${place}". ` +
     `Elevation preference: ${opts.elev}. Reply EXACTLY as two lines:\nName: <max 4 words>\nDesc: <one sentence>`;
 

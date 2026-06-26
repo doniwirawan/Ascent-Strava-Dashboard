@@ -9,8 +9,10 @@
 // draw and turn into GPX.
 
 const PROFILES = {
-  ride: 'cycling-regular',
-  run:  'foot-walking',
+  road:   'cycling-road',      // sticks to proper paved roads — avoids tiny alleys
+  gravel: 'cycling-mountain',  // favours unpaved / gravel
+  ride:   'cycling-regular',   // balanced
+  run:    'foot-walking',
 };
 
 module.exports = async (req, res) => {
