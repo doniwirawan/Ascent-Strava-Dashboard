@@ -24,6 +24,7 @@ function openRouteModal() {
   if (!m) return;
   rbBuildStartOptions();
   rbRestorePrefs();
+  _rbSetVal('rb-start', RB_HOME); // always start & finish at Home (never a stale GPS pick)
   // Save selections whenever they change (reassign, never stack listeners).
   ['rb-dist', 'rb-sport', 'rb-start', 'rb-elev', 'rb-tol'].forEach(id => {
     const el = document.getElementById(id); if (el) el.onchange = rbSavePrefs;
