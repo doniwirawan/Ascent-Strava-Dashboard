@@ -79,24 +79,52 @@ function rbAllPoints() {
   _rbPts = pool;
   return pool;
 }
-/* Pick ~`sectors` waypoints from ridden roads near ring radius r, one per compass
-   sector, ordered by bearing → a convex-ish loop. null if too little data. */
-function rbDataWaypoints(hlat, hlng, r, sectors, rot) {
-  const raw = rbAllPoints();
-  if (raw.length < sectors * 3) return null;
-  const R = 6371000, rad = Math.PI / 180, half = (360 / sectors) / 2 + 12;
+/* Fetch the main-road network (trunk/primary/secondary/tertiary) around home via
+   OSM Overpass, weighted by class so routing prefers bigger roads. Slow (~10s)
+   the first time, then cached in localStorage. Returns [[lat,lng,weight], …] or
+   [] on failure (caller falls back to ridden roads / geometric ring). */
+async function rbMainRoadPoints(hlat, hlng) {
+  const key = 'rb_mainroads_' + hlat.toFixed(3) + '_' + hlng.toFixed(3);
+  try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.t && Date.now() - c.t < 30 * 864e5 && Array.isArray(c.p)) return c.p; } catch {}
+  const q = `[out:json][timeout:25];way["highway"~"^(trunk|primary|secondary|tertiary)$"](around:20000,${hlat},${hlng});out geom;`;
+  const W = { trunk: 4, primary: 3, secondary: 2, tertiary: 1 };
+  const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 22000);
+  try {
+    const r = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(q), { signal: ctrl.signal });
+    if (!r.ok) return [];
+    const d = await r.json();
+    const out = [];
+    for (const el of (d.elements || [])) {
+      if (!el.geometry) continue;
+      const w = W[el.tags && el.tags.highway] || 1;
+      for (let i = 0; i < el.geometry.length; i += 4) out.push([el.geometry[i].lat, el.geometry[i].lon, w]);
+      if (out.length > 4000) break;
+    }
+    try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), p: out })); } catch {}
+    return out;
+  } catch { return []; }
+  finally { clearTimeout(to); }
+}
+/* Tag a raw [lat,lng] with distance + bearing from home (and a road-class weight). */
+function rbTag(hlat, hlng, lat, lng, w) {
+  const rad = Math.PI / 180, R = 6371000;
+  const x = (lng - hlng) * rad * Math.cos(hlat * rad), y = (lat - hlat) * rad;
+  return { lat, lng, w, dist: Math.sqrt(x * x + y * y) * R, brng: (Math.atan2(x, y) * 180 / Math.PI + 360) % 360 };
+}
+/* Pick one waypoint per compass sector near ring radius r, strongly preferring
+   higher road classes (main roads). Ordered by bearing → a loop. null if sparse. */
+function rbPickWaypoints(pool, hlat, hlng, r, sectors, rot) {
+  if (!pool || pool.length < sectors) return null;
+  const half = (360 / sectors) / 2 + 15;
   const best = new Array(sectors).fill(null), bestErr = new Array(sectors).fill(Infinity);
-  for (const pt of raw) {
-    const x = (pt[1] - hlng) * rad * Math.cos(hlat * rad), y = (pt[0] - hlat) * rad;
-    const dist = Math.sqrt(x * x + y * y) * R;
-    if (dist < r * 0.45 || dist > r * 1.7) continue;
-    const brng = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360; // 0=N, 90=E
+  for (const p of pool) {
+    if (p.dist < r * 0.45 || p.dist > r * 1.8) continue;
     for (let s = 0; s < sectors; s++) {
       const center = (rot + s * 360 / sectors) % 360;
-      let diff = Math.abs(brng - center); if (diff > 180) diff = 360 - diff;
+      let diff = Math.abs(p.brng - center); if (diff > 180) diff = 360 - diff;
       if (diff > half) continue;
-      const err = Math.abs(dist - r) + diff * 25; // near the ring radius & sector centre
-      if (err < bestErr[s]) { bestErr[s] = err; best[s] = { lng: pt[1], lat: pt[0], brng }; }
+      const err = Math.abs(p.dist - r) + diff * 25 - p.w * 1500; // class weight prefers main roads
+      if (err < bestErr[s]) { bestErr[s] = err; best[s] = p; }
     }
   }
   const wps = best.filter(Boolean);
@@ -340,15 +368,22 @@ async function routeGenerate() {
   const token = await rbToken();
   const targetM = dist * 1000;
 
-  rbStatus('<span class="rb-spin"></span> Building loops from your roads…');
-  // Build each candidate as a ring of waypoints (from your ridden roads where
-  // possible, else a geometric ring), then route through them on real roads —
-  // this yields proper circuits instead of ORS round-trip's back-and-forth.
-  // Several radius scales + rotations bracket the target distance and add variety.
+  // Build a waypoint pool that PREFERS main roads (OSM trunk/primary/secondary,
+  // class-weighted) and falls back to roads you've ridden, then a geometric ring.
+  rbStatus('<span class="rb-spin"></span> Loading main-road map (first time can take ~10s)…');
+  const mainRaw = await rbMainRoadPoints(start.lat, start.lng); // [] if Overpass unavailable
+  const wpPool = [
+    ...mainRaw.map(p => rbTag(start.lat, start.lng, p[0], p[1], p[2])),
+    ...rbAllPoints().map(p => rbTag(start.lat, start.lng, p[0], p[1], 0.5)),
+  ];
+
+  rbStatus('<span class="rb-spin"></span> Building loops on main roads…');
+  // Several radius scales + rotations bracket the target distance and add variety;
+  // route through the waypoints on real roads (proper circuits, not back-and-forth).
   const combos = [];
   for (const sc of [0.5, 0.65, 0.8]) for (const rot of [0, 36]) {
     const r = targetM / (2 * Math.PI) * sc;
-    const coords = rbDataWaypoints(start.lat, start.lng, r, 6, rot) || rbGeoRing(start.lat, start.lng, r, 6, rot);
+    const coords = rbPickWaypoints(wpPool, start.lat, start.lng, r, 6, rot) || rbGeoRing(start.lat, start.lng, r, 6, rot);
     combos.push(coords);
   }
   const results = await Promise.allSettled(combos.map(coords =>
