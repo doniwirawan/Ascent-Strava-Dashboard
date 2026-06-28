@@ -23,6 +23,12 @@ const kmDisp  = km => useImperial ? km/_MI : km;               // km value → k
 const elevVal = m  => useImperial ? m*_FT : m;                 // elevation value in m/ft
 const kmh     = ms => +(ms * (useImperial ? 2.23694 : 3.6)).toFixed(1); // speed value
 const fmtSpeed= ms => kmh(ms) + ' ' + speedUnit();
+// Strava derives max_speed from a single GPS sample, so one satellite glitch
+// can report an impossible peak (90+ km/h on a road bike). Treat anything above
+// this ceiling as bogus and drop it from speed leaderboards / records rather
+// than show a fake number. Ceiling is in m/s, unit-independent.
+const MAX_SPEED_CEILING = 65 / 3.6;                                       // 65 km/h
+const cleanMax = a => { const v = a && a.max_speed; return v > 0 && v <= MAX_SPEED_CEILING ? v : 0; };
 // running pace: seconds per km/mi → "m:ss /km" (— when no speed)
 const fmtPace = ms => {
   if (!ms || ms <= 0) return '—';

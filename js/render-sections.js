@@ -120,14 +120,14 @@ function renderBestEfforts(){
     {title:'Longest Rides',key:'distance',fmt:a=>fmtKm(a)+' '+distUnit(),sort:(a,b)=>(b.distance||0)-(a.distance||0)},
     {title:'Most Elevation',key:'total_elevation_gain',fmt:a=>fmtElev(a),sort:(a,b)=>(b.total_elevation_gain||0)-(a.total_elevation_gain||0)},
     {title:'Fastest Avg Speed',key:'average_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.average_speed||0)-(a.average_speed||0)},
-    {title:'Highest Max Speed',key:'max_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.max_speed||0)-(a.max_speed||0)},
+    {title:'Highest Max Speed',key:'max_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.max_speed||0)-(a.max_speed||0),valid:a=>cleanMax(a)>0},
     {title:'Highest Heart Rate',key:'max_heartrate',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.max_heartrate||0)-(a.max_heartrate||0)},
     {title:'Highest Suffer Score',key:'suffer_score',fmt:a=>Math.round(a),sort:(a,b)=>(b.suffer_score||0)-(a.suffer_score||0)},
   ];
   const el=document.getElementById('bestGrid');
   const src=modeActs();
   el.innerHTML=CATS.map(cat=>{
-    const sorted=src.filter(a=>a[cat.key]>0).sort(cat.sort).slice(0,5);
+    const sorted=src.filter(a=>a[cat.key]>0&&(!cat.valid||cat.valid(a))).sort(cat.sort).slice(0,5);
     if(!sorted.length) return '';
     const rows=sorted.map((a,i)=>`
       <div class="best-row">
@@ -364,7 +364,7 @@ function renderMilestones(){
   const longest=set.reduce((m,a)=>(a.distance||0)>(m.distance||0)?a:m,set[0]||{});
   const mostElev=set.reduce((m,a)=>(a.total_elevation_gain||0)>(m.total_elevation_gain||0)?a:m,set[0]||{});
   const fastest=set.filter(a=>a.average_speed>0).reduce((m,a)=>a.average_speed>(m.average_speed||0)?a:m,{});
-  const topSpd=set.filter(a=>a.max_speed>0).reduce((m,a)=>a.max_speed>(m.max_speed||0)?a:m,{});
+  const topSpd=set.filter(a=>cleanMax(a)>0).reduce((m,a)=>cleanMax(a)>cleanMax(m)?a:m,{});
   const longDur=set.reduce((m,a)=>(a.moving_time||0)>(m.moving_time||0)?a:m,set[0]||{});
   const bestHR=set.filter(a=>a.average_heartrate>0).reduce((m,a)=>a.average_heartrate>(m.average_heartrate||0)?a:m,{});
 

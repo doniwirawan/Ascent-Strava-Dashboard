@@ -3,9 +3,9 @@ function renderCycling() {
   const rides = acts.filter(isRide);
   if (!rides.length) { document.getElementById('cyclingSection').style.display='none'; return; }
 
-  const fastMaxRide = rides.reduce((a,r)=>(r.max_speed||0)>(a.max_speed||0)?r:a, rides[0]);
+  const fastMaxRide = rides.reduce((a,r)=>cleanMax(r)>cleanMax(a)?r:a, rides[0]);
   const fastAvgRide = rides.reduce((a,r)=>(r.average_speed||0)>(a.average_speed||0)?r:a, rides[0]);
-  const fastMax  = fastMaxRide.max_speed||0;
+  const fastMax  = cleanMax(fastMaxRide);
   const fastAvg  = fastAvgRide.average_speed||0;
   const totDist  = rides.reduce((s,r)=>s+(r.distance||0),0);
   const longest  = Math.max(...rides.map(r=>r.distance||0));
@@ -41,7 +41,7 @@ function renderCycling() {
   `;
 
   // Top 5 fastest (max) speeds
-  const top5 = [...rides].filter(r=>(r.max_speed||0)>0).sort((a,b)=>(b.max_speed||0)-(a.max_speed||0)).slice(0,5);
+  const top5 = [...rides].filter(r=>cleanMax(r)>0).sort((a,b)=>cleanMax(b)-cleanMax(a)).slice(0,5);
   const top5Max = top5.length ? top5[0].max_speed : 1;
   document.getElementById('cyclingTop5').innerHTML = top5.length ? `
     <div class="ctop-title">Top 5 Fastest Speeds</div>
@@ -65,7 +65,7 @@ function renderCycling() {
     type:'line',
     data:{ labels:last20.map(r=>fmtDt(r.start_date)),
       datasets:[
-        { label:t('chMax'),  data:last20.map(r=>kmh(r.max_speed||0)),
+        { label:t('chMax'),  data:last20.map(r=>{const m=cleanMax(r); return m?kmh(m):null;}), spanGaps:true,
           borderColor:'#FC4C02', backgroundColor:'rgba(252,76,2,.07)', tension:.35, fill:true, pointRadius:3, pointBackgroundColor:'#FC4C02' },
         { label:t('chAvg'),  data:last20.map(r=>kmh(r.average_speed||0)),
           borderColor:'#555', backgroundColor:'rgba(85,85,85,.05)', tension:.35, fill:true, pointRadius:2 }
@@ -336,7 +336,7 @@ function openActivityModal(ref){
     a.elapsed_time && a.elapsed_time!==a.moving_time ? _actStat('Elapsed', fmtT(a.elapsed_time)) : '',
     ride ? _actStat('Avg Speed', a.average_speed?fmtSpeed(a.average_speed):'—')
          : _actStat('Avg Pace', a.average_speed?_pace(a.average_speed)+' /'+distUnit():'—'),
-    ride ? _actStat('Max Speed', a.max_speed?fmtSpeed(a.max_speed):'—')
+    ride ? _actStat('Max Speed', cleanMax(a)?fmtSpeed(a.max_speed):'—')
          : _actStat('Max Pace', a.max_speed?_pace(a.max_speed)+' /'+distUnit():'—'),
     _actStat('Elevation', a.total_elevation_gain?fmtElev(a.total_elevation_gain):''),
     _actStat('Highest Pt', a.elev_high!=null?fmtElev(a.elev_high):''),

@@ -70,7 +70,7 @@ function renderStats() {
     const riding=set.filter(a=>a.average_speed>0);
     const avg=riding.length?kmh(riding.reduce((s,a)=>s+a.average_speed,0)/riding.length):0;
     avgLbl=t('avgSpeed'); avgVal=avg?avg.toFixed(1):'—'; avgSub=speedUnit()+' '+t('riding');
-    const mx=kmh(set.reduce((m,a)=>a.max_speed>m?a.max_speed:m,0));
+    const mx=kmh(set.reduce((m,a)=>cleanMax(a)>m?cleanMax(a):m,0));
     maxLbl=t('maxSpeed'); maxVal=mx?mx.toFixed(1):'—'; maxSub=speedUnit();
   }
 

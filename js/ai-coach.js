@@ -152,7 +152,7 @@ function aiActivityData(a) {
     moving_min: Math.round((a.moving_time || 0) / 60),
     elev_m: Math.round(a.total_elevation_gain || 0),
     avg_kmh: a.average_speed ? +((a.average_speed * 3.6).toFixed(1)) : null,
-    max_kmh: a.max_speed ? +((a.max_speed * 3.6).toFixed(1)) : null,
+    max_kmh: cleanMax(a) ? +((cleanMax(a) * 3.6).toFixed(1)) : null,
     avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     avg_watts: a.average_watts ? Math.round(a.average_watts) : null,
     kj: a.kilojoules ? Math.round(a.kilojoules) : null,
@@ -272,7 +272,7 @@ function aiStatsTemplate(a, wx) {
   if (a.moving_time) L.push('Time: ' + fmtT(a.moving_time));
   if (a.total_elevation_gain) L.push('Elevation: ' + fmtElev(a.total_elevation_gain));
   if (a.average_speed) L.push(ride ? 'Avg speed: ' + fmtSpeed(a.average_speed) : 'Avg pace: ' + fmtPace(a.average_speed));
-  if (a.max_speed && ride) L.push('Max speed: ' + fmtSpeed(a.max_speed));
+  if (cleanMax(a) && ride) L.push('Max speed: ' + fmtSpeed(a.max_speed));
   if (a.average_heartrate) L.push('Avg HR: ' + Math.round(a.average_heartrate) + ' bpm');
   if (a.average_watts) L.push('Avg power: ' + Math.round(a.average_watts) + ' W');
   if (a.kilojoules) L.push('Energy: ' + Math.round(a.kilojoules).toLocaleString() + ' kJ');
@@ -731,7 +731,7 @@ function aiBuildSummary() {
   const rideRow = a => ({
     date: a.start_date.slice(0, 10), type: a.type, km: km(a.distance),
     elev_m: Math.round(a.total_elevation_gain || 0),
-    avg_kmh: kmh(a.average_speed), max_kmh: kmh(a.max_speed),
+    avg_kmh: kmh(a.average_speed), max_kmh: cleanMax(a) ? kmh(cleanMax(a)) : null,
   });
 
   // fastest rides across the ENTIRE history (by average speed) — so the AI is
