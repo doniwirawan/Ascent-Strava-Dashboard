@@ -27,8 +27,15 @@ const fmtSpeed= ms => kmh(ms) + ' ' + speedUnit();
 // can report an impossible peak (90+ km/h on a road bike). Treat anything above
 // this ceiling as bogus and drop it from speed leaderboards / records rather
 // than show a fake number. Ceiling is in m/s, unit-independent.
+// Scoped to the owner's account only (OWNER_ATHLETE_ID, defined in config.js) —
+// other athletes who log in see raw data.
 const MAX_SPEED_CEILING = 65 / 3.6;                                       // 65 km/h
-const cleanMax = a => { const v = a && a.max_speed; return v > 0 && v <= MAX_SPEED_CEILING ? v : 0; };
+const cleanMax = a => {
+  const v = a && a.max_speed;
+  if (!(v > 0)) return 0;
+  if (localStorage.getItem('strava_athlete_id') !== OWNER_ATHLETE_ID) return v; // not me → raw
+  return v <= MAX_SPEED_CEILING ? v : 0;
+};
 // running pace: seconds per km/mi → "m:ss /km" (— when no speed)
 const fmtPace = ms => {
   if (!ms || ms <= 0) return '—';
