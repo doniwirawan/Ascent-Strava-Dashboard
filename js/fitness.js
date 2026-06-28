@@ -75,13 +75,21 @@ function hrZonePill(bpm) {
    • A single activity fetches Strava's EXACT per-zone time via
      /activities/{id}/zones, falling back to the approximation if unavailable. */
 
-// bpm range label for zone i from the athlete's configured zones, e.g. "120–140".
+// bpm range label for zone i: from the athlete's configured zones when set,
+// else derived from the standard % boundaries of the observed max HR. e.g. "120–140".
 function hrZoneRange(i) {
-  if (!athleteHrZones || !athleteHrZones[i]) return '';
-  const z = athleteHrZones[i];
-  const lo = z.min || 0;
-  const hi = (z.max == null || z.max <= 0) ? null : z.max;
-  return hi ? `${lo}–${hi}` : `${lo}+`;
+  if (athleteHrZones && athleteHrZones[i]) {
+    const z = athleteHrZones[i];
+    const lo = z.min || 0;
+    const hi = (z.max == null || z.max <= 0) ? null : z.max;
+    return hi ? `${lo}–${hi}` : `${lo}+`;
+  }
+  const mhr = observedMaxHr();
+  if (!mhr) return '';
+  const frac = [0, 0.60, 0.70, 0.80, 0.90];        // upper bounds match hrZoneFor()
+  if (i === 0) return `≤${Math.round(frac[1] * mhr)}`;
+  if (i === 4) return `${Math.round(frac[4] * mhr)}+`;
+  return `${Math.round(frac[i] * mhr)}–${Math.round(frac[i + 1] * mhr)}`;
 }
 
 // Approximate seconds per zone over a set of activities (avg-HR bucketing).
