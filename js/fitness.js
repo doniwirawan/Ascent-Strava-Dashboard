@@ -119,6 +119,96 @@ async function fetchActivityHrZones(id) {
   return totals;
 }
 
+/* ── PERSISTENT PER-ACTIVITY ZONE CACHE ──
+   A finished activity's time-in-zone never changes, so cache it forever in this
+   browser. Map id → [s×5] (has data) or null (fetched, no HR-zone data). */
+const HRZ_CACHE_KEY = 'hrz_zones_v1';
+let _hrzCache = null;
+function _hrzLoad() {
+  if (_hrzCache) return _hrzCache;
+  try { _hrzCache = JSON.parse(localStorage.getItem(HRZ_CACHE_KEY)) || {}; } catch { _hrzCache = {}; }
+  return _hrzCache;
+}
+function _hrzSave() { try { localStorage.setItem(HRZ_CACHE_KEY, JSON.stringify(_hrzLoad())); } catch {} }
+// undefined = never fetched · null = fetched, no data · [s×5] = real zone times
+function hrzCacheGet(id) { return _hrzLoad()[id]; }
+function hrzCacheSet(id, totals) { _hrzLoad()[id] = totals || null; _hrzSave(); }
+
+// Real time-in-zone for one activity, via cache → network. Throws on network
+// error (so callers can stop/retry); returns null when Strava has no zone data.
+async function getActivityZones(a) {
+  const cached = hrzCacheGet(a.id);
+  if (cached !== undefined) return cached;
+  const totals = await fetchActivityHrZones(a.id);   // may throw (e.g. 429)
+  hrzCacheSet(a.id, totals);
+  return totals;
+}
+
+// Is the logged-in athlete the dashboard owner? Real bulk fetching is owner-only
+// so other visitors never spend the shared Strava rate limit on the overview.
+function _isHrzOwner() {
+  try { return localStorage.getItem('strava_athlete_id') === OWNER_ATHLETE_ID && !!CONFIG.accessToken; }
+  catch { return false; }
+}
+
+// Replace the Overview estimate with REAL aggregated time-in-zone (owner only).
+// Progressive: draws cached data immediately, fetches the rest with limited
+// concurrency, then redraws. Token guards against mode/unit switches mid-flight.
+let _hrzRealToken = 0;
+async function upgradeOverviewZonesReal(set) {
+  const token = ++_hrzRealToken;
+  const hrActs = set.filter(a => a.average_heartrate > 0 && a.id);
+  if (!hrActs.length) return;
+  const note = document.getElementById('hrzNote');
+  const totals = [0, 0, 0, 0, 0];
+  let withData = 0, pending = [];
+  for (const a of hrActs) {
+    const c = hrzCacheGet(a.id);
+    if (c === undefined) pending.push(a);
+    else if (c) { c.forEach((v, i) => totals[i] += v); withData++; }
+  }
+  const redraw = (msg) => {
+    if (token !== _hrzRealToken) return;
+    const sum = totals.reduce((s, v) => s + v, 0);
+    if (sum <= 0) return;                              // keep the estimate if nothing real yet
+    drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(sum), small: 'tracked' });
+    document.getElementById('hrzLegend').innerHTML = zoneLegendHTML(totals);
+    if (note) note.textContent = msg;
+  };
+  redraw(`Real time in each zone, from Strava · ${withData} of ${hrActs.length} activities`);
+
+  let stoppedRate = false, done = withData;
+  if (pending.length) {
+    if (note) note.textContent = `Loading real time-in-zone from Strava… (${done}/${hrActs.length})`;
+    let idx = 0;
+    const worker = async () => {
+      while (idx < pending.length) {
+        if (token !== _hrzRealToken) return;          // superseded
+        const a = pending[idx++];
+        try {
+          const z = await getActivityZones(a);
+          if (z) { z.forEach((v, i) => totals[i] += v); withData++; }
+          done++;
+        } catch (e) {
+          if (/ 429 /.test(' ' + e.message + ' ')) { stoppedRate = true; return; }
+          done++;                                      // other error: skip this one
+        }
+        if (done % 5 === 0 && note && token === _hrzRealToken)
+          note.textContent = `Loading real time-in-zone from Strava… (${done}/${hrActs.length})`;
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, pending.length) }, worker));
+  }
+  if (token !== _hrzRealToken) return;
+  if (totals.reduce((s, v) => s + v, 0) > 0) {        // draw real data when we got some
+    drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(totals.reduce((s, v) => s + v, 0)), small: 'tracked' });
+    document.getElementById('hrzLegend').innerHTML = zoneLegendHTML(totals);
+  }
+  if (note) note.textContent = stoppedRate           // always land on a final status
+    ? `Real time in each zone, from Strava · ${withData} activities · rate-limited, refresh later for the rest`
+    : `Real time in each zone, from Strava · ${withData} of ${hrActs.length} activities have HR-zone data`;
+}
+
 // Compact duration for the ring centre: "1h23m" / "47h" / "12m".
 const fmtTc = s => {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
@@ -198,13 +288,15 @@ function renderOverviewZones() {
   const set = (typeof modeActs === 'function') ? modeActs() : (typeof acts !== 'undefined' ? acts : []);
   const { totals, tracked, untracked } = approxZoneTotals(set);
   const sum = totals.reduce((s, v) => s + v, 0);
-  if (sum <= 0) { card.style.display = 'none'; return; }
+  if (sum <= 0) { card.style.display = 'none'; _hrzRealToken++; return; }
   card.style.display = '';
   drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(sum), small: 'tracked' });
   document.getElementById('hrzLegend').innerHTML = zoneLegendHTML(totals);
   const basis = athleteHrZones ? 'your Strava zones' : 'estimated max HR';
   document.getElementById('hrzNote').textContent =
     `Estimated from each activity's average HR · ${basis} · ${tracked} of ${tracked + untracked} activities have HR`;
+  // Owner: upgrade the estimate to real per-activity time-in-zone from Strava.
+  if (_isHrzOwner()) upgradeOverviewZonesReal(set); else _hrzRealToken++;
 }
 
 // Single-activity "Heart Rate Zones" ring — exact from Strava, else approximated.
@@ -216,15 +308,10 @@ async function renderActivityHrZones(a) {
      <div class="hrz-body"><canvas class="hrz-ring" id="actHrzRing"></canvas><div class="hrz-legend" id="actHrzLegend"></div></div>
      <div class="hrz-note" id="actHrzNote">Loading zones…</div>`;
   let totals = null, exact = false;
-  if ('_hrz' in a) { totals = a._hrz; exact = a._hrzExact; }       // cached from a prior open
-  else {
-    try { if (a.id) totals = await fetchActivityHrZones(a.id); } catch { totals = null; }
-    exact = !!totals;
-    if (!totals) {                                                  // fallback: avg-HR bucket
-      const z = hrZoneFor(a.average_heartrate);
-      if (z) { totals = [0, 0, 0, 0, 0]; totals[Math.min(z.n - 1, 4)] = a.moving_time || 0; }
-    }
-    a._hrz = totals; a._hrzExact = exact;
+  if (a.id) { try { totals = await getActivityZones(a); exact = !!totals; } catch { totals = null; } }
+  if (!totals) {                                                    // fallback: avg-HR bucket
+    const z = hrZoneFor(a.average_heartrate);
+    if (z) { totals = [0, 0, 0, 0, 0]; totals[Math.min(z.n - 1, 4)] = a.moving_time || 0; }
   }
   if (!totals || totals.reduce((s, v) => s + v, 0) <= 0) { box.style.display = 'none'; return; }
   // The modal may have been closed/reopened while awaiting — bail if our nodes are gone.
