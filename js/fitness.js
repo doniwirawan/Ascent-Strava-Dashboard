@@ -175,7 +175,7 @@ async function upgradeOverviewZonesReal(set) {
     document.getElementById('hrzLegend').innerHTML = zoneLegendHTML(totals);
     if (note) note.textContent = msg;
   };
-  redraw(`Real time in each zone, from Strava · ${withData} of ${hrActs.length} activities`);
+  redraw(`Real time in each zone, from Strava · ${hrActs.length} of ${set.length} activities recorded HR`);
 
   let stoppedRate = false, done = withData;
   if (pending.length) {
@@ -204,9 +204,12 @@ async function upgradeOverviewZonesReal(set) {
     drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(totals.reduce((s, v) => s + v, 0)), small: 'tracked' });
     document.getElementById('hrzLegend').innerHTML = zoneLegendHTML(totals);
   }
-  if (note) note.textContent = stoppedRate           // always land on a final status
-    ? `Real time in each zone, from Strava · ${withData} activities · rate-limited, refresh later for the rest`
-    : `Real time in each zone, from Strava · ${withData} of ${hrActs.length} activities have HR-zone data`;
+  // Land on a clear final status. Denominator is the FULL mode set so it's
+  // obvious why the count is what it is (most activities have no HR recorded).
+  const base = `Real time in each zone, from Strava · ${hrActs.length} of ${set.length} activities recorded HR`;
+  if (note) note.textContent = stoppedRate
+    ? base + ' · rate-limited, refresh later for the rest'
+    : (withData < hrActs.length ? base + ` (${withData} with zone data)` : base);
 }
 
 // Compact duration for the ring centre: "1h23m" / "47h" / "12m".
