@@ -122,6 +122,7 @@ function renderBestEfforts(){
     {title:'Fastest Avg Speed',key:'average_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.average_speed||0)-(a.average_speed||0)},
     {title:'Highest Max Speed',key:'max_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.max_speed||0)-(a.max_speed||0),valid:a=>cleanMax(a)>0},
     {title:'Highest Heart Rate',key:'max_heartrate',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.max_heartrate||0)-(a.max_heartrate||0)},
+    {title:'Highest Avg Heart Rate',key:'average_heartrate',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.average_heartrate||0)-(a.average_heartrate||0)},
     {title:'Highest Suffer Score',key:'suffer_score',fmt:a=>Math.round(a),sort:(a,b)=>(b.suffer_score||0)-(a.suffer_score||0)},
   ];
   const el=document.getElementById('bestGrid');

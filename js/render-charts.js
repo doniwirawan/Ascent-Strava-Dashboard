@@ -380,6 +380,7 @@ function openActivityModal(ref){
     </div>
     ${loc?`<div class="actd-loc">📍 ${loc}</div>`:''}
     <div class="actd-grid">${stats}</div>
+    ${a.average_heartrate ? '<div class="actd-hrz" id="actHrz"></div>' : ''}
     ${a.id ? `<div class="actd-actions">
       <button class="btn actd-ai-btn" type="button" onclick="aiCaptionActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} AI title &amp; description</button>
       <button class="btn actd-stats-btn" type="button" onclick="aiStatsCaption('${a.id}')">Stats title &amp; description</button>
@@ -390,6 +391,7 @@ function openActivityModal(ref){
   if (window.applyI18n) window.applyI18n();
   document.getElementById('actModal').classList.add('open');
   if(hasRoute) _actBuildMap(a);
+  if(a.average_heartrate) renderActivityHrZones(a);
 }
 
 function closeActivityModal(){
