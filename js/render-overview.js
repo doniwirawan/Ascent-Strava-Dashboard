@@ -154,13 +154,19 @@ function renderEddington() {
   const E = eddington(rides);
   document.getElementById('eddyNum').textContent = E;
 
-  // how many activities ≥ E+1 (unit) already?
+  // ladder: how many more activities needed for the next few Eddington numbers
   const next = E+1;
-  const have = rides.filter(r=>kmVal(r.distance||0)>=next).length;
-  const need = next - have;
-  document.getElementById('eddyNext').innerHTML = (window.LANG==='id')
-    ? `Untuk mencapai <strong>E=${next}</strong> Anda butuh <strong>${need} ${mode==='run'?'lari':'gowes'} lagi sejauh ≥${next} ${distUnit()}</strong> (punya ${have}/${next}).`
-    : `To reach <strong>E=${next}</strong> you need <strong>${need} more ${word}${need!==1?'s':''} of ≥${next} ${distUnit()}</strong> (have ${have}/${next}).`;
+  const id = window.LANG==='id';
+  const rows = [];
+  for (let t=next; t<=E+3; t++) {
+    const have = rides.filter(r=>kmVal(r.distance||0)>=t).length;
+    const need = Math.max(0, t - have);
+    const w = id ? (mode==='run'?'lari':'gowes') : `${word}${need!==1?'s':''}`;
+    rows.push(id
+      ? `<div class="eddy-step"><strong>E=${t}</strong> — butuh <strong>${need} ${w} lagi</strong> sejauh ≥${t} ${distUnit()} <span class="eddy-have">(punya ${have}/${t})</span></div>`
+      : `<div class="eddy-step"><strong>E=${t}</strong> — need <strong>${need} more ${w}</strong> of ≥${t} ${distUnit()} <span class="eddy-have">(have ${have}/${t})</span></div>`);
+  }
+  document.getElementById('eddyNext').innerHTML = rows.join('');
 
   // bar chart: last 15 E-values cumulative
   const kms = rides.map(r=>kmVal(r.distance||0)).sort((a,b)=>b-a).slice(0,next+5);
