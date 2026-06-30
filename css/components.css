@@ -96,6 +96,12 @@
 .actd-stream-stats { font-size: 11px; color: var(--muted); }
 .actd-stream-stats b { color: var(--text); }
 .actd-stream-canvas { height: 90px; }
+.actd-stream-canvas.tall { height: 240px; }
+.actd-stream-title { display: flex; align-items: center; gap: 8px; }
+.actd-stream-modes { margin-left: auto; display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.actd-stream-modes button { background: var(--surface2); color: var(--muted); border: 0; font-size: 11px; font-weight: 600; padding: 4px 10px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.actd-stream-modes button.on { background: var(--orange); color: #fff; }
+.actd-stream-overlay { padding: 12px; }
 
 /* Segment big-map modal */
 .segmap-modal { max-width: 900px; gap: 14px; }

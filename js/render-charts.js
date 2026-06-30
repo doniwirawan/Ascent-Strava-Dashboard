@@ -454,52 +454,79 @@ async function _getActivityStreams(id){
   return compact;
 }
 
+// metric display config keys reused by both views
+const _STREAM_CFG = ride => [
+  { key:'speed',    label:'Speed',      color:'#fc4c02', conv:v=>kmh(v),      unit:speedUnit(), dp:1 },
+  { key:'hr',       label:'Heart Rate', color:'#ef4444', conv:v=>v,           unit:'bpm',       dp:0 },
+  { key:'cadence',  label:'Cadence',    color:'#22c55e', conv:v=>ride?v:v*2,  unit:ride?'rpm':'spm', dp:0 },
+  { key:'watts',    label:'Power',      color:'#a855f7', conv:v=>v,           unit:'W',         dp:0 },
+  { key:'altitude', label:'Elevation',  color:'#3b82f6', conv:v=>elevVal(v),  unit:elevUnit(),  dp:0 },
+  { key:'temp',     label:'Temp',       color:'#eab308', conv:v=>v,           unit:'°C',        dp:0 }
+];
+let _streamMode = localStorage.getItem('streamMode')==='overlay' ? 'overlay' : 'sep';
+let _curStreams = null, _curRide = false; // remember last activity so the toggle can redraw
+
+function _destroyStreamCharts(){
+  destroyChart('str_overlay');
+  _STREAM_CFG(false).forEach(c=>destroyChart('str_'+c.key));
+}
+function setStreamMode(m){
+  _streamMode = m; try{ localStorage.setItem('streamMode',m); }catch{}
+  _drawStreams();
+}
+
 async function renderActivityStreams(a){
   const wrap=document.getElementById('actStreams');
   if(!wrap) return;
-  const ride=isRide(a);
+  _curRide=isRide(a); _curStreams=null;
   wrap.innerHTML='<div class="actd-stream-note">Loading stream data…</div>';
   const s=await _getActivityStreams(a.id);
   if(document.getElementById('actStreams')!==wrap) return; // modal changed while loading
   if(!s || !Object.keys(s.series).length){ wrap.innerHTML=''; return; }
+  _curStreams=s;
+  _drawStreams();
+}
 
-  // per-metric display config — conv() turns raw stream values into display units
-  const cfg=[
-    { key:'speed',    label:'Speed',      color:'#fc4c02', conv:v=>kmh(v),      unit:speedUnit(), dp:1 },
-    { key:'hr',       label:'Heart Rate', color:'#ef4444', conv:v=>v,           unit:'bpm',       dp:0 },
-    { key:'cadence',  label:'Cadence',    color:'#22c55e', conv:v=>ride?v:v*2,  unit:ride?'rpm':'spm', dp:0 },
-    { key:'watts',    label:'Power',      color:'#a855f7', conv:v=>v,           unit:'W',         dp:0 },
-    { key:'altitude', label:'Elevation',  color:'#3b82f6', conv:v=>elevVal(v),  unit:elevUnit(),  dp:0 },
-    { key:'temp',     label:'Temp',       color:'#eab308', conv:v=>v,           unit:'°C',        dp:0 }
-  ].filter(c=>s.series[c.key]);
+function _drawStreams(){
+  const wrap=document.getElementById('actStreams');
+  if(!wrap || !_curStreams) return;
+  _destroyStreamCharts();
+  const s=_curStreams, ride=_curRide;
+  const cfg=_STREAM_CFG(ride).filter(c=>s.series[c.key]);
 
   // x-axis: distance in km/mi when available, else sample index
   const xs = s.x ? s.x.map(m=>kmVal(m)) : s.series[cfg[0].key].data.map((_,i)=>i);
   const xMax = xs.length?xs[xs.length-1]:0;
 
-  wrap.innerHTML = '<div class="actd-stream-title">Metrics over the '+(ride?'ride':'activity')
-    +' <span class="actd-stream-x">'+(s.x?('distance · '+distUnit()):'time')+'</span></div>'
-    + cfg.map(c=>{
-        const st=s.series[c.key];
-        const fmt=v=>c.conv(v).toFixed(c.dp);
-        return `<div class="actd-stream">
-          <div class="actd-stream-head"><span class="actd-stream-name" style="color:${c.color}">${c.label}</span>
-            <span class="actd-stream-stats">avg <b>${fmt(st.avg)}</b> · min ${fmt(st.min)} · max <b>${fmt(st.max)}</b> ${c.unit}</span></div>
-          <div class="actd-stream-canvas"><canvas id="str_${c.key}"></canvas></div>
-        </div>`;
-      }).join('');
+  const toggle = `<div class="actd-stream-modes">
+      <button type="button" class="${_streamMode==='sep'?'on':''}" onclick="setStreamMode('sep')">Separate</button>
+      <button type="button" class="${_streamMode==='overlay'?'on':''}" onclick="setStreamMode('overlay')">Overlay</button></div>`;
+  const head = `<div class="actd-stream-title">Metrics over the ${ride?'ride':'activity'}
+      <span class="actd-stream-x">${s.x?('distance · '+distUnit()):'time'}</span>${toggle}</div>`;
+
+  if(_streamMode==='overlay') _drawStreamOverlay(wrap,head,s,cfg,xs,xMax);
+  else _drawStreamSeparate(wrap,head,s,cfg,xs,xMax);
+}
+
+function _drawStreamSeparate(wrap,head,s,cfg,xs,xMax){
+  wrap.innerHTML = head + cfg.map(c=>{
+      const st=s.series[c.key];
+      const fmt=v=>c.conv(v).toFixed(c.dp);
+      return `<div class="actd-stream">
+        <div class="actd-stream-head"><span class="actd-stream-name" style="color:${c.color}">${c.label}</span>
+          <span class="actd-stream-stats">avg <b>${fmt(st.avg)}</b> · min ${fmt(st.min)} · max <b>${fmt(st.max)}</b> ${c.unit}</span></div>
+        <div class="actd-stream-canvas"><canvas id="str_${c.key}"></canvas></div>
+      </div>`;
+    }).join('');
 
   cfg.forEach(c=>{
-    const st=s.series[c.key];
-    const id='str_'+c.key;
-    destroyChart(id);
+    const st=s.series[c.key], id='str_'+c.key;
     charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
       type:'line',
       data:{ datasets:[{
         data: st.data.map((v,i)=> ({x:xs[i], y: v==null?null:c.conv(v)})),
         borderColor:c.color, borderWidth:1.5, pointRadius:0, tension:.25,
-        fill:true, backgroundColor:c.color+'22',
-        spanGaps:true
+        fill:true, backgroundColor:c.color+'22', spanGaps:true
       }]},
       options:{ responsive:true, maintainAspectRatio:false, animation:false,
         plugins:{ legend:{display:false},
@@ -515,6 +542,43 @@ async function renderActivityStreams(a){
         }
       }
     });
+  });
+}
+
+// All metrics on one chart. Each line gets its own hidden, auto-scaled y-axis so
+// curves with wildly different ranges (bpm vs °C) all fill the height.
+function _drawStreamOverlay(wrap,head,s,cfg,xs,xMax){
+  wrap.innerHTML = head + '<div class="actd-stream actd-stream-overlay"><div class="actd-stream-canvas tall"><canvas id="str_overlay"></canvas></div></div>';
+
+  const scales={
+    x:{ type:'linear', min:0, max:xMax||undefined, display:!!s.x,
+        grid:{color:'#1a1a1a'}, ticks:{color:'#555',font:{size:9},maxTicksLimit:6, callback:v=>v.toFixed(0)} }
+  };
+  const datasets = cfg.map(c=>{
+    const d=s.series[c.key];
+    const yId='y_'+c.key;
+    const lo=c.conv(d.min), hi=c.conv(d.max), pad=(hi-lo)*0.08||1;
+    scales[yId]={ type:'linear', display:false, min:lo-pad, max:hi+pad };
+    return {
+      label:c.label, yAxisID:yId,
+      data:d.data.map((v,i)=> ({x:xs[i], y: v==null?null:c.conv(v)})),
+      borderColor:c.color, borderWidth:1.5, pointRadius:0, tension:.25,
+      fill:false, spanGaps:true, _unit:c.unit, _dp:c.dp
+    };
+  });
+
+  charts['str_overlay']=new Chart(document.getElementById('str_overlay').getContext('2d'),{
+    type:'line', data:{datasets},
+    options:{ responsive:true, maintainAspectRatio:false, animation:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ display:true, position:'top', labels:{ color:'#aaa', font:{size:11}, boxWidth:12, usePointStyle:true } },
+        tooltip:{ backgroundColor:'#1a1a1a', borderColor:'#2a2a2a', borderWidth:1,
+          titleColor:'#fff', bodyColor:'#aaa',
+          callbacks:{ title:items=> s.x&&items.length?(items[0].parsed.x.toFixed(1)+' '+distUnit()):'',
+                      label:ctx=>' '+ctx.dataset.label+': '+(+ctx.parsed.y).toFixed(ctx.dataset._dp)+' '+ctx.dataset._unit } } },
+      scales
+    }
   });
 }
 
