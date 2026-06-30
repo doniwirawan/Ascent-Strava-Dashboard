@@ -380,6 +380,7 @@ function openActivityModal(ref){
     </div>
     ${loc?`<div class="actd-loc">📍 ${loc}</div>`:''}
     <div class="actd-grid">${stats}</div>
+    ${a.id ? '<div class="actd-streams" id="actStreams"></div>' : ''}
     ${a.average_heartrate ? '<div class="actd-hrz" id="actHrz"></div>' : ''}
     ${a.id ? `<div class="actd-actions">
       <button class="btn actd-ai-btn" type="button" onclick="aiCaptionActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} AI title &amp; description</button>
@@ -392,6 +393,7 @@ function openActivityModal(ref){
   document.getElementById('actModal').classList.add('open');
   if(hasRoute) _actBuildMap(a);
   if(a.average_heartrate) renderActivityHrZones(a);
+  if(a.id) renderActivityStreams(a);
 }
 
 function closeActivityModal(){
@@ -399,6 +401,122 @@ function closeActivityModal(){
   if(_actBigMap){try{_actBigMap.remove();}catch{} _actBigMap=null;}
 }
 document.getElementById('actModal').addEventListener('click', e=>{ if(e.target.id==='actModal') closeActivityModal(); });
+
+/* ── ACTIVITY STREAM CHARTS — min / avg / max over the ride ── */
+const STREAM_KEYS = 'distance,velocity_smooth,heartrate,cadence,watts,altitude,temp';
+const _streamLsKey = id => 'strava_stream_' + id;
+
+// drop ALL cached streams — called on an explicit data refresh
+function clearStreamCache(){
+  try { Object.keys(localStorage).filter(k=>k.startsWith('strava_stream_')).forEach(k=>localStorage.removeItem(k)); } catch {}
+}
+
+function _streamStats(arr){
+  let mn=Infinity,mx=-Infinity,sum=0,n=0;
+  for(const v of arr){ if(v==null||isNaN(v)) continue; if(v<mn)mn=v; if(v>mx)mx=v; sum+=v; n++; }
+  return n ? {min:mn,max:mx,avg:sum/n} : null;
+}
+// evenly sample down to ~target points so the cache stays small
+function _downsample(arr,target){
+  if(!arr) return null;
+  if(arr.length<=target) return arr.slice();
+  const out=[], step=arr.length/target;
+  for(let i=0;i<target;i++) out.push(arr[Math.floor(i*step)]);
+  return out;
+}
+// raw Strava streams → compact {x, series:{key:{data,min,avg,max}}} stored in m/s, bpm, etc.
+function _compactStreams(raw){
+  const N=200;
+  const dist = raw.distance && raw.distance.data;
+  const out = { v:1, x: dist ? _downsample(dist,N) : null, series:{} };
+  const map = { speed:'velocity_smooth', hr:'heartrate', cadence:'cadence', watts:'watts', altitude:'altitude', temp:'temp' };
+  for(const k in map){
+    const s = raw[map[k]] && raw[map[k]].data;
+    if(!s) continue;
+    const st = _streamStats(s);
+    if(!st) continue;
+    out.series[k] = {
+      data: _downsample(s,N).map(v=> v==null?null:+(+v).toFixed(1)),
+      min:+st.min.toFixed(2), avg:+st.avg.toFixed(2), max:+st.max.toFixed(2)
+    };
+  }
+  return out;
+}
+// localStorage-first; only hits Strava the first time an activity is opened
+async function _getActivityStreams(id){
+  const key=_streamLsKey(id);
+  try { const c=localStorage.getItem(key); if(c){ const o=JSON.parse(c); if(o&&o.v===1) return o; } } catch {}
+  let raw;
+  try { raw = await api(`/activities/${id}/streams?keys=${STREAM_KEYS}&key_by_type=true`); }
+  catch { return null; }
+  const compact=_compactStreams(raw);
+  try { localStorage.setItem(key, JSON.stringify(compact)); } catch {} // ignore quota
+  return compact;
+}
+
+async function renderActivityStreams(a){
+  const wrap=document.getElementById('actStreams');
+  if(!wrap) return;
+  const ride=isRide(a);
+  wrap.innerHTML='<div class="actd-stream-note">Loading stream data…</div>';
+  const s=await _getActivityStreams(a.id);
+  if(document.getElementById('actStreams')!==wrap) return; // modal changed while loading
+  if(!s || !Object.keys(s.series).length){ wrap.innerHTML=''; return; }
+
+  // per-metric display config — conv() turns raw stream values into display units
+  const cfg=[
+    { key:'speed',    label:'Speed',      color:'#fc4c02', conv:v=>kmh(v),      unit:speedUnit(), dp:1 },
+    { key:'hr',       label:'Heart Rate', color:'#ef4444', conv:v=>v,           unit:'bpm',       dp:0 },
+    { key:'cadence',  label:'Cadence',    color:'#22c55e', conv:v=>ride?v:v*2,  unit:ride?'rpm':'spm', dp:0 },
+    { key:'watts',    label:'Power',      color:'#a855f7', conv:v=>v,           unit:'W',         dp:0 },
+    { key:'altitude', label:'Elevation',  color:'#3b82f6', conv:v=>elevVal(v),  unit:elevUnit(),  dp:0 },
+    { key:'temp',     label:'Temp',       color:'#eab308', conv:v=>v,           unit:'°C',        dp:0 }
+  ].filter(c=>s.series[c.key]);
+
+  // x-axis: distance in km/mi when available, else sample index
+  const xs = s.x ? s.x.map(m=>kmVal(m)) : s.series[cfg[0].key].data.map((_,i)=>i);
+  const xMax = xs.length?xs[xs.length-1]:0;
+
+  wrap.innerHTML = '<div class="actd-stream-title">Metrics over the '+(ride?'ride':'activity')
+    +' <span class="actd-stream-x">'+(s.x?('distance · '+distUnit()):'time')+'</span></div>'
+    + cfg.map(c=>{
+        const st=s.series[c.key];
+        const fmt=v=>c.conv(v).toFixed(c.dp);
+        return `<div class="actd-stream">
+          <div class="actd-stream-head"><span class="actd-stream-name" style="color:${c.color}">${c.label}</span>
+            <span class="actd-stream-stats">avg <b>${fmt(st.avg)}</b> · min ${fmt(st.min)} · max <b>${fmt(st.max)}</b> ${c.unit}</span></div>
+          <div class="actd-stream-canvas"><canvas id="str_${c.key}"></canvas></div>
+        </div>`;
+      }).join('');
+
+  cfg.forEach(c=>{
+    const st=s.series[c.key];
+    const id='str_'+c.key;
+    destroyChart(id);
+    charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
+      type:'line',
+      data:{ datasets:[{
+        data: st.data.map((v,i)=> ({x:xs[i], y: v==null?null:c.conv(v)})),
+        borderColor:c.color, borderWidth:1.5, pointRadius:0, tension:.25,
+        fill:true, backgroundColor:c.color+'22',
+        spanGaps:true
+      }]},
+      options:{ responsive:true, maintainAspectRatio:false, animation:false,
+        plugins:{ legend:{display:false},
+          tooltip:{ backgroundColor:'#1a1a1a', borderColor:'#2a2a2a', borderWidth:1,
+            titleColor:'#fff', bodyColor:'#aaa',
+            callbacks:{ title:items=> s.x?(items[0].parsed.x.toFixed(1)+' '+distUnit()):'',
+                        label:ctx=>' '+(+ctx.parsed.y).toFixed(c.dp)+' '+c.unit } } },
+        scales:{
+          x:{ type:'linear', min:0, max:xMax||undefined, display:!!s.x,
+              grid:{color:'#1a1a1a'}, ticks:{color:'#555',font:{size:9},maxTicksLimit:6,
+                callback:v=>v.toFixed(0)} },
+          y:{ grid:{color:'#1a1a1a'}, ticks:{color:'#555',font:{size:9},maxTicksLimit:4} }
+        }
+      }
+    });
+  });
+}
 
 /* ── CALENDAR — contribution graph (last 12 months) ── */
 function renderCalendar() {

@@ -68,7 +68,7 @@ async function apiPut(ep, body, retry = false) {
 async function loadData(forceRefresh = false) {
   const btn = document.getElementById('mainBtn');
   btn.disabled = true; btn.textContent = 'Loading…';
-  if (forceRefresh) { _segsData = null; _photosLoaded = false; _chalCache = null; _gearCache = null; } // refetch lazy sections on explicit refresh
+  if (forceRefresh) { _segsData = null; _photosLoaded = false; _chalCache = null; _gearCache = null; if (typeof clearStreamCache==='function') clearStreamCache(); } // refetch lazy sections on explicit refresh
   try {
     const cachedAthleteId = localStorage.getItem('strava_athlete_id');
 
