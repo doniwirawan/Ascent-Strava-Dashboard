@@ -95,7 +95,7 @@ function chartOpts(unit='', legend=false) {
 
 const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','trendsSection','actSection','calSection',
   'eddySection','monthlySection','bestSection','gearSection','heatSection',
-  'segmentsSection','milestonesSection','rewindSection','challengesSection','photosSection','settingsSection','helpSection'];
+  'segmentsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','settingsSection','helpSection'];
 
 function navScrollTo(id, btn) {
   _ALL_SECTIONS.forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
@@ -116,6 +116,7 @@ function navScrollTo(id, btn) {
   try {
     if(id==='gearSection' && _empty('gearGrid') && typeof renderGear==='function') renderGear();
     if(id==='challengesSection' && _empty('challengesGrid') && typeof renderChallenges==='function') renderChallenges();
+    if(id==='fixSection' && typeof renderFixSection==='function') renderFixSection();
     if(id==='segmentsSection'){
       if(_empty('segmentsGrid') && typeof renderSegments==='function') renderSegments();
       // Segment mini-maps build while hidden (0×0) — re-size and re-fit on show

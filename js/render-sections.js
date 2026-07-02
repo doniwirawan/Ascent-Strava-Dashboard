@@ -292,7 +292,8 @@ function renderHeatmap(){
     try{
       const pts=decodePolyline(a.map.summary_polyline);
       if(!pts.length) return;
-      const latlngs=pts.map(p=>[p[0],p[1]]);
+      let latlngs=pts.map(p=>[p[0],p[1]]);
+      if(typeof smoothTrack==='function') latlngs=smoothTrack(latlngs);
       const line=L.polyline(latlngs,{color:'#FC4C02',weight:1.5,opacity:0.65,interactive:true}).addTo(leafletMapInst);
       line.bindTooltip(a.name||'Activity',{sticky:true});
       line.on('mouseover',()=>line.setStyle({weight:4,opacity:1}));

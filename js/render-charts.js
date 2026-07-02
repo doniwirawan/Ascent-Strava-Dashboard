@@ -306,6 +306,7 @@ function _actBuildMap(a){
   let coords=[];
   const enc=a.map&&a.map.summary_polyline;
   if(enc) try{coords=decodePolyline(enc);}catch{}
+  if(coords.length>2 && typeof smoothTrack==='function') coords=smoothTrack(coords);
   if(!window.L||coords.length<2){ el.style.display='none'; return; }
   el.style.display='';
   try{
@@ -428,11 +429,16 @@ function _downsample(arr,target){
 function _compactStreams(raw){
   const N=200;
   const dist = raw.distance && raw.distance.data;
-  const out = { v:1, x: dist ? _downsample(dist,N) : null, series:{} };
+  const out = { v:2, x: dist ? _downsample(dist,N) : null, series:{} };
   const map = { speed:'velocity_smooth', hr:'heartrate', cadence:'cadence', watts:'watts', altitude:'altitude', temp:'temp' };
+  const isOwner = localStorage.getItem('strava_athlete_id')===OWNER_ATHLETE_ID;
   for(const k in map){
-    const s = raw[map[k]] && raw[map[k]].data;
+    let s = raw[map[k]] && raw[map[k]].data;
     if(!s) continue;
+    // normalize abnormal speed spikes (GPS glitches) before computing stats;
+    // the 65 km/h ceiling is owner-only, like cleanMax — others get MAD-only
+    if(k==='speed' && typeof fixSpeedSpikes==='function')
+      s = fixSpeedSpikes(s, isOwner?{ceiling:MAX_SPEED_CEILING}:{k:6}).data;
     const st = _streamStats(s);
     if(!st) continue;
     out.series[k] = {
@@ -445,7 +451,7 @@ function _compactStreams(raw){
 // localStorage-first; only hits Strava the first time an activity is opened
 async function _getActivityStreams(id){
   const key=_streamLsKey(id);
-  try { const c=localStorage.getItem(key); if(c){ const o=JSON.parse(c); if(o&&o.v===1) return o; } } catch {}
+  try { const c=localStorage.getItem(key); if(c){ const o=JSON.parse(c); if(o&&o.v===2) return o; } } catch {}
   let raw;
   try { raw = await api(`/activities/${id}/streams?keys=${STREAM_KEYS}&key_by_type=true`); }
   catch { return null; }
