@@ -372,20 +372,25 @@ async function prepareFixedGpx(){
   const btn=document.querySelector('.gpx-anom-btn2');
   const label=btn?btn.textContent:''; if(btn) btn.disabled=true;
   let ok=0, fail=0, skip=0;
+  let noTrack=0, gone=0;
   for(let i=0;i<ids.length;i++){
     const id=ids[i];
     if(_fixedGpx.some(f=>String(f.id)===String(id))){ skip++; continue; }
     if(btn) btn.textContent=`Preparing ${i+1}/${ids.length}…`;
     const a=(acts||[]).find(x=>String(x.id)===String(id));
-    if(!a){ fail++; continue; }
+    if(!a){ gone++; continue; }
     try{
       const gpx=await _buildFixedGpx(a);
       if(gpx){ _fixedGpx.push({id, name:a.name||'Activity', dateStr:fmtDt(a.start_date), filename:gpx.name, text:gpx.text, status:'ready'}); ok++; }
-      else fail++;
-    }catch{ fail++; }
+      else noTrack++;
+    }catch{ gone++; }   // fetch failed — activity likely already deleted on Strava
   }
   if(btn){ btn.disabled=false; btn.textContent=label; }
-  _anomMsg=`Staged ${ok} fixed file${ok===1?'':'s'}.`+(skip?` ${skip} already staged.`:'')+(fail?` ${fail} had no GPS track.`:'')+' Delete the originals on Strava, then Upload all.';
+  _anomMsg=`Staged ${ok} fixed file${ok===1?'':'s'}.`
+    +(skip?` ${skip} already staged.`:'')
+    +(noTrack?` ${noTrack} had no GPS track.`:'')
+    +(gone?` ${gone} couldn't be fetched — likely already deleted on Strava. Hit Refresh to clear them from this list.`:'')
+    +(ok?' Delete the originals on Strava, then Upload all.':'');
   renderSpeedAnomalies();
 }
 
