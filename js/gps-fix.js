@@ -199,6 +199,7 @@ function applyMaxFixOverrides(){
 }
 
 let _anomMsg='';
+let _fixedGpx=[];   // staged corrected files: {id, name, dateStr, filename, text, status}
 function renderSpeedAnomalies(){
   const el=document.getElementById('speedAnomalyList');
   if(!el) return;
@@ -207,21 +208,21 @@ function renderSpeedAnomalies(){
   const banner = _anomMsg ? `<div class="gpx-ok">${_anomMsg}</div>` : '';
   _anomMsg='';
   if(!bad.length){ el.innerHTML=banner+'<div class="gpx-empty">No activities with abnormal speed 🎉</div>'; return; }
-  el.innerHTML= banner +
+  el.innerHTML= banner + _stagingHtml() +
     `<div class="gpx-anom-bar">
        <label class="gpx-opt"><input type="checkbox" id="anomAll" onchange="_anomToggleAll(this.checked)"> Select all</label>
        <label class="gpx-opt"><input type="checkbox" id="anomStrava" checked> Note the fix on Strava</label>
        <button class="btn btn-primary gpx-anom-btn" type="button" onclick="normalizeSelected()">Normalize selected</button>
-       <button class="btn gpx-anom-btn2" type="button" onclick="downloadFixedGpx()">Download fixed GPX (selected)</button>
+       <button class="btn gpx-anom-btn2" type="button" onclick="prepareFixedGpx()">Prepare fixed files (selected)</button>
      </div>
      <div class="gpx-anom-note">${bad.length} activit${bad.length===1?'y':'ies'} with a max speed above 65 km/h — tick and normalize, or tap a row to inspect.</div>
      <details class="gpx-swap"><summary>Replace on Strava (delete + re-upload the fixed file)</summary>
        <ol class="gpx-swap-steps">
-         <li><b>Download fixed GPX (selected)</b> — I fetch each track, smooth it, normalize the speed, and keep the original timestamps so the date stays the same.</li>
+         <li><b>Prepare fixed files (selected)</b> — I fetch each track, smooth it, normalize the speed, keep the original timestamps (same date), and stage the fixed files on this page.</li>
          <li>Use the <b>↗</b> link on each row to open it on Strava, then delete it there (the API can't delete for you).</li>
-         <li>Go to <a href="https://www.strava.com/upload/select" target="_blank" rel="noopener">strava.com/upload/select</a> and drag in all the fixed files at once.</li>
+         <li>Back here, hit <b>Upload all to Strava</b> to re-upload every staged file at once.</li>
        </ol>
-       <div class="gpx-swap-warn">⚠ Re-uploading creates new activities — kudos, comments and achievements on the originals are lost.</div>
+       <div class="gpx-swap-warn">⚠ Re-uploading creates new activities — kudos, comments and achievements on the originals are lost. Delete the originals first or you'll get duplicates.</div>
      </details>`
     + bad.map(a=>`<div class="gpx-anom">
         <input type="checkbox" class="anom-cb" value="${a.id}">
@@ -329,25 +330,107 @@ async function _buildFixedGpx(a){
   return { text, name:`${safe}-${stamp}-fixed.gpx` };
 }
 
-async function downloadFixedGpx(){
+// staged-files panel, shown at the top of the section once files are prepared
+function _stagingHtml(){
+  if(!_fixedGpx.length) return '';
+  const rows=_fixedGpx.map((f,i)=>`<div class="gpx-staged-row">
+      <span class="gpx-staged-name" title="${_gfXmlEsc(f.name)}">${_gfXmlEsc(f.name)}</span>
+      <span class="gpx-staged-date">${f.dateStr}</span>
+      <span class="gpx-staged-status ${f.status==='uploaded ✓'?'ok':(String(f.status).indexOf('fail')>-1||String(f.status).indexOf('error')>-1?'err':'')}" id="gpxup-${i}">${f.status}</span>
+      <a class="gpx-anom-strava" href="https://www.strava.com/activities/${f.id}" target="_blank" rel="noopener" title="Open original on Strava to delete">↗</a>
+      <button class="gpx-staged-x" type="button" onclick="removeFixed(${i})" title="Remove from list">✕</button>
+    </div>`).join('');
+  return `<div class="gpx-staged">
+    <div class="gpx-staged-head">
+      <span><b>${_fixedGpx.length}</b> fixed file${_fixedGpx.length===1?'':'s'} staged</span>
+      <span class="gpx-staged-actions">
+        <button class="btn btn-primary gpx-upload-btn" type="button" onclick="uploadFixedAll()">Upload all to Strava</button>
+        <button class="btn" type="button" onclick="clearFixed()">Clear</button>
+      </span>
+    </div>
+    ${rows}
+    <div class="gpx-swap-warn">Delete each original on Strava (↗) before uploading, or you'll have duplicates.</div>
+  </div>`;
+}
+
+// process selected activities into staged corrected GPX (kept in-page, not downloaded)
+async function prepareFixedGpx(){
   const ids=[...document.querySelectorAll('#speedAnomalyList .anom-cb:checked')].map(cb=>cb.value);
-  if(!ids.length){ _anomMsg='Tick at least one activity to export.'; renderSpeedAnomalies(); return; }
+  if(!ids.length){ _anomMsg='Tick at least one activity to prepare.'; renderSpeedAnomalies(); return; }
   const btn=document.querySelector('.gpx-anom-btn2');
-  const label=btn?btn.textContent:'';
-  if(btn) btn.disabled=true;
-  let ok=0, fail=0;
+  const label=btn?btn.textContent:''; if(btn) btn.disabled=true;
+  let ok=0, fail=0, skip=0;
   for(let i=0;i<ids.length;i++){
-    if(btn) btn.textContent=`Exporting ${i+1}/${ids.length}…`;
-    const a=(acts||[]).find(x=>String(x.id)===String(ids[i]));
+    const id=ids[i];
+    if(_fixedGpx.some(f=>String(f.id)===String(id))){ skip++; continue; }
+    if(btn) btn.textContent=`Preparing ${i+1}/${ids.length}…`;
+    const a=(acts||[]).find(x=>String(x.id)===String(id));
     if(!a){ fail++; continue; }
     try{
       const gpx=await _buildFixedGpx(a);
-      if(gpx){ _gfDownload(gpx.text, gpx.name); ok++; await _gfSleep(500); } // stagger so the browser accepts each download
+      if(gpx){ _fixedGpx.push({id, name:a.name||'Activity', dateStr:fmtDt(a.start_date), filename:gpx.name, text:gpx.text, status:'ready'}); ok++; }
       else fail++;
     }catch{ fail++; }
   }
   if(btn){ btn.disabled=false; btn.textContent=label; }
-  _anomMsg=`Exported ${ok} fixed GPX file${ok===1?'':'s'}.`+(fail?` ${fail} had no GPS track.`:'')+' Delete the originals on Strava (↗), then re-upload the files.';
+  _anomMsg=`Staged ${ok} fixed file${ok===1?'':'s'}.`+(skip?` ${skip} already staged.`:'')+(fail?` ${fail} had no GPS track.`:'')+' Delete the originals on Strava, then Upload all.';
+  renderSpeedAnomalies();
+}
+
+function removeFixed(i){ _fixedGpx.splice(i,1); renderSpeedAnomalies(); }
+function clearFixed(){ _fixedGpx=[]; renderSpeedAnomalies(); }
+
+// multipart upload of a GPX to Strava's uploads endpoint (needs activity:write)
+async function _gfStravaUpload(text, filename, name){
+  const post=()=>{
+    const form=new FormData();
+    form.append('file', new Blob([text],{type:'application/gpx+xml'}), filename);
+    form.append('data_type','gpx');
+    if(name) form.append('name', name);
+    return fetch('https://www.strava.com/api/v3/uploads',{method:'POST',headers:{Authorization:'Bearer '+CONFIG.accessToken},body:form});
+  };
+  let r=await post();
+  if(r.status===401 && typeof doRefresh==='function'){ await doRefresh(); r=await post(); }
+  if(!r.ok) throw new Error('upload '+r.status);
+  return r.json();                         // {id, status, error, activity_id}
+}
+// poll an upload until Strava turns it into an activity (or errors)
+async function _gfPollUpload(uploadId){
+  for(let i=0;i<12;i++){
+    await _gfSleep(2000);
+    let u; try{ u=await api('/uploads/'+uploadId); }catch{ continue; }
+    if(u.error) throw new Error(u.error);
+    if(u.activity_id) return u.activity_id;
+  }
+  return null;                              // still processing on Strava's side
+}
+function _setUpStatus(i,txt){
+  _fixedGpx[i].status=txt;
+  const el=document.getElementById('gpxup-'+i);
+  if(el){ el.textContent=txt; el.className='gpx-staged-status '+(txt.indexOf('✓')>-1?'ok':(txt.indexOf('fail')>-1||txt.indexOf('error')>-1?'err':'')); }
+}
+
+async function uploadFixedAll(){
+  const pending=_fixedGpx.filter(f=>f.status!=='uploaded ✓');
+  if(!pending.length){ _anomMsg='Nothing to upload.'; renderSpeedAnomalies(); return; }
+  if(!confirm(`Upload ${pending.length} fixed file${pending.length===1?'':'s'} to Strava as new activities?\nMake sure you've already deleted the originals, or you'll get duplicates.`)) return;
+  const btn=document.querySelector('.gpx-upload-btn'); if(btn) btn.disabled=true;
+  let ok=0, fail=0;
+  for(let i=0;i<_fixedGpx.length;i++){
+    const f=_fixedGpx[i];
+    if(f.status==='uploaded ✓') continue;
+    _setUpStatus(i,'uploading…');
+    try{
+      const up=await _gfStravaUpload(f.text, f.filename, f.name);
+      let actId=null;
+      try{ actId=await _gfPollUpload(up.id); }
+      catch(e){ _setUpStatus(i,'error: '+(e.message||e)); fail++; continue; }
+      _setUpStatus(i, actId?'uploaded ✓':'processing…'); ok++;
+    }catch(e){ _setUpStatus(i, (e && /40[13]/.test(e.message))?'failed — reconnect Strava':'failed'); fail++; }
+    await _gfSleep(400);
+  }
+  if(btn) btn.disabled=false;
+  _anomMsg=`Uploaded ${ok} file${ok===1?'':'s'} to Strava.`+(fail?` ${fail} failed.`:'')+' New activities may take a moment to appear.';
   renderSpeedAnomalies();
 }
 
