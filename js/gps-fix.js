@@ -223,6 +223,7 @@ function renderSpeedAnomalies(){
        <label class="gpx-opt"><input type="checkbox" id="anomStrava" checked> Note the fix on Strava</label>
        <button class="btn btn-primary gpx-anom-btn" type="button" onclick="normalizeSelected()">Normalize selected</button>
        <button class="btn gpx-anom-btn2" type="button" onclick="prepareFixedGpx()">Prepare fixed files (selected)</button>
+       <button class="btn gpx-anom-btn3" type="button" onclick="prepareAndUpload()">Upload fixed to Strava (selected)</button>
      </div>
      <div class="gpx-anom-note">${bad.length} activit${bad.length===1?'y':'ies'} with a max speed above 65 km/h — tick and normalize, or tap a row to inspect.</div>
      <details class="gpx-swap"><summary>Replace on Strava (delete + re-upload the fixed file)</summary>
@@ -390,6 +391,14 @@ async function prepareFixedGpx(){
 
 function removeFixed(i){ _fixedGpx.splice(i,1); renderSpeedAnomalies(); }
 function clearFixed(){ _fixedGpx=[]; renderSpeedAnomalies(); }
+
+// one-click: stage the selected activities' fixed GPX, then upload them all
+async function prepareAndUpload(){
+  const ids=[...document.querySelectorAll('#speedAnomalyList .anom-cb:checked')].map(cb=>cb.value);
+  if(!ids.length){ _anomMsg='Tick at least one activity to upload.'; renderSpeedAnomalies(); return; }
+  await prepareFixedGpx();          // stages selected (skips any already staged) + re-renders
+  if(_fixedGpx.length) await uploadFixedAll();
+}
 
 // multipart upload of a GPX to Strava's uploads endpoint (needs activity:write)
 async function _gfStravaUpload(text, filename, name){
