@@ -24,17 +24,15 @@ const elevVal = m  => useImperial ? m*_FT : m;                 // elevation valu
 const kmh     = ms => +(ms * (useImperial ? 2.23694 : 3.6)).toFixed(1); // speed value
 const fmtSpeed= ms => kmh(ms) + ' ' + speedUnit();
 // Strava derives max_speed from a single GPS sample, so one satellite glitch
-// can report an impossible peak (90+ km/h on a road bike). Treat anything above
-// this ceiling as bogus and drop it from speed leaderboards / records rather
-// than show a fake number. Ceiling is in m/s, unit-independent.
-// Scoped to the owner's account only (OWNER_ATHLETE_ID, defined in config.js) —
-// other athletes who log in see raw data.
+// can report an impossible peak (90+ km/h on a road bike). Rather than hide
+// those, we now show the real max_speed everywhere — glitches can be corrected
+// per-activity via GPS Fix → Normalize, which persists a realistic value that
+// applyMaxFixOverrides() writes back onto max_speed. MAX_SPEED_CEILING (m/s,
+// unit-independent) is still the "abnormal" threshold used by that tool.
 const MAX_SPEED_CEILING = 65 / 3.6;                                       // 65 km/h
 const cleanMax = a => {
   const v = a && a.max_speed;
-  if (!(v > 0)) return 0;
-  if (localStorage.getItem('strava_athlete_id') !== OWNER_ATHLETE_ID) return v; // not me → raw
-  return v <= MAX_SPEED_CEILING ? v : 0;
+  return v > 0 ? v : 0;
 };
 // running pace: seconds per km/mi → "m:ss /km" (— when no speed)
 const fmtPace = ms => {
