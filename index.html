@@ -531,6 +531,7 @@
     <div class="g2">
       <div class="card" style="display:flex;flex-direction:column;">
         <div class="card-title">Recent Activities</div>
+        <input type="search" id="actSearch" class="act-search" placeholder="Search by name or type…" oninput="_renderActList(this.value)" autocomplete="off">
         <div class="act-list" id="actList"></div>
       </div>
       <div class="card">

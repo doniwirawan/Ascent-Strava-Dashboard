@@ -257,25 +257,13 @@ function renderTrends() {
 }
 
 /* ── ACTIVITIES + BUBBLES ── */
-let _actRows = [];   // recent activities currently shown in the list (for the detail modal)
+let _actRows = [];     // full mode list — bubbles index into this (for the detail modal)
+let _actListSrc = [];  // source for the searchable Recent Activities list
 function renderActivities() {
   const src = modeActs();
-  const list = src;
-  _actRows = list;
-  document.getElementById('actList').innerHTML = list.map((a,i)=>`
-    <div class="act-row" role="button" tabindex="0" onclick="openActivityModal(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActivityModal(${i});}">
-      <div style="flex:1;min-width:0">
-        <div class="act-name">${a.name}</div>
-        <div class="act-meta">
-          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDt(a.start_date)}
-        </div>
-      </div>
-      <div class="act-right">
-        <div class="act-dist">${fmtD(a.distance)}</div>
-        <div class="act-time">${fmtT(a.moving_time)}</div>
-      </div>
-    </div>
-  `).join('');
+  _actRows = src;
+  _actListSrc = src;
+  _renderActList(document.getElementById('actSearch') ? document.getElementById('actSearch').value : '');
 
   // Bubbles — sample 60 activities
   const sample = src.slice(0,60);
@@ -289,6 +277,30 @@ function renderActivities() {
       ${sz>40 ? `<span>${km.toFixed(0)}</span>` : ''}
     </div>`;
   }).join('');
+}
+
+// Live client-side filter for the Recent Activities list (name or type).
+// Rows open by activity id so filtering never desyncs from the modal.
+function _renderActList(q){
+  const el=document.getElementById('actList');
+  if(!el) return;
+  q=(q||'').trim().toLowerCase();
+  const list = q ? _actListSrc.filter(a=>(a.name||'').toLowerCase().includes(q)||(a.type||'').toLowerCase().includes(q)) : _actListSrc;
+  if(!list.length){ el.innerHTML=`<div class="act-empty">No activities match “${q}”.</div>`; return; }
+  el.innerHTML = list.map(a=>`
+    <div class="act-row" role="button" tabindex="0" onclick="openActivityModal('${a.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActivityModal('${a.id}');}">
+      <div style="flex:1;min-width:0">
+        <div class="act-name">${a.name}</div>
+        <div class="act-meta">
+          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDt(a.start_date)}
+        </div>
+      </div>
+      <div class="act-right">
+        <div class="act-dist">${fmtD(a.distance)}</div>
+        <div class="act-time">${fmtT(a.moving_time)}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 /* ── ACTIVITY DETAIL MODAL ── */

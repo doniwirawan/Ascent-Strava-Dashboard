@@ -3,6 +3,21 @@
 ══════════════════════════════════════════ */
 
 /* Activity list */
+.act-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+}
+.act-search::placeholder { color: var(--text-3); }
+.act-search:focus { outline: none; border-color: var(--orange); }
+.act-empty { color: var(--text-2); font-size: 13px; padding: 12px 4px; }
+
 .act-list {
   display: flex;
   flex-direction: column;
