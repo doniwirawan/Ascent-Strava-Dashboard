@@ -347,7 +347,8 @@ function _stagingHtml(){
       <span class="gpx-staged-name" title="${_gfXmlEsc(f.name)}">${_gfXmlEsc(f.name)}</span>
       <span class="gpx-staged-date">${f.dateStr}</span>
       <span class="gpx-staged-status ${f.status==='uploaded ✓'?'ok':(String(f.status).indexOf('fail')>-1||String(f.status).indexOf('error')>-1?'err':'')}" id="gpxup-${i}">${f.status}</span>
-      <a class="gpx-anom-strava" href="https://www.strava.com/activities/${f.id}" target="_blank" rel="noopener" title="Open original on Strava to delete">↗</a>
+      ${f.newId?`<a class="gpx-anom-strava gpx-new-link" href="https://www.strava.com/activities/${f.newId}" target="_blank" rel="noopener" title="View the new activity on Strava">view&nbsp;↗</a>`
+                :`<a class="gpx-anom-strava" href="https://www.strava.com/activities/${f.id}" target="_blank" rel="noopener" title="Open original on Strava to delete">↗</a>`}
       <button class="gpx-staged-x" type="button" onclick="removeFixed(${i})" title="Remove from list">✕</button>
     </div>`).join('');
   return `<div class="gpx-staged">
@@ -435,6 +436,7 @@ async function uploadFixedAll(){
       let actId=null;
       try{ actId=await _gfPollUpload(up.id); }
       catch(e){ _setUpStatus(i,'error: '+(e.message||e)); fail++; continue; }
+      if(actId) f.newId=actId;
       _setUpStatus(i, actId?'uploaded ✓':'processing…'); ok++;
     }catch(e){ _setUpStatus(i, (e && /40[13]/.test(e.message))?'failed — reconnect Strava':'failed'); fail++; }
     await _gfSleep(400);
