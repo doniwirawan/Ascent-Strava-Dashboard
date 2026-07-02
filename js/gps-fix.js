@@ -212,8 +212,17 @@ function renderSpeedAnomalies(){
        <label class="gpx-opt"><input type="checkbox" id="anomAll" onchange="_anomToggleAll(this.checked)"> Select all</label>
        <label class="gpx-opt"><input type="checkbox" id="anomStrava" checked> Note the fix on Strava</label>
        <button class="btn btn-primary gpx-anom-btn" type="button" onclick="normalizeSelected()">Normalize selected</button>
+       <button class="btn gpx-anom-btn2" type="button" onclick="downloadFixedGpx()">Download fixed GPX (selected)</button>
      </div>
-     <div class="gpx-anom-note">${bad.length} activit${bad.length===1?'y':'ies'} with a max speed above 65 km/h — tick and normalize, or tap a row to inspect.</div>`
+     <div class="gpx-anom-note">${bad.length} activit${bad.length===1?'y':'ies'} with a max speed above 65 km/h — tick and normalize, or tap a row to inspect.</div>
+     <details class="gpx-swap"><summary>Replace on Strava (delete + re-upload the fixed file)</summary>
+       <ol class="gpx-swap-steps">
+         <li><b>Download fixed GPX (selected)</b> — I fetch each track, smooth it, normalize the speed, and keep the original timestamps so the date stays the same.</li>
+         <li>Use the <b>↗</b> link on each row to open it on Strava, then delete it there (the API can't delete for you).</li>
+         <li>Go to <a href="https://www.strava.com/upload/select" target="_blank" rel="noopener">strava.com/upload/select</a> and drag in all the fixed files at once.</li>
+       </ol>
+       <div class="gpx-swap-warn">⚠ Re-uploading creates new activities — kudos, comments and achievements on the originals are lost.</div>
+     </details>`
     + bad.map(a=>`<div class="gpx-anom">
         <input type="checkbox" class="anom-cb" value="${a.id}">
         <div class="gpx-anom-body" role="button" tabindex="0"
@@ -225,6 +234,7 @@ function renderSpeedAnomalies(){
           </div>
           <span class="gpx-anom-spd">${kmh(a.max_speed).toFixed(1)} ${speedUnit()}</span>
         </div>
+        <a class="gpx-anom-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener" title="Open on Strava to delete" onclick="event.stopPropagation()">↗</a>
       </div>`).join('');
 }
 
@@ -277,6 +287,67 @@ async function normalizeSelected(){
   _anomMsg=`Normalized ${done} activit${done===1?'y':'ies'}.`
     + (toStrava?` Annotated ${noted} on Strava${noteFail?` (${noteFail} failed — may need reconnect for write access)`:''}.`:'')
     + (failed?` ${failed} had no usable speed stream.`:'');
+  renderSpeedAnomalies();
+}
+
+/* ── FIXED-GPX EXPORT (for delete + re-upload on Strava) ── */
+const _gfSleep = ms => new Promise(r=>setTimeout(r,ms));
+function _gfXmlEsc(s){ return String(s).replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c])); }
+
+// build a corrected GPX string for one activity (null if it has no GPS track)
+async function _buildFixedGpx(a){
+  const raw = await api(`/activities/${a.id}/streams?keys=latlng,time,altitude,heartrate,cadence,temp&key_by_type=true`);
+  const ll = raw.latlng && raw.latlng.data;
+  if(!ll || ll.length<2) return null;
+  const tm = raw.time && raw.time.data;                    // seconds from start
+  const alt= raw.altitude && raw.altitude.data;
+  const hr = raw.heartrate && raw.heartrate.data;
+  const cad= raw.cadence && raw.cadence.data;
+  const temp=raw.temp && raw.temp.data;
+  const start = new Date(a.start_date).getTime();
+  const pts = ll.map((p,i)=>({lat:p[0], lon:p[1], time: tm ? new Date(start + tm[i]*1000) : null}));
+  _gfFixTrack(pts, {smooth:true, fixSpeed:true, ceiling:MAX_SPEED_CEILING});
+
+  const trkpts = pts.map((p,i)=>{
+    const ele = alt && alt[i]!=null ? `<ele>${(+alt[i]).toFixed(1)}</ele>` : '';
+    const tt  = p.time ? `<time>${p.time.toISOString()}</time>` : '';
+    let ext='';
+    const hrv = hr  && hr[i]!=null  ? `<gpxtpx:hr>${Math.round(hr[i])}</gpxtpx:hr>` : '';
+    const cav = cad && cad[i]!=null ? `<gpxtpx:cad>${Math.round(cad[i])}</gpxtpx:cad>` : '';
+    const tpv = temp&& temp[i]!=null? `<gpxtpx:atemp>${Math.round(temp[i])}</gpxtpx:atemp>` : '';
+    if(hrv||cav||tpv) ext=`<extensions><gpxtpx:TrackPointExtension>${hrv}${cav}${tpv}</gpxtpx:TrackPointExtension></extensions>`;
+    return `<trkpt lat="${p.lat.toFixed(7)}" lon="${p.lon.toFixed(7)}">${ele}${tt}${ext}</trkpt>`;
+  }).join('');
+
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Ascent Dashboard" xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">
+ <metadata><time>${new Date(start).toISOString()}</time></metadata>
+ <trk><name>${_gfXmlEsc(a.name||'Activity')}</name><trkseg>${trkpts}</trkseg></trk>
+</gpx>`;
+  const stamp = new Date(a.start_date).toISOString().slice(0,10);
+  const safe = (a.name||'activity').replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,40) || 'activity';
+  return { text, name:`${safe}-${stamp}-fixed.gpx` };
+}
+
+async function downloadFixedGpx(){
+  const ids=[...document.querySelectorAll('#speedAnomalyList .anom-cb:checked')].map(cb=>cb.value);
+  if(!ids.length){ _anomMsg='Tick at least one activity to export.'; renderSpeedAnomalies(); return; }
+  const btn=document.querySelector('.gpx-anom-btn2');
+  const label=btn?btn.textContent:'';
+  if(btn) btn.disabled=true;
+  let ok=0, fail=0;
+  for(let i=0;i<ids.length;i++){
+    if(btn) btn.textContent=`Exporting ${i+1}/${ids.length}…`;
+    const a=(acts||[]).find(x=>String(x.id)===String(ids[i]));
+    if(!a){ fail++; continue; }
+    try{
+      const gpx=await _buildFixedGpx(a);
+      if(gpx){ _gfDownload(gpx.text, gpx.name); ok++; await _gfSleep(500); } // stagger so the browser accepts each download
+      else fail++;
+    }catch{ fail++; }
+  }
+  if(btn){ btn.disabled=false; btn.textContent=label; }
+  _anomMsg=`Exported ${ok} fixed GPX file${ok===1?'':'s'}.`+(fail?` ${fail} had no GPS track.`:'')+' Delete the originals on Strava (↗), then re-upload the files.';
   renderSpeedAnomalies();
 }
 
