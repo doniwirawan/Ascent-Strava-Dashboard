@@ -1,5 +1,7 @@
 /* ── RENDER ALL ── */
 function renderAll() {
+  // Re-apply persisted abnormal-speed corrections before any stats compute
+  if(typeof applyMaxFixOverrides==='function') applyMaxFixOverrides();
   // Show all sections temporarily so charts can measure their containers
   _ALL_SECTIONS.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='';});
 

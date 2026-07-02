@@ -186,21 +186,76 @@ function _gfPreview(before, after){
 }
 
 /* ── ABNORMAL-SPEED ACTIVITY LIST ── */
+// Persisted corrected max speeds (m/s), keyed by activity id. A normalized
+// activity replaces its glitchy summary max_speed with the value derived from
+// its spike-interpolated speed stream, so every view stays consistent.
+const _MAXFIX_KEY='strava_maxfix';
+function _loadMaxFix(){ try{ return JSON.parse(localStorage.getItem(_MAXFIX_KEY))||{}; }catch{ return {}; } }
+function _saveMaxFix(m){ try{ localStorage.setItem(_MAXFIX_KEY, JSON.stringify(m)); }catch{} }
+// re-apply saved corrections onto the in-memory acts (run on every data render)
+function applyMaxFixOverrides(){
+  const m=_loadMaxFix(); if(!m || !Object.keys(m).length) return;
+  (acts||[]).forEach(a=>{ if(m[a.id]!=null) a.max_speed=m[a.id]; });
+}
+
+let _anomMsg='';
 function renderSpeedAnomalies(){
   const el=document.getElementById('speedAnomalyList');
   if(!el) return;
+  applyMaxFixOverrides();
   const bad=(acts||[]).filter(a=>a.max_speed>MAX_SPEED_CEILING).sort((a,b)=>b.max_speed-a.max_speed);
-  if(!bad.length){ el.innerHTML='<div class="gpx-empty">No activities with abnormal speed 🎉</div>'; return; }
-  el.innerHTML='<div class="gpx-anom-note">'+bad.length+' activit'+(bad.length===1?'y':'ies')+' with a max speed above 65 km/h — tap one to inspect.</div>'
-    + bad.map(a=>`<div class="gpx-anom" role="button" tabindex="0"
-        onclick="openActivityModal('${a.id}')"
-        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActivityModal('${a.id}')}">
-        <div class="gpx-anom-main">
-          <span class="gpx-anom-name">${a.name||'Activity'}</span>
-          <span class="gpx-anom-date">${fmtDt(a.start_date)}</span>
+  const banner = _anomMsg ? `<div class="gpx-ok">${_anomMsg}</div>` : '';
+  _anomMsg='';
+  if(!bad.length){ el.innerHTML=banner+'<div class="gpx-empty">No activities with abnormal speed 🎉</div>'; return; }
+  el.innerHTML= banner +
+    `<div class="gpx-anom-bar">
+       <label class="gpx-opt"><input type="checkbox" id="anomAll" onchange="_anomToggleAll(this.checked)"> Select all</label>
+       <button class="btn btn-primary gpx-anom-btn" type="button" onclick="normalizeSelected()">Normalize selected</button>
+     </div>
+     <div class="gpx-anom-note">${bad.length} activit${bad.length===1?'y':'ies'} with a max speed above 65 km/h — tick and normalize, or tap a row to inspect.</div>`
+    + bad.map(a=>`<div class="gpx-anom">
+        <input type="checkbox" class="anom-cb" value="${a.id}">
+        <div class="gpx-anom-body" role="button" tabindex="0"
+          onclick="openActivityModal('${a.id}')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActivityModal('${a.id}')}">
+          <div class="gpx-anom-main">
+            <span class="gpx-anom-name">${a.name||'Activity'}</span>
+            <span class="gpx-anom-date">${fmtDt(a.start_date)}</span>
+          </div>
+          <span class="gpx-anom-spd">${kmh(a.max_speed).toFixed(1)} ${speedUnit()}</span>
         </div>
-        <span class="gpx-anom-spd">${kmh(a.max_speed).toFixed(1)} ${speedUnit()}</span>
       </div>`).join('');
+}
+
+function _anomToggleAll(on){
+  document.querySelectorAll('#speedAnomalyList .anom-cb').forEach(cb=>{cb.checked=on;});
+}
+
+async function normalizeSelected(){
+  const ids=[...document.querySelectorAll('#speedAnomalyList .anom-cb:checked')].map(cb=>cb.value);
+  if(!ids.length){ _anomMsg='Tick at least one activity to normalize.'; renderSpeedAnomalies(); return; }
+  const btn=document.querySelector('.gpx-anom-btn');
+  if(btn){ btn.disabled=true; btn.textContent=`Normalizing 0/${ids.length}…`; }
+  const map=_loadMaxFix();
+  let done=0, failed=0;
+  for(const id of ids){
+    try{
+      const s=await _getActivityStreams(id);           // speed stream is already spike-interpolated
+      const corrected=s && s.series && s.series.speed && s.series.speed.max;
+      if(corrected>0){
+        map[id]=corrected;
+        const a=(acts||[]).find(x=>String(x.id)===String(id));
+        if(a) a.max_speed=corrected;
+        done++;
+      } else failed++;
+    }catch{ failed++; }
+    if(btn) btn.textContent=`Normalizing ${done+failed}/${ids.length}…`;
+  }
+  _saveMaxFix(map);
+  // refresh dependent, max-speed-driven views
+  ['renderStats','renderCycling','renderBestEfforts','renderMilestones'].forEach(fn=>{try{ if(typeof window[fn]==='function') window[fn](); }catch{}});
+  _anomMsg=`Normalized ${done} activit${done===1?'y':'ies'}.`+(failed?` ${failed} had no usable speed stream.`:'');
+  renderSpeedAnomalies();
 }
 
 // render the Fix section on first open (called from navScrollTo)
