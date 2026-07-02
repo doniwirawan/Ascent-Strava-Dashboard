@@ -748,6 +748,8 @@ body.dev .dev-tag { display: inline-block; }
 .gpx-anom-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gpx-anom-date { font-size: 12px; color: var(--text-2); }
 .gpx-anom-spd { font-weight: 700; color: var(--orange); white-space: nowrap; }
+.gpx-anom-fixed { font-weight: 600; color: #4ade80; font-size: 12px; }
+.gpx-anom-tag { color: #4ade80; font-size: 11px; }
 .gpx-anom-strava { flex: none; color: var(--text-2); font-size: 16px; text-decoration: none; padding: 4px 6px; border-radius: var(--radius-xs); }
 .gpx-anom-strava:hover { color: var(--orange); background: var(--surface3); }
 

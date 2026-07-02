@@ -186,17 +186,25 @@ function _gfPreview(before, after){
 }
 
 /* ── ABNORMAL-SPEED ACTIVITY LIST ── */
-// Persisted corrected max speeds (m/s), keyed by activity id. A normalized
-// activity replaces its glitchy summary max_speed with the value derived from
-// its spike-interpolated speed stream, so every view stays consistent.
-const _MAXFIX_KEY='strava_maxfix';
-function _loadMaxFix(){ try{ return JSON.parse(localStorage.getItem(_MAXFIX_KEY))||{}; }catch{ return {}; } }
+// Persisted per-activity speed fixes, keyed by id: { raw, fixed } in m/s.
+// `raw` is the original glitchy Strava max_speed (so the "abnormal on Strava"
+// list stays accurate even after a local normalize); `fixed` is the corrected
+// value we show in stats. v2 key — the old v1 map (fixed-only numbers) is
+// ignored so locally-normalized activities reappear in the list.
+const _MAXFIX_KEY='strava_maxfix_v2';
+function _loadMaxFix(){ try{ const o=JSON.parse(localStorage.getItem(_MAXFIX_KEY)); return (o&&typeof o==='object')?o:{}; }catch{ return {}; } }
 function _saveMaxFix(m){ try{ localStorage.setItem(_MAXFIX_KEY, JSON.stringify(m)); }catch{} }
-// re-apply saved corrections onto the in-memory acts (run on every data render)
+// re-apply saved corrections onto the in-memory acts (run on every data render).
+// Stashes the true raw once so the anomaly list can key off it.
 function applyMaxFixOverrides(){
   const m=_loadMaxFix(); if(!m || !Object.keys(m).length) return;
-  (acts||[]).forEach(a=>{ if(m[a.id]!=null) a.max_speed=m[a.id]; });
+  (acts||[]).forEach(a=>{
+    const e=m[a.id];
+    if(e && e.fixed!=null){ if(a._rawMax==null) a._rawMax=(e.raw!=null?e.raw:a.max_speed); a.max_speed=e.fixed; }
+  });
 }
+// original (glitchy) max speed for an activity — map wins, then stashed raw, then live value
+function _rawMaxOf(a, m){ const e=(m||_loadMaxFix())[a.id]; return (e&&e.raw!=null)?e.raw:(a._rawMax!=null?a._rawMax:a.max_speed); }
 
 let _anomMsg='';
 let _fixedGpx=[];   // staged corrected files: {id, name, dateStr, filename, text, status}
@@ -204,7 +212,8 @@ function renderSpeedAnomalies(){
   const el=document.getElementById('speedAnomalyList');
   if(!el) return;
   applyMaxFixOverrides();
-  const bad=(acts||[]).filter(a=>a.max_speed>MAX_SPEED_CEILING).sort((a,b)=>b.max_speed-a.max_speed);
+  const fixMap=_loadMaxFix();
+  const bad=(acts||[]).filter(a=>_rawMaxOf(a,fixMap)>MAX_SPEED_CEILING).sort((a,b)=>_rawMaxOf(b,fixMap)-_rawMaxOf(a,fixMap));
   const banner = _anomMsg ? `<div class="gpx-ok">${_anomMsg}</div>` : '';
   _anomMsg='';
   if(!bad.length){ el.innerHTML=banner+'<div class="gpx-empty">No activities with abnormal speed 🎉</div>'; return; }
@@ -231,9 +240,9 @@ function renderSpeedAnomalies(){
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActivityModal('${a.id}')}">
           <div class="gpx-anom-main">
             <span class="gpx-anom-name">${a.name||'Activity'}</span>
-            <span class="gpx-anom-date">${fmtDt(a.start_date)}</span>
+            <span class="gpx-anom-date">${fmtDt(a.start_date)}${(fixMap[a.id]&&fixMap[a.id].fixed!=null)?' · <span class="gpx-anom-tag">normalized locally</span>':''}</span>
           </div>
-          <span class="gpx-anom-spd">${kmh(a.max_speed).toFixed(1)} ${speedUnit()}</span>
+          <span class="gpx-anom-spd">${kmh(_rawMaxOf(a,fixMap)).toFixed(1)} ${speedUnit()}${(fixMap[a.id]&&fixMap[a.id].fixed!=null)?` <span class="gpx-anom-fixed">→ ${kmh(fixMap[a.id].fixed).toFixed(1)}</span>`:''}</span>
         </div>
         <a class="gpx-anom-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener" title="Open on Strava to delete" onclick="event.stopPropagation()">↗</a>
       </div>`).join('');
@@ -270,12 +279,13 @@ async function normalizeSelected(){
     const id=ids[i];
     try{
       const a=(acts||[]).find(x=>String(x.id)===String(id));
-      const rawMs=a?a.max_speed:0;                     // glitch value, before override
+      const existing=map[id];
+      const rawMs=(existing && existing.raw!=null) ? existing.raw : (a?_rawMaxOf(a,map):0); // true glitch value
       const s=await _getActivityStreams(id);           // speed stream is already spike-interpolated
       const corrected=s && s.series && s.series.speed && s.series.speed.max;
       if(corrected>0){
-        map[id]=corrected;
-        if(a) a.max_speed=corrected;
+        map[id]={raw:rawMs, fixed:corrected};
+        if(a){ if(a._rawMax==null) a._rawMax=rawMs; a.max_speed=corrected; }
         done++;
         if(toStrava){ if(await _pushSpeedNoteToStrava(id, rawMs, corrected)) noted++; else noteFail++; }
       } else failed++;
