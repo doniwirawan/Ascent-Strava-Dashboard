@@ -210,6 +210,7 @@ function renderSpeedAnomalies(){
   el.innerHTML= banner +
     `<div class="gpx-anom-bar">
        <label class="gpx-opt"><input type="checkbox" id="anomAll" onchange="_anomToggleAll(this.checked)"> Select all</label>
+       <label class="gpx-opt"><input type="checkbox" id="anomStrava" checked> Note the fix on Strava</label>
        <button class="btn btn-primary gpx-anom-btn" type="button" onclick="normalizeSelected()">Normalize selected</button>
      </div>
      <div class="gpx-anom-note">${bad.length} activit${bad.length===1?'y':'ies'} with a max speed above 65 km/h — tick and normalize, or tap a row to inspect.</div>`
@@ -231,30 +232,51 @@ function _anomToggleAll(on){
   document.querySelectorAll('#speedAnomalyList .anom-cb').forEach(cb=>{cb.checked=on;});
 }
 
+// Strava's API can't edit max_speed, so we append a note to the activity's
+// description instead. Idempotent: any prior note line is stripped first.
+const _SPEED_NOTE_TAG='⚠️ GPS glitch:';
+async function _pushSpeedNoteToStrava(id, rawMs, correctedMs){
+  let detail;
+  try{ detail=await api('/activities/'+id); }catch{ return false; }
+  const note=`${_SPEED_NOTE_TAG} recorded max ${kmh(rawMs).toFixed(1)} ${speedUnit()} → real max ≈ ${kmh(correctedMs).toFixed(1)} ${speedUnit()} (normalized in dashboard)`;
+  let desc=(detail && detail.description) || '';
+  desc=desc.split('\n').filter(l=>l.indexOf(_SPEED_NOTE_TAG)===-1).join('\n').replace(/\s+$/,'');
+  const newDesc=desc ? desc+'\n\n'+note : note;
+  try{ await apiPut('/activities/'+id, {description:newDesc}); return true; }
+  catch{ return false; }
+}
+
 async function normalizeSelected(){
   const ids=[...document.querySelectorAll('#speedAnomalyList .anom-cb:checked')].map(cb=>cb.value);
   if(!ids.length){ _anomMsg='Tick at least one activity to normalize.'; renderSpeedAnomalies(); return; }
+  const toStrava = !!(document.getElementById('anomStrava') && document.getElementById('anomStrava').checked);
+  if(toStrava && !confirm(`Add a GPS-glitch note to the Strava description of ${ids.length} activit${ids.length===1?'y':'ies'}?\nThis only edits the description text — the activity, its date, kudos and comments stay untouched.`)) return;
   const btn=document.querySelector('.gpx-anom-btn');
   if(btn){ btn.disabled=true; btn.textContent=`Normalizing 0/${ids.length}…`; }
   const map=_loadMaxFix();
-  let done=0, failed=0;
-  for(const id of ids){
+  let done=0, failed=0, noted=0, noteFail=0;
+  for(let i=0;i<ids.length;i++){
+    const id=ids[i];
     try{
+      const a=(acts||[]).find(x=>String(x.id)===String(id));
+      const rawMs=a?a.max_speed:0;                     // glitch value, before override
       const s=await _getActivityStreams(id);           // speed stream is already spike-interpolated
       const corrected=s && s.series && s.series.speed && s.series.speed.max;
       if(corrected>0){
         map[id]=corrected;
-        const a=(acts||[]).find(x=>String(x.id)===String(id));
         if(a) a.max_speed=corrected;
         done++;
+        if(toStrava){ if(await _pushSpeedNoteToStrava(id, rawMs, corrected)) noted++; else noteFail++; }
       } else failed++;
     }catch{ failed++; }
-    if(btn) btn.textContent=`Normalizing ${done+failed}/${ids.length}…`;
+    if(btn) btn.textContent=`Normalizing ${i+1}/${ids.length}…`;
   }
   _saveMaxFix(map);
   // refresh dependent, max-speed-driven views
   ['renderStats','renderCycling','renderBestEfforts','renderMilestones'].forEach(fn=>{try{ if(typeof window[fn]==='function') window[fn](); }catch{}});
-  _anomMsg=`Normalized ${done} activit${done===1?'y':'ies'}.`+(failed?` ${failed} had no usable speed stream.`:'');
+  _anomMsg=`Normalized ${done} activit${done===1?'y':'ies'}.`
+    + (toStrava?` Annotated ${noted} on Strava${noteFail?` (${noteFail} failed — may need reconnect for write access)`:''}.`:'')
+    + (failed?` ${failed} had no usable speed stream.`:'');
   renderSpeedAnomalies();
 }
 
