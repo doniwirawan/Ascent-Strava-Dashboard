@@ -556,13 +556,13 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
       };
 
-      // long efforts only (adjustable floor), prefer rides (cyclist); fall back
-      // to any long GPS activity if there aren't many long rides
+      // efforts above the adjustable distance floor, with a GPS track
       const MIN_DIST = (collageMinKm || 0) * 1000; // metres
       const withGps = (typeof acts !== 'undefined' && acts ? acts : []).filter(a => a && a.map && a.map.summary_polyline && (a.distance || 0) >= MIN_DIST);
-      let pool = withGps.filter(a => isRide(a)); if (pool.length < 4) pool = withGps;
-      // most impressive first — longest rides get priority when the count is capped
-      pool = pool.slice().sort((x, y) => (y.distance || 0) - (x.distance || 0));
+      // most impressive first; rides lead (cyclist), other GPS activities fill the
+      // tail so a high sticker count still has enough to show
+      const byDist = arr => arr.slice().sort((x, y) => (y.distance || 0) - (x.distance || 0));
+      const pool = byDist(withGps.filter(a => isRide(a))).concat(byDist(withGps.filter(a => !isRide(a))));
 
       // keep-clear box (drag on the preview) — stickers avoid this area so a
       // photo subject stays visible; centre-based normalized {x,y,w,h}
