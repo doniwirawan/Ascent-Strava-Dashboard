@@ -556,9 +556,11 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
       };
 
-      // prefer rides (cyclist), fall back to everything with a GPS track
-      const withGps = (typeof acts !== 'undefined' && acts ? acts : []).filter(a => a && a.map && a.map.summary_polyline);
-      let pool = withGps.filter(a => isRide(a)); if (pool.length < 6) pool = withGps;
+      // only long efforts (30km+), prefer rides (cyclist); fall back to any long
+      // GPS activity if there aren't many long rides
+      const MIN_DIST = 30000; // metres
+      const withGps = (typeof acts !== 'undefined' && acts ? acts : []).filter(a => a && a.map && a.map.summary_polyline && (a.distance || 0) >= MIN_DIST);
+      let pool = withGps.filter(a => isRide(a)); if (pool.length < 4) pool = withGps;
 
       // scatter grid, inset by a margin so nothing clips off-canvas; skip the
       // central columns on the middle rows so the photo subject stays visible
