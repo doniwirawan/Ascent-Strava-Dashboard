@@ -562,13 +562,13 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const withGps = (typeof acts !== 'undefined' && acts ? acts : []).filter(a => a && a.map && a.map.summary_polyline && (a.distance || 0) >= MIN_DIST);
       let pool = withGps.filter(a => isRide(a)); if (pool.length < 4) pool = withGps;
 
-      // scatter grid, inset by a margin so nothing clips off-canvas; skip the
-      // central columns on the middle rows so the photo subject stays visible
-      const cols = 4, rows = 6, mX = W * 0.15, mY = H * 0.09, cells = [];
+      // dense scatter grid, inset by a margin so nothing clips off-canvas; skip
+      // only the very centre so the photo subject stays visible
+      const cols = 5, rows = 8, mX = W * 0.11, mY = H * 0.06, cells = [];
       const gx = c => mX + (c + 0.5) / cols * (W - 2 * mX);
       const gy = r => mY + (r + 0.5) / rows * (H - 2 * mY);
       for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-        if ((c === 1 || c === 2) && r >= 2 && r <= 3) continue;
+        if (c === 2 && r >= 3 && r <= 4) continue;
         cells.push({ c, r });
       }
       const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -578,7 +578,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
         const a = pool[i], cell = cells[i];
         let pts; try { pts = decodePolyline(a.map.summary_polyline); } catch { continue; }
         if (!pts || pts.length < 2) continue;
-        const box = Math.round((130 + rnd(i + 5) * 55) * S);
+        const box = Math.round((105 + rnd(i + 5) * 45) * S);
         const cx = clamp(gx(cell.c) + (rnd(i + 1) - 0.5) * (W / cols) * 0.3, box * 0.6, W - box * 0.6);
         const cy = clamp(gy(cell.r) + (rnd(i + 20) - 0.5) * (H / rows) * 0.3, box * 0.6, H - box * 0.6);
         const rot = (rnd(i + 7) - 0.5) * 0.42; // ±12°
