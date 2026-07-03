@@ -8,12 +8,13 @@ document.getElementById('downloadBtn').addEventListener('click', ()=>{
   const canvas = document.getElementById('storyCanvas');
   // re-render without the custom drag guides so they never appear in the export
   const wasEditing = customEditMode;
-  if (activeLayout === 'custom' && wasEditing) { customEditMode = false; drawStoryCanvas(); }
+  const editable = activeLayout === 'custom' || activeLayout === 'collage';
+  if (editable && wasEditing) { customEditMode = false; drawStoryCanvas(); }
   const a = document.createElement('a');
   a.download = 'strava-story.png';
   a.href = canvas.toDataURL('image/png');
   a.click();
-  if (activeLayout === 'custom' && wasEditing) { customEditMode = true; drawStoryCanvas(); }
+  if (editable && wasEditing) { customEditMode = true; drawStoryCanvas(); }
 });
 
 /* ── SHARE STORY (Web Share API → Instagram / WhatsApp / Facebook / … ) ── */
@@ -32,9 +33,10 @@ document.getElementById('downloadBtn').addEventListener('click', ()=>{
   btn.addEventListener('click', () => {
     const canvas = document.getElementById('storyCanvas');
     const wasEditing = customEditMode;
-    if (activeLayout === 'custom' && wasEditing) { customEditMode = false; drawStoryCanvas(); }
+    const editable = activeLayout === 'custom' || activeLayout === 'collage';
+    if (editable && wasEditing) { customEditMode = false; drawStoryCanvas(); }
     canvas.toBlob(async (blob) => {
-      if (activeLayout === 'custom' && wasEditing) { customEditMode = true; drawStoryCanvas(); }
+      if (editable && wasEditing) { customEditMode = true; drawStoryCanvas(); }
       if (!blob) return;
       const file = new File([blob], 'strava-story.png', { type: 'image/png' });
       try {

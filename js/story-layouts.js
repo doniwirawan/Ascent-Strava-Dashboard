@@ -556,26 +556,38 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
       };
 
-      // only long efforts (30km+), prefer rides (cyclist); fall back to any long
-      // GPS activity if there aren't many long rides
-      const MIN_DIST = 30000; // metres
+      // long efforts only (adjustable floor), prefer rides (cyclist); fall back
+      // to any long GPS activity if there aren't many long rides
+      const MIN_DIST = (collageMinKm || 0) * 1000; // metres
       const withGps = (typeof acts !== 'undefined' && acts ? acts : []).filter(a => a && a.map && a.map.summary_polyline && (a.distance || 0) >= MIN_DIST);
       let pool = withGps.filter(a => isRide(a)); if (pool.length < 4) pool = withGps;
+      // most impressive first — longest rides get priority when the count is capped
+      pool = pool.slice().sort((x, y) => (y.distance || 0) - (x.distance || 0));
 
-      // dense scatter grid, inset by a margin so nothing clips off-canvas; skip
-      // only the very centre so the photo subject stays visible
+      // keep-clear box (drag on the preview) — stickers avoid this area so a
+      // photo subject stays visible; centre-based normalized {x,y,w,h}
+      const clr = collageClear || { x: 0.5, y: 0.5, w: 0.32, h: 0.46 };
+      const clrPx = { x: (clr.x - clr.w / 2) * W, y: (clr.y - clr.h / 2) * H, w: clr.w * W, h: clr.h * H };
+      if (canvas.id === 'storyCanvas') window._collageClearBox = clrPx;
+
+      // dense scatter grid, inset by a margin so nothing clips off-canvas; drop
+      // any cell whose centre lands inside the keep-clear box
       const cols = 5, rows = 8, mX = W * 0.11, mY = H * 0.06, cells = [];
       const gx = c => mX + (c + 0.5) / cols * (W - 2 * mX);
       const gy = r => mY + (r + 0.5) / rows * (H - 2 * mY);
       for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-        if (c === 2 && r >= 3 && r <= 4) continue;
+        const px = gx(c), py = gy(r);
+        if (px >= clrPx.x && px <= clrPx.x + clrPx.w && py >= clrPx.y && py <= clrPx.y + clrPx.h) continue;
         cells.push({ c, r });
       }
       const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-      const N = Math.min(cells.length, pool.length);
+      // cap to the requested count, spread evenly across the remaining cells
+      const want = Math.min(collageCount || cells.length, cells.length, pool.length);
+      const picks = [];
+      for (let k = 0; k < want; k++) picks.push(cells[Math.floor(k * cells.length / want)]);
 
-      for (let i = 0; i < N; i++) {
-        const a = pool[i], cell = cells[i];
+      for (let i = 0; i < want; i++) {
+        const a = pool[i], cell = picks[i];
         let pts; try { pts = decodePolyline(a.map.summary_polyline); } catch { continue; }
         if (!pts || pts.length < 2) continue;
         const box = Math.round((105 + rnd(i + 5) * 45) * S);
@@ -622,7 +634,22 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.restore();
       }
 
-      if (N === 0) { ctx.fillStyle = sc.muted; ctx.font = F(34, 400); ctx.textAlign = 'center'; ctx.fillText('No route data', W / 2, H / 2); }
+      if (want === 0) { ctx.fillStyle = sc.muted; ctx.font = F(34, 400); ctx.textAlign = 'center'; ctx.fillText('No route data', W / 2, H / 2); }
+
+      // keep-clear box affordance — main canvas while editing only, never exported
+      if (canvas.id === 'storyCanvas' && customEditMode) {
+        ctx.save();
+        ctx.setLineDash([Math.round(11 * S), Math.round(9 * S)]);
+        ctx.strokeStyle = 'rgba(252,76,2,0.85)'; ctx.lineWidth = Math.round(2.5 * S);
+        ctx.strokeRect(clrPx.x, clrPx.y, clrPx.w, clrPx.h);
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(252,76,2,0.95)'; ctx.font = `700 ${Math.round(19 * S)}px -apple-system,sans-serif`;
+        ctx.textAlign = 'center'; ctx.fillText('KEEP CLEAR — drag / resize', clrPx.x + clrPx.w / 2, clrPx.y - Math.round(12 * S));
+        const hs = Math.round(20 * S);
+        ctx.fillStyle = '#FC4C02'; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.round(2.5 * S);
+        ctx.beginPath(); ctx.roundRect(clrPx.x + clrPx.w - hs / 2, clrPx.y + clrPx.h - hs / 2, hs, hs, Math.round(5 * S)); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
       break;
     }
 

@@ -21,6 +21,9 @@ let activeScheme = 'transp';
 let customAccent = null; // override accent color
 let activeLayout = 'strip';
 let hideTitle = false, hideDate = false, hideRoute = false, hideLogo = false;
+let collageCount = 30; // how many stickers the Collage layout scatters
+let collageMinKm = 30; // Collage: only rides at least this many km (0 = all)
+let collageClear = null; // Collage: normalized keep-clear box {x,y=centre, w,h}; null = default
 let storyBgImage = null; // uploaded background image
 let currentStreams = null; // altitude+distance streams for selected activity
 const streamsCache = {}; // keyed by activity id
@@ -32,6 +35,7 @@ function saveStorySettings() {
     localStorage.setItem('story_settings', JSON.stringify({
       layout: activeLayout, scheme: activeScheme, accent: customAccent,
       stats: [...checkedStats], hT: hideTitle, hD: hideDate, hR: hideRoute, hL: hideLogo,
+      cc: collageCount, cmk: collageMinKm, cclr: collageClear,
     }));
   } catch {}
 }
@@ -44,6 +48,9 @@ function saveStorySettings() {
     if ('accent' in o) customAccent = o.accent;
     if (Array.isArray(o.stats)) checkedStats = new Set(o.stats);
     hideTitle = !!o.hT; hideDate = !!o.hD; hideRoute = !!o.hR; hideLogo = !!o.hL;
+    if (typeof o.cc === 'number') collageCount = o.cc;
+    if (typeof o.cmk === 'number') collageMinKm = o.cmk;
+    if (o.cclr && typeof o.cclr.x === 'number') collageClear = o.cclr;
   } catch {}
 })();
 

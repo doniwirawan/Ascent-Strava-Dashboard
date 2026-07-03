@@ -323,6 +323,52 @@ function _buildStatToggles(act){
   });
 }
 
+// Collage settings panel is only relevant to the Collage layout
+function _syncCollageUI(){
+  const w=document.getElementById('collageSettings');
+  if(w) w.style.display = activeLayout==='collage' ? '' : 'none';
+}
+
+// Drag / resize the Collage keep-clear box directly on the preview canvas.
+// Wired after _wireCustomDrag so its cursor updates win for the collage layout.
+function _wireCollageDrag(){
+  const canvas=document.getElementById('storyCanvas');
+  if(canvas._collageWired) return; canvas._collageWired=true;
+  const toCanvas=e=>{ const r=canvas.getBoundingClientRect(); return { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) }; };
+  const handleR=()=>Math.round(30*(canvas.width/1080));
+  const ensureClear=()=>{ if(!collageClear) collageClear={x:0.5,y:0.5,w:0.32,h:0.46}; return collageClear; };
+  let drag=null;
+  canvas.addEventListener('pointerdown',e=>{
+    if(activeLayout!=='collage'||e.button===2) return;
+    const b=window._collageClearBox; if(!b) return;
+    const p=toCanvas(e), hs=handleR();
+    if(Math.abs(p.x-(b.x+b.w))<=hs && Math.abs(p.y-(b.y+b.h))<=hs) drag={resize:true};
+    else if(p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h) drag={move:true,sx:p.x,sy:p.y};
+    else return;
+    canvas.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(activeLayout!=='collage') return;
+    const b=window._collageClearBox;
+    if(!drag){
+      if(!b) return;
+      const p=toCanvas(e), hs=handleR();
+      const onHandle=Math.abs(p.x-(b.x+b.w))<=hs&&Math.abs(p.y-(b.y+b.h))<=hs;
+      const inside=p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h;
+      canvas.style.cursor=onHandle?'nwse-resize':(inside?'move':'');
+      return;
+    }
+    const p=toCanvas(e), W=canvas.width, H=canvas.height, c=ensureClear();
+    const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+    if(drag.move){ c.x=clamp(c.x+(p.x-drag.sx)/W,0.05,0.95); c.y=clamp(c.y+(p.y-drag.sy)/H,0.05,0.95); drag.sx=p.x; drag.sy=p.y; }
+    else { c.w=clamp(Math.abs(p.x-c.x*W)/W*2,0.08,1.5); c.h=clamp(Math.abs(p.y-c.y*H)/H*2,0.08,1.7); }
+    drawStoryCanvas();
+  });
+  const end=()=>{ if(drag){ drag=null; saveStorySettings(); } };
+  canvas.addEventListener('pointerup',end);
+  canvas.addEventListener('pointercancel',end);
+}
+
 function openStoryModal(){
   const picker=document.getElementById('activityPicker');
   picker.innerHTML=acts.slice(0,50).map((a,i)=>`<option value="${i}">${fmtDt(a.start_date)} — ${a.name} (${fmtD(a.distance)})</option>`).join('');
@@ -343,6 +389,7 @@ function openStoryModal(){
       lp.querySelectorAll('.layout-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       saveStorySettings();
+      _syncCollageUI();
       drawStoryCanvas();
     });
   });
@@ -444,8 +491,18 @@ function openStoryModal(){
     if(saved){ const img=new Image(); img.onload=()=>{ storyBgImage=img; if(clearBg) clearBg.style.display=''; if(bgName) bgName.textContent=localStorage.getItem('story_bg_name')||'photo'; drawStoryCanvas(); }; img.src=saved; }
   }
 
+  // collage settings: sticker count + minimum distance
+  const cCount=document.getElementById('collageCount'), cCountV=document.getElementById('collageCountVal');
+  const cMin=document.getElementById('collageMin'), cMinV=document.getElementById('collageMinVal');
+  if(cCount){ cCount.value=collageCount; if(cCountV) cCountV.textContent=collageCount;
+    cCount.oninput=()=>{ collageCount=parseInt(cCount.value)||collageCount; if(cCountV) cCountV.textContent=collageCount; saveStorySettings(); drawStoryCanvas(); }; }
+  if(cMin){ cMin.value=collageMinKm; if(cMinV) cMinV.textContent=collageMinKm+' km';
+    cMin.oninput=()=>{ collageMinKm=parseInt(cMin.value)||0; if(cMinV) cMinV.textContent=collageMinKm+' km'; saveStorySettings(); drawStoryCanvas(); }; }
+
   // custom free-placement: enable canvas dragging + reset button
   _wireCustomDrag();
+  _wireCollageDrag();
+  _syncCollageUI();
   const customReset=document.getElementById('customReset');
   if(customReset) customReset.onclick=()=>{ customSel.clear(); resetCustomPos(); drawStoryCanvas(); };
   const toolbar=document.getElementById('customToolbar');

@@ -1012,6 +1012,21 @@
           </div>
         </div>
 
+        <div id="collageSettings" style="display:none">
+          <div class="picker-label">Collage</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <label style="font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:5px;">
+              <span>Stickers to show: <b id="collageCountVal" style="color:var(--text);">30</b></span>
+              <input type="range" id="collageCount" min="4" max="40" value="30" step="1" style="width:100%;accent-color:var(--orange);">
+            </label>
+            <label style="font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:5px;">
+              <span>Minimum distance: <b id="collageMinVal" style="color:var(--text);">30 km</b></span>
+              <input type="range" id="collageMin" min="0" max="100" value="30" step="5" style="width:100%;accent-color:var(--orange);">
+            </label>
+            <div style="font-size:10.5px;color:var(--muted);line-height:1.5;">Longest rides show first. Drag the dashed <b>“keep clear”</b> box on the preview to set where stickers won’t go.</div>
+          </div>
+        </div>
+
         <div>
           <div class="picker-label">Stats</div>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;" id="statToggles"></div>
