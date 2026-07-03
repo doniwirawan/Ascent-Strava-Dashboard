@@ -536,6 +536,94 @@ function drawLayout(canvas, act, selected, sc, layout) {
       break;
     }
 
+    /* COLLAGE — scatter many mini activity stickers (route outline + stats) around
+       the edges over a background photo, leaving the centre clear for the subject.
+       Pulls from the whole `acts` history, not just the selected activity. */
+    case 'collage': {
+      if (!skipBg) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
+      // deterministic hash → [0,1) so sticker positions stay put across redraws
+      const rnd = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+      // fit a route polyline into a box (aspect-correct, no fill) — ignores hideRoute
+      const outline = (pts, ox, oy, ow, oh, col, lw) => {
+        let minLa = 90, maxLa = -90, minLn = 180, maxLn = -180;
+        for (const [la, ln] of pts) { if (la < minLa) minLa = la; if (la > maxLa) maxLa = la; if (ln < minLn) minLn = ln; if (ln > maxLn) maxLn = ln; }
+        const kx = Math.cos((minLa + maxLa) / 2 * Math.PI / 180) || 1;
+        const spanLn = (maxLn - minLn) * kx || 1e-4, spanLa = (maxLa - minLa) || 1e-4;
+        const sc2 = Math.min(ow / spanLn, oh / spanLa), dw = spanLn * sc2, dh = spanLa * sc2;
+        const bx = ox + (ow - dw) / 2, by = oy + (oh - dh) / 2;
+        ctx.beginPath();
+        pts.forEach((p, i) => { const X = bx + (p[1] - minLn) * kx * sc2, Y = by + (maxLa - p[0]) * sc2; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+        ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+      };
+
+      // prefer rides (cyclist), fall back to everything with a GPS track
+      const withGps = (typeof acts !== 'undefined' && acts ? acts : []).filter(a => a && a.map && a.map.summary_polyline);
+      let pool = withGps.filter(a => isRide(a)); if (pool.length < 6) pool = withGps;
+
+      // scatter grid, inset by a margin so nothing clips off-canvas; skip the
+      // central columns on the middle rows so the photo subject stays visible
+      const cols = 4, rows = 6, mX = W * 0.15, mY = H * 0.09, cells = [];
+      const gx = c => mX + (c + 0.5) / cols * (W - 2 * mX);
+      const gy = r => mY + (r + 0.5) / rows * (H - 2 * mY);
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        if ((c === 1 || c === 2) && r >= 2 && r <= 3) continue;
+        cells.push({ c, r });
+      }
+      const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+      const N = Math.min(cells.length, pool.length);
+
+      for (let i = 0; i < N; i++) {
+        const a = pool[i], cell = cells[i];
+        let pts; try { pts = decodePolyline(a.map.summary_polyline); } catch { continue; }
+        if (!pts || pts.length < 2) continue;
+        const box = Math.round((130 + rnd(i + 5) * 55) * S);
+        const cx = clamp(gx(cell.c) + (rnd(i + 1) - 0.5) * (W / cols) * 0.3, box * 0.6, W - box * 0.6);
+        const cy = clamp(gy(cell.r) + (rnd(i + 20) - 0.5) * (H / rows) * 0.3, box * 0.6, H - box * 0.6);
+        const rot = (rnd(i + 7) - 0.5) * 0.42; // ±12°
+        const col = rnd(i + 3) < 0.6 ? sc.accent : '#ffffff';
+        const kind = rnd(i + 11); // <.35 route-only sticker · else route + stats
+
+        // which stats each sticker shows follows the stat toggles (up to 3);
+        // evaluated per-activity so every sticker reflects its own ride
+        const chosen = STAT_DEFS.filter(s => checkedStats.has(s.key) && statApplies(s, a)).slice(0, 3);
+        const stats = chosen.length ? chosen : [STAT_DEFS[0]];
+
+        ctx.save();
+        ctx.translate(cx, cy); ctx.rotate(rot);
+        ctx.textAlign = 'center';
+        let y = -box * 0.15;
+        if (kind >= 0.35) { // has a route outline
+          outline(pts, -box / 2, -box * 0.62, box, box * 0.55, col, Math.max(2, Math.round(3.2 * S)));
+          y = box * 0.02;
+        }
+        if (kind < 0.35) { // route-only sticker — nothing else to draw
+          ctx.restore(); continue;
+        }
+        // stacked stat rows: tiny label + bold value (reference-card style)
+        ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = Math.round(6 * S);
+        stats.forEach((s, j) => {
+          const { num, unit } = statVal(s, a), disp = num + (unit ? ' ' + unit : '');
+          const ry = y + j * Math.round(46 * S);
+          ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = `600 ${Math.round(12 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.08em';
+          ctx.fillText(s.label.toUpperCase(), 0, ry);
+          let vfs = Math.round(26 * S); ctx.font = `800 ${vfs}px -apple-system,sans-serif`;
+          while (vfs > Math.round(11 * S) && ctx.measureText(disp).width > box * 1.1) { vfs--; ctx.font = `800 ${vfs}px -apple-system,sans-serif`; }
+          ctx.fillStyle = '#ffffff'; ctx.letterSpacing = '-0.3px';
+          ctx.fillText(disp, 0, ry + Math.round(26 * S));
+        });
+        ctx.shadowBlur = 0;
+        // little accent tag (respects the Logo toggle)
+        if (!hideLogo) {
+          ctx.fillStyle = sc.accent; ctx.font = `700 ${Math.round(13 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.14em';
+          ctx.fillText('ASCENT', 0, y + stats.length * Math.round(46 * S) + Math.round(4 * S));
+        }
+        ctx.restore();
+      }
+
+      if (N === 0) { ctx.fillStyle = sc.muted; ctx.font = F(34, 400); ctx.textAlign = 'center'; ctx.fillText('No route data', W / 2, H / 2); }
+      break;
+    }
+
     /* 5. MINIMAL — clean typography, no icons */
     case 'minimal': {
       if (sc.card !== 'transparent') { ctx.fillStyle = sc.card; ctx.fillRect(0, 0, W, H); }

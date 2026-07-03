@@ -136,6 +136,7 @@ const LAYOUTS = [
   { id: 'grid', name: 'Grid' },
   { id: 'hero', name: 'Hero' },
   { id: 'map', name: 'Map' },
+  { id: 'collage', name: 'Collage' },
   { id: 'minimal', name: 'Minimal' },
   { id: 'split', name: 'Split' },
   { id: 'stacked', name: 'Stacked' },
