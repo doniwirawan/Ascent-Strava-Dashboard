@@ -570,9 +570,13 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const clrPx = { x: (clr.x - clr.w / 2) * W, y: (clr.y - clr.h / 2) * H, w: clr.w * W, h: clr.h * H };
       if (canvas.id === 'storyCanvas') window._collageClearBox = clrPx;
 
-      // dense scatter grid, inset by a margin so nothing clips off-canvas; drop
-      // any cell whose centre lands inside the keep-clear box
-      const cols = 5, rows = 8, mX = W * 0.11, mY = H * 0.06, cells = [];
+      // scatter grid sized to the requested count — more stickers → finer grid
+      // (and smaller stickers). Build enough cells to survive the clear-box cutout.
+      const target = Math.max(1, Math.min(collageCount || 30, pool.length));
+      const cellsNeeded = Math.ceil(target * 1.4);
+      const cols = Math.max(3, Math.round(Math.sqrt(cellsNeeded * W / H)));
+      const rows = Math.max(3, Math.ceil(cellsNeeded / cols));
+      const mX = W * 0.07, mY = H * 0.045, cells = [];
       const gx = c => mX + (c + 0.5) / cols * (W - 2 * mX);
       const gy = r => mY + (r + 0.5) / rows * (H - 2 * mY);
       for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -582,24 +586,31 @@ function drawLayout(canvas, act, selected, sc, layout) {
       }
       const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
       // cap to the requested count, spread evenly across the remaining cells
-      const want = Math.min(collageCount || cells.length, cells.length, pool.length);
+      const want = Math.min(target, cells.length);
       const picks = [];
       for (let k = 0; k < want; k++) picks.push(cells[Math.floor(k * cells.length / want)]);
+      // sticker size follows the cell size so a dense grid packs tighter
+      const cellMin = Math.min((W - 2 * mX) / cols, (H - 2 * mY) / rows);
+      const baseBox = cellMin * 1.25;
+      const q = clamp(baseBox / (150 * S), 0.42, 1.1); // font/detail scale vs. the original size
+      const jit = q * 0.28; // less jitter when dense, so stickers overlap less
+      // fewer stat lines on tiny stickers so they stay legible
+      const statsMax = q < 0.6 ? 1 : (q < 0.85 ? 2 : 3);
 
       for (let i = 0; i < want; i++) {
         const a = pool[i], cell = picks[i];
         let pts; try { pts = decodePolyline(a.map.summary_polyline); } catch { continue; }
         if (!pts || pts.length < 2) continue;
-        const box = Math.round((105 + rnd(i + 5) * 45) * S);
-        const cx = clamp(gx(cell.c) + (rnd(i + 1) - 0.5) * (W / cols) * 0.3, box * 0.6, W - box * 0.6);
-        const cy = clamp(gy(cell.r) + (rnd(i + 20) - 0.5) * (H / rows) * 0.3, box * 0.6, H - box * 0.6);
+        const box = Math.round(baseBox * (0.85 + rnd(i + 5) * 0.3));
+        const cx = clamp(gx(cell.c) + (rnd(i + 1) - 0.5) * (W / cols) * jit, box * 0.5, W - box * 0.5);
+        const cy = clamp(gy(cell.r) + (rnd(i + 20) - 0.5) * (H / rows) * jit, box * 0.5, H - box * 0.5);
         const rot = (rnd(i + 7) - 0.5) * 0.42; // ±12°
         const col = rnd(i + 3) < 0.6 ? sc.accent : '#ffffff';
         const kind = rnd(i + 11); // <.35 route-only sticker · else route + stats
 
-        // which stats each sticker shows follows the stat toggles (up to 3);
+        // which stats each sticker shows follows the stat toggles (capped by size);
         // evaluated per-activity so every sticker reflects its own ride
-        const chosen = STAT_DEFS.filter(s => checkedStats.has(s.key) && statApplies(s, a)).slice(0, 3);
+        const chosen = STAT_DEFS.filter(s => checkedStats.has(s.key) && statApplies(s, a)).slice(0, statsMax);
         const stats = chosen.length ? chosen : [STAT_DEFS[0]];
 
         ctx.save();
@@ -607,29 +618,30 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.textAlign = 'center';
         let y = -box * 0.15;
         if (kind >= 0.35) { // has a route outline
-          outline(pts, -box / 2, -box * 0.62, box, box * 0.55, col, Math.max(2, Math.round(3.2 * S)));
+          outline(pts, -box / 2, -box * 0.62, box, box * 0.55, col, Math.max(1, Math.round(3.2 * S * q)));
           y = box * 0.02;
         }
         if (kind < 0.35) { // route-only sticker — nothing else to draw
           ctx.restore(); continue;
         }
         // stacked stat rows: tiny label + bold value (reference-card style)
-        ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = Math.round(6 * S);
+        const rowH = Math.round(46 * S * q);
+        ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = Math.round(6 * S * q);
         stats.forEach((s, j) => {
           const { num, unit } = statVal(s, a), disp = num + (unit ? ' ' + unit : '');
-          const ry = y + j * Math.round(46 * S);
-          ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = `600 ${Math.round(12 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.08em';
+          const ry = y + j * rowH;
+          ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = `600 ${Math.round(12 * S * q)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.08em';
           ctx.fillText(s.label.toUpperCase(), 0, ry);
-          let vfs = Math.round(26 * S); ctx.font = `800 ${vfs}px -apple-system,sans-serif`;
-          while (vfs > Math.round(11 * S) && ctx.measureText(disp).width > box * 1.1) { vfs--; ctx.font = `800 ${vfs}px -apple-system,sans-serif`; }
+          let vfs = Math.round(26 * S * q); ctx.font = `800 ${vfs}px -apple-system,sans-serif`;
+          while (vfs > Math.round(9 * S) && ctx.measureText(disp).width > box * 1.1) { vfs--; ctx.font = `800 ${vfs}px -apple-system,sans-serif`; }
           ctx.fillStyle = '#ffffff'; ctx.letterSpacing = '-0.3px';
-          ctx.fillText(disp, 0, ry + Math.round(26 * S));
+          ctx.fillText(disp, 0, ry + Math.round(26 * S * q));
         });
         ctx.shadowBlur = 0;
-        // little accent tag (respects the Logo toggle)
-        if (!hideLogo) {
-          ctx.fillStyle = sc.accent; ctx.font = `700 ${Math.round(13 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.14em';
-          ctx.fillText('ASCENT', 0, y + stats.length * Math.round(46 * S) + Math.round(4 * S));
+        // little accent tag — only when there's room (respects the Logo toggle)
+        if (!hideLogo && q >= 0.85) {
+          ctx.fillStyle = sc.accent; ctx.font = `700 ${Math.round(13 * S * q)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.14em';
+          ctx.fillText('ASCENT', 0, y + stats.length * rowH + Math.round(4 * S));
         }
         ctx.restore();
       }
