@@ -145,8 +145,12 @@ function renderStats() {
 function renderOverviewInsights(){
   const el=document.getElementById('ovInsights');
   if(!el) return;
+  const grid=document.getElementById('statRow');
+  // insight cards are appended into the main stat grid (class .ov-insight) so
+  // they backfill its trailing empty slots instead of starting a new grid.
+  const clearOld=()=>{ if(grid) grid.querySelectorAll('.ov-insight').forEach(n=>n.remove()); };
   const set=modeActs();
-  if(!set.length){ el.innerHTML=''; return; }
+  if(!set.length){ el.innerHTML=''; clearOld(); return; }
 
   const dist=set.reduce((s,a)=>s+(a.distance||0),0);            // m
   const elev=set.reduce((s,a)=>s+(a.total_elevation_gain||0),0);// m
@@ -214,17 +218,16 @@ function renderOverviewInsights(){
     check:'<polyline points="20 6 9 17 4 12"/>',
   }[n]||'');
 
-  el.innerHTML=`
-    <div class="section-title" style="margin-top:8px">Fun Insights</div>
-    <div class="stat-row">
-      ${cards.map(c=>`
-        <div class="stat-card">
+  clearOld();
+  el.innerHTML=''; // insights now live inside the main stat grid
+  if(!grid) return;
+  grid.insertAdjacentHTML('beforeend', cards.map(c=>`
+        <div class="stat-card ov-insight">
           <div class="s-label">${c.lbl}</div>
           <div class="s-icon"><svg viewBox="0 0 24 24">${svg(c.ic)}</svg></div>
           <div class="s-value">${c.val}</div>
           <div class="s-sub">${c.sub}</div>
-        </div>`).join('')}
-    </div>`;
+        </div>`).join(''));
 }
 
 /* ── EDDINGTON ── */

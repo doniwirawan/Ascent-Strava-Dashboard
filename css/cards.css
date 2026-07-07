@@ -30,10 +30,6 @@
 
 .stat-card.hi:hover { box-shadow: var(--shadow-orange); }
 
-/* Fun insights reuse the .stat-card / .s-* component so both Overview rows
-   read as one system — the "Fun Insights" grid just needs a little top gap. */
-#ovInsights .stat-row { margin-bottom: 24px; }
-
 /* PWA install banner (Overview) */
 .install-banner {
   display: flex;

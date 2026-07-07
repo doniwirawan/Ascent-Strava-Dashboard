@@ -345,7 +345,7 @@ function setSportMode(m){
   milestoneMode=m;
   document.querySelectorAll('#modeToggle [data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
   // re-render every mode-aware page
-  ['renderStats','renderEddington','renderActivities','renderTrends','renderCalendar','renderMonthly','renderBestEfforts','renderRewind']
+  ['renderStats','renderOverviewInsights','renderEddington','renderActivities','renderTrends','renderCalendar','renderMonthly','renderBestEfforts','renderRewind']
     .forEach(fn=>{ try{ if(typeof window[fn]==='function') window[fn](); }catch{} });
   try{ if(typeof leafletMapInst!=='undefined' && leafletMapInst) renderHeatmap(); }catch{}
   renderMilestones();
