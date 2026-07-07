@@ -65,37 +65,49 @@ function renderMonthly(filterYear) {
   const rows = {};
   modeActs().filter(a=>new Date(a.start_date).getFullYear()===yr).forEach(a=>{
     const m = new Date(a.start_date).getMonth();
-    if(!rows[m]) rows[m]={rides:0,dist:0,elev:0,time:0,speed:[],hr:[]};
+    if(!rows[m]) rows[m]={rides:0,dist:0,elev:0,time:0,cal:0,speed:[],hr:[]};
     rows[m].rides++;
     rows[m].dist += a.distance||0;
     rows[m].elev += a.total_elevation_gain||0;
     rows[m].time += a.moving_time||0;
+    rows[m].cal  += a.kilojoules||a.calories||0;
     if(a.average_speed) rows[m].speed.push(a.average_speed);
     if(a.average_heartrate) rows[m].hr.push(a.average_heartrate);
   });
 
+  // month-over-month % change vs the previous month that had activity
+  const mom=(cur,prev)=>{
+    if(prev==null||prev===0) return '';
+    const pct=(cur-prev)/prev*100, up=pct>=0;
+    if(Math.abs(pct)<0.5) return `<span class="mom flat">±0%</span>`;
+    return `<span class="mom ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(pct).toFixed(0)}%</span>`;
+  };
+
   let html = `<table class="month-table">
     <thead><tr>
-      <th>Month</th><th>${cntLbl}</th><th>Distance</th><th>Elevation</th><th>Moving Time</th><th>Avg Speed</th><th>Avg HR</th>
+      <th>Month</th><th>${cntLbl}</th><th>Distance</th><th>Elevation</th><th>Moving Time</th><th>Avg Speed</th><th>Avg HR</th><th>Calories</th>
     </tr></thead><tbody>`;
 
-  let totR=0,totD=0,totE=0,totT=0,allSpd=[],allHr=[];
+  let totR=0,totD=0,totE=0,totT=0,totC=0,allSpd=[],allHr=[];
+  let prev=null; // previous month with data (for MoM %)
   for(let m=0;m<12;m++){
     const r=rows[m];
-    if(!r){html+=`<tr><td class="dim">${MONTHS[m]}</td><td colspan="6" class="dim">—</td></tr>`;continue;}
-    totR+=r.rides;totD+=r.dist;totE+=r.elev;totT+=r.time;
+    if(!r){html+=`<tr><td class="dim">${MONTHS[m]}</td><td colspan="7" class="dim">—</td></tr>`;continue;}
+    totR+=r.rides;totD+=r.dist;totE+=r.elev;totT+=r.time;totC+=r.cal;
     allSpd=[...allSpd,...r.speed];allHr=[...allHr,...r.hr];
     const avgSpd=r.speed.length?r.speed.reduce((a,b)=>a+b,0)/r.speed.length:0;
     const avgHr=r.hr.length?Math.round(r.hr.reduce((a,b)=>a+b,0)/r.hr.length):null;
     html+=`<tr>
       <td style="font-weight:700">${MONTHS[m]}</td>
-      <td class="num">${r.rides}</td>
-      <td class="num">${fmtKm(r.dist)} <span class="dim">${distUnit()}</span></td>
-      <td class="num">${Math.round(elevVal(r.elev)).toLocaleString()} <span class="dim">${elevUnit()}</span></td>
-      <td class="num">${fmtT(r.time)}</td>
+      <td class="num">${r.rides}${mom(r.rides,prev&&prev.rides)}</td>
+      <td class="num">${fmtKm(r.dist)} <span class="dim">${distUnit()}</span>${mom(r.dist,prev&&prev.dist)}</td>
+      <td class="num">${Math.round(elevVal(r.elev)).toLocaleString()} <span class="dim">${elevUnit()}</span>${mom(r.elev,prev&&prev.elev)}</td>
+      <td class="num">${fmtT(r.time)}${mom(r.time,prev&&prev.time)}</td>
       <td class="num">${avgSpd?kmh(avgSpd).toFixed(1)+' <span class="dim">'+speedUnit()+'</span>':'—'}</td>
       <td class="num">${avgHr?avgHr+' <span class="dim">bpm</span>':'—'}</td>
+      <td class="num">${r.cal?Math.round(r.cal).toLocaleString()+' <span class="dim">kcal</span>':'—'}${mom(r.cal,prev&&prev.cal)}</td>
     </tr>`;
+    prev=r;
   }
 
   const totAvgSpd=allSpd.length?allSpd.reduce((a,b)=>a+b,0)/allSpd.length:0;
@@ -108,6 +120,7 @@ function renderMonthly(filterYear) {
     <td class="num">${fmtT(totT)}</td>
     <td class="num">${totAvgSpd?kmh(totAvgSpd).toFixed(1)+' <span class="dim">'+speedUnit()+'</span>':'—'}</td>
     <td class="num">${totAvgHr?totAvgHr+' <span class="dim">bpm</span>':'—'}</td>
+    <td class="num">${totC?Math.round(totC).toLocaleString()+' <span class="dim">kcal</span>':'—'}</td>
   </tr>`;
   html+=`</tbody></table>`;
   document.getElementById('monthlyTable').innerHTML=html;
@@ -428,6 +441,17 @@ function renderRewind(filterYear){
   const totalElev=Math.round(elevVal(ya.reduce((s,a)=>s+(a.total_elevation_gain||0),0)));
   const totalTime=ya.reduce((s,a)=>s+(a.moving_time||0),0);
   const avgDist=ya.length?kmVal(ya.reduce((s,a)=>s+(a.distance||0),0)/ya.length).toFixed(1):0;
+  const totalDistM=ya.reduce((s,a)=>s+(a.distance||0),0);
+  const avgSpeed=totalTime?kmh(totalDistM/totalTime):0;
+  const maxSpeed=kmh(ya.reduce((m,a)=>Math.max(m,a.max_speed||0),0));
+  const maxHRy=ya.reduce((m,a)=>Math.max(m,a.max_heartrate||0),0);
+  const wattsA=ya.filter(a=>a.average_watts>0);
+  const avgWattsy=wattsA.length?Math.round(wattsA.reduce((s,a)=>s+a.average_watts,0)/wattsA.length):0;
+  const totalCal=Math.round(ya.reduce((s,a)=>s+(a.kilojoules||a.calories||0),0));
+  const totalKudos=ya.reduce((s,a)=>s+(a.kudos_count||0),0);
+  const totalPRs=ya.reduce((s,a)=>s+(a.pr_count||0),0);
+  const totalAchv=ya.reduce((s,a)=>s+(a.achievement_count||0),0);
+  const activeDays=new Set(ya.map(a=>new Date(a.start_date).toDateString())).size;
 
   // monthly breakdown for chart
   const monthly=Array(12).fill(null).map(()=>({dist:0,count:0}));
@@ -469,6 +493,14 @@ function renderRewind(filterYear){
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Top Sport</div><div style="font-size:20px;font-weight:800;color:var(--orange)">${topType?topType[0]:'—'}</div><div style="font-size:12px;color:var(--muted)">${topType?topType[1]+' activities':''}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Longest</div><div style="font-size:26px;font-weight:800;color:var(--text)">${longestA.distance?fmtD(longestA.distance):'—'}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg HR</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgHRy||'—'}<span style="font-size:14px;color:var(--muted)"> bpm</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Max HR</div><div style="font-size:32px;font-weight:800;color:var(--text)">${maxHRy?Math.round(maxHRy):'—'}<span style="font-size:14px;color:var(--muted)"> bpm</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Speed</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgSpeed||'—'}<span style="font-size:14px;color:var(--muted)"> ${speedUnit()}</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Max Speed</div><div style="font-size:32px;font-weight:800;color:var(--text)">${maxSpeed||'—'}<span style="font-size:14px;color:var(--muted)"> ${speedUnit()}</span></div></div>
+      ${avgWattsy?`<div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Power</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgWattsy}<span style="font-size:14px;color:var(--muted)"> W</span></div></div>`:''}
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Calories</div><div style="font-size:32px;font-weight:800;color:var(--text)">${totalCal?totalCal.toLocaleString():'—'}<span style="font-size:14px;color:var(--muted)"> kcal</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Active Days</div><div style="font-size:32px;font-weight:800;color:var(--orange)">${activeDays}</div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Kudos</div><div style="font-size:32px;font-weight:800;color:var(--text)">${totalKudos.toLocaleString()}</div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Achievements</div><div style="font-size:32px;font-weight:800;color:var(--text)">${totalAchv.toLocaleString()}</div><div style="font-size:12px;color:var(--muted)">${totalPRs} PRs</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Busiest Day</div><div style="font-size:28px;font-weight:800;color:var(--text)">${busyDay}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Peak Month</div><div style="font-size:28px;font-weight:800;color:var(--orange)">${MONTHS[peakMonth]}</div></div>
     </div>
@@ -498,6 +530,8 @@ function renderRewind(filterYear){
 /* ── TROPHIES / KOMs ── */
 let _chalCache = null; // {koms, stats} — cached so re-renders don't refetch (rate-limit friendly)
 let _gearCache = null; // fetched bikes — cached likewise
+let _trophyBadges = [];  // badge defs from the last renderChallenges (for sharing)
+let _trophyAthlete = ''; // athlete display name for the share card
 async function renderChallenges(){
   const el=document.getElementById('challengesGrid');
   el.innerHTML='<p style="color:var(--muted);padding:8px">Loading trophies…</p>';
@@ -670,11 +704,15 @@ async function renderChallenges(){
     {icon:'medal',   name:'500 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#a78bfa',unlocked:(lifetimeRides||rides.length)>=500},
   ];
 
+  _trophyBadges = badges;
+  _trophyAthlete = currentAthlete ? ((currentAthlete.firstname||'')+' '+(currentAthlete.lastname||'')).trim() : '';
+
   html+=`<div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Badges</div>`;
   html+=`<div class="ach-grid" style="margin-bottom:20px">`;
-  html+=badges.map(b=>`
+  html+=badges.map((b,i)=>`
     <div class="ach-badge${b.unlocked?' unlocked':''}" style="--ach-color:${b.color}">
       ${b.unlocked?'<div class="ach-badge-bar"></div>':''}
+      ${b.unlocked?`<button class="ach-share" title="Share as image" onclick="shareTrophy(${i})" aria-label="Share ${b.name}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg></button>`:''}
       ${trophyIcon(b.color,b.icon)}
       <div class="ach-badge-val" style="color:${b.unlocked?b.color:'var(--muted)'}">${b.val}</div>
       <div class="ach-badge-unit">${b.unit}</div>
@@ -708,6 +746,107 @@ async function renderChallenges(){
 
   el.innerHTML=html;
   if (window.applyI18n) window.applyI18n();
+}
+
+/* ── SHARE A TROPHY AS A PNG ──
+   Renders a polished 1080×1080 card for one badge and offers Download +
+   (where supported) native Share. Modal + canvas are built lazily on first use. */
+function _trophyModal(){
+  let ov=document.getElementById('trophyShareModal');
+  if(ov) return ov;
+  ov=document.createElement('div');
+  ov.id='trophyShareModal';
+  ov.className='trophy-share-overlay';
+  ov.innerHTML=`
+    <div class="trophy-share-box">
+      <button class="trophy-share-close" aria-label="Close">&times;</button>
+      <canvas id="trophyShareCanvas" width="1080" height="1080"></canvas>
+      <div class="trophy-share-actions">
+        <button class="btn btn-primary" id="trophyDownloadBtn">Download PNG</button>
+        <button class="btn btn-ghost" id="trophyShareBtn" style="display:none">Share</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.classList.remove('open');
+  ov.querySelector('.trophy-share-close').onclick=close;
+  ov.onclick=e=>{ if(e.target===ov) close(); };
+  ov.querySelector('#trophyDownloadBtn').onclick=()=>{
+    const c=document.getElementById('trophyShareCanvas');
+    const a=document.createElement('a');
+    a.download=(ov._badgeName||'trophy').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'.png';
+    a.href=c.toDataURL('image/png'); a.click();
+  };
+  const sb=ov.querySelector('#trophyShareBtn');
+  let canShare=false;
+  try{ canShare=!!(navigator.canShare&&navigator.canShare({files:[new File([new Blob()],'x.png',{type:'image/png'})]})); }catch{}
+  if(canShare){
+    sb.style.display='';
+    sb.onclick=()=>{
+      const c=document.getElementById('trophyShareCanvas');
+      c.toBlob(async blob=>{ if(!blob)return;
+        const f=new File([blob],'trophy.png',{type:'image/png'});
+        try{ await navigator.share({files:[f],title:ov._badgeName||'My trophy',text:'My trophy on Strava Dashboard'}); }catch{}
+      },'image/png');
+    };
+  }
+  return ov;
+}
+
+function _drawTrophyCard(canvas,b){
+  const ctx=canvas.getContext('2d'), W=1080, H=1080, cx=W/2;
+  const col=b.color||'#fc4c02';
+  // background
+  ctx.fillStyle='#0b0d12'; ctx.fillRect(0,0,W,H);
+  const bg=ctx.createRadialGradient(cx,430,60,cx,430,760);
+  bg.addColorStop(0,col+'2e'); bg.addColorStop(1,'#0b0d1200');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  // border frame
+  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=2;
+  ctx.strokeRect(40,40,W-80,H-80);
+
+  ctx.textAlign='center';
+  // top eyebrow
+  ctx.fillStyle=col; ctx.font='700 30px Inter,Arial,sans-serif';
+  ctx.fillText('T R O P H Y   U N L O C K E D', cx, 150);
+
+  // ring
+  const ry=430, rr=175;
+  ctx.save();
+  ctx.shadowColor=col; ctx.shadowBlur=60;
+  const ring=ctx.createRadialGradient(cx,ry,20,cx,ry,rr);
+  ring.addColorStop(0,col+'55'); ring.addColorStop(0.7,col+'18'); ring.addColorStop(1,col+'08');
+  ctx.fillStyle=ring; ctx.beginPath(); ctx.arc(cx,ry,rr,0,7); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle=col; ctx.lineWidth=10; ctx.beginPath(); ctx.arc(cx,ry,rr,0,7); ctx.stroke();
+
+  // value / unit / name
+  ctx.fillStyle=col; ctx.font='900 108px Inter,Arial,sans-serif';
+  ctx.fillText(String(b.val), cx, 730);
+  ctx.fillStyle='#8b93a7'; ctx.font='600 34px Inter,Arial,sans-serif';
+  ctx.fillText(b.unit, cx, 782);
+  ctx.fillStyle='#ffffff'; ctx.font='800 60px Inter,Arial,sans-serif';
+  ctx.fillText(b.name, cx, 862);
+
+  // footer: athlete + brand
+  ctx.fillStyle='#6a7183'; ctx.font='600 28px Inter,Arial,sans-serif';
+  const foot=[_trophyAthlete, 'stravadashboard.vercel.app'].filter(Boolean).join('  ·  ');
+  ctx.fillText(foot, cx, 1005);
+
+  // icon (SVG → image, drawn over the ring once loaded)
+  const inner=trophySvg(b.icon).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'');
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="200" height="200" style="color:${col}">${inner}</svg>`;
+  const img=new Image();
+  img.onload=()=>ctx.drawImage(img, cx-100, ry-100, 200, 200);
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+
+function shareTrophy(i){
+  const b=_trophyBadges[i];
+  if(!b) return;
+  const ov=_trophyModal();
+  ov._badgeName=b.name;
+  _drawTrophyCard(document.getElementById('trophyShareCanvas'), b);
+  ov.classList.add('open');
 }
 
 /* ── SEGMENTS ── */

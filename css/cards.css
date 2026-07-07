@@ -30,6 +30,44 @@
 
 .stat-card.hi:hover { box-shadow: var(--shadow-orange); }
 
+/* Fun insights grid (Overview) */
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.insight-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  transition: transform .2s ease, border-color .2s;
+}
+.insight-card:hover { transform: translateY(-2px); border-color: var(--border-hover); }
+.insight-ic { margin-bottom: 10px; }
+.insight-val { font-size: 26px; font-weight: 900; letter-spacing: -.5px; line-height: 1; color: var(--text); }
+.insight-lbl { font-size: 12px; font-weight: 700; color: var(--text); margin-top: 6px; }
+.insight-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+@media (max-width: 900px) { .insight-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* PWA install banner (Overview) */
+.install-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(252, 76, 2, .35);
+  background: linear-gradient(135deg, rgba(252, 76, 2, .08) 0%, var(--surface) 60%);
+}
+.install-banner-ic { color: var(--orange); flex-shrink: 0; }
+.install-banner-title { font-size: 14px; font-weight: 800; color: var(--text); }
+.install-banner-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.install-banner .btn { flex-shrink: 0; }
+@media (max-width: 600px) { .install-banner-sub { display: none; } }
+
 .s-label {
   font-size: 10px;
   font-weight: 700;

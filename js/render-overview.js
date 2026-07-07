@@ -7,7 +7,7 @@ function renderAll() {
 
   // Render each section in isolation so one failing section can never blank
   // out the others (or abort navScrollTo at the end).
-  [renderStats, renderOverviewZones, renderCycling, renderRunning, renderTrends, renderActivities,
+  [renderStats, renderOverviewInsights, renderOverviewZones, renderCycling, renderRunning, renderTrends, renderActivities,
    renderCalendar, renderEddington, renderMonthly, renderBestEfforts,
    renderMilestones, renderRewind, renderPhotos].forEach(fn => {
     try { fn(); } catch (e) { console.error('render failed:', fn.name, e); }
@@ -139,6 +139,89 @@ function renderStats() {
   setTxt('sv-longest-lbl', longLbl); setTxt('sv-longest-sub', distUnit());
   setTxt('sv-avgspd-lbl', avgLbl);   setTxt('sv-avgspd-sub', avgSub);
   setTxt('sv-maxspd-lbl', maxLbl);   setTxt('sv-maxspd-sub', maxSub);
+}
+
+/* ── FUN INSIGHTS (Overview) ── */
+function renderOverviewInsights(){
+  const el=document.getElementById('ovInsights');
+  if(!el) return;
+  const set=modeActs();
+  if(!set.length){ el.innerHTML=''; return; }
+
+  const dist=set.reduce((s,a)=>s+(a.distance||0),0);            // m
+  const elev=set.reduce((s,a)=>s+(a.total_elevation_gain||0),0);// m
+  const cal =set.reduce((s,a)=>s+(a.kilojoules||a.calories||0),0);
+
+  // Everests climbed (Everest = 8848 m)
+  const everests=elev/8848;
+  // % around the world (equator = 40,075 km)
+  const aroundPct=dist/40075000*100;
+  // pizza slices (~285 kcal each)
+  const pizzas=Math.round(cal/285);
+
+  // favourite time of day
+  const buckets={Morning:0,Afternoon:0,Evening:0,Night:0};
+  set.forEach(a=>{const h=new Date(a.start_date).getHours();
+    if(h>=5&&h<12)buckets.Morning++;else if(h<17)buckets.Afternoon++;else if(h<21)buckets.Evening++;else buckets.Night++;});
+  const favTime=Object.entries(buckets).sort((a,b)=>b[1]-a[1])[0];
+  const favTimePct=Math.round(favTime[1]/set.length*100);
+
+  // busiest weekday
+  const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], dow=Array(7).fill(0);
+  set.forEach(a=>dow[new Date(a.start_date).getDay()]++);
+  const busyIdx=dow.indexOf(Math.max(...dow));
+
+  // biggest single week (rolling 7-day distance window)
+  const sorted=[...set].sort((a,b)=>new Date(a.start_date)-new Date(b.start_date));
+  let bestWeek=0;
+  for(let i=0;i<sorted.length;i++){
+    let sum=0;const t0=new Date(sorted[i].start_date).getTime();
+    for(let j=i;j<sorted.length;j++){
+      if(new Date(sorted[j].start_date).getTime()-t0>7*864e5)break;
+      sum+=sorted[j].distance||0;
+    }
+    if(sum>bestWeek)bestWeek=sum;
+  }
+
+  // active-days ratio over the span
+  const dates=set.map(a=>new Date(a.start_date)).sort((a,b)=>a-b);
+  const spanDays=Math.max(1,Math.round((dates[dates.length-1]-dates[0])/864e5)+1);
+  const activeDays=new Set(set.map(a=>a.start_date.slice(0,10))).size;
+  const perWeek=(set.length/spanDays*7).toFixed(1);
+
+  const cards=[
+    {ic:'mountain',color:'#4da8ff',val:everests.toFixed(1)+'×',lbl:'Everests climbed',sub:Math.round(elevVal(elev)).toLocaleString()+' '+elevUnit()+' total'},
+    {ic:'globe',color:'#22c55e',val:aroundPct>=100?(dist/40075000).toFixed(2)+'×':aroundPct.toFixed(1)+'%',lbl:aroundPct>=100?'around the world':'around the equator',sub:Math.round(kmVal(dist)).toLocaleString()+' '+distUnit()},
+    {ic:'flame',color:'#fb923c',val:pizzas.toLocaleString(),lbl:'pizza slices burned',sub:Math.round(cal).toLocaleString()+' kcal'},
+    {ic:'clock',color:'#a78bfa',val:favTime[0],lbl:'is your prime time',sub:favTimePct+'% of activities'},
+    {ic:'calendar',color:'#fc4c02',val:DOW[busyIdx],lbl:'is your busiest day',sub:dow[busyIdx]+' activities'},
+    {ic:'peak',color:'#ffd700',val:fmtKm(bestWeek)+' '+distUnit(),lbl:'biggest week',sub:'best 7-day distance'},
+    {ic:'repeat',color:'#4da8ff',val:perWeek,lbl:'activities / week',sub:'over '+spanDays+' days'},
+    {ic:'check',color:'#22c55e',val:activeDays,lbl:'active days',sub:Math.round(activeDays/spanDays*100)+'% of the span'},
+  ];
+
+  const svg=n=>({
+    mountain:'<path d="M3 20h18L13.6 6.5 10.2 13 8 10.3z"/>',
+    globe:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+    flame:'<path d="M12 2c1.3 3.3 4.6 4.6 4.6 9A4.6 4.6 0 0 1 7.4 11c0-1.6.7-2.8 1.7-3.8.2 1.9 1.9 2.1 1.9.3 0-2 .3-4 1-5.5z"/>',
+    clock:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    calendar:'<rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" fill="none" stroke="currentColor" stroke-width="2"/>',
+    peak:'<path d="M3 20h18L13.6 6.5 10.2 13 8 10.3z"/><path d="M12 2l1.6 3.2L17 5.8 14.5 8 15 11.5 12 9.8 9 11.5 9.5 8 7 5.8l3.4-.6z" opacity=".7"/>',
+    repeat:'<path d="M17 2l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    check:'<path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  }[n]||'');
+
+  el.innerHTML=`
+    <div class="section-title" style="margin-top:8px">Fun Insights</div>
+    <div class="insight-grid">
+      ${cards.map(c=>`
+        <div class="insight-card">
+          <div class="insight-ic" style="color:${c.color}"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">${svg(c.ic)}</svg></div>
+          <div class="insight-val">${c.val}</div>
+          <div class="insight-lbl">${c.lbl}</div>
+          <div class="insight-sub">${c.sub}</div>
+        </div>`).join('')}
+    </div>`;
 }
 
 /* ── EDDINGTON ── */

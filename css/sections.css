@@ -52,6 +52,49 @@
 .ach-badge-unit { font-size: 10px; color: var(--muted); }
 .ach-badge-name { font-size: 11px; font-weight: 700; color: var(--text); }
 
+/* per-badge share button */
+.ach-share {
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface2, rgba(255,255,255,.04));
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, color .15s, border-color .15s;
+}
+.ach-badge.unlocked:hover .ach-share { opacity: 1; }
+.ach-share:hover { color: var(--ach-color, var(--orange)); border-color: var(--ach-color, var(--orange)); }
+@media (hover: none) { .ach-share { opacity: 1; } }
+
+/* trophy share modal */
+.trophy-share-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+  background: rgba(0,0,0,.72); backdrop-filter: blur(4px);
+}
+.trophy-share-overlay.open { display: flex; }
+.trophy-share-box { position: relative; width: min(420px, 92vw); }
+.trophy-share-box canvas {
+  width: 100%; height: auto; display: block;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+.trophy-share-close {
+  position: absolute; top: -14px; right: -14px;
+  width: 36px; height: 36px; border-radius: 50%;
+  border: none; cursor: pointer;
+  background: var(--surface); color: var(--text);
+  font-size: 22px; line-height: 1;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4);
+}
+.trophy-share-actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+.trophy-share-actions .btn { padding: 10px 22px; font-size: 13px; }
+
 .kom-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -123,6 +166,19 @@
 .month-table tr:hover td { background: var(--surface2); }
 .month-table .num { font-weight: 700; font-variant-numeric: tabular-nums; }
 .month-table .dim { color: var(--muted); font-size: 11px; }
+
+/* month-over-month change indicator */
+.month-table .mom {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  vertical-align: middle;
+}
+.month-table .mom.up   { color: #22c55e; }
+.month-table .mom.down { color: #ef4444; }
+.month-table .mom.flat { color: var(--muted); }
 
 /* Best efforts */
 .best-card {
