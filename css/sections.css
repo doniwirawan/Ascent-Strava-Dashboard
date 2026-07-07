@@ -63,12 +63,11 @@
   background: var(--surface2, rgba(255,255,255,.04));
   color: var(--muted);
   cursor: pointer;
-  opacity: 0;
+  opacity: .55;
   transition: opacity .15s, color .15s, border-color .15s;
 }
 .ach-badge.unlocked:hover .ach-share { opacity: 1; }
 .ach-share:hover { color: var(--ach-color, var(--orange)); border-color: var(--ach-color, var(--orange)); }
-@media (hover: none) { .ach-share { opacity: 1; } }
 
 /* trophy share modal */
 .trophy-share-overlay {

@@ -795,48 +795,53 @@ function _trophyModal(){
 function _drawTrophyCard(canvas,b){
   const ctx=canvas.getContext('2d'), W=1080, H=1080, cx=W/2;
   const col=b.color||'#fc4c02';
-  // background
-  ctx.fillStyle='#0b0d12'; ctx.fillRect(0,0,W,H);
-  const bg=ctx.createRadialGradient(cx,430,60,cx,430,760);
-  bg.addColorStop(0,col+'2e'); bg.addColorStop(1,'#0b0d1200');
-  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
-  // border frame
-  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=2;
-  ctx.strokeRect(40,40,W-80,H-80);
+  const ry=430, rr=175;
+
+  // transparent canvas (sticker-style PNG)
+  ctx.clearRect(0,0,W,H);
+
+  // soft colored halo behind the ring — fades to fully transparent at the edge,
+  // so the exported PNG stays mostly see-through
+  const glow=ctx.createRadialGradient(cx,ry,40,cx,ry,520);
+  glow.addColorStop(0,col+'33'); glow.addColorStop(1,col+'00');
+  ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(cx,ry,520,0,7); ctx.fill();
 
   ctx.textAlign='center';
-  // top eyebrow
-  ctx.fillStyle=col; ctx.font='700 30px Inter,Arial,sans-serif';
-  ctx.fillText('T R O P H Y   U N L O C K E D', cx, 150);
+  // text drawn with a soft dark shadow so it reads on light OR dark backgrounds
+  const txt=(fill,font,str,y)=>{
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,.45)'; ctx.shadowBlur=14; ctx.shadowOffsetY=2;
+    ctx.fillStyle=fill; ctx.font=font; ctx.fillText(str,cx,y);
+    ctx.restore();
+  };
 
-  // ring
-  const ry=430, rr=175;
+  txt(col,'700 30px Inter,Arial,sans-serif','T R O P H Y   U N L O C K E D',150);
+
+  // ring: glowing gradient fill + solid colored stroke
   ctx.save();
-  ctx.shadowColor=col; ctx.shadowBlur=60;
+  ctx.shadowColor=col; ctx.shadowBlur=55;
   const ring=ctx.createRadialGradient(cx,ry,20,cx,ry,rr);
-  ring.addColorStop(0,col+'55'); ring.addColorStop(0.7,col+'18'); ring.addColorStop(1,col+'08');
+  ring.addColorStop(0,col+'55'); ring.addColorStop(0.7,col+'22'); ring.addColorStop(1,col+'12');
   ctx.fillStyle=ring; ctx.beginPath(); ctx.arc(cx,ry,rr,0,7); ctx.fill();
   ctx.restore();
   ctx.strokeStyle=col; ctx.lineWidth=10; ctx.beginPath(); ctx.arc(cx,ry,rr,0,7); ctx.stroke();
 
-  // value / unit / name
-  ctx.fillStyle=col; ctx.font='900 108px Inter,Arial,sans-serif';
-  ctx.fillText(String(b.val), cx, 730);
-  ctx.fillStyle='#8b93a7'; ctx.font='600 34px Inter,Arial,sans-serif';
-  ctx.fillText(b.unit, cx, 782);
-  ctx.fillStyle='#ffffff'; ctx.font='800 60px Inter,Arial,sans-serif';
-  ctx.fillText(b.name, cx, 862);
+  txt(col,'900 108px Inter,Arial,sans-serif',String(b.val),730);
+  txt('#c7cdd9','600 34px Inter,Arial,sans-serif',b.unit,782);
+  txt('#ffffff','800 60px Inter,Arial,sans-serif',b.name,862);
 
   // footer: athlete + brand
-  ctx.fillStyle='#6a7183'; ctx.font='600 28px Inter,Arial,sans-serif';
-  const foot=[_trophyAthlete, 'stravadashboard.vercel.app'].filter(Boolean).join('  ·  ');
-  ctx.fillText(foot, cx, 1005);
+  const foot=[_trophyAthlete, 'ascent-analytics.vercel.app'].filter(Boolean).join('  ·  ');
+  txt('#aab2c2','600 28px Inter,Arial,sans-serif',foot,1005);
 
-  // icon (SVG → image, drawn over the ring once loaded)
-  const inner=trophySvg(b.icon).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'');
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="200" height="200" style="color:${col}">${inner}</svg>`;
+  // icon — bake the badge colour straight into the SVG (currentColor is
+  // unreliable when an SVG is loaded through an <img>), then draw over the ring
+  const inner=trophySvg(b.icon)
+    .replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')
+    .replace(/currentColor/g, col);
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="200" height="200">${inner}</svg>`;
   const img=new Image();
-  img.onload=()=>ctx.drawImage(img, cx-100, ry-100, 200, 200);
+  img.onload=()=>{ ctx.save(); ctx.shadowColor='rgba(0,0,0,.3)'; ctx.shadowBlur=10; ctx.drawImage(img, cx-100, ry-100, 200, 200); ctx.restore(); };
   img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
 }
 

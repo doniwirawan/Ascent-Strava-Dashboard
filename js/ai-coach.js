@@ -18,8 +18,9 @@ const AI_ICON = '<svg class="ai-icon-svg" viewBox="0 0 24 24" fill="currentColor
 /* Credit appended to captions written via the app, so they're identifiable. */
 function aiCredit(desc, isAI) {
   desc = (desc || '').trim();
-  if (!desc || /by Ascent Analytics/.test(desc)) return desc;
-  return desc + (isAI ? '\n\n— AI-written by Ascent Analytics' : '\n\n— by Ascent Analytics');
+  if (!desc || /Ascent Analytics/.test(desc)) return desc;
+  const url = 'https://ascent-analytics.vercel.app';
+  return desc + (isAI ? `\n\n— AI-written by Ascent Analytics · ${url}` : `\n\n— by Ascent Analytics · ${url}`);
 }
 
 /* Persist edited acts (new names/descriptions) to the local + remote cache so a
@@ -134,11 +135,12 @@ function aiToggleHistory() {
 
 let aiInsightOff = false; // set true once we learn the provider isn't configured
 
-/* Read the current provider/model (from Settings selects, falling back to saved). */
+/* Read the current provider/model/key (from Settings, falling back to saved). */
 function aiProviderModel() {
   const provider = (document.getElementById('aiProvider') || {}).value || localStorage.getItem('ai_provider') || 'deepseek';
   const model = ((document.getElementById('aiModel') || {}).value || localStorage.getItem('ai_model') || '').trim() || undefined;
-  return { provider, model };
+  const key = ((document.getElementById('aiKey') || {}).value || localStorage.getItem('ai_key') || '').trim() || undefined;
+  return { provider, model, key };
 }
 
 /* ── AI activity caption/title rewrite (in the activity modal) ─────────────── */
@@ -218,7 +220,7 @@ async function aiCaptionActivity(id) {
 
   const roast = document.getElementById('aiCapRoast') ? document.getElementById('aiCapRoast').checked : true;
   panel.innerHTML = '<div class="ai-cap-loading"><span class="ai-dots"><span></span><span></span><span></span></span> Writing your caption…</div>';
-  const { provider, model } = aiProviderModel();
+  const { provider, model, key } = aiProviderModel();
   const messages = [
     { role: 'system', content:
       'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). '
@@ -231,7 +233,7 @@ async function aiCaptionActivity(id) {
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
   ];
   try {
-    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
     const data = await r.json().catch(() => ({}));
     if (!r.ok || !data.text) { panel.innerHTML = '<div class="ai-cap-status err">' + aiErrorMessage(data, r.status) + '</div>'; return; }
     const lines = data.text.trim().split('\n');
@@ -353,7 +355,7 @@ async function bulkRun(p, mode) {
   bulkStop[p] = false; btn.dataset.running = '1'; btn.textContent = 'Stop';
   const label = btn.dataset.label || 'Apply';
   const restore = () => { btn.dataset.running = ''; btn.innerHTML = label + ' (<span id="' + p + 'Count">' + [...list.querySelectorAll('.bulk-cb')].filter(c => c.checked).length + '</span>)'; };
-  const { provider, model } = aiProviderModel();
+  const { provider, model, key } = aiProviderModel();
   let ok = 0, fail = 0;
   for (let i = 0; i < ids.length; i++) {
     if (bulkStop[p]) break;
@@ -370,7 +372,7 @@ async function bulkRun(p, mode) {
           { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If a "weather" field is present, weave the conditions in naturally. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
           { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
         ];
-        const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
+        const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
         const data = await r.json().catch(() => ({}));
         if (r.ok && data.text) { const lines = data.text.trim().split('\n'); name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100); desc = lines.join('\n').trim(); }
       }
@@ -402,11 +404,11 @@ async function aiTestConnection(savedHint) {
   if (!out) return;
   const token = localStorage.getItem('strava_access_token');
   if (!token) { out.className = 'ai-test-result err'; out.textContent = 'Connect to Strava first.'; return; }
-  const { provider, model } = aiProviderModel();
+  const { provider, model, key } = aiProviderModel();
   out.className = 'ai-test-result'; out.textContent = (savedHint ? 'Saved ✓ — ' : '') + 'checking ' + provider + '…';
   if (btn) btn.disabled = true;
   try {
-    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, provider, model, test: true }) });
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, provider, model, key, test: true }) });
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.ok) { aiInsightOff = false; out.className = 'ai-test-result ok'; out.innerHTML = '✓ Saved — <b>' + provider + '</b> is configured and ready.'; }
     else { out.className = 'ai-test-result err'; out.innerHTML = aiErrorMessage(data, r.status); }
@@ -580,7 +582,7 @@ async function aiSectionInsight(sectionId, tries = 0) {
 
   const token = localStorage.getItem('strava_access_token');
   if (!token) { el.remove(); return; }
-  const { provider, model } = aiProviderModel();
+  const { provider, model, key: apiKey } = aiProviderModel();
   const messages = [
     { role: 'system', content:
       'You are a sharp, neutral sports-data analyst. From what is shown on one dashboard page, surface ONE specific, non-obvious insight that CONNECTS multiple numbers — e.g. how speed relates to distance or elevation, a trend across weeks/months, the balance between sports, consistency, or an outlier and what it implies. '
@@ -589,7 +591,7 @@ async function aiSectionInsight(sectionId, tries = 0) {
   ];
   render('<span class="ai-dots"><span></span><span></span><span></span></span>');
   try {
-    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key: apiKey }) });
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.text) { localStorage.setItem(key, JSON.stringify({ sig, text: data.text })); render(aiMd(data.text)); }
     else { if (data.error === 'provider_not_configured' || data.error === 'not_authorized') aiInsightOff = true; el.remove(); }
@@ -622,6 +624,7 @@ async function aiLoadHighlight() {
   if (!token) { el.style.display = 'none'; return; }
   const provider = (document.getElementById('aiProvider') || {}).value || localStorage.getItem('ai_provider') || 'deepseek';
   const model = ((document.getElementById('aiModel') || {}).value || localStorage.getItem('ai_model') || '').trim() || undefined;
+  const key = ((document.getElementById('aiKey') || {}).value || localStorage.getItem('ai_key') || '').trim() || undefined;
   const summary = aiSummaryCache || (aiSummaryCache = aiBuildSummary());
   const messages = [
     { role: 'system', content: AI_SYS + '\n\nAthlete data (JSON):\n' + JSON.stringify(summary) },
@@ -629,7 +632,7 @@ async function aiLoadHighlight() {
   ];
   show('<span class="ai-dots"><span></span><span></span><span></span></span>');
   try {
-    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model }) });
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.text) {
       localStorage.setItem('ai_highlight', data.text);
@@ -645,8 +648,8 @@ async function aiCheckConfigured() {
   const token = localStorage.getItem('strava_access_token');
   if (!token) return true; // not connected → let the chat show its own message
   try {
-    const { provider, model } = aiProviderModel();
-    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, provider, model, test: true }) });
+    const { provider, model, key } = aiProviderModel();
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, provider, model, key, test: true }) });
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.ok) { aiConfigured = true; return true; }
     if (data.error === 'provider_not_configured' || data.error === 'not_authorized') { aiConfigured = false; return false; }
@@ -859,11 +862,12 @@ async function aiSend(userText) {
 
   const provider = (document.getElementById('aiProvider') || {}).value || 'deepseek';
   const model = ((document.getElementById('aiModel') || {}).value || '').trim() || undefined;
+  const key = ((document.getElementById('aiKey') || {}).value || localStorage.getItem('ai_key') || '').trim() || undefined;
 
   try {
     const r = await fetch('/api/ai', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, messages, provider, model }),
+      body: JSON.stringify({ token, messages, provider, model, key }),
     });
     const data = await r.json().catch(() => ({}));
     thinking.remove();
@@ -888,7 +892,7 @@ async function aiSend(userText) {
 
   // remember the chosen provider/model across visits — and on change, save +
   // auto-check so it's obvious the choice stuck and whether that provider works
-  const prov = document.getElementById('aiProvider'), mdl = document.getElementById('aiModel');
+  const prov = document.getElementById('aiProvider'), mdl = document.getElementById('aiModel'), keyEl = document.getElementById('aiKey');
   if (prov) {
     const saved = localStorage.getItem('ai_provider'); if (saved) prov.value = saved;
     prov.onchange = () => { localStorage.setItem('ai_provider', prov.value); aiTestConnection(true); };
@@ -896,6 +900,10 @@ async function aiSend(userText) {
   if (mdl) {
     mdl.value = localStorage.getItem('ai_model') || '';
     mdl.onchange = () => { localStorage.setItem('ai_model', mdl.value.trim()); aiTestConnection(true); };
+  }
+  if (keyEl) {
+    keyEl.value = localStorage.getItem('ai_key') || '';
+    keyEl.onchange = () => { localStorage.setItem('ai_key', keyEl.value.trim()); };
   }
 
   form.addEventListener('submit', e => {
@@ -915,6 +923,7 @@ async function aiSend(userText) {
   if (saveBtn) saveBtn.addEventListener('click', () => {
     if (prov) localStorage.setItem('ai_provider', prov.value);
     if (mdl) localStorage.setItem('ai_model', mdl.value.trim());
+    if (keyEl) localStorage.setItem('ai_key', keyEl.value.trim());
     const out = document.getElementById('aiTestResult');
     if (out) { out.className = 'ai-test-result ok'; out.innerHTML = 'Saved ✓ — <b>' + (prov ? prov.value : 'provider') + '</b> selected. Tap “Test connection” to verify it works.'; }
   });

@@ -57,6 +57,7 @@
   align-items: center;
   gap: 14px;
   padding: 14px 18px;
+  margin-top: 24px;
   margin-bottom: 18px;
   border-radius: var(--radius);
   border: 1px solid rgba(252, 76, 2, .35);

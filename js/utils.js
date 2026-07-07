@@ -99,8 +99,9 @@ function navScrollTo(id, btn) {
   _ALL_SECTIONS.forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
   const el=document.getElementById(id);
   if(el) el.style.display='';
-  // Fun-insights panel + install banner live with the Overview (statRow) view only
+  // Fun-insights panel, HR-zones card + install banner live with the Overview (statRow) view only
   const ovi=document.getElementById('ovInsights'); if(ovi) ovi.style.display = id==='statRow' ? '' : 'none';
+  const ovHrz=document.getElementById('ovHrz'); if(ovHrz) ovHrz.style.display = id==='statRow' ? '' : 'none';
   const ovInst=document.getElementById('ovInstall');
   if(ovInst) ovInst.style.display = (id==='statRow' && window._pwaInstallReady) ? '' : 'none';
   try{ localStorage.setItem('lastSection', id); }catch{}

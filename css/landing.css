@@ -180,6 +180,19 @@ body.logged-out main { display: none !important; }
 .lp-faq code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
 
 /* ── final CTA + footer ── */
+/* ── "More from the same maker" promo ── */
+.lp-more { text-align: center; margin: 56px 0 0; }
+.lp-more-card {
+  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  text-align: left; max-width: 720px; margin: 20px auto 0;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px 28px;
+}
+.lp-more-info { flex: 1 1 320px; min-width: 0; }
+.lp-more-name { font-size: 19px; font-weight: 800; letter-spacing: -.3px; }
+.lp-more-desc { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 8px 0 0; }
+.lp-more-actions { display: flex; flex-direction: column; gap: 10px; flex: 0 0 auto; }
+@media (max-width: 620px) { .lp-more-actions { flex-direction: row; flex-wrap: wrap; } }
+
 .lp-cta { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 48px 24px; margin: 64px 0 36px; }
 .lp-cta h2 { font-size: clamp(22px, 4vw, 32px); font-weight: 800; letter-spacing: -.8px; margin: 0 0 20px; }
 .lp-foot { text-align: center; color: var(--muted); font-size: 13px; }

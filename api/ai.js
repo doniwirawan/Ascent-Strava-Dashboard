@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
-  const { token, messages, provider = 'deepseek', model, test } = body;
+  const { token, messages, provider = 'deepseek', model, key, test } = body;
   if (!token) { res.status(400).json({ error: 'bad_request' }); return; }
   if (!test && (!Array.isArray(messages) || !messages.length)) {
     res.status(400).json({ error: 'bad_request' }); return;
@@ -32,7 +32,9 @@ module.exports = async (req, res) => {
   const cfg = PROVIDERS[provider];
   if (!cfg) { res.status(400).json({ error: 'unknown_provider', provider }); return; }
 
-  const KEY = (process.env[cfg.keyEnv] || '').replace(/\s+/g, '');
+  // Prefer a key supplied by the client (bring-your-own-key, saved on the user's
+  // device); otherwise fall back to a server-configured env var.
+  const KEY = ((key && String(key)) || process.env[cfg.keyEnv] || '').replace(/\s+/g, '');
   if (!KEY) { res.status(500).json({ error: 'provider_not_configured', envVar: cfg.keyEnv }); return; }
 
   // Gate to the owner: a valid Strava token that resolves to OWNER_ATHLETE_ID.
