@@ -70,6 +70,7 @@ const I18N = {
     'more.sub': 'Alat gratis lain yang saya buat untuk pesepeda — atur posisi bersepeda Anda dari video ponsel.',
     'more.desc': 'Unggah video mengayuh dari samping dan dapatkan analisis sudut sendi otomatis (lutut, pinggul, punggung) untuk membantu menyetel tinggi sadel dan jangkauan Anda — langsung di browser, tanpa perlu memasang aplikasi.',
     'more.open': 'Buka Bike Fit Analyzer',
+    'more.repo': 'Lihat repo di GitHub',
     'promo.also': 'Juga oleh saya',
     'promo.sub': 'Analisis posisi bersepeda Anda dari video ponsel.',
     'foot.creator': 'Dibuat oleh',
