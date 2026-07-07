@@ -189,37 +189,40 @@ function renderOverviewInsights(){
   const activeDays=new Set(set.map(a=>a.start_date.slice(0,10))).size;
   const perWeek=(set.length/spanDays*7).toFixed(1);
 
+  // Same shape as the stat cards above (label → icon → value → sub) so the two
+  // rows read as one system.
   const cards=[
-    {ic:'mountain',color:'#4da8ff',val:everests.toFixed(1)+'×',lbl:'Everests climbed',sub:Math.round(elevVal(elev)).toLocaleString()+' '+elevUnit()+' total'},
-    {ic:'globe',color:'#22c55e',val:aroundPct>=100?(dist/40075000).toFixed(2)+'×':aroundPct.toFixed(1)+'%',lbl:aroundPct>=100?'around the world':'around the equator',sub:Math.round(kmVal(dist)).toLocaleString()+' '+distUnit()},
-    {ic:'flame',color:'#fb923c',val:pizzas.toLocaleString(),lbl:'pizza slices burned',sub:Math.round(cal).toLocaleString()+' kcal'},
-    {ic:'clock',color:'#a78bfa',val:favTime[0],lbl:'is your prime time',sub:favTimePct+'% of activities'},
-    {ic:'calendar',color:'#fc4c02',val:DOW[busyIdx],lbl:'is your busiest day',sub:dow[busyIdx]+' activities'},
-    {ic:'peak',color:'#ffd700',val:fmtKm(bestWeek)+' '+distUnit(),lbl:'biggest week',sub:'best 7-day distance'},
-    {ic:'repeat',color:'#4da8ff',val:perWeek,lbl:'activities / week',sub:'over '+spanDays+' days'},
-    {ic:'check',color:'#22c55e',val:activeDays,lbl:'active days',sub:Math.round(activeDays/spanDays*100)+'% of the span'},
+    {ic:'mountain',lbl:'Everests',val:everests.toFixed(1)+'×',sub:Math.round(elevVal(elev)).toLocaleString()+' '+elevUnit()+' climbed'},
+    {ic:'globe',lbl:aroundPct>=100?'Around the world':'Around the equator',val:aroundPct>=100?(dist/40075000).toFixed(2)+'×':aroundPct.toFixed(1)+'%',sub:Math.round(kmVal(dist)).toLocaleString()+' '+distUnit()},
+    {ic:'flame',lbl:'Pizza slices',val:pizzas.toLocaleString(),sub:Math.round(cal).toLocaleString()+' kcal burned'},
+    {ic:'clock',lbl:'Prime time',val:favTime[0],sub:favTimePct+'% of activities'},
+    {ic:'calendar',lbl:'Busiest day',val:DOW[busyIdx],sub:dow[busyIdx]+' activities'},
+    {ic:'trophy',lbl:'Biggest week',val:fmtKm(bestWeek)+' '+distUnit(),sub:'best 7-day distance'},
+    {ic:'repeat',lbl:'Frequency',val:perWeek,sub:'activities / week'},
+    {ic:'check',lbl:'Active days',val:activeDays,sub:Math.round(activeDays/spanDays*100)+'% of the span'},
   ];
 
+  // outline icons in the same visual language as the .s-icon set (stroke, no fill)
   const svg=n=>({
-    mountain:'<path d="M3 20h18L13.6 6.5 10.2 13 8 10.3z"/>',
-    globe:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/>',
-    flame:'<path d="M12 2c1.3 3.3 4.6 4.6 4.6 9A4.6 4.6 0 0 1 7.4 11c0-1.6.7-2.8 1.7-3.8.2 1.9 1.9 2.1 1.9.3 0-2 .3-4 1-5.5z"/>',
-    clock:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-    calendar:'<rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" fill="none" stroke="currentColor" stroke-width="2"/>',
-    peak:'<path d="M3 20h18L13.6 6.5 10.2 13 8 10.3z"/><path d="M12 2l1.6 3.2L17 5.8 14.5 8 15 11.5 12 9.8 9 11.5 9.5 8 7 5.8l3.4-.6z" opacity=".7"/>',
-    repeat:'<path d="M17 2l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
-    check:'<path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
+    mountain:'<path d="m3 20 6-12 4 7 3-5 5 10z"/>',
+    globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+    flame:'<path d="M12 3c1.2 3 4 4 4 8a4 4 0 0 1-8 0c0-1.5.6-2.6 1.5-3.5.2 1.6 1.6 1.8 1.6.2 0-1.7.3-3.4.9-4.7z"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/>',
+    trophy:'<path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4a2 2 0 0 0 3 3M17 6h3a2 2 0 0 1-3 3"/>',
+    repeat:'<polyline points="17 2 21 6 17 10"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 22 3 18 7 14"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+    check:'<polyline points="20 6 9 17 4 12"/>',
   }[n]||'');
 
   el.innerHTML=`
     <div class="section-title" style="margin-top:8px">Fun Insights</div>
-    <div class="insight-grid">
+    <div class="stat-row">
       ${cards.map(c=>`
-        <div class="insight-card">
-          <div class="insight-ic" style="color:${c.color}"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">${svg(c.ic)}</svg></div>
-          <div class="insight-val">${c.val}</div>
-          <div class="insight-lbl">${c.lbl}</div>
-          <div class="insight-sub">${c.sub}</div>
+        <div class="stat-card">
+          <div class="s-label">${c.lbl}</div>
+          <div class="s-icon"><svg viewBox="0 0 24 24">${svg(c.ic)}</svg></div>
+          <div class="s-value">${c.val}</div>
+          <div class="s-sub">${c.sub}</div>
         </div>`).join('')}
     </div>`;
 }

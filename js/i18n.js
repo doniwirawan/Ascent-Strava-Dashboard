@@ -65,6 +65,13 @@ const I18N = {
     'opensource.sub': 'Ascent gratis dan open source. Fork repo-nya dan deploy salinan pribadi Anda dalam ~10 menit — tanpa biaya.',
     'opensource.guide': 'Panduan pemasangan',
     'opensource.repo': 'Lihat di GitHub',
+    // ── "More from the same maker" ──
+    'more.h2': 'Aplikasi lain dari pembuat yang sama',
+    'more.sub': 'Alat gratis lain yang saya buat untuk pesepeda — atur posisi bersepeda Anda dari video ponsel.',
+    'more.desc': 'Unggah video mengayuh dari samping dan dapatkan analisis sudut sendi otomatis (lutut, pinggul, punggung) untuk membantu menyetel tinggi sadel dan jangkauan Anda — langsung di browser, tanpa perlu memasang aplikasi.',
+    'more.open': 'Buka Bike Fit Analyzer',
+    'promo.also': 'Juga oleh saya',
+    'promo.sub': 'Analisis posisi bersepeda Anda dari video ponsel.',
     'foot.creator': 'Dibuat oleh',
     'foot.disclaim': '“Powered by Strava” berarti Ascent dibuat menggunakan API Strava. Ascent adalah aplikasi independen — tidak berafiliasi dengan, didukung oleh, atau disponsori oleh Strava, Inc.',
     // ── Help & Data section ──
