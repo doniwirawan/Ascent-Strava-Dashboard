@@ -126,6 +126,34 @@
 .chart-wrap.tall { height: 270px; }
 .chart-wrap.sm { height: 160px; }
 
+/* explanatory caption under a chart title */
+.chart-note {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: -8px 0 14px;
+}
+
+/* numeric summary strip under a chart */
+.chart-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.chart-stats .cs-item {
+  flex: 1 1 0;
+  min-width: 84px;
+  background: var(--surface2, rgba(255,255,255,.03));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  padding: 8px 10px;
+}
+.chart-stats .cs-v { font-size: 15px; font-weight: 800; color: var(--text); line-height: 1.15; }
+.chart-stats .cs-k { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+
 /* Cycling hero */
 .cycling-hero {
   display: grid;

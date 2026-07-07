@@ -183,6 +183,24 @@ function renderTrends() {
     weeks[k]=(weeks[k]||0)+kmVal(a.distance||0);
   });
   const wkeys=Object.keys(weeks).sort().slice(-20);
+  // small stat strip helper: [{k:label, v:value}] → HTML
+  const statStrip=(items)=>items.filter(Boolean).map(s=>`<div class="cs-item"><div class="cs-v"${s.c?` style="color:${s.c}"`:''}>${s.v}</div><div class="cs-k">${s.k}</div></div>`).join('');
+  const setStats=(id,items)=>{const e=document.getElementById(id); if(e) e.innerHTML=statStrip(items);};
+  {
+    const vals=wkeys.map(k=>weeks[k]);
+    const total=vals.reduce((a,b)=>a+b,0);
+    const avg=vals.length?total/vals.length:0;
+    const bestI=vals.indexOf(Math.max(...vals,0));
+    const cur=vals[vals.length-1]||0, prev=vals[vals.length-2]||0;
+    const wow=prev>0?((cur-prev)/prev*100):null;
+    const U=distUnit();
+    setStats('weeklyStats',[
+      {k:'weekly avg',v:avg.toFixed(0)+' '+U},
+      {k:'best week',v:(vals[bestI]||0).toFixed(0)+' '+U},
+      {k:'this week',v:cur.toFixed(0)+' '+U},
+      wow!=null?{k:'vs last week',v:(wow>=0?'▲ ':'▼ ')+Math.abs(wow).toFixed(0)+'%',c:wow>=0?'#22c55e':'#ef4444'}:null,
+    ]);
+  }
   destroyChart('weeklyChart');
   charts['weeklyChart']=new Chart(document.getElementById('weeklyChart').getContext('2d'),{
     type:'bar',
@@ -204,6 +222,26 @@ function renderTrends() {
   const years=Object.keys(monthly).sort();
   const monthLabels=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const palette=['#FC4C02','#ff8c5a','#ffb899','#555','#777','#999'];
+  {
+    const U=distUnit();
+    const cy=years[years.length-1], py=years[years.length-2];
+    const curArr=monthly[cy]||[];
+    const maxM=curArr.reduce((mi,v,i)=>v>0?i:mi,0); // last month with data this year
+    const curSum=curArr.reduce((a,b)=>a+b,0);
+    const bestMi=curArr.indexOf(Math.max(...curArr,0));
+    let yoy=null, prevSame=null;
+    if(py&&monthly[py]){
+      const cThru=curArr.slice(0,maxM+1).reduce((a,b)=>a+b,0);
+      prevSame=monthly[py].slice(0,maxM+1).reduce((a,b)=>a+b,0);
+      if(prevSame>0) yoy=(cThru-prevSame)/prevSame*100;
+    }
+    setStats('yoyStats',[
+      {k:cy+' total',v:Math.round(curSum).toLocaleString()+' '+U},
+      {k:'best month',v:monthLabels[bestMi]+' · '+Math.round(curArr[bestMi]||0)+' '+U},
+      py?{k:py+' (same months)',v:Math.round(prevSame||0).toLocaleString()+' '+U}:null,
+      yoy!=null?{k:'YoY',v:(yoy>=0?'▲ ':'▼ ')+Math.abs(yoy).toFixed(0)+'%',c:yoy>=0?'#22c55e':'#ef4444'}:null,
+    ]);
+  }
   destroyChart('yoyChart');
   charts['yoyChart']=new Chart(document.getElementById('yoyChart').getContext('2d'),{
     type:'line',
@@ -227,6 +265,22 @@ function renderTrends() {
     spd[k].sum+=kmh(a.average_speed); spd[k].n++;
   });
   const skeys=Object.keys(spd).sort().slice(-10);
+  {
+    const U=speedUnit();
+    const vals=skeys.map(k=>spd[k].sum/spd[k].n);
+    const mLabel=k=>{const[y,m]=k.split('-');return new Date(+y,+m-1).toLocaleDateString('en-GB',{month:'short',year:'2-digit'});};
+    if(vals.length){
+      const overall=vals.reduce((a,b)=>a+b,0)/vals.length;
+      const fastI=vals.indexOf(Math.max(...vals)), slowI=vals.indexOf(Math.min(...vals));
+      const trend=vals[vals.length-1]-vals[0];
+      setStats('speedStats',[
+        {k:'overall avg',v:overall.toFixed(1)+' '+U},
+        {k:'fastest month',v:vals[fastI].toFixed(1)+' · '+mLabel(skeys[fastI])},
+        {k:'slowest month',v:vals[slowI].toFixed(1)+' · '+mLabel(skeys[slowI])},
+        {k:'trend',v:(trend>=0?'▲ +':'▼ ')+Math.abs(trend).toFixed(1)+' '+U,c:trend>=0?'#22c55e':'#ef4444'},
+      ]);
+    } else setStats('speedStats',[]);
+  }
   destroyChart('speedChart');
   charts['speedChart']=new Chart(document.getElementById('speedChart').getContext('2d'),{
     type:'line',
@@ -243,6 +297,11 @@ function renderTrends() {
   acts.forEach(a=>{ types[a.type]=(types[a.type]||0)+1; });
   const tl=Object.keys(types);
   const pal2=['#FC4C02','#ff7a3d','#ff9e6d','#ffc09e','#555','#666','#777','#888','#999'];
+  {
+    const totalN=acts.length||1;
+    const top=[...tl].sort((a,b)=>types[b]-types[a]).slice(0,4);
+    setStats('typeStats', top.map((tp,i)=>({k:Math.round(types[tp]/totalN*100)+'% of all',v:types[tp]+' '+tp,c:pal2[tl.indexOf(tp)]||pal2[i]})));
+  }
   destroyChart('typeChart');
   charts['typeChart']=new Chart(document.getElementById('typeChart').getContext('2d'),{
     type:'doughnut',
