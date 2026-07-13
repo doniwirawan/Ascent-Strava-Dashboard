@@ -1,5 +1,8 @@
 # Strava Dashboard — CLAUDE.md
 
+## Current work in progress
+See **[STATUS.md](STATUS.md)** — the public stats API (`/api/stats`, for doniwirawan.xyz) is deployed but blocked on a Supabase project restore. Read it before touching `api/stats.js` or anything Supabase.
+
 ## What this project is
 A personal Strava activity dashboard deployed as a static site on Vercel. No backend server — all Strava API calls happen in the browser. Supabase is used to cache activity data so the 200-activity limit doesn't require re-fetching every visit.
 
