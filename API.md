@@ -3,7 +3,10 @@
 A free, read-only endpoint that serves aggregate Strava numbers from the dashboard's
 Supabase cache. Built for **doniwirawan.xyz** to embed live riding stats.
 
-**Base URL:** `https://stravadashboard.vercel.app`
+**Base URL:** `https://ascent-analytics.vercel.app`
+
+(`stravadashboard.vercel.app` 307-redirects here — use the canonical host above to
+skip the extra hop.)
 
 ---
 
@@ -12,7 +15,7 @@ Supabase cache. Built for **doniwirawan.xyz** to embed live riding stats.
 No auth, no API key, no query params. Just fetch it.
 
 ```js
-const stats = await fetch('https://stravadashboard.vercel.app/api/stats').then(r => r.json());
+const stats = await fetch('https://ascent-analytics.vercel.app/api/stats').then(r => r.json());
 ```
 
 CORS is restricted to `doniwirawan.xyz`, `www.doniwirawan.xyz`, and localhost
@@ -93,7 +96,7 @@ coordinates are ever returned, so nothing reveals where the rides happen.
 function StravaStats() {
   const [s, setS] = useState(null);
   useEffect(() => {
-    fetch('https://stravadashboard.vercel.app/api/stats')
+    fetch('https://ascent-analytics.vercel.app/api/stats')
       .then(r => r.json())
       .then(d => !d.error && setS(d))
       .catch(() => {});
@@ -117,7 +120,7 @@ function StravaStats() {
 ```html
 <p>I've ridden <b id="km">…</b> km this year.</p>
 <script>
-  fetch('https://stravadashboard.vercel.app/api/stats')
+  fetch('https://ascent-analytics.vercel.app/api/stats')
     .then(r => r.json())
     .then(d => { if (!d.error) document.getElementById('km').textContent = d.ytd.distance_km.toLocaleString(); });
 </script>
