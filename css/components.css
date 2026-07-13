@@ -298,6 +298,8 @@
 @media (max-width: 560px) { .rb-field input, .rb-field select { min-width: 0; flex: 1; } .rb-controls { gap: 8px; } }
 
 /* ── HEART-RATE ZONE RING (Overview card + activity modal) ── */
+/* Sits directly under the stat grid; matches the 24px rhythm of .install-banner. */
+#ovHrz { margin-top: 24px; }
 .hrzone-card {
   grid-column: 1 / -1;
   background: var(--surface);
