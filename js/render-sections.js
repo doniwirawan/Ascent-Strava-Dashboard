@@ -8,7 +8,10 @@ function svgIcon(n){
     clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     heart:'<path d="M20.8 5.1a5 5 0 0 0-7.1 0L12 6.8l-1.7-1.7a5 5 0 1 0-7.1 7.1L12 21l8.8-8.8a5 5 0 0 0 0-7.1z"/>',
     flame:'<path d="M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 2 2 2 0 0-2 0-3 0-4z"/>',
-    gauge:'<path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-5"/>'
+    gauge:'<path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-5"/>',
+    kudos:'<path d="M7 11v9H4v-9h3z"/><path d="M7 11l4-7a2 2 0 0 1 2 2v3h5a2 2 0 0 1 2 2.4l-1.2 5A2 2 0 0 1 16.8 20H7"/>',
+    medal:'<path d="M9 3l3 5 3-5"/><circle cx="12" cy="14" r="5"/>',
+    calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/>'
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p[n]||p.bolt}</svg>`;
 }
@@ -386,6 +389,19 @@ function renderMilestones(){
   const topSpd=set.filter(a=>cleanMax(a)>0).reduce((m,a)=>cleanMax(a)>cleanMax(m)?a:m,{});
   const longDur=set.reduce((m,a)=>(a.moving_time||0)>(m.moving_time||0)?a:m,set[0]||{});
   const bestHR=set.filter(a=>a.average_heartrate>0).reduce((m,a)=>a.average_heartrate>(m.average_heartrate||0)?a:m,{});
+  const mostKudos=set.filter(a=>a.kudos_count>0).reduce((m,a)=>a.kudos_count>(m.kudos_count||0)?a:m,{});
+  const mostPRs=set.filter(a=>a.pr_count>0).reduce((m,a)=>a.pr_count>(m.pr_count||0)?a:m,{});
+  const first=set.reduce((m,a)=>(a.start_date&&(!m.start_date||a.start_date<m.start_date))?a:m,set[0]||{});
+  const firstLbl=first.start_date?new Date(first.start_date).toLocaleDateString('en-GB',{month:'short',year:'numeric'}):null;
+  // biggest calendar month by distance
+  const byMonth={};
+  set.forEach(a=>{const k=(a.start_date||'').slice(0,7); if(k)byMonth[k]=(byMonth[k]||0)+(a.distance||0);});
+  const bestMonth=Object.entries(byMonth).sort((a,b)=>b[1]-a[1])[0];
+  const bestMonthLbl=bestMonth?new Date(bestMonth[0]+'-01T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'}):null;
+  // signature long distances: centuries for rides, half marathon+ for runs
+  const centuryM=distUnit()==='mi'?160934:100000;
+  const centuries=rides.filter(a=>(a.distance||0)>=centuryM).length;
+  const longRuns=runs.filter(a=>(a.distance||0)>=21097).length;
 
   const records = mode==='run' ? [
     {icon:'run',c:'#fc4c02',label:'Longest Run',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
@@ -394,6 +410,11 @@ function renderMilestones(){
     {icon:'clock',c:'#00cc88',label:'Longest Duration',val:longDur.moving_time?fmtT(longDur.moving_time):'—',unit:'',desc:longDur.name},
     {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
     {icon:'flame',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
+    {icon:'run',c:'#38bdf8',label:'Half Mara or More',val:longRuns||'—',unit:'runs',desc:distUnit()==='mi'?'Runs of 13.1+ mi':'Runs of 21.1+ km'},
+    {icon:'calendar',c:'#e879f9',label:'Biggest Month',val:bestMonth?fmtKm(bestMonth[1]):'—',unit:distUnit(),desc:bestMonthLbl},
+    {icon:'kudos',c:'#4ade80',label:'Most Kudos',val:mostKudos.kudos_count||'—',unit:'kudos',desc:mostKudos.name},
+    {icon:'medal',c:'#22d3ee',label:'Most PRs in a Run',val:mostPRs.pr_count||'—',unit:'PRs',desc:mostPRs.name},
+    {icon:'calendar',c:'#94a3b8',label:'First Run',val:firstLbl||'—',unit:'',desc:first.name},
   ] : [
     {icon:'bike',c:'#fc4c02',label:'Longest Ride',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
     {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
@@ -401,6 +422,11 @@ function renderMilestones(){
     {icon:'bolt',c:'#facc15',label:'Top Speed',val:topSpd.max_speed?kmh(topSpd.max_speed).toFixed(1):'—',unit:speedUnit(),desc:topSpd.name},
     {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
     {icon:'flame',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
+    {icon:'bike',c:'#38bdf8',label:'Centuries',val:centuries||'—',unit:'rides',desc:distUnit()==='mi'?'Rides of 100+ mi':'Rides of 100+ km'},
+    {icon:'calendar',c:'#e879f9',label:'Biggest Month',val:bestMonth?fmtKm(bestMonth[1]):'—',unit:distUnit(),desc:bestMonthLbl},
+    {icon:'kudos',c:'#4ade80',label:'Most Kudos',val:mostKudos.kudos_count||'—',unit:'kudos',desc:mostKudos.name},
+    {icon:'medal',c:'#22d3ee',label:'Most PRs in a Ride',val:mostPRs.pr_count||'—',unit:'PRs',desc:mostPRs.name},
+    {icon:'calendar',c:'#94a3b8',label:'First Ride',val:firstLbl||'—',unit:'',desc:first.name},
   ];
 
   el.innerHTML=`
