@@ -1919,8 +1919,16 @@ function drawLayout(canvas, act, selected, sc, layout) {
       if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
       if (!hideRoute && polyline && polyline.length > 1) {
         const rx = Math.round(W * 0.12), ry = Math.round(H * 0.10), rw = Math.round(W * 0.76), rh = Math.round(H * 0.60);
-        drawRoute(ctx, polyline, rx, ry, rw, rh, withAlpha(sc.text, 45), Math.max(2, Math.round(11 * S)), true);
-        drawRoute(ctx, polyline, rx, ry, rw, rh, sc.text, Math.max(1, Math.round(3.5 * S)), true);
+        // hollow trace: stroke the path fat, then punch a slightly thinner stroke
+        // out of it, leaving only the silhouette's two edges. Done offscreen so
+        // the erase doesn't cut through the photo behind it.
+        const thick = Math.max(6, Math.round(26 * S)), edge = Math.max(1, Math.round(3 * S));
+        const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+        const tctx = tmp.getContext('2d');
+        drawRoute(tctx, polyline, rx, ry, rw, rh, sc.text, thick, true);
+        tctx.globalCompositeOperation = 'destination-out';
+        drawRoute(tctx, polyline, rx, ry, rw, rh, '#000', thick - edge * 2, true);
+        ctx.drawImage(tmp, 0, 0);
       }
       let oy = Math.round(H * 0.80);
       if (!hideTitle) {
