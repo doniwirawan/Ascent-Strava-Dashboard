@@ -1878,16 +1878,19 @@ function drawLayout(canvas, act, selected, sc, layout) {
         drawRoute(ctx, polyline, Math.round(W * 0.05), Math.round(H * 0.16), Math.round(W * 0.90), Math.round(H * 0.62), withAlpha(sc.text, 200), Math.max(1, Math.round(3 * S)), true);
       }
       const sky = selected.slice(0, 4);
-      const rowH = Math.round(150 * S);
+      const rowH = Math.round(180 * S);
       const y0 = Math.round(H * 0.44) - (sky.length * rowH) / 2;
       const cx = Math.round(W * 0.46);
       sky.forEach((s, i) => {
-        const { num, unit } = statVal(s, act), disp = (num + (unit ? unit : '')).toUpperCase();
+        // "47.61 km" → "47.61KM", but "1h 56m" → "1H 56M": drop the space before
+        // a unit, keep it between two number groups
+        const { num, unit } = statVal(s, act);
+        const disp = (num + (unit ? (/^\d/.test(unit) ? ' ' : '') + unit : '')).toUpperCase();
         const ly = y0 + i * rowH + Math.round(34 * S);
         ctx.fillStyle = withAlpha(sc.text, 190); ctx.font = F(26, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0.02em';
         ctx.fillText(s.label, cx, ly);
         let vfs = Math.round(84 * S); ctx.font = `300 ${vfs}px -apple-system,sans-serif`;
-        while (vfs > Math.round(24 * S) && ctx.measureText(disp).width > W * 0.72) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `300 ${vfs}px -apple-system,sans-serif`; }
+        while (vfs > Math.round(24 * S) && ctx.measureText(disp).width > W * 0.5) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `300 ${vfs}px -apple-system,sans-serif`; }
         ctx.fillStyle = sc.text; ctx.letterSpacing = '0px';
         ctx.fillText(disp, cx, ly + Math.round(78 * S));
       });
@@ -1905,15 +1908,17 @@ function drawLayout(canvas, act, selected, sc, layout) {
           ctx.moveTo(px, py - arm); ctx.lineTo(px, py + arm); ctx.stroke();
         });
       }
-      let sy = y0 + sky.length * rowH + Math.round(56 * S);
+      // small typewriter-style caption under the stack, like the reference's "Day 2"
+      let sy = y0 + sky.length * rowH + Math.round(40 * S);
       if (!hideTitle) {
         const nm = act.name || 'Activity';
-        fitText(nm, Math.round(W * 0.8), 46, 400);
-        ctx.fillStyle = sc.text; ctx.textAlign = 'center'; ctx.letterSpacing = '0.06em';
-        ctx.fillText(nm, cx, sy); ctx.letterSpacing = '0px'; sy += Math.round(48 * S);
+        let tfs = Math.round(32 * S); ctx.font = `500 ${tfs}px ui-monospace,Menlo,Consolas,monospace`;
+        while (tfs > Math.round(16 * S) && ctx.measureText(nm).width > W * 0.8) { tfs -= Math.max(1, Math.round(2 * S)); ctx.font = `500 ${tfs}px ui-monospace,Menlo,Consolas,monospace`; }
+        ctx.fillStyle = sc.text; ctx.textAlign = 'center'; ctx.letterSpacing = '0.1em';
+        ctx.fillText(nm, cx, sy); ctx.letterSpacing = '0px'; sy += Math.round(46 * S);
       }
       if (!hideDate) {
-        ctx.fillStyle = withAlpha(sc.text, 180); ctx.font = F(26, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0.04em';
+        ctx.fillStyle = withAlpha(sc.text, 180); ctx.font = `400 ${Math.round(24 * S)}px ui-monospace,Menlo,Consolas,monospace`; ctx.textAlign = 'center'; ctx.letterSpacing = '0.1em';
         ctx.fillText(act.start_date ? fmtDt(act.start_date) : '', cx, sy); ctx.letterSpacing = '0px';
       }
       if (!hideLogo) {
