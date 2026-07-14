@@ -13,7 +13,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
   // baseBg follows the scheme (incl. light schemes); baseBgDark stays dark for
   // photo-style layouts that render light text and need a legible backdrop.
   const isTransp = sc.card === 'transparent';
-  const isLightCard = !isTransp && /255,\s*255,\s*255/.test(sc.card);
+  const isLightCard = !isTransp && (sc.light || /255,\s*255,\s*255/.test(sc.card));
   const baseBg = (isTransp || sc.card.startsWith('linear-gradient')) ? '#0e0e10' : sc.card;
   const baseBgDark = isLightCard ? '#101012' : baseBg;
 
@@ -1975,6 +1975,108 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.fillStyle = withAlpha(sc.text, 130); ctx.font = F(18, 700); ctx.textAlign = 'center'; ctx.letterSpacing = '0.12em';
         ctx.fillText('ASCENT', W / 2, H - Math.round(34 * S)); ctx.letterSpacing = '0px';
       }
+      break;
+    }
+
+    /* 31. STREET — streetwear zine: checker strips, wireframe globe, crosshair,
+       doubled display type, spec-sheet stat grid, hazard tape, barcode */
+    case 'street': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      const ink = sc.text, acc = sc.accent;
+      const inv = isLightCard ? '#ffffff' : '#0a0a0a'; // text colour inside solid-ink boxes
+      const lw = Math.max(1, Math.round(3 * S));
+      const MONO = sz => `600 ${Math.round(sz * S)}px ui-monospace,Menlo,Consolas,monospace`;
+
+      swChecker(ctx, 0, Math.round(28 * S), W, Math.round(40 * S), ink);
+      swChecker(ctx, 0, H - Math.round(68 * S), W, Math.round(40 * S), ink);
+
+      // header row: globe · boxed wordmark · crosshair
+      const hy = Math.round(210 * S);
+      swGlobe(ctx, Math.round(150 * S), hy, Math.round(60 * S), ink, lw);
+      swCrosshair(ctx, W - Math.round(150 * S), hy, Math.round(52 * S), acc, lw);
+      if (!hideLogo) {
+        const bw = Math.round(400 * S), bh = Math.round(66 * S);
+        ctx.fillStyle = ink; ctx.fillRect((W - bw) / 2, hy - bh / 2, bw, bh);
+        ctx.fillStyle = inv; ctx.font = MONO(26); ctx.textAlign = 'center'; ctx.letterSpacing = '0.22em';
+        ctx.fillText('ASCENT WORLDWIDE', W / 2, hy + Math.round(9 * S)); ctx.letterSpacing = '0px';
+      }
+
+      // doubled display type: solid word + hollow echo underneath
+      const word = (act.type || 'ACTIVITY').toUpperCase();
+      let wfs = Math.round(170 * S); ctx.font = `900 ${wfs}px -apple-system,sans-serif`;
+      while (wfs > Math.round(30 * S) && ctx.measureText(word).width > W - P * 2) { wfs -= Math.max(1, Math.round(2 * S)); ctx.font = `900 ${wfs}px -apple-system,sans-serif`; }
+      const wy = Math.round(330 * S) + wfs;
+      ctx.textAlign = 'center'; ctx.letterSpacing = '-2px';
+      ctx.fillStyle = ink; ctx.fillText(word, W / 2, wy);
+      ctx.strokeStyle = withAlpha(ink, 200); ctx.lineWidth = Math.max(1, Math.round(2.5 * S));
+      ctx.strokeText(word, W / 2, wy + Math.round(wfs * 0.86));
+      ctx.letterSpacing = '0px';
+      swSparkle(ctx, Math.round(120 * S), wy - wfs * 0.5, Math.round(20 * S), acc);
+      swSparkle(ctx, W - Math.round(110 * S), wy + wfs * 0.55, Math.round(26 * S), acc);
+      swSparkle(ctx, W - Math.round(160 * S), wy + wfs * 0.85, Math.round(14 * S), acc);
+
+      let yc = wy + Math.round(wfs * 0.86) + Math.round(70 * S);
+      if (!hideTitle) {
+        const nm = act.name || 'Activity';
+        const tfs = fitText(nm, W * 0.8, 42, 800);
+        ctx.fillStyle = ink; ctx.textAlign = 'center'; ctx.letterSpacing = '0.02em';
+        ctx.fillText(nm, W / 2, yc); ctx.letterSpacing = '0px'; yc += Math.round(48 * S);
+      }
+      if (!hideDate) {
+        ctx.fillStyle = withAlpha(ink, 180); ctx.font = MONO(22); ctx.textAlign = 'center'; ctx.letterSpacing = '0.18em';
+        ctx.fillText('* ' + (act.start_date ? fmtDt(act.start_date).toUpperCase() : '') + ' *', W / 2, yc); ctx.letterSpacing = '0px'; yc += Math.round(30 * S);
+      }
+
+      // route in a bordered spec box with tick corners
+      if (!hideRoute && polyline && polyline.length > 1) {
+        const fx = P, fw = W - P * 2, fh = Math.round(470 * S);
+        ctx.strokeStyle = withAlpha(ink, 140); ctx.lineWidth = Math.max(1, Math.round(2 * S));
+        ctx.strokeRect(fx, yc, fw, fh);
+        const tk = Math.round(18 * S);
+        ctx.strokeStyle = ink; ctx.lineWidth = lw;
+        [[fx, yc], [fx + fw, yc], [fx, yc + fh], [fx + fw, yc + fh]].forEach(([cx2, cy2]) => {
+          ctx.beginPath(); ctx.moveTo(cx2 - tk, cy2); ctx.lineTo(cx2 + tk, cy2);
+          ctx.moveTo(cx2, cy2 - tk); ctx.lineTo(cx2, cy2 + tk); ctx.stroke();
+        });
+        drawRoute(ctx, polyline, fx + Math.round(20 * S), yc + Math.round(20 * S), fw - Math.round(40 * S), fh - Math.round(40 * S), acc, Math.round(5 * S));
+        yc += fh + Math.round(50 * S);
+      } else { yc += Math.round(20 * S); }
+
+      // spec-sheet stat grid: 2 cols, bordered cells, mono label + heavy value
+      const sts = selected.slice(0, 6);
+      if (sts.length) {
+        const COLS = Math.min(2, sts.length), ROWS = Math.ceil(sts.length / COLS);
+        const gw = W - P * 2, cW = gw / COLS, cH = Math.round(118 * S);
+        ctx.strokeStyle = withAlpha(ink, 140); ctx.lineWidth = Math.max(1, Math.round(2 * S));
+        ctx.strokeRect(P, yc, gw, cH * ROWS);
+        for (let i = 1; i < ROWS; i++) { ctx.beginPath(); ctx.moveTo(P, yc + i * cH); ctx.lineTo(P + gw, yc + i * cH); ctx.stroke(); }
+        for (let i = 1; i < COLS; i++) { ctx.beginPath(); ctx.moveTo(P + i * cW, yc); ctx.lineTo(P + i * cW, yc + cH * ROWS); ctx.stroke(); }
+        sts.forEach((s, i) => {
+          const cx2 = P + (i % COLS) * cW + Math.round(28 * S), cy2 = yc + Math.floor(i / COLS) * cH;
+          const { num, unit } = statVal(s, act), disp = num + (unit ? ' ' + unit : '');
+          ctx.fillStyle = withAlpha(ink, 170); ctx.font = MONO(19); ctx.textAlign = 'left'; ctx.letterSpacing = '0.14em';
+          ctx.fillText(s.label.toUpperCase(), cx2, cy2 + Math.round(40 * S)); ctx.letterSpacing = '0px';
+          let vfs = Math.round(46 * S); ctx.font = `900 ${vfs}px -apple-system,sans-serif`;
+          while (vfs > Math.round(18 * S) && ctx.measureText(disp).width > cW - Math.round(56 * S)) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `900 ${vfs}px -apple-system,sans-serif`; }
+          ctx.fillStyle = ink; ctx.fillText(disp, cx2, cy2 + Math.round(94 * S));
+        });
+        yc += cH * ROWS + Math.round(44 * S);
+      }
+
+      swHazard(ctx, P, yc, W - P * 2, Math.round(26 * S), withAlpha(ink, 220));
+      yc += Math.round(70 * S);
+
+      // bottom band: barcode · chevrons · LIMITED box
+      const by2 = Math.min(yc + Math.round(30 * S), H - Math.round(170 * S));
+      if (!hideLogo) {
+        swBarcode(ctx, P, by2, Math.round(230 * S), Math.round(58 * S), ink);
+        const lbw = Math.round(230 * S), lbh = Math.round(58 * S);
+        ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1, Math.round(2.5 * S));
+        ctx.strokeRect(W - P - lbw, by2, lbw, lbh);
+        ctx.fillStyle = ink; ctx.font = MONO(20); ctx.textAlign = 'center'; ctx.letterSpacing = '0.2em';
+        ctx.fillText('LIMITED', W - P - lbw / 2, by2 + lbh * 0.62); ctx.letterSpacing = '0px';
+      }
+      swChevrons(ctx, W / 2 - Math.round(90 * S), by2 + Math.round(29 * S), 5, Math.round(34 * S), acc, lw);
       break;
     }
 

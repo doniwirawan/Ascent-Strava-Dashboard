@@ -71,6 +71,8 @@ const SCHEMES = {
   forest:   { card: 'rgba(12,18,14,0.98)',  text: '#d4e6d6', muted: '#5a7560', icon: '#7a9a80', div: 'rgba(120,190,140,0.08)', accent: '#4caf6a', bg: 'transparent' },
   plum:     { card: 'rgba(20,10,24,0.98)',  text: '#ebd9f5', muted: '#6a5878', icon: '#9a7aae', div: 'rgba(190,140,255,0.08)', accent: '#b07cff', bg: 'transparent' },
   orange:   { card: 'rgba(252,76,2,0.98)',  text: '#ffffff', muted: 'rgba(255,255,255,0.7)', icon: '#ffffff', div: 'rgba(255,255,255,0.18)', accent: '#ffffff', bg: 'transparent' },
+  cream:    { card: 'rgba(236,231,220,0.98)', text: '#101010', muted: '#6b6659', icon: '#3a382f', div: 'rgba(0,0,0,0.12)', accent: '#101010', bg: 'transparent', light: true },
+  blush:    { card: 'rgba(10,10,10,0.98)',  text: '#ffffff', muted: '#8a8a8a', icon: '#f2b8c6', div: 'rgba(255,255,255,0.1)', accent: '#f2b8c6', bg: 'transparent' },
 };
 
 /* ── icon ── */
@@ -170,5 +172,6 @@ const LAYOUTS = [
   { id: 'column', name: 'Column' },
   { id: 'sky', name: 'Sky' },
   { id: 'outline', name: 'Outline' },
+  { id: 'street', name: 'Street' },
 
 ];

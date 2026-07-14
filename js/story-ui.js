@@ -424,6 +424,8 @@ function openStoryModal(){
     forest:'#0c120e',
     plum:'#140a18',
     orange:'#FC4C02',
+    cream:'#ece7dc',
+    blush:'linear-gradient(135deg,#0a0a0a 50%,#f2b8c6 50%)',
   };
   const sp=document.getElementById('schemePicker');
   sp.innerHTML=Object.keys(schemeSwatches).map(k=>`

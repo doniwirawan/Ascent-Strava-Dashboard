@@ -77,6 +77,53 @@ function drawIcon(ctx,type,cx,cy,s,col){
   ctx.restore();
 }
 
+/* ── streetwear element helpers (Street layout) ── */
+function swChecker(ctx,x,y,w,h,color){
+  const cell=h/2, cols=Math.ceil(w/cell);
+  ctx.fillStyle=color;
+  for(let r=0;r<2;r++)for(let c=0;c<cols;c++)
+    if((r+c)%2===0) ctx.fillRect(x+c*cell,y+r*cell,cell+0.5,cell+0.5);
+}
+function swGlobe(ctx,cx,cy,r,color,lw){
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+  [0.45,0.85].forEach(k=>{ctx.beginPath();ctx.ellipse(cx,cy,r*k,r,0,0,Math.PI*2);ctx.stroke();});
+  [-0.55,0,0.55].forEach(k=>{const hw=r*Math.sqrt(1-k*k);ctx.beginPath();ctx.moveTo(cx-hw,cy+r*k);ctx.lineTo(cx+hw,cy+r*k);ctx.stroke();});
+  ctx.restore();
+}
+function swCrosshair(ctx,cx,cy,r,color,lw){
+  ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=lw;
+  ctx.beginPath();ctx.arc(cx,cy,r*0.62,0,Math.PI*2);ctx.stroke();
+  [[0,-1],[0,1],[-1,0],[1,0]].forEach(([dx,dy])=>{ctx.beginPath();ctx.moveTo(cx+dx*r*0.3,cy+dy*r*0.3);ctx.lineTo(cx+dx*r,cy+dy*r);ctx.stroke();});
+  ctx.beginPath();ctx.arc(cx,cy,lw,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function swSparkle(ctx,cx,cy,r,color){
+  ctx.save();ctx.fillStyle=color;ctx.beginPath();
+  ctx.moveTo(cx,cy-r);
+  ctx.quadraticCurveTo(cx,cy,cx+r,cy);ctx.quadraticCurveTo(cx,cy,cx,cy+r);
+  ctx.quadraticCurveTo(cx,cy,cx-r,cy);ctx.quadraticCurveTo(cx,cy,cx,cy-r);
+  ctx.fill();ctx.restore();
+}
+function swHazard(ctx,x,y,w,h,color){
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+  ctx.strokeStyle=color;ctx.lineWidth=h*0.42;
+  for(let px=x-h;px<x+w+h;px+=h*1.2){ctx.beginPath();ctx.moveTo(px,y+h+2);ctx.lineTo(px+h,y-2);ctx.stroke();}
+  ctx.restore();
+}
+function swChevrons(ctx,x,y,n,sz,color,lw){
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.lineCap='round';ctx.lineJoin='round';
+  for(let i=0;i<n;i++){const px=x+i*sz*0.9;ctx.beginPath();ctx.moveTo(px,y-sz*0.5);ctx.lineTo(px+sz*0.55,y);ctx.lineTo(px,y+sz*0.5);ctx.stroke();}
+  ctx.restore();
+}
+function swBarcode(ctx,x,y,w,h,color){
+  const pat=[3,1,2,1,4,1,1,3,2,1,1,2,4,1,2,1,1,3,1,2];
+  const unit=w/pat.reduce((a,b)=>a+b+1,0);
+  ctx.save();ctx.fillStyle=color;let px=x;
+  pat.forEach(p=>{ctx.fillRect(px,y,p*unit,h);px+=(p+1)*unit;});
+  ctx.restore();
+}
+
 function drawAreaChart(ctx, data, x, y, w, h, accentColor, lw){
   if(!data||data.length<2) return;
   const n=data.length;
