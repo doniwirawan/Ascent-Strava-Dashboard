@@ -1894,6 +1894,17 @@ function drawLayout(canvas, act, selected, sc, layout) {
       ctx.fillStyle = withAlpha(sc.text, 230); ctx.font = F(38, 400); ctx.textAlign = 'left'; ctx.letterSpacing = '0.14em';
       ctx.fillText((act.type || 'ACTIVITY').toUpperCase(), Math.round(W * 0.76), Math.round(H * 0.44));
       ctx.letterSpacing = '0px';
+      // small 2×2 cross-cluster accent on the left, balancing the sport name
+      {
+        const acx = Math.round(W * 0.14), acy = Math.round(H * 0.435);
+        const gap = Math.round(22 * S), arm = Math.round(7 * S);
+        ctx.strokeStyle = withAlpha(sc.text, 230); ctx.lineWidth = Math.max(1, Math.round(3 * S)); ctx.lineCap = 'round';
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dy]) => {
+          const px = acx + dx * gap / 2, py = acy + dy * gap / 2;
+          ctx.beginPath(); ctx.moveTo(px - arm, py); ctx.lineTo(px + arm, py);
+          ctx.moveTo(px, py - arm); ctx.lineTo(px, py + arm); ctx.stroke();
+        });
+      }
       let sy = y0 + sky.length * rowH + Math.round(56 * S);
       if (!hideTitle) {
         const nm = act.name || 'Activity';
