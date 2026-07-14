@@ -1,6 +1,20 @@
 {
   "outputDirectory": "dist",
   "buildCommand": "npm install && node build.js",
+  "redirects": [
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "ascent-analytics.vercel.app" }],
+      "destination": "https://ascent-analytics.doniwirawan.xyz/:path",
+      "permanent": false
+    },
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "stravadashboard.vercel.app" }],
+      "destination": "https://ascent-analytics.doniwirawan.xyz/:path",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     { "source": "/callback", "destination": "/callback.html" },
     { "source": "/privacy", "destination": "/privacy.html" },

@@ -19,7 +19,7 @@ const AI_ICON = '<svg class="ai-icon-svg" viewBox="0 0 24 24" fill="currentColor
 function aiCredit(desc, isAI) {
   desc = (desc || '').trim();
   if (!desc || /Ascent Analytics/.test(desc)) return desc;
-  const url = 'https://ascent-analytics.vercel.app';
+  const url = 'https://ascent-analytics.doniwirawan.xyz';
   return desc + (isAI ? `\n\n— AI-written by Ascent Analytics · ${url}` : `\n\n— by Ascent Analytics · ${url}`);
 }
 
