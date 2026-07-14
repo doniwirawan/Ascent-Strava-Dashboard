@@ -145,6 +145,50 @@ async function _mapToCanvas(map, targetW, targetH) {
   return cv;
 }
 
+// html2canvas has no CSS-grid layout support — grid children get laid out as
+// stacked blocks, so a 4-column grid (Segments, Gear, …) exported as one very
+// tall single column that contain-fit into the frame as an invisible sliver
+// (the "blank export" bug). Freeze every grid in the section to its live
+// geometry by absolutely positioning its children at their current pixel
+// rects — visually a no-op on screen, but html2canvas renders absolute
+// positioning faithfully. Returns a restore() to undo it.
+function _freezeGridsIn(section) {
+  const grids = [section, ...section.querySelectorAll('*')]
+    .filter(el => { try { return getComputedStyle(el).display.includes('grid'); } catch { return false; } });
+
+  // snapshot all geometry before mutating anything, so nested grids can't
+  // measure each other mid-change
+  const jobs = grids.map(g => {
+    const gr = g.getBoundingClientRect();
+    const kids = [...g.children].map(c => {
+      const cs = getComputedStyle(c);
+      if (cs.display === 'none' || cs.position === 'absolute' || cs.position === 'fixed') return null;
+      const r = c.getBoundingClientRect();
+      return { c, left: r.left - gr.left - g.clientLeft, top: r.top - gr.top - g.clientTop, w: r.width, h: r.height };
+    }).filter(Boolean);
+    return { g, height: gr.height, kids };
+  });
+
+  const touched = [];
+  jobs.forEach(({ g, height, kids }) => {
+    touched.push([g, g.style.cssText]);
+    if (getComputedStyle(g).position === 'static') g.style.position = 'relative';
+    g.style.height = height + 'px';
+    g.style.boxSizing = 'border-box';
+    kids.forEach(({ c, left, top, w, h }) => {
+      touched.push([c, c.style.cssText]);
+      c.style.position = 'absolute';
+      c.style.left = left + 'px';
+      c.style.top = top + 'px';
+      c.style.width = w + 'px';
+      c.style.height = h + 'px';
+      c.style.margin = '0';
+      c.style.boxSizing = 'border-box';
+    });
+  });
+  return () => touched.reverse().forEach(([el, css]) => { el.style.cssText = css; });
+}
+
 // Before html2canvas captures a section, replace every live Leaflet map in it
 // with a static, correctly-projected canvas snapshot (html2canvas mangles
 // Leaflet's transform-positioned panes). Returns a restore() to undo it.
@@ -188,28 +232,61 @@ async function _doSaveImg() {
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#090909';
   const [W, H] = _SAVE_IMG_DIMS[_saveImgOrient][_saveImgRes];
 
-  // Render at a wide simulated viewport so responsive grids lay out in full
-  // (multiple columns) rather than the phone's 1–2 column stack — this fills
-  // the frame instead of producing a tall, narrow strip on mobile.
-  const winW = _saveImgOrient === 'desktop' ? 1400 : 900;
-
-  let restoreMaps = null;
+  let restoreMaps = null, restoreWidth = null, restoreGrids = null;
   try {
     let shot;
     if (isHeatmap) {
       shot = await _mapToCanvas(leafletMapInst, W, H);
     } else {
+      // Segment mini-maps init lazily as cards scroll into view — force-init
+      // the rest now so no card exports with an empty map box.
+      if (section.id === 'segmentsSection' && typeof _initSegMapEl === 'function') {
+        const lazy = section.querySelectorAll('.seg-map:not(.leaflet-container)');
+        if (lazy.length) { lazy.forEach(t => { try { _initSegMapEl(t); } catch {} }); await new Promise(r => setTimeout(r, 1200)); }
+      }
+      // Reflow the section FOR REAL to a width that suits the chosen frame
+      // (tall/narrow for 9:16, wide for 16:9 when exporting from a phone),
+      // then capture that honest layout. The old approach — html2canvas's
+      // windowWidth simulated viewport — relayouted the clone to one width
+      // while sizing the output from the on-screen element, so content was
+      // cut off or letterboxed whenever the two disagreed.
+      // desktop only ever widens (a phone window exporting 16:9); shrinking a
+      // wide layout stacks the content taller and letterboxes the wide frame
+      const targetW = _saveImgOrient === 'desktop' ? Math.max(section.clientWidth, 1360) : 640;
+      if (Math.abs(section.clientWidth - targetW) > 80) {
+        const prevCss = section.style.cssText;
+        section.style.width = targetW + 'px';
+        section.style.maxWidth = 'none';
+        restoreWidth = () => { section.style.cssText = prevCss; window.dispatchEvent(new Event('resize')); };
+        window.dispatchEvent(new Event('resize'));
+        await new Promise(r => setTimeout(r, 500)); // charts re-render at the new width
+        // Leaflet maps keep their old pixel size until told otherwise
+        try { if (typeof segMaps !== 'undefined') segMaps.forEach(({ m, line }) => { try { m.invalidateSize(); if (line) m.fitBounds(line.getBounds(), { padding: [16, 16] }); } catch {} }); } catch {}
+        await new Promise(r => setTimeout(r, 250));
+      }
+      // pin grids to their live geometry (see _freezeGridsIn) before measuring
+      restoreGrids = _freezeGridsIn(section);
       // Leaflet maps in the section (e.g. segment thumbnails) are rasterised
       // separately — html2canvas can't read their transform-positioned tiles.
       restoreMaps = await _freezeMapsIn(section);
+      // Browsers silently return a blank canvas beyond ~16k px per side or a
+      // max total area (~268M px on desktop, only ~16.7M px on iOS WebKit) —
+      // the tall Segments list at 2–3x blows through those, which exported an
+      // empty frame. Clamp the capture scale so the shot always stays within
+      // safe limits (softer beats blank).
+      const sw = Math.max(1, section.scrollWidth || section.clientWidth);
+      const sh = Math.max(1, section.scrollHeight || section.clientHeight);
+      const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const MAX_DIM = 16000, MAX_AREA = isIOS ? 16e6 : 200e6;
+      const wantScale = _saveImgRes === 'ultra' ? 3 : 2;
+      const safeScale = Math.min(wantScale, MAX_DIM / Math.max(sw, sh), Math.sqrt(MAX_AREA / (sw * sh)));
       shot = await html2canvas(section, {
         backgroundColor: bg,
         // capture at a scale that matches the output so Ultra is genuinely
         // sharper, not an upscale of the same 2x shot
-        scale: _saveImgRes === 'ultra' ? 3 : 2,
+        scale: safeScale,
         useCORS: true,
         logging: false,
-        windowWidth: winW,
       });
     }
 
@@ -248,6 +325,8 @@ async function _doSaveImg() {
     setStatus('Could not render image — try again.', '');
   } finally {
     if (restoreMaps) restoreMaps();
+    if (restoreGrids) restoreGrids();
+    if (restoreWidth) restoreWidth();
     go.textContent = prev;
     go.disabled = false;
   }
