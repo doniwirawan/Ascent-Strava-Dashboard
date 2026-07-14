@@ -178,7 +178,7 @@ async function _doSaveImg() {
   // simulated-viewport relayout can't stretch it (which would visibly drift the
   // basemap from the routes). Other sections keep the html2canvas path.
   const isHeatmap = section.id === 'heatSection' && typeof leafletMapInst !== 'undefined' && leafletMapInst;
-  if (!isHeatmap && typeof html2canvas === 'undefined') return;
+  if (!isHeatmap && typeof html2canvas === 'undefined') { setStatus('Image export unavailable — html2canvas failed to load. Refresh and try again.', ''); return; }
 
   const go = document.getElementById('saveImgGo');
   const prev = go.textContent;
@@ -204,7 +204,9 @@ async function _doSaveImg() {
       restoreMaps = await _freezeMapsIn(section);
       shot = await html2canvas(section, {
         backgroundColor: bg,
-        scale: 2,
+        // capture at a scale that matches the output so Ultra is genuinely
+        // sharper, not an upscale of the same 2x shot
+        scale: _saveImgRes === 'ultra' ? 3 : 2,
         useCORS: true,
         logging: false,
         windowWidth: winW,
@@ -231,10 +233,15 @@ async function _doSaveImg() {
       ctx.drawImage(shot, dx, dy, dw, dh);
     }
 
+    // toBlob + object URL: a 4K PNG as a base64 data URL is a 30MB+ string
+    // that can hang or crash mobile browsers
+    const blob = await new Promise(res => out.toBlob(res, 'image/png'));
+    if (!blob) throw new Error('toBlob returned null');
     const a = document.createElement('a');
     a.download = `ascent-${_currentSectionName()}.png`;
-    a.href = out.toDataURL('image/png');
+    a.href = URL.createObjectURL(blob);
     a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30000);
     _closeSaveImg();
   } catch (e) {
     console.error('Save image failed', e);
