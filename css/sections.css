@@ -790,6 +790,15 @@ body.dev .dev-tag { display: inline-block; }
 .gpx-map { height: 200px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); }
 @media (max-width: 560px) { .gpx-maps { grid-template-columns: 1fr; } }
 
+.gpx-drop { border: 1.5px dashed var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px; transition: border-color .15s, background .15s; }
+.gpx-drop.drag { border-color: var(--orange); background: var(--orange-dim); }
+.gpx-drop-hint { font-size: 12px; color: var(--text-2); margin-top: 6px; }
+.gpx-file { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; }
+.gpx-file-name { font-size: 13px; font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gpx-file-meta { flex: 1; font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gpx-file-x { flex: none; background: none; border: none; color: var(--text-3); cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: var(--radius-xs); }
+.gpx-file-x:hover { color: #f87171; background: var(--surface3); }
+
 .gpx-anom-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
 .gpx-anom-btn[disabled] { opacity: .6; cursor: default; }
 .gpx-anom-note { font-size: 12px; color: var(--text-2); margin-bottom: 10px; }

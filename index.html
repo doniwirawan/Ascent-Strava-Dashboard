@@ -743,14 +743,26 @@
     </div>
 
     <div class="card gpx-card">
-      <div class="gpx-card-title">Fix a GPX file</div>
-      <div class="gpx-sub">Upload a track, smooth GPS jitter and normalize abnormal speed spikes, then download the corrected file.</div>
+      <div class="gpx-card-title">GPX repair suite</div>
+      <div class="gpx-sub">Import one or more .gpx files — smooth GPS jitter, normalize speed spikes, repair elevation glitches, drop duplicate points, trim the ends or strip a privacy radius, then download the repaired files. Import two or more files to merge them into one track.</div>
+      <div class="gpx-drop" id="gpxDrop">
+        <input type="file" id="gpxFile" accept=".gpx,application/gpx+xml" multiple>
+        <div class="gpx-drop-hint">…or drag &amp; drop .gpx files onto this box</div>
+      </div>
+      <div id="gpxFileList"></div>
       <div class="gpx-controls">
-        <input type="file" id="gpxFile" accept=".gpx,application/gpx+xml">
         <label class="gpx-opt"><input type="checkbox" id="gpxSmooth" checked> Smoothen GPS</label>
         <label class="gpx-opt"><input type="checkbox" id="gpxFixSpeed" checked> Normalize abnormal speed</label>
         <label class="gpx-opt">Max speed <input type="number" id="gpxCeiling" value="65" min="1" step="5"> km/h</label>
-        <button class="btn btn-primary" type="button" onclick="runGpxFix()">Fix &amp; download</button>
+        <label class="gpx-opt"><input type="checkbox" id="gpxDedupe" checked> Drop duplicate points</label>
+        <label class="gpx-opt"><input type="checkbox" id="gpxEle"> Repair elevation spikes</label>
+      </div>
+      <div class="gpx-controls" style="margin-top:10px">
+        <label class="gpx-opt">Trim start <input type="number" id="gpxTrimStart" value="0" min="0" step="5"> s</label>
+        <label class="gpx-opt">Trim end <input type="number" id="gpxTrimEnd" value="0" min="0" step="5"> s</label>
+        <label class="gpx-opt">Privacy radius <input type="number" id="gpxPrivacy" value="0" min="0" step="50"> m</label>
+        <button class="btn btn-primary" type="button" onclick="runGpxFix()">Repair &amp; download</button>
+        <button class="btn" type="button" id="gpxMergeBtn" onclick="runGpxMerge()" style="display:none">Merge into one &amp; download</button>
       </div>
       <div id="gpxResult"></div>
       <div id="gpxPreview"></div>

@@ -75,10 +75,25 @@ function _gfParseGpx(text){
     const lon=parseFloat(tp.getAttribute('lon'));
     if(isNaN(lat)||isNaN(lon)) return;
     const timeEl=tp.querySelector('time');
+    const eleEl=tp.querySelector('ele');
     nodes.push(tp);
-    pts.push({lat, lon, time: timeEl ? new Date(timeEl.textContent) : null});
+    pts.push({lat, lon, time: timeEl ? new Date(timeEl.textContent) : null,
+              ele: eleEl ? parseFloat(eleEl.textContent) : null});
   });
   return {doc, nodes, pts};
+}
+
+// summary stats for an imported track (distance m, elevation gain m, duration s)
+function _gfStats(pts){
+  let dist=0, gain=0;
+  for(let i=1;i<pts.length;i++){
+    dist+=_gfHaversine(pts[i-1].lat,pts[i-1].lon,pts[i].lat,pts[i].lon);
+    if(pts[i].ele!=null && pts[i-1].ele!=null){ const d=pts[i].ele-pts[i-1].ele; if(d>0) gain+=d; }
+  }
+  const t0=pts.find(p=>p.time&&!isNaN(p.time));
+  const t1=[...pts].reverse().find(p=>p.time&&!isNaN(p.time));
+  const dur=(t0&&t1)?Math.max(0,(t1.time-t0.time)/1000):null;
+  return {points:pts.length, dist, gain, dur, start:t0?t0.time:null};
 }
 
 // In-place fix of a parsed pts array. Returns {smoothed, speedFixed}.
@@ -139,27 +154,165 @@ function _gfDownload(text, name){
   a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
+/* ── file import staging (multi-file + drag & drop) ── */
+let _gfFiles=[]; // imported files: {name, text, stats}
+
+async function gpxAddFiles(list){
+  const res=document.getElementById('gpxResult');
+  const errs=[];
+  for(const f of [...list]){
+    if(!/\.gpx$/i.test(f.name)){ errs.push(`${_gfXmlEsc(f.name)} is not a .gpx file.`); continue; }
+    if(_gfFiles.some(x=>x.name===f.name)){ errs.push(`${_gfXmlEsc(f.name)} is already imported.`); continue; }
+    try{
+      const text=await f.text();
+      const parsed=_gfParseGpx(text);
+      if(!parsed.pts.length) throw new Error('No track points found.');
+      _gfFiles.push({name:f.name, text, stats:_gfStats(parsed.pts)});
+    }catch(e){ errs.push(`${_gfXmlEsc(f.name)}: ${e.message||e}`); }
+  }
+  if(res) res.innerHTML=errs.map(m=>`<div class="gpx-err">${m}</div>`).join('');
+  _gfRenderFiles();
+}
+
+function gpxRemoveFile(i){ _gfFiles.splice(i,1); _gfRenderFiles(); }
+
+function _gfRenderFiles(){
+  const el=document.getElementById('gpxFileList'); if(!el) return;
+  el.innerHTML=_gfFiles.map((f,i)=>{
+    const s=f.stats;
+    const meta=[
+      s.points.toLocaleString()+' pts',
+      (s.dist/1000).toFixed(1)+' km',
+      s.gain?Math.round(s.gain).toLocaleString()+' m up':null,
+      s.dur?fmtT(s.dur):null,
+      s.start?fmtDt(s.start.toISOString()):'no timestamps',
+    ].filter(Boolean).join(' · ');
+    return `<div class="gpx-file"><span class="gpx-file-name">${_gfXmlEsc(f.name)}</span><span class="gpx-file-meta">${meta}</span><button class="gpx-file-x" type="button" onclick="gpxRemoveFile(${i})" title="Remove" aria-label="Remove ${_gfXmlEsc(f.name)}">✕</button></div>`;
+  }).join('');
+  const mb=document.getElementById('gpxMergeBtn');
+  if(mb) mb.style.display=_gfFiles.length>1?'':'none';
+}
+
+/* ── extra repair tools ── */
+
+// Median-filter elevation spikes: a sample >15 m off its local median is a
+// barometer/GPS altitude glitch — replace it (and the <ele> node) in place.
+function _gfFixEle(pts, nodes){
+  let fixed=0;
+  const eles=pts.map(p=>p.ele);
+  for(let i=0;i<pts.length;i++){
+    if(eles[i]==null) continue;
+    const win=[];
+    for(let j=Math.max(0,i-2);j<=Math.min(pts.length-1,i+2);j++) if(eles[j]!=null) win.push(eles[j]);
+    const med=_gfMedian(win);
+    if(Math.abs(eles[i]-med)>15){
+      pts[i].ele=med;
+      const el=nodes[i].querySelector('ele'); if(el) el.textContent=med.toFixed(1);
+      fixed++;
+    }
+  }
+  return fixed;
+}
+
+// Drop points: trim seconds off the ends (needs timestamps), strip a privacy
+// radius around start/finish, collapse near-duplicate points (<1 m apart).
+// Mutates parsed.pts/nodes and removes dropped <trkpt> nodes from the doc.
+// Returns the dropped count, or -1 (nothing mutated) if <2 points would remain.
+function _gfDropPoints(parsed, opts){
+  const {pts,nodes}=parsed, n=pts.length;
+  const keep=new Array(n).fill(true);
+  const trimStart=opts.trimStart||0, trimEnd=opts.trimEnd||0, privacy=opts.privacy||0;
+  const t0=pts.find(p=>p.time&&!isNaN(p.time));
+  const tN=[...pts].reverse().find(p=>p.time&&!isNaN(p.time));
+  if((trimStart>0||trimEnd>0)&&t0&&tN){
+    const a=+t0.time+trimStart*1000, b=+tN.time-trimEnd*1000;
+    for(let i=0;i<n;i++){ const t=pts[i].time?+pts[i].time:null; if(t!=null&&(t<a||t>b)) keep[i]=false; }
+  }
+  if(privacy>0&&n>1){
+    const s=pts[0], e=pts[n-1];
+    for(let i=0;i<n;i++){
+      if(_gfHaversine(s.lat,s.lon,pts[i].lat,pts[i].lon)<privacy
+       ||_gfHaversine(e.lat,e.lon,pts[i].lat,pts[i].lon)<privacy) keep[i]=false;
+    }
+  }
+  if(opts.dedupe){
+    let last=null;
+    for(let i=0;i<n;i++){
+      if(!keep[i]) continue;
+      if(last!=null && i<n-1 && _gfHaversine(pts[last].lat,pts[last].lon,pts[i].lat,pts[i].lon)<1) keep[i]=false;
+      else last=i;
+    }
+  }
+  if(keep.filter(Boolean).length<2) return -1;
+  const outPts=[], outNodes=[]; let dropped=0;
+  for(let i=0;i<n;i++){
+    if(keep[i]){ outPts.push(pts[i]); outNodes.push(nodes[i]); }
+    else { try{nodes[i].remove();}catch{} dropped++; }
+  }
+  parsed.pts=outPts; parsed.nodes=outNodes;
+  return dropped;
+}
+
 async function runGpxFix(){
   const res=document.getElementById('gpxResult');
-  const f=document.getElementById('gpxFile').files[0];
-  if(!f){ res.innerHTML='<div class="gpx-err">Choose a .gpx file first.</div>'; return; }
-  let parsed;
-  try{ parsed=_gfParseGpx(await f.text()); }
-  catch(e){ res.innerHTML='<div class="gpx-err">'+e.message+'</div>'; return; }
-  if(!parsed.pts.length){ res.innerHTML='<div class="gpx-err">No track points found in this GPX.</div>'; return; }
+  const input=document.getElementById('gpxFile');
+  if(!_gfFiles.length && input && input.files.length) await gpxAddFiles(input.files);
+  if(!_gfFiles.length){ res.innerHTML='<div class="gpx-err">Import at least one .gpx file first.</div>'; return; }
 
-  const before = parsed.pts.map(p=>[p.lat,p.lon]);
-  const ceiling = (parseFloat(document.getElementById('gpxCeiling').value)||65)/3.6;
-  const r=_gfFixTrack(parsed.pts, {
-    smooth:   document.getElementById('gpxSmooth').checked,
-    fixSpeed: document.getElementById('gpxFixSpeed').checked,
-    ceiling
-  });
-  const out=_gfSerialize(parsed.doc, parsed.nodes, parsed.pts);
-  const name=f.name.replace(/\.gpx$/i,'')+'-fixed.gpx';
+  const ceiling=(parseFloat(document.getElementById('gpxCeiling').value)||65)/3.6;
+  const opts={
+    smooth:  document.getElementById('gpxSmooth').checked,
+    fixSpeed:document.getElementById('gpxFixSpeed').checked,
+    dedupe:  document.getElementById('gpxDedupe').checked,
+    ele:     document.getElementById('gpxEle').checked,
+    trimStart:Math.max(0,parseFloat(document.getElementById('gpxTrimStart').value)||0),
+    trimEnd:  Math.max(0,parseFloat(document.getElementById('gpxTrimEnd').value)||0),
+    privacy:  Math.max(0,parseFloat(document.getElementById('gpxPrivacy').value)||0),
+  };
+
+  const lines=[]; let firstBefore=null, firstAfter=null;
+  for(const f of _gfFiles){
+    let parsed;
+    try{ parsed=_gfParseGpx(f.text); } // re-parse so repairs never accumulate across runs
+    catch(e){ lines.push(`<div class="gpx-err">${_gfXmlEsc(f.name)}: ${e.message||e}</div>`); continue; }
+    const before=parsed.pts.map(p=>[p.lat,p.lon]);
+    const dropped=_gfDropPoints(parsed, opts);
+    if(dropped<0){ lines.push(`<div class="gpx-err">${_gfXmlEsc(f.name)}: trim/privacy would remove the whole track — skipped.</div>`); continue; }
+    const r=_gfFixTrack(parsed.pts,{smooth:opts.smooth, fixSpeed:opts.fixSpeed, ceiling});
+    const eleFixed=opts.ele?_gfFixEle(parsed.pts,parsed.nodes):0;
+    const out=_gfSerialize(parsed.doc, parsed.nodes, parsed.pts);
+    const name=f.name.replace(/\.gpx$/i,'')+'-fixed.gpx';
+    _gfDownload(out, name);
+    await _gfSleep(300); // breathing room between multiple downloads
+    lines.push(`<div class="gpx-ok">${_gfXmlEsc(f.name)}: normalized <b>${r.speedFixed}</b> speed spike(s), smoothed <b>${r.smoothed}</b> point(s)${opts.ele?`, repaired <b>${eleFixed}</b> elevation sample(s)`:''}${dropped?`, dropped <b>${dropped}</b> point(s)`:''} → <b>${name}</b></div>`);
+    if(!firstBefore){ firstBefore=before; firstAfter=parsed.pts.map(p=>[p.lat,p.lon]); }
+  }
+  res.innerHTML=lines.join('');
+  if(firstBefore) _gfPreview(firstBefore, firstAfter);
+}
+
+// Merge every imported file into one GPX: files sorted by start time, each
+// later file's <trkseg>s appended to the first file's <trk> — points keep
+// their extensions, so heart rate and cadence survive the merge.
+function runGpxMerge(){
+  const res=document.getElementById('gpxResult');
+  if(_gfFiles.length<2){ res.innerHTML='<div class="gpx-err">Import at least two .gpx files to merge.</div>'; return; }
+  const parsedAll=[];
+  for(const f of _gfFiles){
+    try{ const p=_gfParseGpx(f.text); parsedAll.push({f, p, start:_gfStats(p.pts).start}); }
+    catch(e){ res.innerHTML=`<div class="gpx-err">${_gfXmlEsc(f.name)}: ${e.message||e}</div>`; return; }
+  }
+  parsedAll.sort((a,b)=>(+a.start||0)-(+b.start||0));
+  const base=parsedAll[0].p.doc;
+  const trk=base.querySelector('trk');
+  if(!trk){ res.innerHTML=`<div class="gpx-err">${_gfXmlEsc(parsedAll[0].f.name)} has no &lt;trk&gt; element.</div>`; return; }
+  for(let i=1;i<parsedAll.length;i++){
+    parsedAll[i].p.doc.querySelectorAll('trkseg').forEach(seg=>trk.appendChild(base.importNode(seg,true)));
+  }
+  const out=new XMLSerializer().serializeToString(base);
+  const name=parsedAll[0].f.name.replace(/\.gpx$/i,'')+'-merged.gpx';
   _gfDownload(out, name);
-  res.innerHTML=`<div class="gpx-ok">Normalized <b>${r.speedFixed}</b> speed spike(s) and smoothed <b>${r.smoothed}</b> point(s). Downloaded <b>${name}</b>.</div>`;
-  _gfPreview(before, parsed.pts.map(p=>[p.lat,p.lon]));
+  res.innerHTML=`<div class="gpx-ok">Merged <b>${parsedAll.length}</b> files in start-time order → <b>${name}</b>. Repair options are not applied while merging — re-import the merged file to repair it.</div>`;
 }
 
 let _gfMapBefore=null, _gfMapAfter=null;
@@ -463,4 +616,14 @@ async function uploadFixedAll(){
 // render the Fix section on first open (called from navScrollTo)
 function renderFixSection(){
   renderSpeedAnomalies();
+  const input=document.getElementById('gpxFile');
+  if(input) input.onchange=()=>{ gpxAddFiles(input.files); input.value=''; }; // .onchange: no listener stacking on re-open
+  const drop=document.getElementById('gpxDrop');
+  if(drop && !drop._gfWired){
+    drop._gfWired=true;
+    ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('drag'); }));
+    drop.addEventListener('drop',e=>{ const fs=e.dataTransfer&&e.dataTransfer.files; if(fs&&fs.length) gpxAddFiles(fs); });
+  }
+  _gfRenderFiles();
 }
