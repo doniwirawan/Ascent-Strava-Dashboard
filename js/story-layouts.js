@@ -25,7 +25,10 @@ function drawLayout(canvas, act, selected, sc, layout) {
     const sw = W / scale, sh = H / scale;
     const sx = (iw - sw) / 2, sy = (ih - sh) / 2;
     ctx.drawImage(storyBgImage, sx, sy, sw, sh, 0, 0, W, H);
-    ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, W, H);
+    // sky/outline are photo-forward — they keep the picture bright and rely on
+    // thin type instead of a heavy scrim
+    const dim = (layout === 'sky' || layout === 'outline') ? 0.12 : 0.45;
+    ctx.fillStyle = `rgba(0,0,0,${dim})`; ctx.fillRect(0, 0, W, H);
   } else if (sc.bg && sc.bg !== 'transparent') {
     if (sc.bg.startsWith('linear-gradient')) {
       const m = sc.bg.match(/linear-gradient\([^,]+,\s*([^,]+),\s*([^)]+)\)/);
@@ -1861,6 +1864,92 @@ function drawLayout(canvas, act, selected, sc, layout) {
       if (!hideLogo) {
         ctx.fillStyle = withAlpha(sc.text, 140); ctx.font = F(20, 800); ctx.textAlign = 'center'; ctx.letterSpacing = '0.1em';
         ctx.fillText('ASCENT', W / 2, H - Math.round(56 * S)); ctx.letterSpacing = '0px';
+      }
+      break;
+    }
+
+    /* 29. SKY — photo-forward: hairline route across the frame, light centred
+       stat stack (small label over big thin value), sport name off to the side */
+    case 'sky': {
+      if (!skipBg) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = Math.round(12 * S);
+      if (!hideRoute && polyline && polyline.length > 1) {
+        drawRoute(ctx, polyline, Math.round(W * 0.05), Math.round(H * 0.16), Math.round(W * 0.90), Math.round(H * 0.62), withAlpha(sc.text, 200), Math.max(1, Math.round(3 * S)), true);
+      }
+      const sky = selected.slice(0, 4);
+      const rowH = Math.round(150 * S);
+      const y0 = Math.round(H * 0.44) - (sky.length * rowH) / 2;
+      const cx = Math.round(W * 0.46);
+      sky.forEach((s, i) => {
+        const { num, unit } = statVal(s, act), disp = (num + (unit ? unit : '')).toUpperCase();
+        const ly = y0 + i * rowH + Math.round(34 * S);
+        ctx.fillStyle = withAlpha(sc.text, 190); ctx.font = F(26, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0.02em';
+        ctx.fillText(s.label, cx, ly);
+        let vfs = Math.round(84 * S); ctx.font = `300 ${vfs}px -apple-system,sans-serif`;
+        while (vfs > Math.round(24 * S) && ctx.measureText(disp).width > W * 0.72) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `300 ${vfs}px -apple-system,sans-serif`; }
+        ctx.fillStyle = sc.text; ctx.letterSpacing = '0px';
+        ctx.fillText(disp, cx, ly + Math.round(78 * S));
+      });
+      ctx.fillStyle = withAlpha(sc.text, 230); ctx.font = F(38, 400); ctx.textAlign = 'left'; ctx.letterSpacing = '0.14em';
+      ctx.fillText((act.type || 'ACTIVITY').toUpperCase(), Math.round(W * 0.76), Math.round(H * 0.44));
+      ctx.letterSpacing = '0px';
+      let sy = y0 + sky.length * rowH + Math.round(56 * S);
+      if (!hideTitle) {
+        const nm = act.name || 'Activity';
+        fitText(nm, Math.round(W * 0.8), 46, 400);
+        ctx.fillStyle = sc.text; ctx.textAlign = 'center'; ctx.letterSpacing = '0.06em';
+        ctx.fillText(nm, cx, sy); ctx.letterSpacing = '0px'; sy += Math.round(48 * S);
+      }
+      if (!hideDate) {
+        ctx.fillStyle = withAlpha(sc.text, 180); ctx.font = F(26, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0.04em';
+        ctx.fillText(act.start_date ? fmtDt(act.start_date) : '', cx, sy); ctx.letterSpacing = '0px';
+      }
+      if (!hideLogo) {
+        ctx.fillStyle = withAlpha(sc.text, 150); ctx.font = F(20, 700); ctx.textAlign = 'center'; ctx.letterSpacing = '0.12em';
+        ctx.fillText('ASCENT', W / 2, H - Math.round(56 * S)); ctx.letterSpacing = '0px';
+      }
+      ctx.restore();
+      break;
+    }
+
+    /* 30. OUTLINE — big haloed route outline over the photo, quiet stat row along
+       the bottom edge */
+    case 'outline': {
+      if (!skipBg) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      if (!hideRoute && polyline && polyline.length > 1) {
+        const rx = Math.round(W * 0.12), ry = Math.round(H * 0.10), rw = Math.round(W * 0.76), rh = Math.round(H * 0.60);
+        drawRoute(ctx, polyline, rx, ry, rw, rh, withAlpha(sc.text, 45), Math.max(2, Math.round(11 * S)), true);
+        drawRoute(ctx, polyline, rx, ry, rw, rh, sc.text, Math.max(1, Math.round(3.5 * S)), true);
+      }
+      let oy = Math.round(H * 0.80);
+      if (!hideTitle) {
+        const nm = act.name || 'Activity';
+        fitText(nm, W - P * 2, 44, 600);
+        ctx.fillStyle = sc.text; ctx.textAlign = 'center'; ctx.letterSpacing = '0.02em';
+        ctx.fillText(nm, W / 2, oy); ctx.letterSpacing = '0px'; oy += Math.round(44 * S);
+      }
+      if (!hideDate) {
+        ctx.fillStyle = withAlpha(sc.text, 170); ctx.font = F(24, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0.04em';
+        ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), W / 2, oy); ctx.letterSpacing = '0px';
+      }
+      const ocs = selected.slice(0, 3);
+      if (ocs.length) {
+        const rowY = Math.round(H * 0.90), cW = (W - P * 2) / ocs.length;
+        ocs.forEach((s, i) => {
+          const ccx = P + i * cW + cW / 2;
+          const { num, unit } = statVal(s, act), disp = num + (unit ? ' ' + unit : '');
+          ctx.fillStyle = withAlpha(sc.text, 170); ctx.font = F(22, 400); ctx.textAlign = 'center'; ctx.letterSpacing = '0.02em';
+          ctx.fillText(s.label, ccx, rowY);
+          let vfs = Math.round(42 * S); ctx.font = `600 ${vfs}px -apple-system,sans-serif`;
+          while (vfs > Math.round(18 * S) && ctx.measureText(disp).width > cW * 0.9) { vfs -= Math.max(1, Math.round(2 * S)); ctx.font = `600 ${vfs}px -apple-system,sans-serif`; }
+          ctx.fillStyle = sc.text; ctx.letterSpacing = '0px';
+          ctx.fillText(disp, ccx, rowY + Math.round(52 * S));
+        });
+      }
+      if (!hideLogo) {
+        ctx.fillStyle = withAlpha(sc.text, 130); ctx.font = F(18, 700); ctx.textAlign = 'center'; ctx.letterSpacing = '0.12em';
+        ctx.fillText('ASCENT', W / 2, H - Math.round(34 * S)); ctx.letterSpacing = '0px';
       }
       break;
     }

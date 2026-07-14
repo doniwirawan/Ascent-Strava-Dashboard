@@ -168,5 +168,7 @@ const LAYOUTS = [
   { id: 'frame', name: 'Frame' },
   { id: 'pace', name: 'Pace' },
   { id: 'column', name: 'Column' },
+  { id: 'sky', name: 'Sky' },
+  { id: 'outline', name: 'Outline' },
 
 ];

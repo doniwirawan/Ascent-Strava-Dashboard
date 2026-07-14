@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════ */
 
 
-function drawRoute(ctx, pts, x, y, w, h, color, lw) {
+function drawRoute(ctx, pts, x, y, w, h, color, lw, noDots) {
   if(hideRoute) return;
   if(!pts||pts.length<2) return;
   const lats=pts.map(p=>p[0]),lngs=pts.map(p=>p[1]);
@@ -22,6 +22,7 @@ function drawRoute(ctx, pts, x, y, w, h, color, lw) {
   pts.forEach((p,i)=>i===0?ctx.moveTo(toX(p[1]),toY(p[0])):ctx.lineTo(toX(p[1]),toY(p[0])));
   ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.lineJoin='round';
   ctx.stroke();
+  if(noDots) return;
   const s=pts[0], e=pts[pts.length-1];
   ctx.fillStyle=color;
   ctx.beginPath(); ctx.arc(toX(s[1]),toY(s[0]),lw*2.5,0,Math.PI*2); ctx.fill();
