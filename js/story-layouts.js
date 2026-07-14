@@ -1871,7 +1871,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
     /* 29. SKY — photo-forward: hairline route across the frame, light centred
        stat stack (small label over big thin value), sport name off to the side */
     case 'sky': {
-      if (!skipBg) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = Math.round(12 * S);
       if (!hideRoute && polyline && polyline.length > 1) {
@@ -1916,7 +1916,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
     /* 30. OUTLINE — big haloed route outline over the photo, quiet stat row along
        the bottom edge */
     case 'outline': {
-      if (!skipBg) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
       if (!hideRoute && polyline && polyline.length > 1) {
         const rx = Math.round(W * 0.12), ry = Math.round(H * 0.10), rw = Math.round(W * 0.76), rh = Math.round(H * 0.60);
         drawRoute(ctx, polyline, rx, ry, rw, rh, withAlpha(sc.text, 45), Math.max(2, Math.round(11 * S)), true);
