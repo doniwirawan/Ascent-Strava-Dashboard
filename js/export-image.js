@@ -196,6 +196,9 @@ async function _freezeMapsIn(section) {
   const candidates = [];
   if (typeof leafletMapInst !== 'undefined' && leafletMapInst) candidates.push(leafletMapInst);
   if (typeof segMaps !== 'undefined' && Array.isArray(segMaps)) segMaps.forEach(s => s && s.m && candidates.push(s.m));
+  // GPX Fix before/after preview maps (fixSection is exportable too)
+  if (typeof _gfMapBefore !== 'undefined' && _gfMapBefore) candidates.push(_gfMapBefore);
+  if (typeof _gfMapAfter !== 'undefined' && _gfMapAfter) candidates.push(_gfMapAfter);
 
   const restores = [];
   for (const map of candidates) {
@@ -232,7 +235,7 @@ async function _doSaveImg() {
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#090909';
   const [W, H] = _SAVE_IMG_DIMS[_saveImgOrient][_saveImgRes];
 
-  let restoreMaps = null, restoreWidth = null, restoreGrids = null;
+  let restoreMaps = null, restoreWidth = null, restoreGrids = null, restoreWrap = null;
   try {
     let shot;
     if (isHeatmap) {
@@ -244,6 +247,24 @@ async function _doSaveImg() {
         const lazy = section.querySelectorAll('.seg-map:not(.leaflet-container)');
         if (lazy.length) { lazy.forEach(t => { try { _initSegMapEl(t); } catch {} }); await new Promise(r => setTimeout(r, 1200)); }
       }
+      // The Overview view is three sibling blocks (stat cards, fun insights,
+      // HR zones) — group them in a throwaway wrapper for the capture so the
+      // export shows the whole view, not just the stat cards.
+      let captureEl = section;
+      if (section.id === 'statRow') {
+        const extras = ['ovInsights', 'ovHrz']
+          .map(id => document.getElementById(id))
+          .filter(el => el && el.style.display !== 'none' && el.innerHTML.trim());
+        if (extras.length) {
+          const wrap = document.createElement('div');
+          const moved = [section, ...extras].map(el => ({ el, next: el.nextSibling, parent: el.parentNode }));
+          section.parentNode.insertBefore(wrap, section);
+          moved.forEach(({ el }) => wrap.appendChild(el));
+          // restore in reverse so each node's saved nextSibling is already back
+          restoreWrap = () => { moved.reverse().forEach(({ el, next, parent }) => parent.insertBefore(el, next)); wrap.remove(); };
+          captureEl = wrap;
+        }
+      }
       // Reflow the section FOR REAL to a width that suits the chosen frame
       // (tall/narrow for 9:16, wide for 16:9 when exporting from a phone),
       // then capture that honest layout. The old approach — html2canvas's
@@ -252,12 +273,12 @@ async function _doSaveImg() {
       // cut off or letterboxed whenever the two disagreed.
       // desktop only ever widens (a phone window exporting 16:9); shrinking a
       // wide layout stacks the content taller and letterboxes the wide frame
-      const targetW = _saveImgOrient === 'desktop' ? Math.max(section.clientWidth, 1360) : 640;
-      if (Math.abs(section.clientWidth - targetW) > 80) {
-        const prevCss = section.style.cssText;
-        section.style.width = targetW + 'px';
-        section.style.maxWidth = 'none';
-        restoreWidth = () => { section.style.cssText = prevCss; window.dispatchEvent(new Event('resize')); };
+      const targetW = _saveImgOrient === 'desktop' ? Math.max(captureEl.clientWidth, 1360) : 640;
+      if (Math.abs(captureEl.clientWidth - targetW) > 80) {
+        const prevCss = captureEl.style.cssText;
+        captureEl.style.width = targetW + 'px';
+        captureEl.style.maxWidth = 'none';
+        restoreWidth = () => { captureEl.style.cssText = prevCss; window.dispatchEvent(new Event('resize')); };
         window.dispatchEvent(new Event('resize'));
         await new Promise(r => setTimeout(r, 500)); // charts re-render at the new width
         // Leaflet maps keep their old pixel size until told otherwise
@@ -265,22 +286,22 @@ async function _doSaveImg() {
         await new Promise(r => setTimeout(r, 250));
       }
       // pin grids to their live geometry (see _freezeGridsIn) before measuring
-      restoreGrids = _freezeGridsIn(section);
+      restoreGrids = _freezeGridsIn(captureEl);
       // Leaflet maps in the section (e.g. segment thumbnails) are rasterised
       // separately — html2canvas can't read their transform-positioned tiles.
-      restoreMaps = await _freezeMapsIn(section);
+      restoreMaps = await _freezeMapsIn(captureEl);
       // Browsers silently return a blank canvas beyond ~16k px per side or a
       // max total area (~268M px on desktop, only ~16.7M px on iOS WebKit) —
       // the tall Segments list at 2–3x blows through those, which exported an
       // empty frame. Clamp the capture scale so the shot always stays within
       // safe limits (softer beats blank).
-      const sw = Math.max(1, section.scrollWidth || section.clientWidth);
-      const sh = Math.max(1, section.scrollHeight || section.clientHeight);
+      const sw = Math.max(1, captureEl.scrollWidth || captureEl.clientWidth);
+      const sh = Math.max(1, captureEl.scrollHeight || captureEl.clientHeight);
       const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       const MAX_DIM = 16000, MAX_AREA = isIOS ? 16e6 : 200e6;
       const wantScale = _saveImgRes === 'ultra' ? 3 : 2;
       const safeScale = Math.min(wantScale, MAX_DIM / Math.max(sw, sh), Math.sqrt(MAX_AREA / (sw * sh)));
-      shot = await html2canvas(section, {
+      shot = await html2canvas(captureEl, {
         backgroundColor: bg,
         // capture at a scale that matches the output so Ultra is genuinely
         // sharper, not an upscale of the same 2x shot
@@ -327,6 +348,7 @@ async function _doSaveImg() {
     if (restoreMaps) restoreMaps();
     if (restoreGrids) restoreGrids();
     if (restoreWidth) restoreWidth();
+    if (restoreWrap) restoreWrap();
     go.textContent = prev;
     go.disabled = false;
   }
