@@ -31,6 +31,9 @@ function trophySvg(n){
     flame:'<path d="M12 2c1.3 3.3 4.6 4.6 4.6 9A4.6 4.6 0 0 1 7.4 11c0-1.6.7-2.8 1.7-3.8.2 1.9 1.9 2.1 1.9.3 0-2 .3-4 1-5.5z" fill="currentColor"/>',
     target:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/>',
     medal:'<path d="M9 3l3 5.5L15 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="15" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="m12 11.6 1.1 2.3 2.5.3-1.9 1.7.5 2.5-2.2-1.2-2.2 1.2.5-2.5-1.9-1.7 2.5-.3z" fill="currentColor"/>',
+    sun:'<circle cx="12" cy="12" r="4.6" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    moon:'<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" fill="currentColor"/>',
+    clock:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.5 2.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   };
   return `<svg viewBox="0 0 24 24" width="34" height="34">${I[n]||I.trophy}</svg>`;
 }
@@ -715,6 +718,15 @@ async function renderChallenges(){
   const ltElev=lifetimeElev||acts.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
   const biggestRide=bigRide>0?bigRide:longestRide;
 
+  // start_date_local is wall-clock time with a fake 'Z' — slice the hour as-is
+  const hourOf=a=>parseInt((a.start_date_local||a.start_date||'').slice(11,13),10);
+  const earlyCount=acts.filter(a=>{const h=hourOf(a);return h>=3&&h<6;}).length;
+  const nightCount=acts.filter(a=>{const h=hourOf(a);return h>=21||h<3;}).length;
+  // longest consecutive-day streak (same walk as the Milestones section)
+  const dayset=new Set(acts.map(a=>a.start_date?a.start_date.slice(0,10):null).filter(Boolean));
+  let streak=0,srun=0; const sd=new Date();
+  for(let i=0;i<730;i++){const k=sd.toISOString().slice(0,10); if(dayset.has(k)){srun++;streak=Math.max(streak,srun);}else srun=0; sd.setDate(sd.getDate()-1);}
+
   const badges=[
     {icon:'crown',   name:'KOM / QOM',       val:komList.length,        unit:'segments',  color:'#ffd700', unlocked:komList.length>0},
     {icon:'trophy',  name:'Achievements',     val:totalAch.toLocaleString(), unit:'on Strava', color:'#ffd700', unlocked:totalAch>0},
@@ -728,6 +740,14 @@ async function renderChallenges(){
     {icon:'world',   name:'10,000 km Club',  val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#a78bfa',unlocked:ltDist>=10000},
     {icon:'target',  name:'100 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#fb923c',unlocked:(lifetimeRides||rides.length)>=100},
     {icon:'medal',   name:'500 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#a78bfa',unlocked:(lifetimeRides||rides.length)>=500},
+    {icon:'world',   name:'Double Century',   val:biggestRide.toFixed(1),unit:'km best',color:'#facc15',unlocked:biggestRide>=200},
+    {icon:'runner',  name:'Marathoner',       val:longestRun.toFixed(1),unit:'km best',color:'#38bdf8',unlocked:longestRun>=42.195},
+    {icon:'mountain',name:'1,000 m Climb',    val:Math.round(bigClimb).toLocaleString(),unit:'m biggest climb',color:'#e879f9',unlocked:bigClimb>=1000},
+    {icon:'clock',   name:'100 Hours',        val:lifetimeHours.toLocaleString(),unit:'hours moved',color:'#4da8ff',unlocked:lifetimeHours>=100},
+    {icon:'flame',   name:'7-Day Streak',     val:streak,unit:'days best',color:'#ef4444',unlocked:streak>=7},
+    {icon:'sun',     name:'Early Bird',       val:earlyCount,unit:'pre-6am starts',color:'#fbbf24',unlocked:earlyCount>=10},
+    {icon:'moon',    name:'Night Owl',        val:nightCount,unit:'after-9pm starts',color:'#a78bfa',unlocked:nightCount>=10},
+    {icon:'globe',   name:'25,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#22d3ee',unlocked:ltDist>=25000},
   ];
 
   _trophyBadges = badges;
