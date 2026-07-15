@@ -6,6 +6,8 @@
 
 <p align="center"><a href="README.md">🇬🇧 English</a> · <a href="README.id.md">🇮🇩 Bahasa Indonesia</a></p>
 
+<p align="center"><a href="https://ko-fi.com/L7T7234BJ2"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="ko-fi"></a></p>
+
 Dashboard aktivitas Strava pribadi dengan pembuat kartu cerita (story card) bergaya Instagram/TikTok. Dibangun sebagai aplikasi satu halaman statis — tanpa framework, tanpa backend.
 
 **Demo langsung:** https://ascent-analytics.vercel.app/
