@@ -682,6 +682,15 @@
 .ai-modal-body .ai-log { flex: 1; min-height: 280px; max-height: none; }
 .ai-clear-btn { margin-left: auto; margin-right: 12px; background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 12px; font-weight: 600; padding: 6px 13px; border-radius: 999px; cursor: pointer; }
 .ai-clear-btn:hover { border-color: var(--border-hover); color: var(--text); }
+/* compact mode once a conversation is running — the chat gets the space */
+.ai-modal-body.ai-compact .ai-intro, .ai-modal-body.ai-compact .ai-goal { display: none; }
+.ai-modal-body.ai-compact .ai-quick { margin: 0 0 10px; }
+/* copy-reply button beside bot bubbles */
+.ai-copy { align-self: flex-start; margin-top: 6px; flex: none; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; font-size: 12px; line-height: 1; padding: 4px 6px; cursor: pointer; opacity: 0; transition: opacity .15s, color .15s; }
+.ai-row:hover .ai-copy, .ai-copy:focus-visible { opacity: 1; }
+.ai-copy:hover { color: var(--text); }
+@media (hover: none) { .ai-copy { opacity: .6; } }
+.ai-send:disabled { opacity: .55; cursor: default; }
 
 /* AI chat: rows + avatars (typical AI chat layout) */
 .ai-row { display: flex; gap: 10px; align-items: flex-start; }

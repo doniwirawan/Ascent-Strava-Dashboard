@@ -39,6 +39,15 @@
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  /* the whole .modal scrolls, so pin the header (and its ✕) to the top —
+     negative margins bleed it over the modal padding so content can't show
+     through above or beside it while scrolling */
+  position: sticky;
+  top: -22px; /* sticky pins to the padding box — pull up by the modal's padding so no content peeks above */
+  z-index: 20;
+  background: var(--surface);
+  margin: -22px -22px 0;
+  padding: 18px 22px 10px;
 }
 
 .modal-title { font-size: 14px; font-weight: 700; }

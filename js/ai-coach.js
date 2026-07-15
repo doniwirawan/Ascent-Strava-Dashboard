@@ -809,6 +809,14 @@ function aiAppend(role, html, cls) {
   div.className = 'ai-msg ai-' + role + (cls ? ' ' + cls : '');
   div.innerHTML = html;
   row.appendChild(div);
+  // copy button on real bot replies (not errors or the thinking dots)
+  if (role === 'bot' && cls !== 'err' && html.indexOf('ai-dots') === -1) {
+    const cp = document.createElement('button');
+    cp.className = 'ai-copy'; cp.type = 'button'; cp.title = 'Copy reply'; cp.setAttribute('aria-label', 'Copy reply');
+    cp.textContent = '⧉';
+    cp.onclick = () => { try { navigator.clipboard.writeText(div.innerText); cp.textContent = '✓'; setTimeout(() => { cp.textContent = '⧉'; }, 1200); } catch {} };
+    row.appendChild(cp);
+  }
   log.appendChild(row);
   log.scrollTop = log.scrollHeight;
   return row; // return the row so the "thinking" placeholder removes cleanly
@@ -846,10 +854,15 @@ function aiErrorMessage(data, status) {
   return 'Something went wrong' + (status ? ' (HTTP ' + status + ')' : '') + '. Try again.';
 }
 
+let _aiBusy = false;
 async function aiSend(userText) {
+  if (_aiBusy) return; // one question at a time
   if (typeof acts === 'undefined' || !acts.length) { aiAppend('bot', 'Load your activities first.', 'err'); return; }
   const token = localStorage.getItem('strava_access_token');
   if (!token) { aiAppend('bot', 'You need to be connected to Strava.', 'err'); return; }
+  _aiBusy = true;
+  const sendBtn = document.querySelector('#aiForm .ai-send');
+  if (sendBtn) sendBtn.disabled = true;
 
   aiAppend('user', aiMd(userText));
   aiMessages.push({ role: 'user', content: userText });
@@ -881,6 +894,9 @@ async function aiSend(userText) {
   } catch (e) {
     thinking.remove();
     aiAppend('bot', 'Network error — could not reach the AI.', 'err');
+  } finally {
+    _aiBusy = false;
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
 
@@ -906,17 +922,32 @@ async function aiSend(userText) {
     keyEl.onchange = () => { localStorage.setItem('ai_key', keyEl.value.trim()); };
   }
 
+  // the textarea grows with its content (CSS max-height caps it)
+  const grow = () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 140) + 'px'; };
+  input.addEventListener('input', grow);
+
   form.addEventListener('submit', e => {
     e.preventDefault();
     const t = input.value.trim();
     if (!t) return;
     input.value = '';
+    grow();
     aiSend(t);
   });
   // Enter sends, Shift+Enter newline
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
   });
+
+  // once a conversation is running, hide the intro + goal field so the chat
+  // gets the vertical space (matters most on phones)
+  const logEl = document.getElementById('aiLog');
+  const bodyEl = document.querySelector('#aiModal .ai-modal-body');
+  if (logEl && bodyEl) {
+    const upd = () => bodyEl.classList.toggle('ai-compact', !!logEl.children.length);
+    new MutationObserver(upd).observe(logEl, { childList: true });
+    upd();
+  }
 
   // Settings → Save (persist choice) and Test connection (token-free check)
   const saveBtn = document.getElementById('aiSaveBtn');
@@ -940,8 +971,10 @@ async function aiSend(userText) {
     btn.addEventListener('click', () => {
       let p = btn.getAttribute('data-ai-prompt');
       if (p === '__goal__') {
-        const g = (document.getElementById('aiGoal').value || '').trim();
-        if (!g) { document.getElementById('aiGoal').focus(); return; }
+        const gi = document.getElementById('aiGoal');
+        const g = (gi.value || '').trim();
+        if (!g) { gi.style.display = 'block'; gi.focus(); return; } // compact mode hides it — bring it back
+        gi.style.display = '';
         p = `My goal is: "${g}". Based on my data, how am I tracking toward it, and what should I adjust over the next few weeks?`;
       }
       aiSend(p);

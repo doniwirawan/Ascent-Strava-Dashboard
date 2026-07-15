@@ -68,6 +68,22 @@
     padding: 14px 12px 20px;
   }
 
+  /* sticky header sized to the mobile modal padding, with a bigger,
+     higher-contrast close button that stays visible while scrolling */
+  .modal-header {
+    top: -14px; /* match the mobile modal padding (see story.css note) */
+    margin: -14px -12px 0;
+    padding: 12px 12px 10px;
+    box-shadow: 0 8px 14px -12px rgba(0, 0, 0, .8);
+  }
+  .modal-close {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    background: var(--surface3);
+    color: var(--text);
+  }
+
   /* the Story modal fills the screen on mobile — no empty space above it */
   #storyModal .modal {
     max-height: 100vh;
@@ -92,6 +108,15 @@
   .color-swatch { width: 26px; height: 26px; }
   .modal-actions { flex-direction: row; }
   #statToggles { grid-template-columns: 1fr 1fr !important; }
+
+  /* AI Coach on phones: one scrollable chip row, tighter body padding,
+     wider bubbles so the chat area isn't squeezed */
+  .ai-modal-body { padding: 10px 2px 0; }
+  .ai-quick { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
+  .ai-quick::-webkit-scrollbar { display: none; }
+  .ai-quick .ai-chip { flex: none; }
+  .ai-msg, .ai-row .ai-msg { max-width: 92%; }
+  .ai-modal-body .ai-log { min-height: 0; padding: 12px; }
 }
 
 @media (max-width: 420px) {
