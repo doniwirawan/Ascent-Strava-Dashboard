@@ -31,8 +31,9 @@
 /* "Also by me" promo at the foot of the sidebar */
 .sidebar-promo { padding: 14px 16px 18px; border-top: 1px solid var(--border); }
 .sidebar-promo-label { font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
-.sidebar-promo-link { display: block; color: var(--orange); font-weight: 700; font-size: 13px; text-decoration: none; }
+.sidebar-promo-link { display: flex; align-items: center; gap: 7px; color: var(--orange); font-weight: 700; font-size: 13px; text-decoration: none; }
 .sidebar-promo-link:hover { text-decoration: underline; }
+.sidebar-promo-logo { width: 20px; height: 20px; border-radius: 5px; flex: none; }
 .sidebar-promo-sub { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
 
 /* off-canvas backdrop (used on mobile) */
