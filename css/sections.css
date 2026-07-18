@@ -1026,3 +1026,17 @@ body.dev .dev-tag { display: inline-block; }
 @media (max-width: 640px) {
   .hrd-grid { grid-template-columns: 1fr; }
 }
+
+/* ── TIME LOST ANALYSIS ──────────────────────────────────────────────── */
+.tr-tl { padding: 16px; margin-top: 16px; }
+.tl-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.tl-avg-v { font-size: 26px; font-weight: 900; letter-spacing: -.5px; color: var(--text); }
+.tl-avg-u { font-size: 11px; color: var(--muted); }
+.tl-avg-dim .tl-avg-v { color: var(--muted); font-size: 20px; }
+.tl-lost { margin-left: auto; font-size: 12px; font-weight: 700; color: #fb923c; }
+.tl-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.tl-lbl { font-size: 12px; font-weight: 600; color: var(--text-2); width: 96px; flex: none; }
+.tl-track { flex: 1; height: 8px; border-radius: 4px; background: var(--surface3, #2a2a2a); overflow: hidden; }
+.tl-track > span { display: block; height: 100%; border-radius: 4px; }
+.tl-t { font-size: 12px; font-weight: 700; color: var(--text); width: 58px; text-align: right; flex: none; }
+.tl-pct { font-size: 11px; color: var(--muted); width: 34px; text-align: right; flex: none; }

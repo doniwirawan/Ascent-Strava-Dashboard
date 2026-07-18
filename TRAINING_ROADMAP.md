@@ -68,7 +68,7 @@ Numbered roughly as raised. Reassess priority when we get here.
 - **Heart Rate Decoupling** 🔶 — **BUILT** (js/hr-decoupling.js) — first-vs-second-half efficiency (output÷HR) drift on the latest long ride, with a coupled/moderate/high band. Reuses the existing compact stream cache (single cached fetch).
 - **Ride Quality Score** ✅ — **BUILT** (js/training.js) — latest ride scored 0–100 by percentile vs own history (Endurance / Climbing / Efficiency / Effort).
 - **Personal Records Explorer** ✅ — **BUILT** (js/training.js) — longest ride, biggest climbing day, fastest century, longest Zone-2, highest cadence, highest power, hottest/coldest (from `average_temp`). Rain-based records still need 🌦 weather.
-- **Time Lost Analysis** 🔶 — break a ride into stopped / climbing / descending / coasting / pedaling; "where did average speed disappear?" Needs velocity + grade + moving streams.
+- **Time Lost Analysis** 🔶 — **BUILT** (js/time-lost.js) — latest ride's moving time split into climbing / descending / flat-pedalling / coasting, plus exact stopped time (elapsed − moving) and moving-vs-overall avg speed. Reuses the compact stream cache.
 - **Power Curve** 🔶 — **BUILT** (js/power-curve.js) — best power over 5s/30s/1min/5min/20min/60min from full-res watts streams; rolling max per window, per-ride results cached, aggregated to the all-time curve. Owner-gated + on-demand (shared rate limit).
 - **FTP Prediction without power** ✅/🔶 — trend estimate from HR, climbing speed, historical segments, previous efforts. Not lab-accurate; shows direction.
 - **"Similar Ride" Comparison** ✅ — **BUILT** (js/training.js) — pick rides of similar distance/elevation to the latest ride and rank (fastest, lowest HR, most climbing). Context raw averages can't give.

@@ -571,7 +571,8 @@ function renderTraining() {
     ${_trConsistencyHTML()}
     ${_trTrendsHTML()}
     ${typeof _trPowerCurveHTML === 'function' ? _trPowerCurveHTML() : ''}
-    ${typeof _trHrDecouplingHTML === 'function' ? _trHrDecouplingHTML() : ''}`;
+    ${typeof _trHrDecouplingHTML === 'function' ? _trHrDecouplingHTML() : ''}
+    ${typeof _trTimeLostHTML === 'function' ? _trTimeLostHTML() : ''}`;
 
   _trDrawChart(d.series);
 }
