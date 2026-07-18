@@ -187,9 +187,9 @@ function _renderBikeList(el, bikes) {
 
 async function renderGear(){
   const el=document.getElementById('gearGrid');
-  if(_gearCache){ _renderBikeList(el,_gearCache); renderGearTool(_gearCache); return; }
+  if(_gearCache){ _renderBikeList(el,_gearCache); renderGearTool(_gearCache); renderGearMaint(_gearCache); return; }
   let bikes=(currentAthlete&&currentAthlete.bikes)||[];
-  if(bikes.length){ _gearCache=bikes; _renderBikeList(el,bikes); renderGearTool(bikes); return; }
+  if(bikes.length){ _gearCache=bikes; _renderBikeList(el,bikes); renderGearTool(bikes); renderGearMaint(bikes); return; }
 
   // fallback: fetch each unique gear_id from activities
   const gearIds=[...new Set(acts.map(a=>a.gear_id).filter(Boolean))];
@@ -205,6 +205,7 @@ async function renderGear(){
     _gearCache=bikes;
     _renderBikeList(el,bikes);
     renderGearTool(bikes);
+    renderGearMaint(bikes);
   }catch(e){
     el.innerHTML=`<div class="card" style="color:var(--muted);font-size:13px;">Gear error: ${e.message}</div>`;
   }

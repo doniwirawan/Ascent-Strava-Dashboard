@@ -38,7 +38,7 @@ The analytical centerpiece. A TrainingPeaks-style Performance Management Chart.
 - **Recovery recommendation:** rule-based text from TSB bands (fresh / neutral / productive-fatigue / high-fatigue) + ramp; upgraded to a tailored AI plan for the owner.
 - Chart: CTL/ATL lines + TSB fill over time.
 
-### 2. Consistency Score ✅
+### 2. Consistency Score ✅ — **BUILT** (js/training.js, Training section)
 Consistency over raw mileage.
 - Days ridden this month
 - Longest streak (consecutive days)
@@ -46,11 +46,11 @@ Consistency over raw mileage.
 - Missed weeks (zero-ride weeks)
 - Overall consistency percentage
 
-### 3. Profile + FTP card ✅
+### 3. Profile + FTP card ✅ — **BUILT** (js/training.js, top of Training section)
 Promote the existing one-line `estimateFtp()` (in `js/fitness.js`) into a proper card:
 FTP value, W/kg (needs athlete weight), and the basis (Strava-set / best 20-min power ×0.95 / 2.5 W/kg from weight), plus profile summary (name, since, location, KOMs/PRs/kudos).
 
-### 4. Bike Usage + Maintenance ✅ (usage) / baseline-tracked (maintenance)
+### 4. Bike Usage + Maintenance ✅ (usage) / baseline-tracked (maintenance) — **BUILT** (js/gear-maint.js, Gear section)
 Extends the **Gear** section. Per bike (grouped by `gear_id`, named from `currentAthlete.bikes`):
 - Distance, elevation, hours, avg speed. (Table like the example.)
 - **Maintenance** (baseline + track): chain wear, tire replacement, brake pad, wax/lube — each with a user-set "last serviced at X km / date" and an editable threshold; warn when km-since ≥ threshold.
