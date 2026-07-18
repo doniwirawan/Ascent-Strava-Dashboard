@@ -8,7 +8,7 @@ function renderAll() {
   // Render each section in isolation so one failing section can never blank
   // out the others (or abort navScrollTo at the end).
   [renderStats, renderOverviewInsights, renderOverviewZones, renderCycling, renderRunning, renderTrends, renderActivities,
-   renderCalendar, renderEddington, renderMonthly, renderBestEfforts,
+   renderCalendar, renderEddington, renderTraining, renderMonthly, renderBestEfforts,
    renderMilestones, renderRewind, renderPhotos].forEach(fn => {
     try { fn(); } catch (e) { console.error('render failed:', fn.name, e); }
   });

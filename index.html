@@ -362,6 +362,10 @@
       <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
       Eddington
     </button>
+    <button class="nav-link" onclick="navScrollTo('trainingSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+      Training
+    </button>
 
     <div class="sidebar-group-label">Activities</div>
 
@@ -682,6 +686,12 @@
   <div id="bestSection" style="display:none">
     <div class="section-title">Best Efforts</div>
     <div id="bestGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;"></div>
+  </div>
+
+  <!-- TRAINING LOAD & FATIGUE -->
+  <div id="trainingSection" style="display:none">
+    <div class="section-title">Training Load &amp; Fatigue</div>
+    <div id="trainingBody"></div>
   </div>
 
   <!-- GEAR -->
@@ -1204,6 +1214,7 @@
 <script src="js/pwa-install.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/ai-coach.js"></script>
+<script src="js/training.js"></script>
 <script src="js/routes.js"></script>
 <script src="js/app.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
