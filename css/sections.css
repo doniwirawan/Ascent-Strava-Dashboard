@@ -960,3 +960,22 @@ body.dev .dev-tag { display: inline-block; }
 @media (max-width: 640px) {
   .gm-comps { grid-template-columns: 1fr; }
 }
+
+/* ── FITNESS TREND / SEASONAL / SIMILAR RIDE ─────────────────────────── */
+.tr-trend, .tr-seas, .tr-sim { padding: 16px; margin-top: 16px; }
+.tr-trend-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+
+.tr-seas-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.tr-seas-tile { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; text-align: center; }
+.tr-seas-val { font-size: 22px; font-weight: 900; letter-spacing: -.5px; line-height: 1.1; }
+.tr-seas-lbl { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+
+.tr-sim-head { font-size: 13px; color: var(--text-2); line-height: 1.5; margin-bottom: 12px; }
+.tr-sim-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.tr-sim-chip { font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+.tr-sim-chip.tr-sim-best { color: var(--orange); border-color: rgba(252,76,2,.4); background: rgba(252,76,2,.08); }
+.tr-sim-of { color: var(--muted); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .tr-seas-grid { grid-template-columns: repeat(2, 1fr); }
+}

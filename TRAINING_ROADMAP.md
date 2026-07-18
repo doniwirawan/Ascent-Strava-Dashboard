@@ -61,7 +61,7 @@ Extends the **Gear** section. Per bike (grouped by `gear_id`, named from `curren
 
 Numbered roughly as raised. Reassess priority when we get here.
 
-- **Fitness Trend (not Distance Trend)** ✅ — track avg power & speed on **Zone-2 rides** over time (monthly buckets). Rising W / km-h at the same aerobic zone = real fitness gain.
+- **Fitness Trend (not Distance Trend)** ✅ — **BUILT** (js/training.js) — track avg power & speed on **Zone-2 rides** over time (monthly buckets). Rising W / km-h at the same aerobic zone = real fitness gain.
 - **Climbing Ability** ✅ (list) / 🔶 (per-climb) — VAM (m/hr), meters climbed per hour, climbing speed, climbing efficiency, average gradient ridden. Separate climbing from flat riding. Per-climb detection needs grade streams.
 - **Wind Analysis** 🌦 🔶 — headwind / tailwind / crosswind %, wind-adjusted speed. Needs historical weather (wind speed+direction) joined to GPS bearing from streams. Heaviest lift — external weather API required. Reframes a "slow" ride as actually strong.
 - **Segment Intelligence** 🔶 — segments closest to PR, stagnating, improving fastest, estimated next-PR probability ("4s behind PR, 82% chance"). Needs segment effort history.
@@ -71,8 +71,8 @@ Numbered roughly as raised. Reassess priority when we get here.
 - **Time Lost Analysis** 🔶 — break a ride into stopped / climbing / descending / coasting / pedaling; "where did average speed disappear?" Needs velocity + grade + moving streams.
 - **Power Curve** 🔶 — best power over 5s/30s/1min/5min/20min/60min. Needs the watts stream (power-meter rides only); rolling max per window.
 - **FTP Prediction without power** ✅/🔶 — trend estimate from HR, climbing speed, historical segments, previous efforts. Not lab-accurate; shows direction.
-- **"Similar Ride" Comparison** ✅ — pick rides of similar distance/elevation to today's and rank (3rd fastest, lowest HR, best climbing, etc.). Context raw averages can't give.
-- **Seasonal Insights** ✅ — year-over-year answers: stronger this July vs last? climbing faster this year? best month/year ever? most consistent winter? peak-fitness month?
+- **"Similar Ride" Comparison** ✅ — **BUILT** (js/training.js) — pick rides of similar distance/elevation to the latest ride and rank (fastest, lowest HR, most climbing). Context raw averages can't give.
+- **Seasonal Insights** ✅ — **BUILT** (js/training.js) — biggest year/month, YTD vs same point last year, this-month avg speed vs last year.
 
 ---
 

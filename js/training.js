@@ -256,6 +256,153 @@ function _trFtpCardHTML(ftpEst) {
     </div>`;
 }
 
+/* ── FITNESS TREND (ZONE-2) / SEASONAL / SIMILAR RIDE ─────────────────────────
+   Three list-data insight cards, no extra API calls. */
+
+const _TR_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function _trMonthLabel(ym) { const [y, m] = ym.split('-'); return `${_TR_MON[(+m) - 1]} ${y}`; }
+function _trOrdinal(n) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+
+// Fitness Trend: avg power & speed on Zone-2 (aerobic) rides over time.
+function _trZone2Trend() {
+  if (typeof hrZoneFor !== 'function') return null;
+  const rides = acts.filter(a => isRide(a) && a.average_heartrate > 0 && a.average_speed > 0);
+  const z2 = rides.filter(a => { const z = hrZoneFor(a.average_heartrate); return z && z.n === 2; });
+  if (z2.length < 3) return null;
+  z2.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+  const recent = z2.slice(-15);
+  const months = {};
+  recent.forEach(a => {
+    const m = (a.start_date_local || a.start_date || '').slice(0, 7);
+    const g = months[m] || (months[m] = { n: 0, spd: 0, w: 0, wn: 0 });
+    g.n++; g.spd += a.average_speed;
+    if (a.average_watts > 0) { g.w += a.average_watts; g.wn++; }
+  });
+  const rows = Object.keys(months).sort().map(m => {
+    const g = months[m];
+    return { month: m, kmh: kmh(g.spd / g.n), w: g.wn ? Math.round(g.w / g.wn) : null, n: g.n };
+  });
+  if (rows.length < 2) return null;
+  const first = rows[0], last = rows[rows.length - 1];
+  const spdDelta = +(last.kmh - first.kmh).toFixed(1);
+  return { rows, count: recent.length, spdDelta };
+}
+
+// Seasonal Insights: best year/month, YTD vs last year, this-month strength.
+function _trSeasonal() {
+  const rides = acts.filter(isRide);
+  if (rides.length < 8) return null;
+  const today = _trToday();
+  const yr = +today.slice(0, 4), md = today.slice(5); // MM-DD cutoff
+  const byYear = {}, byMonth = {};
+  rides.forEach(a => {
+    const ds = (a.start_date_local || a.start_date || ''); if (!ds) return;
+    const y = ds.slice(0, 4), m = ds.slice(0, 7);
+    (byYear[y] = byYear[y] || { dist: 0 }).dist += a.distance || 0;
+    const g = (byMonth[m] = byMonth[m] || { dist: 0, spd: 0, n: 0 });
+    g.dist += a.distance || 0; if (a.average_speed > 0) { g.spd += a.average_speed; g.n++; }
+  });
+  // best year / best month by distance
+  const bestYear = Object.keys(byYear).sort((a, b) => byYear[b].dist - byYear[a].dist)[0];
+  const bestMonth = Object.keys(byMonth).sort((a, b) => byMonth[b].dist - byMonth[a].dist)[0];
+  // YTD (Jan 1 → today's MM-DD) this year vs last year
+  const ytd = y => rides.reduce((s, a) => { const ds = (a.start_date_local || a.start_date || ''); return (ds.slice(0, 4) == y && ds.slice(5, 10) <= md) ? s + (a.distance || 0) : s; }, 0);
+  const ytdNow = ytd(yr), ytdPrev = ytd(yr - 1);
+  const ytdPct = ytdPrev > 0 ? Math.round((ytdNow - ytdPrev) / ytdPrev * 100) : null;
+  // this calendar month avg speed vs same month last year
+  const curM = today.slice(0, 7), prevM = (yr - 1) + today.slice(4, 7);
+  const avgKmh = m => (byMonth[m] && byMonth[m].n) ? kmh(byMonth[m].spd / byMonth[m].n) : null;
+  const spdNow = avgKmh(curM), spdPrev = avgKmh(prevM);
+  const spdDelta = (spdNow != null && spdPrev != null) ? +(spdNow - spdPrev).toFixed(1) : null;
+  return {
+    bestYear, bestYearKm: byYear[bestYear].dist,
+    bestMonth, bestMonthKm: byMonth[bestMonth].dist,
+    ytdNow, ytdPct, curMonthName: _TR_MON[+today.slice(5, 7) - 1], spdDelta,
+  };
+}
+
+// Similar Ride: rank the latest ride among past rides of similar distance/elevation.
+function _trSimilar() {
+  const rides = acts.filter(a => isRide(a) && a.distance > 0)
+    .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''));
+  if (rides.length < 4) return null;
+  const cur = rides[0], curElev = cur.total_elevation_gain || 0;
+  const similar = rides.slice(1).filter(a => {
+    if (Math.abs((a.distance - cur.distance) / cur.distance) > 0.15) return false;
+    if (curElev > 50) { const er = Math.abs(((a.total_elevation_gain || 0) - curElev) / curElev); if (er > 0.4) return false; }
+    return true;
+  }).slice(0, 12);
+  if (similar.length < 2) return null;
+  const pool = [cur, ...similar];
+  const rank = (val, key, desc) => {
+    const arr = pool.map(x => x[key] || 0).sort((a, b) => desc ? b - a : a - b);
+    return arr.indexOf(val) + 1;
+  };
+  return {
+    cur, n: similar.length, total: pool.length,
+    spdRank: rank(cur.average_speed || 0, 'average_speed', true),
+    hrRank: cur.average_heartrate ? rank(cur.average_heartrate, 'average_heartrate', false) : null,
+    climbRank: rank(curElev, 'total_elevation_gain', true),
+  };
+}
+
+function _trTrendsHTML() {
+  let html = '';
+
+  // Fitness Trend
+  const ft = _trZone2Trend();
+  if (ft) {
+    const rows = ft.rows.map(r => `<tr>
+      <td>${_trMonthLabel(r.month)}</td><td>${r.n}</td>
+      <td>${r.w != null ? r.w + ' W' : '—'}</td><td>${r.kmh.toFixed(1)} ${speedUnit()}</td>
+    </tr>`).join('');
+    const trend = ft.spdDelta > 0 ? `<span style="color:#22c55e">▲ +${ft.spdDelta} ${speedUnit()}</span> at the same aerobic effort`
+      : ft.spdDelta < 0 ? `<span style="color:#ef4444">▼ ${ft.spdDelta} ${speedUnit()}</span> at the same aerobic effort`
+      : 'holding steady at the same aerobic effort';
+    html += `<div class="card tr-trend">
+      <div class="tr-chart-title">Fitness Trend — last ${ft.count} Zone-2 rides</div>
+      <div class="tr-trend-sub">Speed on easy aerobic rides ${trend}. Rising numbers at Zone 2 signal real fitness gains.</div>
+      <div class="gm-table-wrap"><table class="gm-table"><thead><tr><th>Month</th><th>Rides</th><th>Avg power</th><th>Avg speed</th></tr></thead><tbody>${rows}</tbody></table></div>
+    </div>`;
+  }
+
+  // Seasonal Insights
+  const se = _trSeasonal();
+  if (se) {
+    const tile = (val, lbl, color) => `<div class="tr-seas-tile"><div class="tr-seas-val" style="color:${color || 'var(--text)'}">${val}</div><div class="tr-seas-lbl">${lbl}</div></div>`;
+    const ytdCol = se.ytdPct == null ? 'var(--text)' : se.ytdPct >= 0 ? '#22c55e' : '#ef4444';
+    const ytdVal = se.ytdPct == null ? '—' : (se.ytdPct >= 0 ? '+' : '') + se.ytdPct + '%';
+    const spdCol = se.spdDelta == null ? 'var(--text)' : se.spdDelta >= 0 ? '#22c55e' : '#ef4444';
+    const spdVal = se.spdDelta == null ? '—' : (se.spdDelta >= 0 ? '+' : '') + se.spdDelta + ' ' + speedUnit();
+    html += `<div class="card tr-seas">
+      <div class="tr-chart-title">Seasonal Insights</div>
+      <div class="tr-seas-grid">
+        ${tile(Math.round(kmVal(se.bestYearKm)).toLocaleString() + ' ' + distUnit(), 'Biggest year · ' + se.bestYear, 'var(--orange)')}
+        ${tile(Math.round(kmVal(se.bestMonthKm)).toLocaleString() + ' ' + distUnit(), 'Biggest month · ' + _trMonthLabel(se.bestMonth))}
+        ${tile(ytdVal, 'Distance vs same point last year', ytdCol)}
+        ${tile(spdVal, se.curMonthName + ' avg speed vs last year', spdCol)}
+      </div>
+    </div>`;
+  }
+
+  // Similar Ride
+  const si = _trSimilar();
+  if (si) {
+    const chip = (rank, total, best, word) => `<span class="tr-sim-chip${rank === 1 ? ' tr-sim-best' : ''}">${rank === 1 ? best : _trOrdinal(rank) + ' ' + word} <span class="tr-sim-of">of ${total}</span></span>`;
+    const chips = [
+      chip(si.spdRank, si.total, 'Fastest', 'fastest'),
+      si.hrRank ? chip(si.hrRank, si.total, 'Lowest HR', 'lowest HR') : '',
+      chip(si.climbRank, si.total, 'Most climbing', 'most climbing'),
+    ].filter(Boolean).join('');
+    html += `<div class="card tr-sim">
+      <div class="tr-chart-title">Similar Ride Comparison</div>
+      <div class="tr-sim-head">Your latest ride — <b>${si.cur.name || 'Ride'}</b> · ${fmtD(si.cur.distance)}, ${fmtElev(si.cur.total_elevation_gain || 0)} — vs ${si.n} similar past ride${si.n === 1 ? '' : 's'}:</div>
+      <div class="tr-sim-chips">${chips}</div>
+    </div>`;
+  }
+  return html;
+}
+
 function renderTraining() {
   const sec = document.getElementById('trainingSection');
   if (!sec) return;
@@ -301,7 +448,8 @@ function renderTraining() {
       <div class="tr-basis-note">Daily load basis: ${_trBasisNote(d.basis)}${d.ftpEst ? ` · FTP ${d.ftpEst.value}w${d.ftpEst.estimated ? ' (est.)' : ''}` : ''}</div>
     </div>
 
-    ${_trConsistencyHTML()}`;
+    ${_trConsistencyHTML()}
+    ${_trTrendsHTML()}`;
 
   _trDrawChart(d.series);
 }
