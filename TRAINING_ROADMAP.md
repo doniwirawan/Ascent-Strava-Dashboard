@@ -70,7 +70,7 @@ Numbered roughly as raised. Reassess priority when we get here.
 - **Personal Records Explorer** ✅ — **BUILT** (js/training.js) — longest ride, biggest climbing day, fastest century, longest Zone-2, highest cadence, highest power, hottest/coldest (from `average_temp`). Rain-based records still need 🌦 weather.
 - **Time Lost Analysis** 🔶 — **BUILT** (js/time-lost.js) — latest ride's moving time split into climbing / descending / flat-pedalling / coasting, plus exact stopped time (elapsed − moving) and moving-vs-overall avg speed. Reuses the compact stream cache.
 - **Power Curve** 🔶 — **BUILT** (js/power-curve.js) — best power over 5s/30s/1min/5min/20min/60min from full-res watts streams; rolling max per window, per-ride results cached, aggregated to the all-time curve. Owner-gated + on-demand (shared rate limit).
-- **FTP Prediction without power** ✅/🔶 — trend estimate from HR, climbing speed, historical segments, previous efforts. Not lab-accurate; shows direction.
+- **FTP Prediction without power** ✅ — **BUILT** (js/training.js) — Estimated FTP Trend card: best ≥20-min normalized power per quarter × 0.95, charted over time. (FTP value itself is in the FTP card + Power Curve.)
 - **"Similar Ride" Comparison** ✅ — **BUILT** (js/training.js) — pick rides of similar distance/elevation to the latest ride and rank (fastest, lowest HR, most climbing). Context raw averages can't give.
 - **Seasonal Insights** ✅ — **BUILT** (js/training.js) — biggest year/month, YTD vs same point last year, this-month avg speed vs last year.
 

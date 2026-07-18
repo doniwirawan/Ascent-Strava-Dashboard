@@ -224,6 +224,41 @@ function _trWkgLabel(wkg) {
   return 'Building';
 }
 
+// FTP trend: best ≥20-min normalized power per quarter × 0.95 (same basis as
+// estimateFtp), so you can see the estimate move over time. Power rides only.
+function _trFtpTrend() {
+  const rides = acts.filter(a => isRide(a) && (a.moving_time || 0) >= 1200 && (a.weighted_average_watts > 0 || a.average_watts > 0));
+  if (rides.length < 4) return null;
+  const q = {};
+  rides.forEach(a => {
+    const ds = (a.start_date_local || a.start_date || ''); if (!ds) return;
+    const key = ds.slice(0, 4) + '-Q' + (Math.floor((+ds.slice(5, 7) - 1) / 3) + 1);
+    const np = a.weighted_average_watts || a.average_watts;
+    if (!q[key] || np > q[key]) q[key] = np;
+  });
+  const keys = Object.keys(q).sort();
+  if (keys.length < 2) return null;
+  const rows = keys.slice(-8).map(k => ({ q: k, ftp: Math.round(q[k] * 0.95) }));
+  return { rows, delta: rows[rows.length - 1].ftp - rows[0].ftp };
+}
+
+function _trFtpTrendHTML() {
+  const t = _trFtpTrend();
+  if (!t) return '';
+  const maxF = Math.max(...t.rows.map(r => r.ftp), 1);
+  const bars = t.rows.map(r => `<div class="ftpt-col">
+    <span class="ftpt-v">${r.ftp}</span>
+    <span class="ftpt-bar" style="height:${Math.max(8, Math.round(r.ftp / maxF * 100))}%"></span>
+    <span class="ftpt-q">${r.q.replace('-', ' ')}</span>
+  </div>`).join('');
+  const trend = t.delta > 0 ? `<span style="color:#22c55e">▲ +${t.delta} W</span>` : t.delta < 0 ? `<span style="color:#ef4444">▼ ${t.delta} W</span>` : 'flat';
+  return `<div class="card tr-ftpt">
+    <div class="tr-chart-title">Estimated FTP Trend</div>
+    <div class="tr-trend-sub">${trend} over ${t.rows.length} quarters, from your best ≥20-min normalized power × 0.95.</div>
+    <div class="ftpt-strip">${bars}</div>
+  </div>`;
+}
+
 function _trFtpCardHTML(ftpEst) {
   if (!ftpEst) return '';
   const ath = (typeof currentAthlete !== 'undefined' && currentAthlete) || {};
@@ -545,6 +580,7 @@ function renderTraining() {
 
   body.innerHTML = `
     ${_trFtpCardHTML(d.ftpEst)}
+    ${_trFtpTrendHTML()}
     <div class="tr-tiles">
       ${tile(Math.round(d.ctl), '', 'Fitness · CTL', 'var(--orange)', '42-day load')}
       ${tile(Math.round(d.atl), '', 'Fatigue · ATL', '#a78bfa', '7-day load')}
