@@ -346,8 +346,87 @@ function _trSimilar() {
   };
 }
 
+// Climbing Ability: ride-level climbing rate, gradient, best VAM.
+function _trClimbing() {
+  const rides = acts.filter(a => isRide(a) && a.moving_time > 0 && a.distance > 0);
+  if (rides.length < 3) return null;
+  let totElev = 0, totTime = 0, totDist = 0, bestVam = null;
+  rides.forEach(a => {
+    const elev = a.total_elevation_gain || 0, hrs = a.moving_time / 3600;
+    totElev += elev; totTime += a.moving_time; totDist += a.distance;
+    const grad = elev / a.distance;
+    if (hrs >= 0.5 && grad >= 0.015) { const vam = elev / hrs; if (!bestVam || vam > bestVam.vam) bestVam = { vam, a }; }
+  });
+  return {
+    mPerHour: totTime > 0 ? totElev / (totTime / 3600) : 0,
+    avgGrad: totDist > 0 ? totElev / totDist * 100 : 0,
+    elevPerKm: totDist > 0 ? totElev / (totDist / 1000) : 0,
+    bestVam,
+  };
+}
+
+// Personal Records Explorer: fun bests from list data (weather-based ones need
+// the 🌦 upgrade). Each record → {label, value, ride, date} or null when absent.
+function _trPRRecords() {
+  const rides = acts.filter(isRide);
+  if (rides.length < 3) return null;
+  const maxBy = (f, filter) => { let best = null, bv = -Infinity; rides.forEach(a => { if (filter && !filter(a)) return; const v = f(a); if (v > bv) { bv = v; best = a; } }); return best; };
+  const minBy = (f, filter) => { let best = null, bv = Infinity; rides.forEach(a => { if (filter && !filter(a)) return; const v = f(a); if (v < bv) { bv = v; best = a; } }); return best; };
+  const z2 = a => { const z = (typeof hrZoneFor === 'function') && a.average_heartrate > 0 && hrZoneFor(a.average_heartrate); return z && z.n === 2; };
+  const rec = (label, a, val) => a ? { label, value: val, name: a.name || 'Ride', date: a.start_date } : null;
+
+  const list = [
+    rec('Longest ride', maxBy(a => a.distance || 0), a => fmtD(a.distance)),
+    rec('Biggest climbing day', maxBy(a => a.total_elevation_gain || 0), a => fmtElev(a.total_elevation_gain || 0)),
+    rec('Fastest century', maxBy(a => a.average_speed || 0, a => a.distance >= 100000), a => fmtSpeed(a.average_speed)),
+    rec('Longest Zone-2 ride', maxBy(a => a.moving_time || 0, z2), a => fmtT(a.moving_time)),
+    rec('Highest avg cadence', maxBy(a => a.average_cadence || 0, a => a.average_cadence > 0), a => Math.round(a.average_cadence) + ' rpm'),
+    rec('Highest avg power', maxBy(a => a.average_watts || 0, a => a.average_watts > 0), a => Math.round(a.average_watts) + ' W'),
+    rec('Hottest ride', maxBy(a => a.average_temp != null ? a.average_temp : -999, a => a.average_temp != null), a => Math.round(a.average_temp) + '°C'),
+    rec('Coldest ride', minBy(a => a.average_temp != null ? a.average_temp : 999, a => a.average_temp != null), a => Math.round(a.average_temp) + '°C'),
+  ].filter(Boolean);
+  // resolve value fns
+  return list.map(r => ({ label: r.label, name: r.name, date: r.date, value: r.value(rides.find(a => (a.name || 'Ride') === r.name && a.start_date === r.date) || {}) }));
+}
+
+// Ride Quality Score: latest ride scored 0–100 by percentile vs the athlete's
+// own ride history (endurance / climbing / efficiency / effort).
+function _trRideQuality() {
+  const rides = acts.filter(a => isRide(a) && a.moving_time > 0);
+  if (rides.length < 8) return null;
+  const cur = rides.slice().sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''))[0];
+  const pct = (val, arr) => { const s = arr.filter(v => v > 0).sort((a, b) => a - b); if (!s.length) return null; let c = 0; s.forEach(v => { if (v <= val) c++; }); return c / s.length; };
+  const endurance = pct(cur.moving_time || 0, rides.map(a => a.moving_time || 0));
+  const climbing = pct(cur.total_elevation_gain || 0, rides.map(a => a.total_elevation_gain || 0));
+  const efficiency = pct(cur.average_speed || 0, rides.map(a => a.average_speed || 0));
+  const effVal = cur.suffer_score || cur.average_heartrate || 0;
+  const effort = effVal ? pct(effVal, rides.map(a => a.suffer_score || a.average_heartrate || 0)) : null;
+  const parts = [endurance, climbing, efficiency, effort].filter(v => v != null);
+  const overall = Math.round(parts.reduce((s, v) => s + v, 0) / parts.length * 100);
+  const s10 = v => v == null ? null : +(v * 10).toFixed(1);
+  return { cur, overall, endurance: s10(endurance), climbing: s10(climbing), efficiency: s10(efficiency), effort: s10(effort) };
+}
+
 function _trTrendsHTML() {
   let html = '';
+
+  // Climbing Ability
+  const cl = _trClimbing();
+  if (cl) {
+    const tile = (val, unit, lbl, sub) => `<div class="tr-seas-tile"><div class="tr-seas-val">${val}<span style="font-size:13px;font-weight:700;color:var(--muted);margin-left:2px">${unit}</span></div><div class="tr-seas-lbl">${lbl}</div>${sub ? `<div class="tr-tile-sub">${sub}</div>` : ''}</div>`;
+    html += `<div class="card tr-seas">
+      <div class="tr-chart-title">Climbing Ability</div>
+      <div class="tr-seas-grid">
+        ${tile(Math.round(cl.mPerHour), 'm/h', 'Climb rate', 'elevation per moving hour')}
+        ${tile(cl.avgGrad.toFixed(1), '%', 'Avg gradient', 'net climb over distance')}
+        ${tile(Math.round(cl.elevPerKm), 'm/' + distUnit(), 'Elevation density', 'climb per ' + distUnit())}
+        ${cl.bestVam ? tile(Math.round(cl.bestVam.vam), 'VAM', 'Best ride', (cl.bestVam.a.name || 'Ride')) : tile('—', '', 'Best VAM', 'no sustained climbs')}
+      </div>
+      <div class="tr-basis-note">Ride-level estimate — per-climb VAM from GPS streams is a future upgrade.</div>
+    </div>`;
+  }
+
+  // Fitness Trend
 
   // Fitness Trend
   const ft = _trZone2Trend();
@@ -382,6 +461,47 @@ function _trTrendsHTML() {
         ${tile(ytdVal, 'Distance vs same point last year', ytdCol)}
         ${tile(spdVal, se.curMonthName + ' avg speed vs last year', spdCol)}
       </div>
+    </div>`;
+  }
+
+  // Personal Records Explorer
+  const pr = _trPRRecords();
+  if (pr && pr.length) {
+    const tiles = pr.map(r => `<div class="tr-pr-tile">
+      <div class="tr-pr-val">${r.value}</div>
+      <div class="tr-pr-lbl">${r.label}</div>
+      <div class="tr-pr-ride">${r.name} · ${fmtDt(r.date)}</div>
+    </div>`).join('');
+    html += `<div class="card tr-seas">
+      <div class="tr-chart-title">Personal Records Explorer</div>
+      <div class="tr-pr-grid">${tiles}</div>
+    </div>`;
+  }
+
+  // Ride Quality Score
+  const rq = _trRideQuality();
+  if (rq) {
+    const col = rq.overall >= 80 ? '#22c55e' : rq.overall >= 60 ? '#fb923c' : '#ef4444';
+    const bar = (lbl, v) => v == null ? '' : `<div class="tr-rq-row">
+      <span class="tr-rq-lbl">${lbl}</span>
+      <span class="tr-rq-track"><span style="width:${v * 10}%;background:${col}"></span></span>
+      <span class="tr-rq-num">${v.toFixed(1)}</span>
+    </div>`;
+    html += `<div class="card tr-rq">
+      <div class="tr-chart-title">Ride Quality Score — latest ride</div>
+      <div class="tr-rq-grid">
+        <div class="tr-rq-overall">
+          <div class="tr-rq-big" style="color:${col}">${rq.overall}<span>/100</span></div>
+          <div class="tr-rq-name">${rq.cur.name || 'Ride'}</div>
+        </div>
+        <div class="tr-rq-bars">
+          ${bar('Endurance', rq.endurance)}
+          ${bar('Climbing', rq.climbing)}
+          ${bar('Efficiency', rq.efficiency)}
+          ${bar('Effort', rq.effort)}
+        </div>
+      </div>
+      <div class="tr-basis-note">Each dimension is this ride's percentile against your own ride history.</div>
     </div>`;
   }
 

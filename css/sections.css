@@ -979,3 +979,27 @@ body.dev .dev-tag { display: inline-block; }
 @media (max-width: 640px) {
   .tr-seas-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── PR EXPLORER / RIDE QUALITY ──────────────────────────────────────── */
+.tr-pr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.tr-pr-tile { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 14px; }
+.tr-pr-val { font-size: 20px; font-weight: 900; letter-spacing: -.5px; color: var(--orange); line-height: 1.1; }
+.tr-pr-lbl { font-size: 11px; font-weight: 700; color: var(--text); margin-top: 6px; }
+.tr-pr-ride { font-size: 10px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.tr-rq-grid { display: grid; grid-template-columns: 150px 1fr; gap: 20px; align-items: center; }
+.tr-rq-overall { text-align: center; }
+.tr-rq-big { font-size: 46px; font-weight: 900; letter-spacing: -1.5px; line-height: 1; }
+.tr-rq-big span { font-size: 16px; font-weight: 700; color: var(--muted); }
+.tr-rq-name { font-size: 11px; color: var(--muted); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-rq-bars { display: flex; flex-direction: column; gap: 9px; }
+.tr-rq-row { display: flex; align-items: center; gap: 10px; }
+.tr-rq-lbl { font-size: 12px; font-weight: 600; color: var(--text-2); width: 78px; flex: none; }
+.tr-rq-track { flex: 1; height: 7px; border-radius: 4px; background: var(--surface3, #2a2a2a); overflow: hidden; }
+.tr-rq-track > span { display: block; height: 100%; border-radius: 4px; }
+.tr-rq-num { font-size: 12px; font-weight: 800; color: var(--text); width: 30px; text-align: right; flex: none; }
+
+@media (max-width: 640px) {
+  .tr-pr-grid { grid-template-columns: repeat(2, 1fr); }
+  .tr-rq-grid { grid-template-columns: 1fr; gap: 14px; }
+}

@@ -62,12 +62,12 @@ Extends the **Gear** section. Per bike (grouped by `gear_id`, named from `curren
 Numbered roughly as raised. Reassess priority when we get here.
 
 - **Fitness Trend (not Distance Trend)** ✅ — **BUILT** (js/training.js) — track avg power & speed on **Zone-2 rides** over time (monthly buckets). Rising W / km-h at the same aerobic zone = real fitness gain.
-- **Climbing Ability** ✅ (list) / 🔶 (per-climb) — VAM (m/hr), meters climbed per hour, climbing speed, climbing efficiency, average gradient ridden. Separate climbing from flat riding. Per-climb detection needs grade streams.
+- **Climbing Ability** ✅ (list) — **BUILT** (js/training.js) — climb rate (m/h), avg gradient, elevation density, best-ride VAM. Per-climb VAM from grade streams is the future 🔶 upgrade.
 - **Wind Analysis** 🌦 🔶 — headwind / tailwind / crosswind %, wind-adjusted speed. Needs historical weather (wind speed+direction) joined to GPS bearing from streams. Heaviest lift — external weather API required. Reframes a "slow" ride as actually strong.
 - **Segment Intelligence** 🔶 — segments closest to PR, stagnating, improving fastest, estimated next-PR probability ("4s behind PR, 82% chance"). Needs segment effort history.
 - **Heart Rate Decoupling** 🔶 — aerobic decoupling: compare pace/power-to-HR between first and second half (e.g. same speed, HR drifts 140→150). Needs HR + velocity streams.
-- **Ride Quality Score** ✅/🔶 — composite 0–100 from sub-scores (Endurance, Recovery, Climbing, Efficiency). More meaningful than distance.
-- **Personal Records Explorer** ✅ / 🌦 (weather ones) — fastest rainy ride, longest Zone-2 ride, biggest climbing day, fastest century, highest avg cadence, highest normalized HR, coldest/hottest ride. Temp sometimes in `average_temp`; rain needs weather.
+- **Ride Quality Score** ✅ — **BUILT** (js/training.js) — latest ride scored 0–100 by percentile vs own history (Endurance / Climbing / Efficiency / Effort).
+- **Personal Records Explorer** ✅ — **BUILT** (js/training.js) — longest ride, biggest climbing day, fastest century, longest Zone-2, highest cadence, highest power, hottest/coldest (from `average_temp`). Rain-based records still need 🌦 weather.
 - **Time Lost Analysis** 🔶 — break a ride into stopped / climbing / descending / coasting / pedaling; "where did average speed disappear?" Needs velocity + grade + moving streams.
 - **Power Curve** 🔶 — best power over 5s/30s/1min/5min/20min/60min. Needs the watts stream (power-meter rides only); rolling max per window.
 - **FTP Prediction without power** ✅/🔶 — trend estimate from HR, climbing speed, historical segments, previous efforts. Not lab-accurate; shows direction.
