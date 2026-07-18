@@ -1003,3 +1003,12 @@ body.dev .dev-tag { display: inline-block; }
   .tr-pr-grid { grid-template-columns: repeat(2, 1fr); }
   .tr-rq-grid { grid-template-columns: 1fr; gap: 14px; }
 }
+
+/* ── POWER CURVE ─────────────────────────────────────────────────────── */
+.tr-pc { padding: 16px; margin-top: 16px; }
+.pc-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+.pc-dur { font-size: 12px; font-weight: 700; color: var(--text-2); width: 48px; flex: none; }
+.pc-track { flex: 1; height: 9px; border-radius: 5px; background: var(--surface3, #2a2a2a); overflow: hidden; }
+.pc-track > span { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #a855f7, #fc4c02); }
+.pc-w { font-size: 13px; font-weight: 800; color: var(--text); width: 56px; text-align: right; flex: none; }
+.pc-wkg { font-size: 11px; color: var(--muted); width: 68px; text-align: right; flex: none; }

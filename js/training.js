@@ -569,7 +569,8 @@ function renderTraining() {
     </div>
 
     ${_trConsistencyHTML()}
-    ${_trTrendsHTML()}`;
+    ${_trTrendsHTML()}
+    ${typeof _trPowerCurveHTML === 'function' ? _trPowerCurveHTML() : ''}`;
 
   _trDrawChart(d.series);
 }
