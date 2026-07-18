@@ -65,7 +65,7 @@ Numbered roughly as raised. Reassess priority when we get here.
 - **Climbing Ability** ✅ (list) — **BUILT** (js/training.js) — climb rate (m/h), avg gradient, elevation density, best-ride VAM. Per-climb VAM from grade streams is the future 🔶 upgrade.
 - **Wind Analysis** 🌦 🔶 — headwind / tailwind / crosswind %, wind-adjusted speed. Needs historical weather (wind speed+direction) joined to GPS bearing from streams. Heaviest lift — external weather API required. Reframes a "slow" ride as actually strong.
 - **Segment Intelligence** 🔶 — segments closest to PR, stagnating, improving fastest, estimated next-PR probability ("4s behind PR, 82% chance"). Needs segment effort history.
-- **Heart Rate Decoupling** 🔶 — aerobic decoupling: compare pace/power-to-HR between first and second half (e.g. same speed, HR drifts 140→150). Needs HR + velocity streams.
+- **Heart Rate Decoupling** 🔶 — **BUILT** (js/hr-decoupling.js) — first-vs-second-half efficiency (output÷HR) drift on the latest long ride, with a coupled/moderate/high band. Reuses the existing compact stream cache (single cached fetch).
 - **Ride Quality Score** ✅ — **BUILT** (js/training.js) — latest ride scored 0–100 by percentile vs own history (Endurance / Climbing / Efficiency / Effort).
 - **Personal Records Explorer** ✅ — **BUILT** (js/training.js) — longest ride, biggest climbing day, fastest century, longest Zone-2, highest cadence, highest power, hottest/coldest (from `average_temp`). Rain-based records still need 🌦 weather.
 - **Time Lost Analysis** 🔶 — break a ride into stopped / climbing / descending / coasting / pedaling; "where did average speed disappear?" Needs velocity + grade + moving streams.

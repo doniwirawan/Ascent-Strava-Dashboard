@@ -1012,3 +1012,17 @@ body.dev .dev-tag { display: inline-block; }
 .pc-track > span { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #a855f7, #fc4c02); }
 .pc-w { font-size: 13px; font-weight: 800; color: var(--text); width: 56px; text-align: right; flex: none; }
 .pc-wkg { font-size: 11px; color: var(--muted); width: 68px; text-align: right; flex: none; }
+
+/* ── HR DECOUPLING ───────────────────────────────────────────────────── */
+.tr-hrd { padding: 16px; margin-top: 16px; }
+.hrd-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; margin-bottom: 6px; }
+.hrd-half { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
+.hrd-half-lbl { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.hrd-half-row { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; font-weight: 800; color: var(--text); }
+.hrd-dc { text-align: center; padding: 0 6px; }
+.hrd-dc-val { font-size: 28px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
+.hrd-dc-lbl { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+
+@media (max-width: 640px) {
+  .hrd-grid { grid-template-columns: 1fr; }
+}

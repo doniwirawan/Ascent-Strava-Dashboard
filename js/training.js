@@ -570,7 +570,8 @@ function renderTraining() {
 
     ${_trConsistencyHTML()}
     ${_trTrendsHTML()}
-    ${typeof _trPowerCurveHTML === 'function' ? _trPowerCurveHTML() : ''}`;
+    ${typeof _trPowerCurveHTML === 'function' ? _trPowerCurveHTML() : ''}
+    ${typeof _trHrDecouplingHTML === 'function' ? _trHrDecouplingHTML() : ''}`;
 
   _trDrawChart(d.series);
 }
