@@ -212,6 +212,50 @@ function _trConsistencyHTML() {
     </div>`;
 }
 
+/* ── FTP / THRESHOLD CARD ────────────────────────────────────────────────────
+   Promotes estimateFtp() into a proper card: watts, W/kg, an approximate
+   ability band, and the basis (Strava-set / power estimate / weight estimate). */
+function _trWkgLabel(wkg) {
+  if (wkg >= 5.0) return 'Elite';
+  if (wkg >= 4.0) return 'Excellent';
+  if (wkg >= 3.3) return 'Very good';
+  if (wkg >= 2.7) return 'Good';
+  if (wkg >= 2.0) return 'Moderate';
+  return 'Building';
+}
+
+function _trFtpCardHTML(ftpEst) {
+  if (!ftpEst) return '';
+  const ath = (typeof currentAthlete !== 'undefined' && currentAthlete) || {};
+  const weight = ath.weight || 0;                    // kg (Strava stores metric)
+  const wkg = weight > 0 ? ftpEst.value / weight : 0;
+  const basisText = ftpEst.basis === 'strava'
+    ? 'From your Strava profile FTP.'
+    : ftpEst.basis === 'power'
+      ? 'Estimated from your best sustained power (≈20-min effort × 0.95).'
+      : 'Estimated from body weight (~2.5 W/kg baseline) — add power data for a sharper number.';
+  const name = [ath.firstname, ath.lastname].filter(Boolean).join(' ');
+
+  return `
+    <div class="card tr-ftp">
+      <div class="tr-ftp-main">
+        <div class="tr-ftp-num">${ftpEst.value}<span class="tr-ftp-unit">W</span></div>
+        <div class="tr-ftp-meta">
+          <div class="tr-ftp-title">Functional Threshold Power${ftpEst.estimated ? ' <span class="tr-ftp-est">est.</span>' : ''}</div>
+          <div class="tr-ftp-basis">${name ? name + ' · ' : ''}${basisText}</div>
+        </div>
+      </div>
+      ${wkg > 0 ? `
+      <div class="tr-ftp-wkg">
+        <div class="tr-ftp-wkg-val">${wkg.toFixed(1)}<span>W/kg</span></div>
+        <div class="tr-ftp-wkg-band">${_trWkgLabel(wkg)}</div>
+      </div>` : `
+      <div class="tr-ftp-wkg tr-ftp-wkg-empty">
+        <div class="tr-ftp-wkg-hint">Add your weight on Strava for W/kg</div>
+      </div>`}
+    </div>`;
+}
+
 function renderTraining() {
   const sec = document.getElementById('trainingSection');
   if (!sec) return;
@@ -233,6 +277,7 @@ function renderTraining() {
     </div>`;
 
   body.innerHTML = `
+    ${_trFtpCardHTML(d.ftpEst)}
     <div class="tr-tiles">
       ${tile(Math.round(d.ctl), '', 'Fitness · CTL', 'var(--orange)', '42-day load')}
       ${tile(Math.round(d.atl), '', 'Fatigue · ATL', '#a78bfa', '7-day load')}

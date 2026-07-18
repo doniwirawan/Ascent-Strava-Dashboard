@@ -891,3 +891,24 @@ body.dev .dev-tag { display: inline-block; }
 @media (max-width: 640px) {
   .tr-cons-grid { grid-template-columns: 1fr; gap: 14px; }
 }
+
+/* ── FTP / THRESHOLD CARD ────────────────────────────────────────────── */
+.tr-ftp { padding: 18px 20px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  border-color: rgba(252,76,2,.25); background: linear-gradient(135deg, rgba(252,76,2,.07) 0%, transparent 55%); }
+.tr-ftp-main { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.tr-ftp-num { font-size: 44px; font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--orange); }
+.tr-ftp-unit { font-size: 20px; font-weight: 800; margin-left: 2px; }
+.tr-ftp-title { font-size: 14px; font-weight: 800; color: var(--text); }
+.tr-ftp-est { font-size: 10px; font-weight: 700; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 1px 6px; vertical-align: middle; margin-left: 4px; }
+.tr-ftp-basis { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.tr-ftp-wkg { text-align: center; flex: none; padding-left: 16px; border-left: 1px solid var(--border); }
+.tr-ftp-wkg-val { font-size: 26px; font-weight: 900; letter-spacing: -.5px; line-height: 1; color: var(--text); }
+.tr-ftp-wkg-val span { font-size: 12px; font-weight: 700; color: var(--muted); margin-left: 3px; }
+.tr-ftp-wkg-band { font-size: 11px; font-weight: 700; color: var(--orange); margin-top: 5px; letter-spacing: .03em; }
+.tr-ftp-wkg-empty { border-left: none; }
+.tr-ftp-wkg-hint { font-size: 11px; color: var(--muted); max-width: 130px; }
+
+@media (max-width: 640px) {
+  .tr-ftp { justify-content: flex-start; }
+  .tr-ftp-wkg { border-left: none; padding-left: 0; }
+}
