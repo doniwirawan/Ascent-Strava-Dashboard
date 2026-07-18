@@ -609,7 +609,8 @@ function renderTraining() {
     ${typeof _trPowerCurveHTML === 'function' ? _trPowerCurveHTML() : ''}
     ${typeof _trHrDecouplingHTML === 'function' ? _trHrDecouplingHTML() : ''}
     ${typeof _trTimeLostHTML === 'function' ? _trTimeLostHTML() : ''}
-    ${typeof _trWindHTML === 'function' ? _trWindHTML() : ''}`;
+    ${typeof _trWindHTML === 'function' ? _trWindHTML() : ''}
+    ${typeof _trSegIntelHTML === 'function' ? _trSegIntelHTML() : ''}`;
 
   _trDrawChart(d.series);
 }
