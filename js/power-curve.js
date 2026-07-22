@@ -73,8 +73,8 @@ function pcCurveMarkup(agg, opts = {}) {
     </div>`;
   }).join('');
   let extra = opts.progress
-    ? `<div class="tr-basis-note">Computing… ${opts.progress} rides (${agg.count} with power)</div>`
-    : `<div class="tr-basis-note">Best power across ${agg.count} ride${agg.count === 1 ? '' : 's'}.</div>`;
+    ? `<div class="tr-basis-note">${trf('Computing… {0} rides ({1} with power)', opts.progress, agg.count)}</div>`
+    : `<div class="tr-basis-note">${trf('Best power across {0} {1}.', agg.count, tr(agg.count === 1 ? 'ride' : 'rides'))}</div>`;
   if (opts.note) extra += `<div class="tr-basis-note">${opts.note}</div>`;
   if (opts.button) extra += `<button class="tr-ai-btn" style="margin-top:10px" onclick="computePowerCurve()">${opts.button}</button>`;
   return rows + extra;
@@ -90,17 +90,17 @@ function _trPowerCurveHTML() {
   let inner;
   if (agg && agg.count) {
     inner = pcCurveMarkup(agg, {
-      button: owner ? (agg.sig === _pcSig() ? 'Recompute' : 'Update with new rides') : null,
-      note: agg.partial ? 'Partial — rate-limited last time; click to resume (done rides are cached).' : '',
+      button: owner ? (agg.sig === _pcSig() ? tr('Recompute') : tr('Update with new rides')) : null,
+      note: agg.partial ? tr('Partial — rate-limited last time; click to resume (done rides are cached).') : '',
     });
   } else if (owner) {
-    inner = `<div class="tr-basis-note">Estimate your all-time best power at each duration from your ride streams.</div>
-      <button class="tr-ai-btn" style="margin-top:10px" onclick="computePowerCurve()">Compute power curve</button>`;
+    inner = `<div class="tr-basis-note">${tr('Estimate your all-time best power at each duration from your ride streams.')}</div>
+      <button class="tr-ai-btn" style="margin-top:10px" onclick="computePowerCurve()">${tr('Compute power curve')}</button>`;
   } else {
-    inner = `<div class="tr-basis-note">The power curve is computed on the owner's device — it fetches ride streams, and Strava's rate limit is shared across the app.</div>`;
+    inner = `<div class="tr-basis-note">${tr("The power curve is computed on the owner's device — it fetches ride streams, and Strava's rate limit is shared across the app.")}</div>`;
   }
   return `<div class="card tr-pc">
-    <div class="tr-chart-title">Power Curve <span class="gm-hint">best average power at each duration</span></div>
+    <div class="tr-chart-title">${tr('Power Curve')} <span class="gm-hint">${tr('best average power at each duration')}</span></div>
     <div id="pcBody">${inner}</div>
   </div>`;
 }
@@ -110,12 +110,12 @@ async function computePowerCurve() {
   const body = document.getElementById('pcBody');
   if (!body || _pcRunning) return;
   if (!(typeof _isHrzOwner === 'function' && _isHrzOwner())) {
-    body.innerHTML = '<div class="tr-basis-note">Owner-only (shared Strava rate limit).</div>';
+    body.innerHTML = '<div class="tr-basis-note">' + tr('Owner-only (shared Strava rate limit).') + '</div>';
     return;
   }
   const rides = acts.filter(a => isRide(a) && a.average_watts > 0 && a.id)
     .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''));
-  if (!rides.length) { body.innerHTML = '<div class="tr-basis-note">No rides with power data.</div>'; return; }
+  if (!rides.length) { body.innerHTML = '<div class="tr-basis-note">' + tr('No rides with power data.') + '</div>'; return; }
   const pool = rides.slice(0, PC_MAX_RIDES);
 
   _pcRunning = true;
@@ -142,8 +142,8 @@ async function computePowerCurve() {
   agg.partial = stopped;
   pcSaveAgg(agg);
   pcRenderCurve(agg, body, {
-    button: agg.sig === _pcSig() ? 'Recompute' : 'Update with new rides',
-    note: stopped ? 'Rate-limited — reopen later to resume; fetched rides are cached.' : '',
+    button: agg.sig === _pcSig() ? tr('Recompute') : tr('Update with new rides'),
+    note: stopped ? tr('Rate-limited — reopen later to resume; fetched rides are cached.') : '',
   });
   _pcRunning = false;
 }

@@ -92,22 +92,22 @@ function _trBuildSeries() {
 // Form (TSB) band → label, colour, and a one-line recovery recommendation.
 function _trFormBand(tsb, ramp) {
   let band;
-  if (tsb < -30)      band = { label: 'High fatigue', color: '#ef4444', advice: 'Prioritise recovery — easy spins or a rest day. Your fatigue is well above your fitness right now.' };
-  else if (tsb < -10) band = { label: 'Productive', color: '#fb923c', advice: 'Productive training load. Keep hard days hard and easy days easy, and bank a recovery day this week.' };
-  else if (tsb < 5)   band = { label: 'Neutral', color: '#eab308', advice: 'Balanced form. A good window for a quality session or a longer endurance ride.' };
-  else if (tsb < 25)  band = { label: 'Fresh', color: '#22c55e', advice: 'Fresh and race-ready. Strong day for a hard effort, an event, or a PR attempt.' };
-  else                band = { label: 'Very fresh', color: '#4da8ff', advice: 'Very fresh — fitness may start to fade. Time to add some training stimulus.' };
-  if (ramp > 8)       band.advice += ` ⚠ Fitness is ramping fast (+${Math.round(ramp)}/wk) — watch for overreaching.`;
-  else if (ramp < -6) band.advice += ` Fitness is drifting down (${Math.round(ramp)}/wk).`;
+  if (tsb < -30)      band = { label: tr('High fatigue'), color: '#ef4444', advice: tr('Prioritise recovery — easy spins or a rest day. Your fatigue is well above your fitness right now.') };
+  else if (tsb < -10) band = { label: tr('Productive'), color: '#fb923c', advice: tr('Productive training load. Keep hard days hard and easy days easy, and bank a recovery day this week.') };
+  else if (tsb < 5)   band = { label: tr('Neutral'), color: '#eab308', advice: tr('Balanced form. A good window for a quality session or a longer endurance ride.') };
+  else if (tsb < 25)  band = { label: tr('Fresh'), color: '#22c55e', advice: tr('Fresh and race-ready. Strong day for a hard effort, an event, or a PR attempt.') };
+  else                band = { label: tr('Very fresh'), color: '#4da8ff', advice: tr('Very fresh — fitness may start to fade. Time to add some training stimulus.') };
+  if (ramp > 8)       band.advice += trf(' ⚠ Fitness is ramping fast (+{0}/wk) — watch for overreaching.', Math.round(ramp));
+  else if (ramp < -6) band.advice += trf(' Fitness is drifting down ({0}/wk).', Math.round(ramp));
   return band;
 }
 
 function _trBasisNote(basis) {
   const parts = [];
-  if (basis.power)  parts.push(`${basis.power} from power`);
-  if (basis.effort) parts.push(`${basis.effort} from Relative Effort`);
-  if (basis.hr)     parts.push(`${basis.hr} from heart rate`);
-  if (basis.time)   parts.push(`${basis.time} from duration`);
+  if (basis.power)  parts.push(trf('{0} from power', basis.power));
+  if (basis.effort) parts.push(trf('{0} from Relative Effort', basis.effort));
+  if (basis.hr)     parts.push(trf('{0} from heart rate', basis.hr));
+  if (basis.time)   parts.push(trf('{0} from duration', basis.time));
   return parts.join(' · ');
 }
 
@@ -190,23 +190,23 @@ function _trConsistencyHTML() {
   const bars = c.weeks.map(n => {
     const color = n >= c.target ? '#22c55e' : n > 0 ? '#fb923c' : 'var(--surface3, #2a2a2a)';
     const h = Math.max(8, Math.min(n, 5) / 5 * 100);
-    return `<span class="tr-week-bar" title="${n} ride${n === 1 ? '' : 's'}"><span style="height:${h}%;background:${color}"></span></span>`;
+    return `<span class="tr-week-bar" title="${trf('{0} {1}', n, tr(n === 1 ? 'ride' : 'rides'))}"><span style="height:${h}%;background:${color}"></span></span>`;
   }).join('');
 
   return `
     <div class="card tr-cons">
-      <div class="tr-chart-title">Consistency — last ${c.WIN} week${c.WIN === 1 ? '' : 's'}</div>
+      <div class="tr-chart-title">${trf('Consistency — last {0} {1}', c.WIN, tr(c.WIN === 1 ? 'week' : 'weeks'))}</div>
       <div class="tr-cons-grid">
         <div class="tr-cons-score">
           <div class="tr-cons-pct" style="color:${col}">${c.consistency}<span>%</span></div>
-          <div class="tr-cons-cap">consistency</div>
+          <div class="tr-cons-cap">${tr('consistency')}</div>
           <div class="tr-week-strip">${bars}</div>
         </div>
         <div class="tr-cons-stats">
-          ${stat(c.daysThisMonth, 'Days ridden', 'this month · ' + c.dayOfMonth + ' elapsed')}
-          ${stat(c.longest, 'Longest streak', 'consecutive days')}
-          ${stat(c.weeksWith + '<span class="tr-cons-of">/' + c.WIN + '</span>', 'Weeks ≥3 rides', 'hit the target')}
-          ${stat(c.missed, 'Missed weeks', 'zero rides')}
+          ${stat(c.daysThisMonth, tr('Days ridden'), trf('this month · {0} elapsed', c.dayOfMonth))}
+          ${stat(c.longest, tr('Longest streak'), tr('consecutive days'))}
+          ${stat(c.weeksWith + '<span class="tr-cons-of">/' + c.WIN + '</span>', tr('Weeks ≥3 rides'), tr('hit the target'))}
+          ${stat(c.missed, tr('Missed weeks'), tr('zero rides'))}
         </div>
       </div>
     </div>`;
@@ -216,12 +216,12 @@ function _trConsistencyHTML() {
    Promotes estimateFtp() into a proper card: watts, W/kg, an approximate
    ability band, and the basis (Strava-set / power estimate / weight estimate). */
 function _trWkgLabel(wkg) {
-  if (wkg >= 5.0) return 'Elite';
-  if (wkg >= 4.0) return 'Excellent';
-  if (wkg >= 3.3) return 'Very good';
-  if (wkg >= 2.7) return 'Good';
-  if (wkg >= 2.0) return 'Moderate';
-  return 'Building';
+  if (wkg >= 5.0) return tr('Elite');
+  if (wkg >= 4.0) return tr('Excellent');
+  if (wkg >= 3.3) return tr('Very good');
+  if (wkg >= 2.7) return tr('Good');
+  if (wkg >= 2.0) return tr('Moderate');
+  return tr('Building');
 }
 
 // FTP trend: best ≥20-min normalized power per quarter × 0.95 (same basis as
@@ -251,10 +251,10 @@ function _trFtpTrendHTML() {
     <span class="ftpt-bar" style="height:${Math.max(8, Math.round(r.ftp / maxF * 100))}%"></span>
     <span class="ftpt-q">${r.q.replace('-', ' ')}</span>
   </div>`).join('');
-  const trend = t.delta > 0 ? `<span style="color:#22c55e">▲ +${t.delta} W</span>` : t.delta < 0 ? `<span style="color:#ef4444">▼ ${t.delta} W</span>` : 'flat';
+  const trend = t.delta > 0 ? `<span style="color:#22c55e">▲ +${t.delta} W</span>` : t.delta < 0 ? `<span style="color:#ef4444">▼ ${t.delta} W</span>` : tr('flat');
   return `<div class="card tr-ftpt">
-    <div class="tr-chart-title">Estimated FTP Trend</div>
-    <div class="tr-trend-sub">${trend} over ${t.rows.length} quarters, from your best ≥20-min normalized power × 0.95.</div>
+    <div class="tr-chart-title">${tr('Estimated FTP Trend')}</div>
+    <div class="tr-trend-sub">${trf('{0} over {1} quarters, from your best ≥20-min normalized power × 0.95.', trend, t.rows.length)}</div>
     <div class="ftpt-strip">${bars}</div>
   </div>`;
 }
@@ -265,10 +265,10 @@ function _trFtpCardHTML(ftpEst) {
   const weight = ath.weight || 0;                    // kg (Strava stores metric)
   const wkg = weight > 0 ? ftpEst.value / weight : 0;
   const basisText = ftpEst.basis === 'strava'
-    ? 'From your Strava profile FTP.'
+    ? tr('From your Strava profile FTP.')
     : ftpEst.basis === 'power'
-      ? 'Estimated from your best sustained power (≈20-min effort × 0.95).'
-      : 'Estimated from body weight (~2.5 W/kg baseline) — add power data for a sharper number.';
+      ? tr('Estimated from your best sustained power (≈20-min effort × 0.95).')
+      : tr('Estimated from body weight (~2.5 W/kg baseline) — add power data for a sharper number.');
   const name = [ath.firstname, ath.lastname].filter(Boolean).join(' ');
 
   return `
@@ -286,7 +286,7 @@ function _trFtpCardHTML(ftpEst) {
         <div class="tr-ftp-wkg-band">${_trWkgLabel(wkg)}</div>
       </div>` : `
       <div class="tr-ftp-wkg tr-ftp-wkg-empty">
-        <div class="tr-ftp-wkg-hint">Add your weight on Strava for W/kg</div>
+        <div class="tr-ftp-wkg-hint">${tr('Add your weight on Strava for W/kg')}</div>
       </div>`}
     </div>`;
 }
@@ -411,14 +411,14 @@ function _trPRRecords() {
   const rec = (label, a, val) => a ? { label, value: val, name: a.name || 'Ride', date: a.start_date } : null;
 
   const list = [
-    rec('Longest ride', maxBy(a => a.distance || 0), a => fmtD(a.distance)),
-    rec('Biggest climbing day', maxBy(a => a.total_elevation_gain || 0), a => fmtElev(a.total_elevation_gain || 0)),
-    rec('Fastest century', maxBy(a => a.average_speed || 0, a => a.distance >= 100000), a => fmtSpeed(a.average_speed)),
-    rec('Longest Zone-2 ride', maxBy(a => a.moving_time || 0, z2), a => fmtT(a.moving_time)),
-    rec('Highest avg cadence', maxBy(a => a.average_cadence || 0, a => a.average_cadence > 0), a => Math.round(a.average_cadence) + ' rpm'),
-    rec('Highest avg power', maxBy(a => a.average_watts || 0, a => a.average_watts > 0), a => Math.round(a.average_watts) + ' W'),
-    rec('Hottest ride', maxBy(a => a.average_temp != null ? a.average_temp : -999, a => a.average_temp != null), a => Math.round(a.average_temp) + '°C'),
-    rec('Coldest ride', minBy(a => a.average_temp != null ? a.average_temp : 999, a => a.average_temp != null), a => Math.round(a.average_temp) + '°C'),
+    rec(tr('Longest ride'), maxBy(a => a.distance || 0), a => fmtD(a.distance)),
+    rec(tr('Biggest climbing day'), maxBy(a => a.total_elevation_gain || 0), a => fmtElev(a.total_elevation_gain || 0)),
+    rec(tr('Fastest century'), maxBy(a => a.average_speed || 0, a => a.distance >= 100000), a => fmtSpeed(a.average_speed)),
+    rec(tr('Longest Zone-2 ride'), maxBy(a => a.moving_time || 0, z2), a => fmtT(a.moving_time)),
+    rec(tr('Highest avg cadence'), maxBy(a => a.average_cadence || 0, a => a.average_cadence > 0), a => Math.round(a.average_cadence) + ' rpm'),
+    rec(tr('Highest avg power'), maxBy(a => a.average_watts || 0, a => a.average_watts > 0), a => Math.round(a.average_watts) + ' W'),
+    rec(tr('Hottest ride'), maxBy(a => a.average_temp != null ? a.average_temp : -999, a => a.average_temp != null), a => Math.round(a.average_temp) + '°C'),
+    rec(tr('Coldest ride'), minBy(a => a.average_temp != null ? a.average_temp : 999, a => a.average_temp != null), a => Math.round(a.average_temp) + '°C'),
   ].filter(Boolean);
   // resolve value fns
   return list.map(r => ({ label: r.label, name: r.name, date: r.date, value: r.value(rides.find(a => (a.name || 'Ride') === r.name && a.start_date === r.date) || {}) }));
@@ -450,14 +450,14 @@ function _trTrendsHTML() {
   if (cl) {
     const tile = (val, unit, lbl, sub) => `<div class="tr-seas-tile"><div class="tr-seas-val">${val}<span style="font-size:13px;font-weight:700;color:var(--muted);margin-left:2px">${unit}</span></div><div class="tr-seas-lbl">${lbl}</div>${sub ? `<div class="tr-tile-sub">${sub}</div>` : ''}</div>`;
     html += `<div class="card tr-seas">
-      <div class="tr-chart-title">Climbing Ability</div>
+      <div class="tr-chart-title">${tr('Climbing Ability')}</div>
       <div class="tr-seas-grid">
-        ${tile(Math.round(cl.mPerHour), 'm/h', 'Climb rate', 'elevation per moving hour')}
-        ${tile(cl.avgGrad.toFixed(1), '%', 'Avg gradient', 'net climb over distance')}
-        ${tile(Math.round(cl.elevPerKm), 'm/' + distUnit(), 'Elevation density', 'climb per ' + distUnit())}
-        ${cl.bestVam ? tile(Math.round(cl.bestVam.vam), 'VAM', 'Best ride', (cl.bestVam.a.name || 'Ride')) : tile('—', '', 'Best VAM', 'no sustained climbs')}
+        ${tile(Math.round(cl.mPerHour), 'm/h', tr('Climb rate'), tr('elevation per moving hour'))}
+        ${tile(cl.avgGrad.toFixed(1), '%', tr('Avg gradient'), tr('net climb over distance'))}
+        ${tile(Math.round(cl.elevPerKm), 'm/' + distUnit(), tr('Elevation density'), trf('climb per {0}', distUnit()))}
+        ${cl.bestVam ? tile(Math.round(cl.bestVam.vam), 'VAM', tr('Best ride'), (cl.bestVam.a.name || 'Ride')) : tile('—', '', tr('Best VAM'), tr('no sustained climbs'))}
       </div>
-      <div class="tr-basis-note">Ride-level estimate — per-climb VAM from GPS streams is a future upgrade.</div>
+      <div class="tr-basis-note">${tr('Ride-level estimate — per-climb VAM from GPS streams is a future upgrade.')}</div>
     </div>`;
   }
 
@@ -470,13 +470,13 @@ function _trTrendsHTML() {
       <td>${_trMonthLabel(r.month)}</td><td>${r.n}</td>
       <td>${r.w != null ? r.w + ' W' : '—'}</td><td>${r.kmh.toFixed(1)} ${speedUnit()}</td>
     </tr>`).join('');
-    const trend = ft.spdDelta > 0 ? `<span style="color:#22c55e">▲ +${ft.spdDelta} ${speedUnit()}</span> at the same aerobic effort`
-      : ft.spdDelta < 0 ? `<span style="color:#ef4444">▼ ${ft.spdDelta} ${speedUnit()}</span> at the same aerobic effort`
-      : 'holding steady at the same aerobic effort';
+    const trend = ft.spdDelta > 0 ? `<span style="color:#22c55e">▲ +${ft.spdDelta} ${speedUnit()}</span> ${tr('at the same aerobic effort')}`
+      : ft.spdDelta < 0 ? `<span style="color:#ef4444">▼ ${ft.spdDelta} ${speedUnit()}</span> ${tr('at the same aerobic effort')}`
+      : tr('holding steady at the same aerobic effort');
     html += `<div class="card tr-trend">
-      <div class="tr-chart-title">Fitness Trend — last ${ft.count} Zone-2 rides</div>
-      <div class="tr-trend-sub">Speed on easy aerobic rides ${trend}. Rising numbers at Zone 2 signal real fitness gains.</div>
-      <div class="gm-table-wrap"><table class="gm-table"><thead><tr><th>Month</th><th>Rides</th><th>Avg power</th><th>Avg speed</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="tr-chart-title">${trf('Fitness Trend — last {0} Zone-2 rides', ft.count)}</div>
+      <div class="tr-trend-sub">${trf('Speed on easy aerobic rides {0}. Rising numbers at Zone 2 signal real fitness gains.', trend)}</div>
+      <div class="gm-table-wrap"><table class="gm-table"><thead><tr><th>${tr('Month')}</th><th>${tr('Rides')}</th><th>${tr('Avg power')}</th><th>${tr('Avg speed')}</th></tr></thead><tbody>${rows}</tbody></table></div>
     </div>`;
   }
 
@@ -489,12 +489,12 @@ function _trTrendsHTML() {
     const spdCol = se.spdDelta == null ? 'var(--text)' : se.spdDelta >= 0 ? '#22c55e' : '#ef4444';
     const spdVal = se.spdDelta == null ? '—' : (se.spdDelta >= 0 ? '+' : '') + se.spdDelta + ' ' + speedUnit();
     html += `<div class="card tr-seas">
-      <div class="tr-chart-title">Seasonal Insights</div>
+      <div class="tr-chart-title">${tr('Seasonal Insights')}</div>
       <div class="tr-seas-grid">
-        ${tile(Math.round(kmVal(se.bestYearKm)).toLocaleString() + ' ' + distUnit(), 'Biggest year · ' + se.bestYear, 'var(--orange)')}
-        ${tile(Math.round(kmVal(se.bestMonthKm)).toLocaleString() + ' ' + distUnit(), 'Biggest month · ' + _trMonthLabel(se.bestMonth))}
-        ${tile(ytdVal, 'Distance vs same point last year', ytdCol)}
-        ${tile(spdVal, se.curMonthName + ' avg speed vs last year', spdCol)}
+        ${tile(Math.round(kmVal(se.bestYearKm)).toLocaleString() + ' ' + distUnit(), trf('Biggest year · {0}', se.bestYear), 'var(--orange)')}
+        ${tile(Math.round(kmVal(se.bestMonthKm)).toLocaleString() + ' ' + distUnit(), trf('Biggest month · {0}', _trMonthLabel(se.bestMonth)))}
+        ${tile(ytdVal, tr('Distance vs same point last year'), ytdCol)}
+        ${tile(spdVal, trf('{0} avg speed vs last year', se.curMonthName), spdCol)}
       </div>
     </div>`;
   }
@@ -508,7 +508,7 @@ function _trTrendsHTML() {
       <div class="tr-pr-ride">${r.name} · ${fmtDt(r.date)}</div>
     </div>`).join('');
     html += `<div class="card tr-seas">
-      <div class="tr-chart-title">Personal Records Explorer</div>
+      <div class="tr-chart-title">${tr('Personal Records Explorer')}</div>
       <div class="tr-pr-grid">${tiles}</div>
     </div>`;
   }
@@ -523,35 +523,37 @@ function _trTrendsHTML() {
       <span class="tr-rq-num">${v.toFixed(1)}</span>
     </div>`;
     html += `<div class="card tr-rq">
-      <div class="tr-chart-title">Ride Quality Score — latest ride</div>
+      <div class="tr-chart-title">${tr('Ride Quality Score — latest ride')}</div>
       <div class="tr-rq-grid">
         <div class="tr-rq-overall">
           <div class="tr-rq-big" style="color:${col}">${rq.overall}<span>/100</span></div>
           <div class="tr-rq-name">${rq.cur.name || 'Ride'}</div>
         </div>
         <div class="tr-rq-bars">
-          ${bar('Endurance', rq.endurance)}
-          ${bar('Climbing', rq.climbing)}
-          ${bar('Efficiency', rq.efficiency)}
-          ${bar('Effort', rq.effort)}
+          ${bar(tr('Endurance'), rq.endurance)}
+          ${bar(tr('Climbing'), rq.climbing)}
+          ${bar(tr('Efficiency'), rq.efficiency)}
+          ${bar(tr('Effort'), rq.effort)}
         </div>
       </div>
-      <div class="tr-basis-note">Each dimension is this ride's percentile against your own ride history.</div>
+      <div class="tr-basis-note">${tr("Each dimension is this ride's percentile against your own ride history.")}</div>
     </div>`;
   }
 
   // Similar Ride
   const si = _trSimilar();
   if (si) {
-    const chip = (rank, total, best, word) => `<span class="tr-sim-chip${rank === 1 ? ' tr-sim-best' : ''}">${rank === 1 ? best : _trOrdinal(rank) + ' ' + word} <span class="tr-sim-of">of ${total}</span></span>`;
+    const ord = rank => window.LANG === 'id' ? 'ke-' + rank : _trOrdinal(rank);
+    const chip = (rank, total, best, word) => `<span class="tr-sim-chip${rank === 1 ? ' tr-sim-best' : ''}">${rank === 1 ? best : ord(rank) + ' ' + word} <span class="tr-sim-of">${trf('of {0}', total)}</span></span>`;
     const chips = [
-      chip(si.spdRank, si.total, 'Fastest', 'fastest'),
-      si.hrRank ? chip(si.hrRank, si.total, 'Lowest HR', 'lowest HR') : '',
-      chip(si.climbRank, si.total, 'Most climbing', 'most climbing'),
+      chip(si.spdRank, si.total, tr('Fastest'), tr('fastest')),
+      si.hrRank ? chip(si.hrRank, si.total, tr('Lowest HR'), tr('lowest HR')) : '',
+      chip(si.climbRank, si.total, tr('Most climbing'), tr('most climbing')),
     ].filter(Boolean).join('');
+    const simName = `<b>${si.cur.name || 'Ride'}</b>`;
     html += `<div class="card tr-sim">
-      <div class="tr-chart-title">Similar Ride Comparison</div>
-      <div class="tr-sim-head">Your latest ride — <b>${si.cur.name || 'Ride'}</b> · ${fmtD(si.cur.distance)}, ${fmtElev(si.cur.total_elevation_gain || 0)} — vs ${si.n} similar past ride${si.n === 1 ? '' : 's'}:</div>
+      <div class="tr-chart-title">${tr('Similar Ride Comparison')}</div>
+      <div class="tr-sim-head">${trf('Your latest ride — {0} · {1}, {2} — vs {3} similar past {4}:', simName, fmtD(si.cur.distance), fmtElev(si.cur.total_elevation_gain || 0), si.n, tr(si.n === 1 ? 'ride' : 'rides'))}</div>
       <div class="tr-sim-chips">${chips}</div>
     </div>`;
   }
@@ -565,7 +567,7 @@ function renderTraining() {
   if (!body) return;
 
   const d = _trBuildSeries();
-  if (!d) { body.innerHTML = '<div class="card" style="padding:24px;text-align:center;color:var(--muted)">Load your activities to see training load &amp; fatigue.</div>'; return; }
+  if (!d) { body.innerHTML = '<div class="card" style="padding:24px;text-align:center;color:var(--muted)">' + tr('Load your activities to see training load & fatigue.') + '</div>'; return; }
 
   const band = _trFormBand(d.tsb, d.ramp);
   const tsbStr = (d.tsb >= 0 ? '+' : '') + Math.round(d.tsb);
@@ -582,26 +584,26 @@ function renderTraining() {
     ${_trFtpCardHTML(d.ftpEst)}
     ${_trFtpTrendHTML()}
     <div class="tr-tiles">
-      ${tile(Math.round(d.ctl), '', 'Fitness · CTL', 'var(--orange)', '42-day load')}
-      ${tile(Math.round(d.atl), '', 'Fatigue · ATL', '#a78bfa', '7-day load')}
-      ${tile(tsbStr, '', 'Form · TSB', band.color, `<span style="color:${band.color};font-weight:700">${band.label}</span>`)}
-      ${tile(rampStr, '/wk', 'Ramp rate', d.ramp > 8 ? '#ef4444' : 'var(--text)', 'CTL change, 7d')}
+      ${tile(Math.round(d.ctl), '', tr('Fitness · CTL'), 'var(--orange)', tr('42-day load'))}
+      ${tile(Math.round(d.atl), '', tr('Fatigue · ATL'), '#a78bfa', tr('7-day load'))}
+      ${tile(tsbStr, '', tr('Form · TSB'), band.color, `<span style="color:${band.color};font-weight:700">${band.label}</span>`)}
+      ${tile(rampStr, '/wk', tr('Ramp rate'), d.ramp > 8 ? '#ef4444' : 'var(--text)', tr('CTL change, 7d'))}
     </div>
 
     <div class="tr-rec card">
       <div class="tr-rec-head">
         <span class="tr-rec-dot" style="background:${band.color}"></span>
-        <span>Recovery recommendation</span>
-        <button id="trAiBtn" class="tr-ai-btn" onclick="trainingAiRec()">${(typeof AI_ICON !== 'undefined' ? AI_ICON : '')}Get AI plan</button>
+        <span>${tr('Recovery recommendation')}</span>
+        <button id="trAiBtn" class="tr-ai-btn" onclick="trainingAiRec()">${(typeof AI_ICON !== 'undefined' ? AI_ICON : '')}${tr('Get AI plan')}</button>
       </div>
       <div class="tr-rec-body">${band.advice}</div>
       <div id="trAiOut" class="tr-ai-out" style="display:none"></div>
     </div>
 
     <div class="card" style="padding:16px">
-      <div class="tr-chart-title">Performance Management Chart</div>
+      <div class="tr-chart-title">${tr('Performance Management Chart')}</div>
       <div style="height:300px"><canvas id="trPmcChart"></canvas></div>
-      <div class="tr-basis-note">Daily load basis: ${_trBasisNote(d.basis)}${d.ftpEst ? ` · FTP ${d.ftpEst.value}w${d.ftpEst.estimated ? ' (est.)' : ''}` : ''}</div>
+      <div class="tr-basis-note">${tr('Daily load basis: ')}${_trBasisNote(d.basis)}${d.ftpEst ? ` · FTP ${d.ftpEst.value}w${d.ftpEst.estimated ? tr(' (est.)') : ''}` : ''}</div>
     </div>
 
     ${_trConsistencyHTML()}
@@ -630,9 +632,9 @@ function _trDrawChart(series) {
     data: {
       labels,
       datasets: [
-        { label: 'Fitness (CTL)', data: view.map(p => +p.ctl.toFixed(1)), borderColor: orange, backgroundColor: 'rgba(252,76,2,.12)', fill: true, borderWidth: 2, pointRadius: 0, tension: 0.25, yAxisID: 'y' },
-        { label: 'Fatigue (ATL)', data: view.map(p => +p.atl.toFixed(1)), borderColor: '#a78bfa', backgroundColor: 'transparent', fill: false, borderWidth: 1.5, pointRadius: 0, tension: 0.25, yAxisID: 'y' },
-        { label: 'Form (TSB)', data: view.map(p => +p.tsb.toFixed(1)), borderColor: '#22c55e', backgroundColor: 'transparent', fill: false, borderWidth: 1.5, borderDash: [4, 3], pointRadius: 0, tension: 0.25, yAxisID: 'y1' },
+        { label: tr('Fitness (CTL)'), data: view.map(p => +p.ctl.toFixed(1)), borderColor: orange, backgroundColor: 'rgba(252,76,2,.12)', fill: true, borderWidth: 2, pointRadius: 0, tension: 0.25, yAxisID: 'y' },
+        { label: tr('Fatigue (ATL)'), data: view.map(p => +p.atl.toFixed(1)), borderColor: '#a78bfa', backgroundColor: 'transparent', fill: false, borderWidth: 1.5, pointRadius: 0, tension: 0.25, yAxisID: 'y' },
+        { label: tr('Form (TSB)'), data: view.map(p => +p.tsb.toFixed(1)), borderColor: '#22c55e', backgroundColor: 'transparent', fill: false, borderWidth: 1.5, borderDash: [4, 3], pointRadius: 0, tension: 0.25, yAxisID: 'y1' },
       ],
     },
     options: {
@@ -644,8 +646,8 @@ function _trDrawChart(series) {
       },
       scales: {
         x: { grid: { color: '#1c1c1c' }, ticks: { color: '#555', font: { size: 9 }, maxTicksLimit: 8, maxRotation: 0 } },
-        y: { position: 'left', grid: { color: '#1c1c1c' }, ticks: { color: '#666', font: { size: 10 } }, title: { display: true, text: 'Load', color: '#666', font: { size: 10 } } },
-        y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#22c55e', font: { size: 10 } }, title: { display: true, text: 'Form', color: '#22c55e', font: { size: 10 } } },
+        y: { position: 'left', grid: { color: '#1c1c1c' }, ticks: { color: '#666', font: { size: 10 } }, title: { display: true, text: tr('Load'), color: '#666', font: { size: 10 } } },
+        y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#22c55e', font: { size: 10 } }, title: { display: true, text: tr('Form'), color: '#22c55e', font: { size: 10 } } },
       },
     },
   });
@@ -659,7 +661,7 @@ async function trainingAiRec() {
   const d = _trBuildSeries();
   if (!d) return;
   const token = localStorage.getItem('strava_access_token');
-  if (!token) { out.style.display = ''; out.innerHTML = 'Connect Strava to use the AI coach.'; return; }
+  if (!token) { out.style.display = ''; out.innerHTML = tr('Connect Strava to use the AI coach.'); return; }
 
   if (btn) btn.disabled = true;
   out.style.display = '';
@@ -672,9 +674,10 @@ async function trainingAiRec() {
     daily_load_last_14: recent,
   };
   const { provider, model, key } = (typeof aiProviderModel === 'function') ? aiProviderModel() : { provider: 'deepseek' };
+  const replyLang = window.LANG === 'id' ? 'Reply in Indonesian (Bahasa Indonesia)' : 'Reply in English';
   const messages = [
     { role: 'system', content:
-      'You are a concise endurance-cycling coach. Using ONLY the training-load numbers provided (TrainingPeaks model: CTL=fitness, ATL=fatigue, TSB=form/freshness, ramp=weekly CTL change), give a short, specific recovery-and-training recommendation for the next 3–5 days. Note overreaching risk if ramp is high or TSB very negative. Never invent data. Reply in English, short markdown, under 120 words.' },
+      'You are a concise endurance-cycling coach. Using ONLY the training-load numbers provided (TrainingPeaks model: CTL=fitness, ATL=fatigue, TSB=form/freshness, ramp=weekly CTL change), give a short, specific recovery-and-training recommendation for the next 3–5 days. Note overreaching risk if ramp is high or TSB very negative. Never invent data. ' + replyLang + ', short markdown, under 120 words.' },
     { role: 'user', content: 'My current training load:\n' + JSON.stringify(payload, null, 2) },
   ];
   try {
@@ -683,12 +686,12 @@ async function trainingAiRec() {
     if (r.ok && data.text) {
       out.innerHTML = (typeof aiMd === 'function' ? aiMd(data.text) : data.text);
     } else if (data.error === 'not_authorized' || data.error === 'provider_not_configured') {
-      out.innerHTML = 'AI coach isn\'t set up on this deployment — the guidance above is rule-based from your form (TSB) and ramp rate. (Owner: add a provider in AI Coach settings.)';
+      out.innerHTML = tr("AI coach isn't set up on this deployment — the guidance above is rule-based from your form (TSB) and ramp rate. (Owner: add a provider in AI Coach settings.)");
     } else {
-      out.innerHTML = 'Couldn\'t reach the AI coach right now. The guidance above is rule-based from your numbers.';
+      out.innerHTML = tr("Couldn't reach the AI coach right now. The guidance above is rule-based from your numbers.");
     }
   } catch {
-    out.innerHTML = 'Couldn\'t reach the AI coach right now. The guidance above is rule-based from your numbers.';
+    out.innerHTML = tr("Couldn't reach the AI coach right now. The guidance above is rule-based from your numbers.");
   }
   if (btn) btn.disabled = false;
 }

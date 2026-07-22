@@ -47,11 +47,11 @@ function _tlCompute(a, streams) {
 
 function _tlMarkup(a, d) {
   const rows = [
-    { lbl: 'Climbing',       t: d.climbT, c: '#ef4444' },
-    { lbl: 'Descending',     t: d.descT,  c: '#4da8ff' },
-    { lbl: 'Flat pedalling', t: d.flatT,  c: '#22c55e' },
-    { lbl: 'Coasting',       t: d.coastT, c: '#eab308' },
-    { lbl: 'Stopped',        t: d.stopped, c: 'var(--muted)' },
+    { lbl: tr('Climbing'),       t: d.climbT, c: '#ef4444' },
+    { lbl: tr('Descending'),     t: d.descT,  c: '#4da8ff' },
+    { lbl: tr('Flat pedalling'), t: d.flatT,  c: '#22c55e' },
+    { lbl: tr('Coasting'),       t: d.coastT, c: '#eab308' },
+    { lbl: tr('Stopped'),        t: d.stopped, c: 'var(--muted)' },
   ];
   const total = rows.reduce((s, r) => s + r.t, 0) || 1;
   const bars = rows.map(r => `<div class="tl-row">
@@ -63,22 +63,22 @@ function _tlMarkup(a, d) {
   const biggest = rows.slice().sort((x, y) => y.t - x.t)[0];
   return `
     <div class="tl-head">
-      <div class="tl-avg"><span class="tl-avg-v">${kmh(d.movingAvg)}</span> <span class="tl-avg-u">${speedUnit()} moving</span></div>
-      <div class="tl-avg tl-avg-dim"><span class="tl-avg-v">${kmh(d.overallAvg)}</span> <span class="tl-avg-u">${speedUnit()} overall</span></div>
-      <div class="tl-lost">${d.lostPct.toFixed(0)}% of the clock spent stopped</div>
+      <div class="tl-avg"><span class="tl-avg-v">${kmh(d.movingAvg)}</span> <span class="tl-avg-u">${speedUnit()} ${tr('moving')}</span></div>
+      <div class="tl-avg tl-avg-dim"><span class="tl-avg-v">${kmh(d.overallAvg)}</span> <span class="tl-avg-u">${speedUnit()} ${tr('overall')}</span></div>
+      <div class="tl-lost">${trf('{0}% of the clock spent stopped', d.lostPct.toFixed(0))}</div>
     </div>
     ${bars}
-    <div class="tr-basis-note">Most of your moving time went to <b>${biggest.lbl.toLowerCase()}</b>. Latest ride: ${a.name || 'Ride'}.</div>`;
+    <div class="tr-basis-note">${trf('Most of your moving time went to {0}. Latest ride: {1}.', '<b>' + biggest.lbl.toLowerCase() + '</b>', a.name || 'Ride')}</div>`;
 }
 
 function _trTimeLostHTML() {
   const a = _tlPickRide();
   if (!a) return '';
   return `<div class="card tr-tl">
-    <div class="tr-chart-title">Time Lost Analysis <span class="gm-hint">where your average speed went</span></div>
+    <div class="tr-chart-title">${tr('Time Lost Analysis')} <span class="gm-hint">${tr('where your average speed went')}</span></div>
     <div id="tlBody">
-      <div class="tr-basis-note">Break your latest ride into climbing, descending, pedalling, coasting and stopped time.</div>
-      <button class="tr-ai-btn" style="margin-top:10px" onclick="analyzeTimeLost()">Analyse ${a.name || 'latest ride'}</button>
+      <div class="tr-basis-note">${tr('Break your latest ride into climbing, descending, pedalling, coasting and stopped time.')}</div>
+      <button class="tr-ai-btn" style="margin-top:10px" onclick="analyzeTimeLost()">${trf('Analyse {0}', a.name || tr('latest ride'))}</button>
     </div>
   </div>`;
 }
@@ -88,13 +88,13 @@ async function analyzeTimeLost() {
   const body = document.getElementById('tlBody');
   if (!body || _tlRunning) return;
   const a = _tlPickRide();
-  if (!a) { body.innerHTML = '<div class="tr-basis-note">No ride long enough to analyse yet.</div>'; return; }
+  if (!a) { body.innerHTML = '<div class="tr-basis-note">' + tr('No ride long enough to analyse yet.') + '</div>'; return; }
   _tlRunning = true;
   body.innerHTML = '<span class="ai-dots"><span></span><span></span><span></span></span>';
   let streams = null;
   try { streams = (typeof _getActivityStreams === 'function') ? await _getActivityStreams(a.id) : null; } catch {}
-  if (!streams) { body.innerHTML = '<div class="tr-basis-note">Couldn\'t load stream data for this ride.</div>'; _tlRunning = false; return; }
+  if (!streams) { body.innerHTML = '<div class="tr-basis-note">' + tr("Couldn't load stream data for this ride.") + '</div>'; _tlRunning = false; return; }
   const d = _tlCompute(a, streams);
-  body.innerHTML = d ? _tlMarkup(a, d) : '<div class="tr-basis-note">Not enough stream detail in this ride to break down.</div>';
+  body.innerHTML = d ? _tlMarkup(a, d) : '<div class="tr-basis-note">' + tr('Not enough stream detail in this ride to break down.') + '</div>';
   _tlRunning = false;
 }

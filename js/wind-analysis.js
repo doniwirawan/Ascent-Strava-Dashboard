@@ -87,31 +87,32 @@ async function _windWeather(a) {
 
 function _windMarkup(a, w) {
   const rows = [
-    { lbl: 'Headwind', v: w.headPct, c: '#ef4444' },
-    { lbl: 'Tailwind', v: w.tailPct, c: '#22c55e' },
-    { lbl: 'Crosswind', v: w.crossPct, c: '#eab308' },
+    { lbl: tr('Headwind'), v: w.headPct, c: '#ef4444' },
+    { lbl: tr('Tailwind'), v: w.tailPct, c: '#22c55e' },
+    { lbl: tr('Crosswind'), v: w.crossPct, c: '#eab308' },
   ].map(r => `<div class="tl-row"><span class="tl-lbl">${r.lbl}</span><span class="tl-track"><span style="width:${r.v}%;background:${r.c}"></span></span><span class="tl-pct" style="width:40px">${r.v}%</span></div>`).join('');
   const net = w.netComponentKmh;
   const netTxt = net >= 0.3
-    ? `<span style="color:#22c55e">≈ +${net.toFixed(1)} ${speedUnit()}</span> net tailwind — the wind helped your speed.`
+    ? `<span style="color:#22c55e">≈ +${net.toFixed(1)} ${speedUnit()}</span>${tr(' net tailwind — the wind helped your speed.')}`
     : net <= -0.3
-      ? `<span style="color:#ef4444">≈ ${net.toFixed(1)} ${speedUnit()}</span> net headwind — you were stronger than the raw speed suggests.`
-      : 'roughly neutral — wind mostly crossed your route.';
+      ? `<span style="color:#ef4444">≈ ${net.toFixed(1)} ${speedUnit()}</span>${tr(' net headwind — you were stronger than the raw speed suggests.')}`
+      : tr('roughly neutral — wind mostly crossed your route.');
+  const windVal = `<b>${w.windKmh} ${speedUnit()}</b>`, windDir = `<b>${_windDirName(w.windFromDeg)}</b>`;
   return `
-    <div class="tr-basis-note" style="margin-bottom:10px">Wind was <b>${w.windKmh} ${speedUnit()}</b> from the <b>${_windDirName(w.windFromDeg)}</b> (${w.windFromDeg}°).</div>
+    <div class="tr-basis-note" style="margin-bottom:10px">${trf('Wind was {0} from the {1} ({2}°).', windVal, windDir, w.windFromDeg)}</div>
     ${rows}
-    <div class="tr-basis-note">Net wind along your direction of travel: ${netTxt}</div>
-    <div class="tr-basis-note">Latest GPS ride: ${a.name || 'Ride'}. Wind sampled at the start hour/location.</div>`;
+    <div class="tr-basis-note">${tr('Net wind along your direction of travel: ')}${netTxt}</div>
+    <div class="tr-basis-note">${trf('Latest GPS ride: {0}. Wind sampled at the start hour/location.', a.name || 'Ride')}</div>`;
 }
 
 function _trWindHTML() {
   const a = _windPickRide();
   if (!a) return '';
   return `<div class="card tr-wind">
-    <div class="tr-chart-title">Wind Analysis <span class="gm-hint">headwind / tailwind / crosswind</span></div>
+    <div class="tr-chart-title">${tr('Wind Analysis')} <span class="gm-hint">${tr('headwind / tailwind / crosswind')}</span></div>
     <div id="windBody">
-      <div class="tr-basis-note">See how much of your latest ride fought a headwind — sometimes a "slow" ride was actually a strong one.</div>
-      <button class="tr-ai-btn" style="margin-top:10px" onclick="analyzeWind()">Analyse ${a.name || 'latest ride'}</button>
+      <div class="tr-basis-note">${tr('See how much of your latest ride fought a headwind — sometimes a "slow" ride was actually a strong one.')}</div>
+      <button class="tr-ai-btn" style="margin-top:10px" onclick="analyzeWind()">${trf('Analyse {0}', a.name || tr('latest ride'))}</button>
     </div>
   </div>`;
 }
@@ -121,14 +122,14 @@ async function analyzeWind() {
   const body = document.getElementById('windBody');
   if (!body || _windRunning) return;
   const a = _windPickRide();
-  if (!a) { body.innerHTML = '<div class="tr-basis-note">No outdoor GPS ride to analyse yet.</div>'; return; }
+  if (!a) { body.innerHTML = '<div class="tr-basis-note">' + tr('No outdoor GPS ride to analyse yet.') + '</div>'; return; }
   _windRunning = true;
   body.innerHTML = '<span class="ai-dots"><span></span><span></span><span></span></span>';
   let pts = null, wx = null;
   try { [pts, wx] = await Promise.all([_windLatlng(a.id), _windWeather(a)]); } catch {}
-  if (!pts) { body.innerHTML = '<div class="tr-basis-note">Couldn\'t load the GPS track for this ride.</div>'; _windRunning = false; return; }
-  if (!wx) { body.innerHTML = '<div class="tr-basis-note">Couldn\'t load historical wind for this ride\'s time and place.</div>'; _windRunning = false; return; }
+  if (!pts) { body.innerHTML = '<div class="tr-basis-note">' + tr("Couldn't load the GPS track for this ride.") + '</div>'; _windRunning = false; return; }
+  if (!wx) { body.innerHTML = '<div class="tr-basis-note">' + tr("Couldn't load historical wind for this ride's time and place.") + '</div>'; _windRunning = false; return; }
   const w = _windAnalyze(pts, wx.speed, wx.dir);
-  body.innerHTML = w ? _windMarkup(a, w) : '<div class="tr-basis-note">Not enough GPS detail to analyse wind.</div>';
+  body.innerHTML = w ? _windMarkup(a, w) : '<div class="tr-basis-note">' + tr('Not enough GPS detail to analyse wind.') + '</div>';
   _windRunning = false;
 }

@@ -303,6 +303,192 @@ window.t = function (key) {
   return (I18N_JS.en && I18N_JS.en[key] != null) ? I18N_JS.en[key] : key;
 };
 
+/* ── Training section (JS-built cards in training.js + the five insight files).
+   English is the source string in the code; TR_ID holds the Indonesian. Use
+   tr('English') for plain strings and trf('… {0} …', a, b) for interpolated
+   ones — both fall back to the English source unless the language is 'id'. ── */
+const TR_ID = {
+  // form bands + advice
+  'High fatigue': 'Kelelahan tinggi',
+  'Prioritise recovery — easy spins or a rest day. Your fatigue is well above your fitness right now.': 'Utamakan pemulihan — gowes ringan atau hari istirahat. Kelelahan Anda saat ini jauh di atas kebugaran Anda.',
+  'Productive': 'Produktif',
+  'Productive training load. Keep hard days hard and easy days easy, and bank a recovery day this week.': 'Beban latihan yang produktif. Jaga hari berat tetap berat dan hari ringan tetap ringan, dan sisihkan satu hari pemulihan minggu ini.',
+  'Neutral': 'Netral',
+  'Balanced form. A good window for a quality session or a longer endurance ride.': 'Bentuk seimbang. Waktu yang baik untuk sesi berkualitas atau gowes ketahanan yang lebih panjang.',
+  'Fresh': 'Segar',
+  'Fresh and race-ready. Strong day for a hard effort, an event, or a PR attempt.': 'Segar dan siap balapan. Hari yang bagus untuk upaya keras, sebuah event, atau percobaan PR.',
+  'Very fresh': 'Sangat segar',
+  'Very fresh — fitness may start to fade. Time to add some training stimulus.': 'Sangat segar — kebugaran mungkin mulai menurun. Saatnya menambah stimulus latihan.',
+  ' ⚠ Fitness is ramping fast (+{0}/wk) — watch for overreaching.': ' ⚠ Kebugaran naik cepat (+{0}/mgg) — waspadai overreaching.',
+  ' Fitness is drifting down ({0}/wk).': ' Kebugaran menurun ({0}/mgg).',
+  // load basis
+  '{0} from power': '{0} dari daya',
+  '{0} from Relative Effort': '{0} dari Relative Effort',
+  '{0} from heart rate': '{0} dari detak jantung',
+  '{0} from duration': '{0} dari durasi',
+  // consistency
+  'Consistency — last {0} {1}': 'Konsistensi — {0} {1} terakhir',
+  'week': 'minggu', 'weeks': 'minggu',
+  'ride': 'gowes', 'rides': 'gowes',
+  'consistency': 'konsistensi',
+  'Days ridden': 'Hari gowes',
+  'this month · {0} elapsed': 'bulan ini · {0} berlalu',
+  'Longest streak': 'Rentetan terpanjang',
+  'consecutive days': 'hari berturut-turut',
+  'Weeks ≥3 rides': 'Minggu ≥3 gowes',
+  'hit the target': 'mencapai target',
+  'Missed weeks': 'Minggu terlewat',
+  'zero rides': 'tanpa gowes',
+  '{0} {1}': '{0} {1}',
+  // FTP trend
+  'Estimated FTP Trend': 'Tren Estimasi FTP',
+  '{0} over {1} quarters, from your best ≥20-min normalized power × 0.95.': '{0} selama {1} kuartal, dari daya ternormalisasi ≥20 menit terbaik Anda × 0,95.',
+  'flat': 'datar',
+  // FTP card
+  'From your Strava profile FTP.': 'Dari FTP profil Strava Anda.',
+  'Estimated from your best sustained power (≈20-min effort × 0.95).': 'Diperkirakan dari daya berkelanjutan terbaik Anda (≈upaya 20 menit × 0,95).',
+  'Estimated from body weight (~2.5 W/kg baseline) — add power data for a sharper number.': 'Diperkirakan dari berat badan (dasar ~2,5 W/kg) — tambahkan data daya untuk angka yang lebih akurat.',
+  'Elite': 'Elite', 'Excellent': 'Sangat baik', 'Very good': 'Baik sekali',
+  'Good': 'Baik', 'Moderate': 'Sedang', 'Building': 'Membangun',
+  'Add your weight on Strava for W/kg': 'Tambahkan berat badan Anda di Strava untuk W/kg',
+  // tiles
+  'Fitness · CTL': 'Kebugaran · CTL', '42-day load': 'beban 42 hari',
+  'Fatigue · ATL': 'Kelelahan · ATL', '7-day load': 'beban 7 hari',
+  'Form · TSB': 'Bentuk · TSB',
+  'Ramp rate': 'Laju kenaikan', 'CTL change, 7d': 'perubahan CTL, 7h',
+  // recovery + chart
+  'Recovery recommendation': 'Rekomendasi pemulihan',
+  'Get AI plan': 'Dapatkan rencana AI',
+  'Performance Management Chart': 'Grafik Manajemen Performa',
+  'Daily load basis: ': 'Basis beban harian: ',
+  ' (est.)': ' (est.)',
+  'Load your activities to see training load & fatigue.': 'Muat aktivitas Anda untuk melihat beban latihan & kelelahan.',
+  'Fitness (CTL)': 'Kebugaran (CTL)', 'Fatigue (ATL)': 'Kelelahan (ATL)', 'Form (TSB)': 'Bentuk (TSB)',
+  'Load': 'Beban', 'Form': 'Bentuk',
+  // climbing ability
+  'Climbing Ability': 'Kemampuan Menanjak',
+  'Climb rate': 'Laju tanjakan', 'elevation per moving hour': 'elevasi per jam bergerak',
+  'Avg gradient': 'Gradien rata-rata', 'net climb over distance': 'tanjakan neto per jarak',
+  'Elevation density': 'Kepadatan elevasi', 'climb per {0}': 'tanjakan per {0}',
+  'Best ride': 'Gowes terbaik', 'Best VAM': 'VAM terbaik', 'no sustained climbs': 'tak ada tanjakan berkelanjutan',
+  'Ride-level estimate — per-climb VAM from GPS streams is a future upgrade.': 'Estimasi tingkat-gowes — VAM per-tanjakan dari aliran GPS adalah peningkatan mendatang.',
+  // fitness trend (zone 2)
+  'Fitness Trend — last {0} Zone-2 rides': 'Tren Kebugaran — {0} gowes Zona-2 terakhir',
+  'Month': 'Bulan', 'Rides': 'Gowes', 'Avg power': 'Daya rata-rata', 'Avg speed': 'Kecepatan rata-rata',
+  'at the same aerobic effort': 'pada upaya aerobik yang sama',
+  'holding steady at the same aerobic effort': 'stabil pada upaya aerobik yang sama',
+  'Speed on easy aerobic rides {0}. Rising numbers at Zone 2 signal real fitness gains.': 'Kecepatan pada gowes aerobik ringan {0}. Angka yang naik di Zona 2 menandakan peningkatan kebugaran nyata.',
+  // seasonal insights
+  'Seasonal Insights': 'Wawasan Musiman',
+  'Biggest year · {0}': 'Tahun terbesar · {0}',
+  'Biggest month · {0}': 'Bulan terbesar · {0}',
+  'Distance vs same point last year': 'Jarak vs titik sama tahun lalu',
+  '{0} avg speed vs last year': 'Kecepatan rata-rata {0} vs tahun lalu',
+  // personal records explorer
+  'Personal Records Explorer': 'Penjelajah Rekor Pribadi',
+  'Longest ride': 'Gowes terjauh', 'Biggest climbing day': 'Hari tanjakan terbesar',
+  'Fastest century': 'Century tercepat', 'Longest Zone-2 ride': 'Gowes Zona-2 terpanjang',
+  'Highest avg cadence': 'Kadens rata-rata tertinggi', 'Highest avg power': 'Daya rata-rata tertinggi',
+  'Hottest ride': 'Gowes terpanas', 'Coldest ride': 'Gowes terdingin',
+  // ride quality
+  'Ride Quality Score — latest ride': 'Skor Kualitas Gowes — gowes terbaru',
+  'Endurance': 'Ketahanan', 'Climbing': 'Menanjak', 'Efficiency': 'Efisiensi', 'Effort': 'Upaya',
+  "Each dimension is this ride's percentile against your own ride history.": 'Tiap dimensi adalah persentil gowes ini terhadap riwayat gowes Anda sendiri.',
+  // similar ride
+  'Similar Ride Comparison': 'Perbandingan Gowes Serupa',
+  'Your latest ride — {0} · {1}, {2} — vs {3} similar past {4}:': 'Gowes terbaru Anda — {0} · {1}, {2} — vs {3} {4} serupa sebelumnya:',
+  'Fastest': 'Tercepat', 'fastest': 'tercepat',
+  'Lowest HR': 'HR terendah', 'lowest HR': 'HR terendah',
+  'Most climbing': 'Tanjakan terbanyak', 'most climbing': 'tanjakan terbanyak',
+  'of {0}': 'dari {0}',
+  // AI recovery plan
+  'Connect Strava to use the AI coach.': 'Hubungkan Strava untuk memakai pelatih AI.',
+  "AI coach isn't set up on this deployment — the guidance above is rule-based from your form (TSB) and ramp rate. (Owner: add a provider in AI Coach settings.)": 'Pelatih AI belum disiapkan pada deployment ini — panduan di atas berbasis aturan dari bentuk (TSB) dan laju kenaikan Anda. (Pemilik: tambahkan penyedia di pengaturan AI Coach.)',
+  "Couldn't reach the AI coach right now. The guidance above is rule-based from your numbers.": 'Tak bisa menghubungi pelatih AI saat ini. Panduan di atas berbasis aturan dari angka-angka Anda.',
+  // power curve
+  'Power Curve': 'Kurva Daya',
+  'best average power at each duration': 'daya rata-rata terbaik di tiap durasi',
+  'Computing… {0} rides ({1} with power)': 'Menghitung… {0} gowes ({1} dengan daya)',
+  'Best power across {0} {1}.': 'Daya terbaik dari {0} {1}.',
+  'Partial — rate-limited last time; click to resume (done rides are cached).': 'Sebagian — kena batas laju terakhir kali; klik untuk lanjut (gowes selesai tersimpan).',
+  'Estimate your all-time best power at each duration from your ride streams.': 'Perkirakan daya terbaik sepanjang masa di tiap durasi dari aliran data gowes Anda.',
+  'Compute power curve': 'Hitung kurva daya',
+  'Recompute': 'Hitung ulang',
+  'Update with new rides': 'Perbarui dengan gowes baru',
+  "The power curve is computed on the owner's device — it fetches ride streams, and Strava's rate limit is shared across the app.": 'Kurva daya dihitung di perangkat pemilik — mengambil aliran data gowes, dan batas laju Strava dibagi ke seluruh aplikasi.',
+  'Owner-only (shared Strava rate limit).': 'Khusus pemilik (batas laju Strava dibagi bersama).',
+  'No rides with power data.': 'Tak ada gowes dengan data daya.',
+  'Rate-limited — reopen later to resume; fetched rides are cached.': 'Kena batas laju — buka lagi nanti untuk lanjut; gowes yang diambil tersimpan.',
+  // HR decoupling
+  'Heart Rate Decoupling': 'Decoupling Detak Jantung',
+  'aerobic drift, first vs second half': 'aerobic drift, paruh pertama vs kedua',
+  'Negative drift — you held or raised output as HR settled (negative split or long warm-up). Strong aerobic control.': 'Drift negatif — Anda mempertahankan atau menaikkan output saat HR menurun (negative split atau pemanasan panjang). Kontrol aerobik yang kuat.',
+  'Well-coupled (<5%). Strong aerobic endurance for this effort — HR stayed steady against your output.': 'Tergandeng baik (<5%). Ketahanan aerobik kuat untuk upaya ini — HR stabil terhadap output Anda.',
+  'Moderate drift (5–10%). Normal for a hard or long ride; watch fuelling and pacing on the back half.': 'Drift sedang (5–10%). Normal untuk gowes berat atau panjang; perhatikan nutrisi dan pacing di paruh akhir.',
+  'High decoupling (>10%). Aerobic endurance, pacing, heat or fuelling limited the second half — a target to build.': 'Decoupling tinggi (>10%). Ketahanan aerobik, pacing, panas, atau nutrisi membatasi paruh kedua — target untuk dibangun.',
+  'First': 'Pertama', 'Second': 'Kedua', '{0} half': 'paruh {0}',
+  'decoupling': 'decoupling',
+  'power': 'daya', 'speed': 'kecepatan',
+  'Latest ride: {0} · {1} vs HR.': 'Gowes terbaru: {0} · {1} vs HR.',
+  'See how much your heart rate drifts up relative to your pace/power over a long ride.': 'Lihat seberapa jauh detak jantung Anda naik relatif terhadap pace/daya selama gowes panjang.',
+  'Analyse {0}': 'Analisis {0}',
+  'latest ride': 'gowes terbaru',
+  'No long ride with heart-rate data yet.': 'Belum ada gowes panjang dengan data detak jantung.',
+  "Couldn't load stream data for this ride.": 'Tak bisa memuat data aliran untuk gowes ini.',
+  'Not enough continuous HR/output data in this ride to measure drift.': 'Data HR/output kontinu di gowes ini tak cukup untuk mengukur drift.',
+  // time lost
+  'Time Lost Analysis': 'Analisis Waktu Hilang',
+  'where your average speed went': 'ke mana kecepatan rata-rata Anda pergi',
+  'Descending': 'Menurun', 'Flat pedalling': 'Kayuh datar', 'Coasting': 'Meluncur', 'Stopped': 'Berhenti',
+  'moving': 'bergerak', 'overall': 'keseluruhan',
+  '{0}% of the clock spent stopped': '{0}% waktu jam dihabiskan berhenti',
+  'Most of your moving time went to {0}. Latest ride: {1}.': 'Sebagian besar waktu bergerak Anda untuk {0}. Gowes terbaru: {1}.',
+  'Break your latest ride into climbing, descending, pedalling, coasting and stopped time.': 'Uraikan gowes terbaru Anda menjadi waktu menanjak, menurun, mengayuh, meluncur, dan berhenti.',
+  'No ride long enough to analyse yet.': 'Belum ada gowes yang cukup panjang untuk dianalisis.',
+  'Not enough stream detail in this ride to break down.': 'Detail aliran di gowes ini tak cukup untuk diuraikan.',
+  // wind analysis
+  'Wind Analysis': 'Analisis Angin',
+  'headwind / tailwind / crosswind': 'angin depan / angin belakang / angin samping',
+  'Headwind': 'Angin depan', 'Tailwind': 'Angin belakang', 'Crosswind': 'Angin samping',
+  ' net tailwind — the wind helped your speed.': ' angin belakang neto — angin membantu kecepatan Anda.',
+  ' net headwind — you were stronger than the raw speed suggests.': ' angin depan neto — Anda lebih kuat dari yang ditunjukkan kecepatan mentah.',
+  'roughly neutral — wind mostly crossed your route.': 'kira-kira netral — angin sebagian besar memotong rute Anda.',
+  'Wind was {0} from the {1} ({2}°).': 'Angin {0} dari {1} ({2}°).',
+  'Net wind along your direction of travel: ': 'Angin neto sepanjang arah perjalanan Anda: ',
+  'Latest GPS ride: {0}. Wind sampled at the start hour/location.': 'Gowes GPS terbaru: {0}. Angin diambil pada jam/lokasi mulai.',
+  'See how much of your latest ride fought a headwind — sometimes a "slow" ride was actually a strong one.': 'Lihat seberapa banyak gowes terbaru Anda melawan angin depan — kadang gowes yang "lambat" sebenarnya kuat.',
+  'No outdoor GPS ride to analyse yet.': 'Belum ada gowes GPS luar ruangan untuk dianalisis.',
+  "Couldn't load the GPS track for this ride.": 'Tak bisa memuat jejak GPS untuk gowes ini.',
+  "Couldn't load historical wind for this ride's time and place.": 'Tak bisa memuat data angin historis untuk waktu dan tempat gowes ini.',
+  'Not enough GPS detail to analyse wind.': 'Detail GPS tak cukup untuk menganalisis angin.',
+  // segment intelligence
+  'Segment Intelligence': 'Intelijen Segmen',
+  'closest to PR · improving · stagnating': 'terdekat ke PR · membaik · stagnan',
+  'No starred segments with enough effort history yet.': 'Belum ada segmen berbintang dengan riwayat upaya yang cukup.',
+  'Closest to a PR': 'Terdekat ke PR', 'Improving fastest': 'Membaik tercepat', 'Stagnating': 'Stagnan',
+  'at your PR': 'di PR Anda',
+  '+{0} behind': '+{0} di belakang',
+  '{0}% chance': 'peluang {0}%',
+  '▲ {0}% faster': '▲ {0}% lebih cepat',
+  '{0} efforts · flat': '{0} upaya · datar',
+  'Next-PR chance is a rough estimate from your recent efforts vs your PR.': 'Peluang PR berikutnya adalah perkiraan kasar dari upaya terkini Anda vs PR Anda.',
+  "Analyse your starred segments' effort history — which you're closest to PR-ing, which are improving, and which have stalled.": 'Analisis riwayat upaya segmen berbintang Anda — mana yang paling dekat ke PR, mana yang membaik, dan mana yang mandek.',
+  'Analyse my segments': 'Analisis segmen saya',
+  "Segment intelligence is computed on the owner's device (it fetches per-segment effort history, and Strava's rate limit is shared).": 'Intelijen segmen dihitung di perangkat pemilik (mengambil riwayat upaya per-segmen, dan batas laju Strava dibagi bersama).',
+  'Owner-only (fetches per-segment effort history; shared Strava rate limit).': 'Khusus pemilik (mengambil riwayat upaya per-segmen; batas laju Strava dibagi).',
+  'Rate-limited — try again later.': 'Kena batas laju — coba lagi nanti.',
+  'Star some segments on Strava first, then their effort history can be analysed.': 'Bintangi beberapa segmen di Strava dulu, lalu riwayat upayanya bisa dianalisis.',
+  'Analysing… {0}/{1}': 'Menganalisis… {0}/{1}',
+  'Rate-limited — some segments skipped; reopen later to finish.': 'Kena batas laju — beberapa segmen dilewati; buka lagi nanti untuk menyelesaikan.',
+};
+window.tr = function (s) {
+  return (window.LANG === 'id' && TR_ID[s] != null) ? TR_ID[s] : s;
+};
+window.trf = function (s, ...args) {
+  const t = (window.LANG === 'id' && TR_ID[s] != null) ? TR_ID[s] : s;
+  return t.replace(/\{(\d+)\}/g, (_, i) => args[i]);
+};
+
 (function () {
   const i18nNodes = document.querySelectorAll('[data-i18n]');
   const enHTML = new Map();
