@@ -145,6 +145,16 @@
 .eddy-step { padding: 5px 0; border-top: 1px solid var(--border); }
 .eddy-step:first-child { border-top: 0; }
 .eddy-have { color: var(--muted); opacity: .8; }
+.eddy-goal { margin-bottom: 12px; }
+.eddy-goal-inner, .eddy-goal-done {
+  border: 1px solid var(--orange-mid);
+  background: var(--orange-dim);
+  border-radius: 10px; padding: 10px 12px;
+}
+.eddy-goal-head { font-size: 12px; font-weight: 800; color: var(--orange); margin-bottom: 4px; letter-spacing: .2px; }
+.eddy-goal-body { font-size: 12px; color: var(--muted); line-height: 1.55; }
+.eddy-goal-body strong { color: var(--text); }
+.eddy-goal-eta { margin-top: 3px; }
 
 /* Monthly table */
 .month-table { width: 100%; border-collapse: collapse; font-size: 13px; }

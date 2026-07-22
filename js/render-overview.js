@@ -238,6 +238,66 @@ function eddington(rides) {
   return E;
 }
 
+// Projection block for reaching a fixed Eddington goal (E=50). Estimates the
+// date from how often the athlete has ridden ≥50 units recently. All distances
+// are in the current display unit, matching the rest of the Eddington card.
+function _eddyGoalHTML(rides, E, mode, id) {
+  const GOAL = 50, unit = distUnit(), DAY = 86400000, now = Date.now();
+  const dated = rides.map(r => ({ km: kmVal(r.distance || 0), t: new Date(r.start_date_local || r.start_date || 0).getTime() }))
+    .filter(r => r.t);
+  const qualifying = dated.filter(r => r.km >= GOAL);
+  const have = qualifying.length;
+  const need = Math.max(0, GOAL - have);
+  const rideW = mode === 'run' ? (id ? 'lari' : 'runs') : (id ? 'gowes' : 'rides');
+  const head = `<div class="eddy-goal-head">🎯 ${id ? 'Target' : 'Goal'} E=${GOAL}</div>`;
+
+  if (E >= GOAL) {
+    return `<div class="eddy-goal eddy-goal-done">${head}<div class="eddy-goal-body">${
+      id ? `Tercapai! Anda punya <strong>${have}</strong> ${rideW} sejauh ≥${GOAL} ${unit}.`
+         : `Reached! You have <strong>${have}</strong> ${rideW} of ≥${GOAL} ${unit}.`}</div></div>`;
+  }
+
+  // Recent rate: qualifying rides per week over the last 180 days (or the whole
+  // history if shorter). Fall back to the all-time rate if none lately.
+  const earliest = Math.min(...dated.map(r => r.t));
+  const rateSince = span => {
+    const cutoff = now - span * DAY;
+    const n = qualifying.filter(r => r.t >= cutoff).length;
+    const days = Math.max(1, Math.min(span, (now - earliest) / DAY));
+    return n / (days / 7);
+  };
+  let perWeek = rateSince(180);
+  if (perWeek <= 0 && have > 0) perWeek = rateSince(9999);   // all-time fallback
+
+  const line1 = id
+    ? `Butuh <strong>${need} ${rideW} lagi</strong> sejauh ≥${GOAL} ${unit} <span class="eddy-have">(punya ${have}/${GOAL})</span>`
+    : `<strong>${need} more ${rideW}</strong> of ≥${GOAL} ${unit} <span class="eddy-have">(have ${have}/${GOAL})</span>`;
+
+  let line2;
+  if (perWeek <= 0) {
+    line2 = id
+      ? `Belum ada ${rideW} sejauh ≥${GOAL} ${unit} — mulai tambah gowes panjang untuk membangun menuju E=${GOAL}.`
+      : `No ${rideW} of ≥${GOAL} ${unit} yet — start adding longer rides to build toward E=${GOAL}.`;
+  } else {
+    const weeks = need / perWeek;
+    const eta = new Date(now + weeks * 7 * DAY);
+    const etaStr = eta.toLocaleDateString(id ? 'id-ID' : 'en-US', { month: 'short', year: 'numeric' });
+    const dur = _eddyDur(weeks, id);
+    const rateStr = perWeek >= 1 ? perWeek.toFixed(1) : perWeek.toFixed(2);
+    line2 = id
+      ? `Dengan laju terkini ~${rateStr} ${rideW}/minggu → sekitar <strong>${dur}</strong> lagi (≈ ${etaStr})`
+      : `At your recent rate of ~${rateStr} ${rideW}/wk → about <strong>${dur}</strong> away (≈ ${etaStr})`;
+  }
+  return `<div class="eddy-goal"><div class="eddy-goal-inner">${head}<div class="eddy-goal-body">${line1}<div class="eddy-goal-eta">${line2}</div></div></div></div>`;
+}
+
+// Humanise a duration given in weeks: weeks < ~2 months, else months, else years.
+function _eddyDur(weeks, id) {
+  if (weeks < 9) { const w = Math.max(1, Math.round(weeks)); return id ? `${w} minggu` : `${w} wk`; }
+  if (weeks < 78) { const m = Math.round(weeks / 4.345); return id ? `${m} bulan` : `${m} mo`; }
+  const y = (weeks / 52.14).toFixed(1); return id ? `${y} tahun` : `${y} yr`;
+}
+
 function renderEddington() {
   const mode = sportMode();
   const rides = mode==='run' ? acts.filter(a=>a.type==='Run'||a.type==='VirtualRun') : acts.filter(isRide);
@@ -257,7 +317,9 @@ function renderEddington() {
       ? `<div class="eddy-step"><strong>E=${t}</strong> — butuh <strong>${need} ${w} lagi</strong> sejauh ≥${t} ${distUnit()} <span class="eddy-have">(punya ${have}/${t})</span></div>`
       : `<div class="eddy-step"><strong>E=${t}</strong> — need <strong>${need} more ${w}</strong> of ≥${t} ${distUnit()} <span class="eddy-have">(have ${have}/${t})</span></div>`);
   }
-  document.getElementById('eddyNext').innerHTML = rows.join('');
+  // ── Goal projection: how long to reach a fixed E=50 at the recent ride rate ──
+  const goalHTML = _eddyGoalHTML(rides, E, mode, id);
+  document.getElementById('eddyNext').innerHTML = goalHTML + rows.join('');
 
   // bar chart: last 15 E-values cumulative
   const kms = rides.map(r=>kmVal(r.distance||0)).sort((a,b)=>b-a).slice(0,next+5);
