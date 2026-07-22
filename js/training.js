@@ -111,6 +111,82 @@ function _trBasisNote(basis) {
   return parts.join(' · ');
 }
 
+/* ── RECOVERY & NEXT RIDE ─────────────────────────────────────────────────────
+   Your most recent session, an estimate of when you're recovered enough for a
+   hard effort, and a suggested next workout for your current form. Recovery time
+   scales with the last session's load; being fresh (positive TSB) short-circuits
+   it. No power meter needed — load falls back to Relative Effort / HR / time. */
+function _trLastSession() {
+  if (typeof acts === 'undefined' || !acts.length) return null;
+  const ftpEst = (typeof estimateFtp === 'function' && estimateFtp()) || null;
+  const ftp = ftpEst ? ftpEst.value : 0;
+  const hrMax = (typeof observedMaxHr === 'function' && observedMaxHr()) || 0;
+  const dated = acts.filter(a => _trDayKey(a));
+  if (!dated.length) return null;
+  const last = dated.slice().sort((a, b) => (b.start_date || b.start_date_local || '').localeCompare(a.start_date || a.start_date_local || ''))[0];
+  const r = _trActivityLoad(last, ftp, hrMax, 60);
+  const load = r ? r.load : 0;
+  const startMs = new Date(last.start_date || last.start_date_local).getTime();
+  const endMs = startMs + (last.elapsed_time || last.moving_time || 0) * 1000;
+  const hours = Math.round(Math.max(12, Math.min(96, 12 + load * 0.4)));   // 12–96h from load
+  return { last, load, basis: r && r.basis, hours, recoveredAt: endMs + hours * 3600000 };
+}
+
+// Suggested next workout from current form (TSB) and whether you've recovered.
+function _trNextWorkout(tsb, recovered, id) {
+  if (!recovered) return id ? 'Istirahat atau gowes Zona-2 ringan (≤1 jam) sampai Anda pulih.' : 'Rest or an easy Zone-2 spin (≤1h) until you are recovered.';
+  if (tsb >= 5)   return id ? 'Hari yang bagus untuk interval, gowes grup keras, atau percobaan PR.' : 'Good day for intervals, a hard group ride, or a PR attempt.';
+  if (tsb >= -10) return id ? 'Gowes ketahanan atau sesi tempo yang mantap.' : 'A solid endurance ride or a tempo session.';
+  return id ? 'Tetap ringan — gowes pemulihan atau istirahat penuh.' : 'Keep it easy — a recovery ride or a full rest day.';
+}
+
+function _trRecoveryCardHTML(d) {
+  const s = _trLastSession();
+  if (!s) return '';
+  const a = s.last, now = Date.now(), id = window.LANG === 'id';
+  const meta = [
+    a.distance ? fmtD(a.distance) : null,
+    (a.moving_time || a.elapsed_time) ? fmtT(a.moving_time || a.elapsed_time) : null,
+    (id ? 'Beban ' : 'Load ') + Math.round(s.load),
+  ].filter(Boolean).join(' · ');
+
+  const recovered = s.recoveredAt <= now || d.tsb >= 5;
+  let recLine, recColor;
+  if (recovered) {
+    recColor = '#22c55e';
+    recLine = id ? 'Sudah pulih — siap gowes keras sekarang. 💪' : "Recovered — you're good for a hard ride now. 💪";
+  } else {
+    recColor = '#fb923c';
+    const when = new Date(s.recoveredAt).toLocaleString(id ? 'id-ID' : 'en-US',
+      { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const remH = (s.recoveredAt - now) / 3600000;
+    const inStr = remH < 36 ? `~${Math.round(remH)}${id ? ' jam' : 'h'}` : `~${Math.round(remH / 24)}${id ? ' hari' : 'd'}`;
+    recLine = id ? `Siap sesi berat pada <strong>${when}</strong> (${inStr} lagi)` : `Ready for a hard session at <strong>${when}</strong> (in ${inStr})`;
+  }
+
+  const lbl = t => `<div class="tr-rv-lbl">${t}</div>`;
+  return `
+    <div class="card tr-rv">
+      <div class="tr-chart-title">${id ? 'Pemulihan & Gowes Berikutnya' : 'Recovery & Next Ride'}</div>
+      <div class="tr-rv-grid">
+        <div class="tr-rv-block">
+          ${lbl(id ? 'Latihan terakhir' : 'Last workout')}
+          <div class="tr-rv-name">${a.name || (id ? 'Aktivitas' : 'Activity')}</div>
+          <div class="tr-rv-meta">${fmtDt(a.start_date_local || a.start_date)} · ${meta}</div>
+        </div>
+        <div class="tr-rv-block">
+          ${lbl(id ? 'Bisa gowes keras lagi' : 'Hard ride again')}
+          <div class="tr-rv-rec" style="color:${recColor}">${recLine}</div>
+          <div class="tr-rv-note">${id ? 'Gowes pemulihan ringan: kapan saja.' : 'Easy recovery spin: anytime.'}</div>
+        </div>
+        <div class="tr-rv-block">
+          ${lbl(id ? 'Saran latihan berikutnya' : 'Suggested next workout')}
+          <div class="tr-rv-next">${_trNextWorkout(d.tsb, recovered, id)}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
 /* ── CONSISTENCY SCORE ───────────────────────────────────────────────────────
    Regularity over raw mileage. Window = last 12 weeks (capped to how long the
    athlete has been riding). Consistency % rewards hitting a weekly ride target. */
@@ -599,6 +675,8 @@ function renderTraining() {
       <div class="tr-rec-body">${band.advice}</div>
       <div id="trAiOut" class="tr-ai-out" style="display:none"></div>
     </div>
+
+    ${_trRecoveryCardHTML(d)}
 
     <div class="card" style="padding:16px">
       <div class="tr-chart-title">${tr('Performance Management Chart')}</div>
