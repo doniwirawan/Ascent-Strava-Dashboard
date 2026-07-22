@@ -872,7 +872,9 @@ body.dev .dev-tag { display: inline-block; }
 .tr-ai-btn:hover { border-color: var(--orange); color: var(--orange); }
 .tr-ai-btn:disabled { opacity: .5; cursor: default; }
 .tr-ai-btn .ai-icon-svg { width: 14px; height: 14px; }
-.tr-ai-out { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.55; color: var(--text-2); }
+.tr-ai-out { margin-top: 12px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2, rgba(255,255,255,.02)); font-size: 13px; line-height: 1.6; color: var(--text-2); }
+.tr-ai-out > :first-child { margin-top: 0; }
+.tr-ai-out > :last-child { margin-bottom: 0; }
 
 .tr-chart-title { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--text-2); margin-bottom: 10px; }
 .tr-basis-note { font-size: 11px; color: var(--muted); margin-top: 10px; }

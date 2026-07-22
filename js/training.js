@@ -651,6 +651,7 @@ function _trTrendsHTML() {
       <div class="tr-trend-sub">${trf('Speed on easy aerobic rides {0}. Rising numbers at Zone 2 signal real fitness gains.', trend)}</div>
       <div class="gm-table-wrap"><table class="gm-table"><thead><tr><th>${tr('Month')}</th><th>${tr('Rides')}</th><th>${tr('Avg power')}</th><th>${tr('Avg speed')}</th></tr></thead><tbody>${rows}</tbody></table></div>
     </div>`;
+    html += _trNote('Fitness Trend (Zone 2)');
   }
 
   // Seasonal Insights
@@ -791,7 +792,6 @@ function renderTraining() {
     ${_trConsistencyHTML()}
     ${_trNote('Consistency')}
     ${_trTrendsHTML()}
-    ${_trNote('Fitness Trend (Zone 2)')}
     ${typeof _trPowerCurveHTML === 'function' ? _trPowerCurveHTML() : ''}
     ${typeof _trHrDecouplingHTML === 'function' ? _trHrDecouplingHTML() : ''}
     ${typeof _trTimeLostHTML === 'function' ? _trTimeLostHTML() : ''}
@@ -799,6 +799,7 @@ function renderTraining() {
     ${typeof _trSegIntelHTML === 'function' ? _trSegIntelHTML() : ''}`;
 
   _trDrawChart(d.series);
+  _trRestoreAiPlan();
 
   // Auto-run the cheap latest-ride analyses so there's no "Analyse" button to
   // press. Power Curve & Segment Intel stay manual — they fetch streams for
@@ -844,6 +845,15 @@ function _trDrawChart(series) {
   });
 }
 
+/* Restore a previously generated AI plan so it survives re-renders / reloads
+   instead of regenerating (and re-spending tokens) every visit. */
+function _trRestoreAiPlan() {
+  const out = document.getElementById('trAiOut');
+  if (!out) return;
+  let saved; try { saved = JSON.parse(localStorage.getItem('tr_ai_plan') || 'null'); } catch {}
+  if (saved && saved.html) { out.innerHTML = saved.html; out.style.display = ''; }
+}
+
 /* ── AI recovery plan (owner-gated /api/ai, rule-based text is the fallback) ── */
 async function trainingAiRec() {
   const out = document.getElementById('trAiOut');
@@ -876,6 +886,7 @@ async function trainingAiRec() {
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.text) {
       out.innerHTML = (typeof aiMd === 'function' ? aiMd(data.text) : data.text);
+      try { localStorage.setItem('tr_ai_plan', JSON.stringify({ html: out.innerHTML, ts: Date.now() })); } catch {}
     } else {
       // Surface the real reason (no key, out of credit, not authorized, …) plus
       // a note that the rule-based advice above still stands.
