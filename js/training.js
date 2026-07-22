@@ -111,6 +111,76 @@ function _trBasisNote(basis) {
   return parts.join(' · ');
 }
 
+/* ── TRAINING GUIDE ───────────────────────────────────────────────────────────
+   A collapsible glossary explaining every metric on the Training page in plain
+   language, EN/ID. Each entry: [term, English def, Indonesian def]. */
+const _TR_GUIDE = [
+  ['Beban / Load (TSS)',
+    'A single score for how hard a session was, first from power, else Strava Relative Effort, else heart rate, else duration. ~100 ≈ an hour at threshold.',
+    'Satu skor seberapa berat sebuah sesi — dari daya, atau Relative Effort, atau detak jantung, atau durasi. ~100 ≈ satu jam di ambang.'],
+  ['Fitness · CTL',
+    'Chronic Training Load: a 42-day average of your daily load. A proxy for long-term fitness — it rises slowly as you train consistently.',
+    'Chronic Training Load: rata-rata beban harian selama 42 hari. Proksi kebugaran jangka panjang — naik perlahan saat Anda latihan konsisten.'],
+  ['Fatigue · ATL',
+    'Acute Training Load: a 7-day average of your load. Short-term tiredness — it spikes fast after hard days and fades within about a week.',
+    'Acute Training Load: rata-rata beban 7 hari. Kelelahan jangka pendek — melonjak cepat setelah hari berat dan mereda dalam sekitar seminggu.'],
+  ['Form · TSB',
+    'Training Stress Balance = CTL − ATL. Your freshness. Positive = fresh and race-ready; deeply negative = fatigued and needing recovery.',
+    'Training Stress Balance = CTL − ATL. Kesegaran Anda. Positif = segar & siap balapan; sangat negatif = lelah dan butuh pemulihan.'],
+  ['Ramp rate',
+    'How fast CTL is changing per week. Building fitness is good, but ramping too fast (roughly >8/wk) raises the risk of overreaching.',
+    'Seberapa cepat CTL berubah per minggu. Menambah kebugaran itu bagus, tapi naik terlalu cepat (kira-kira >8/mgg) menaikkan risiko overreaching.'],
+  ['Performance Management Chart',
+    'The CTL / ATL / TSB lines over time — see fitness build, fatigue spike after hard blocks, and form dip and recover.',
+    'Garis CTL / ATL / TSB dari waktu ke waktu — lihat kebugaran naik, kelelahan melonjak setelah blok berat, dan bentuk turun lalu pulih.'],
+  ['FTP & W/kg',
+    'Functional Threshold Power: the power you could roughly hold for an hour. W/kg divides it by body weight — the key climbing number. Estimated from your best sustained effort or your weight when you have no power meter.',
+    'Functional Threshold Power: daya yang kira-kira bisa Anda tahan selama satu jam. W/kg membaginya dengan berat badan — angka kunci untuk menanjak. Diperkirakan dari upaya terbaik atau berat badan bila tak ada power meter.'],
+  ['Recovery & Next Ride',
+    'An estimate of when you have recovered enough for a hard effort, based on the load of your last session (and short-circuited when your form is already fresh).',
+    'Perkiraan kapan Anda sudah cukup pulih untuk upaya berat, berdasar beban sesi terakhir (dan langsung siap bila bentuk Anda sudah segar).'],
+  ['Consistency',
+    'How regularly you ride versus a 3-rides-per-week target over the recent weeks — regularity matters more than the odd big week.',
+    'Seberapa teratur Anda gowes dibanding target 3 gowes/minggu selama beberapa minggu terakhir — keteraturan lebih penting dari sesekali minggu besar.'],
+  ['HR Decoupling',
+    'Aerobic drift. Splits a long ride in half and compares efficiency (output ÷ heart rate) between the halves. Under 5% is well-coupled; over 10% means HR climbed for the same effort — a sign aerobic endurance, fuelling or heat limited the back half.',
+    'Aerobic drift. Membagi gowes panjang jadi dua dan membandingkan efisiensi (output ÷ detak jantung) antar paruh. Di bawah 5% tergandeng baik; di atas 10% berarti HR naik untuk upaya yang sama — tanda ketahanan aerobik, nutrisi, atau panas membatasi paruh akhir.'],
+  ['VAM',
+    'Velocità Ascensionale Media — your average vertical climbing speed in metres per hour. Higher = stronger on climbs; elite climbs hit ~1,600+ m/h.',
+    'Velocità Ascensionale Media — kecepatan mendaki vertikal rata-rata dalam meter per jam. Makin tinggi = makin kuat menanjak; tanjakan elite ~1.600+ m/jam.'],
+  ['Fitness Trend (Zone 2)',
+    'Your speed/power on easy aerobic (Zone-2) rides over time. Going faster at the same easy heart rate is a real sign of improving aerobic fitness.',
+    'Kecepatan/daya Anda pada gowes aerobik ringan (Zona 2) dari waktu ke waktu. Makin cepat pada detak jantung ringan yang sama = tanda nyata kebugaran aerobik membaik.'],
+  ['Ride Quality Score',
+    'Scores your latest ride 0–100 by percentile against your own history across endurance, climbing, efficiency and effort.',
+    'Menilai gowes terbaru Anda 0–100 berdasar persentil terhadap riwayat Anda sendiri: ketahanan, menanjak, efisiensi, dan upaya.'],
+  ['Time Lost Analysis',
+    'Where your moving time actually went — climbing, descending, flat pedalling, coasting and stopped — so a "slow" average makes sense.',
+    'Ke mana waktu bergerak Anda benar-benar pergi — menanjak, menurun, kayuh datar, meluncur, dan berhenti — agar rata-rata yang "lambat" jadi masuk akal.'],
+  ['Wind Analysis',
+    'How much of a ride fought a headwind, tailwind or crosswind, plus the net wind along your direction of travel — a slow ride into wind was often a strong one.',
+    'Seberapa banyak gowes melawan angin depan, belakang, atau samping, plus angin neto sepanjang arah perjalanan — gowes lambat melawan angin sering justru kuat.'],
+  ['Power Curve',
+    'Your best average power at each duration (5s to 60min), aggregated across rides — the shape of your sprint-to-endurance strengths. Needs power data.',
+    'Daya rata-rata terbaik Anda di tiap durasi (5 detik sampai 60 menit), digabung dari semua gowes — bentuk kekuatan dari sprint hingga ketahanan. Butuh data daya.'],
+  ['Segment Intelligence',
+    'Analyses your starred segments’ effort history — which you’re closest to a PR on, which are improving fastest, and which have stalled.',
+    'Menganalisis riwayat upaya segmen berbintang Anda — mana yang paling dekat ke PR, mana yang membaik tercepat, dan mana yang mandek.'],
+  ['Relative Effort / Suffer Score',
+    'Strava’s measure of how hard a session was, from the time you spent in each heart-rate zone. It feeds the load model when you have no power.',
+    'Ukuran Strava tentang seberapa berat sesi, dari waktu di tiap zona detak jantung. Ini memberi masukan ke model beban saat Anda tak punya daya.'],
+];
+
+function _trGuideHTML() {
+  const id = window.LANG === 'id';
+  const items = _TR_GUIDE.map(([term, en, idt]) =>
+    `<div class="tr-gd-item"><dt class="tr-gd-term">${term}</dt><dd class="tr-gd-def">${id ? idt : en}</dd></div>`).join('');
+  return `<details class="card tr-guide">
+    <summary>${id ? 'Panduan — arti tiap data' : 'Guide — what each metric means'}</summary>
+    <dl class="tr-gd-list">${items}</dl>
+  </details>`;
+}
+
 /* ── TRAINING INTRO / MEASUREMENT LEGEND ──────────────────────────────────────
    Sets expectations for the whole page: states how THIS athlete's load is
    measured (power, Relative Effort, or heart rate) so a no-power user knows the
@@ -724,7 +794,8 @@ function renderTraining() {
     ${typeof _trHrDecouplingHTML === 'function' ? _trHrDecouplingHTML() : ''}
     ${typeof _trTimeLostHTML === 'function' ? _trTimeLostHTML() : ''}
     ${typeof _trWindHTML === 'function' ? _trWindHTML() : ''}
-    ${typeof _trSegIntelHTML === 'function' ? _trSegIntelHTML() : ''}`;
+    ${typeof _trSegIntelHTML === 'function' ? _trSegIntelHTML() : ''}
+    ${_trGuideHTML()}`;
 
   _trDrawChart(d.series);
 }

@@ -886,6 +886,17 @@ body.dev .dev-tag { display: inline-block; }
 .tr-lg-chip b { color: var(--text); font-weight: 700; }
 .tr-lg-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 
+/* Training guide (collapsible glossary) */
+.tr-guide { padding: 0; margin-top: 16px; }
+.tr-guide > summary { cursor: pointer; padding: 14px 16px; font-weight: 700; font-size: 13px; color: var(--text); list-style: none; }
+.tr-guide > summary::-webkit-details-marker { display: none; }
+.tr-guide > summary::before { content: '▸ '; color: var(--orange); }
+.tr-guide[open] > summary::before { content: '▾ '; }
+.tr-gd-list { padding: 0 16px 14px; margin: 0; }
+.tr-gd-item { padding: 10px 0; border-top: 1px solid var(--border); }
+.tr-gd-term { font-size: 12.5px; font-weight: 800; color: var(--orange); margin: 0 0 3px; }
+.tr-gd-def { font-size: 12px; line-height: 1.55; color: var(--text-2); margin: 0; }
+
 /* Recovery & Next Ride */
 .tr-rv { padding: 16px; margin-bottom: 16px; }
 .tr-rv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
@@ -1019,6 +1030,7 @@ body.dev .dev-tag { display: inline-block; }
 .tr-pr-lbl { font-size: 11px; font-weight: 700; color: var(--text); margin-top: 6px; }
 .tr-pr-ride { font-size: 10px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+.tr-rq { padding: 16px; margin-top: 16px; }
 .tr-rq-grid { display: grid; grid-template-columns: 150px 1fr; gap: 20px; align-items: center; }
 .tr-rq-overall { text-align: center; }
 .tr-rq-big { font-size: 46px; font-weight: 900; letter-spacing: -1.5px; line-height: 1; }
