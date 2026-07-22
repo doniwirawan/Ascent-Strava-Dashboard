@@ -111,6 +111,39 @@ function _trBasisNote(basis) {
   return parts.join(' · ');
 }
 
+/* ── TRAINING INTRO / MEASUREMENT LEGEND ──────────────────────────────────────
+   Sets expectations for the whole page: states how THIS athlete's load is
+   measured (power, Relative Effort, or heart rate) so a no-power user knows the
+   numbers are HR/effort estimates — not missing — and explains the CTL/ATL/TSB
+   tiles that follow. */
+function _trIntroHTML(d) {
+  const id = window.LANG === 'id';
+  const b = d.basis, hasPower = b.power > 0, hasHr = b.effort > 0 || b.hr > 0;
+  let basis;
+  if (hasPower && (b.effort || b.hr || b.time)) {
+    basis = id ? 'Beban latihan diukur dari <b>daya</b> bila tersedia, plus <b>Relative Effort & detak jantung</b>.'
+               : 'Training load is measured from <b>power</b> where available, plus <b>Relative Effort &amp; heart rate</b>.';
+  } else if (hasPower) {
+    basis = id ? 'Beban latihan diukur dari <b>data daya</b> Anda.' : 'Training load is measured from your <b>power data</b>.';
+  } else if (hasHr) {
+    basis = id ? 'Beban latihan diperkirakan dari <b>Relative Effort & detak jantung</b> — tak perlu power meter.'
+               : 'Training load is estimated from <b>Relative Effort &amp; heart rate</b> — no power meter needed.';
+  } else {
+    basis = id ? 'Beban latihan diperkirakan dari <b>durasi</b> — pakai monitor detak jantung untuk angka yang lebih tajam.'
+               : 'Training load is estimated from <b>duration</b> — wear a heart-rate monitor for sharper load.';
+  }
+  const chip = (color, k, sub) => `<span class="tr-lg-chip"><span class="tr-lg-dot" style="background:${color}"></span><b>${k}</b> ${sub}</span>`;
+  const legend = [
+    chip('var(--orange)', id ? 'Kebugaran' : 'Fitness', 'CTL'),
+    chip('#a78bfa', id ? 'Kelelahan' : 'Fatigue', 'ATL'),
+    chip('#22c55e', id ? 'Bentuk' : 'Form', 'TSB'),
+  ].join('');
+  return `<div class="card tr-intro">
+    <div class="tr-intro-basis">${basis}</div>
+    <div class="tr-lg">${legend}</div>
+  </div>`;
+}
+
 /* ── RECOVERY & NEXT RIDE ─────────────────────────────────────────────────────
    Your most recent session, an estimate of when you're recovered enough for a
    hard effort, and a suggested next workout for your current form. Recovery time
@@ -657,6 +690,7 @@ function renderTraining() {
     </div>`;
 
   body.innerHTML = `
+    ${_trIntroHTML(d)}
     ${_trFtpCardHTML(d.ftpEst)}
     ${_trFtpTrendHTML()}
     <div class="tr-tiles">

@@ -877,6 +877,15 @@ body.dev .dev-tag { display: inline-block; }
 .tr-chart-title { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--text-2); margin-bottom: 10px; }
 .tr-basis-note { font-size: 11px; color: var(--muted); margin-top: 10px; }
 
+/* Training intro / measurement legend */
+.tr-intro { padding: 13px 16px; margin-bottom: 16px; }
+.tr-intro-basis { font-size: 12.5px; line-height: 1.5; color: var(--text-2); }
+.tr-intro-basis b { color: var(--text); font-weight: 700; }
+.tr-lg { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; }
+.tr-lg-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.tr-lg-chip b { color: var(--text); font-weight: 700; }
+.tr-lg-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
 /* Recovery & Next Ride */
 .tr-rv { padding: 16px; margin-bottom: 16px; }
 .tr-rv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
