@@ -799,7 +799,12 @@ function renderTraining() {
     ${typeof _trSegIntelHTML === 'function' ? _trSegIntelHTML() : ''}`;
 
   _trDrawChart(d.series);
-  _trRestoreAiPlan();
+  // Always surface an AI plan: show the saved one, else auto-generate it once
+  // (which then caches to localStorage so it isn't re-run every visit).
+  if (!_trRestoreAiPlan() && !_trAiAutoTried && typeof trainingAiRec === 'function') {
+    _trAiAutoTried = true;
+    trainingAiRec();
+  }
 
   // Auto-run the cheap latest-ride analyses so there's no "Analyse" button to
   // press. Power Curve & Segment Intel stay manual — they fetch streams for
@@ -846,13 +851,16 @@ function _trDrawChart(series) {
 }
 
 /* Restore a previously generated AI plan so it survives re-renders / reloads
-   instead of regenerating (and re-spending tokens) every visit. */
+   instead of regenerating (and re-spending tokens) every visit. Returns true
+   when a cached plan was shown. */
 function _trRestoreAiPlan() {
   const out = document.getElementById('trAiOut');
-  if (!out) return;
+  if (!out) return false;
   let saved; try { saved = JSON.parse(localStorage.getItem('tr_ai_plan') || 'null'); } catch {}
-  if (saved && saved.html) { out.innerHTML = saved.html; out.style.display = ''; }
+  if (saved && saved.html) { out.innerHTML = saved.html; out.style.display = ''; return true; }
+  return false;
 }
+let _trAiAutoTried = false;  // generate the AI plan at most once per session
 
 /* ── AI recovery plan (owner-gated /api/ai, rule-based text is the fallback) ── */
 async function trainingAiRec() {

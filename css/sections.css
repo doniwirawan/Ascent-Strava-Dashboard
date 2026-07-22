@@ -890,7 +890,7 @@ body.dev .dev-tag { display: inline-block; }
 
 /* Per-card plain-language note (sits directly under the card it explains) */
 .tr-note {
-  margin: -6px 4px 16px;
+  margin: 8px 2px 18px;
   padding: 9px 13px;
   font-size: 12px;
   line-height: 1.55;
