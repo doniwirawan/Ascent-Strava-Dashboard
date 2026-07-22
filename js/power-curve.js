@@ -59,7 +59,7 @@ function pcSaveAgg(a) { try { localStorage.setItem(PC_AGG_KEY, JSON.stringify(a)
 
 // Curve markup from an aggregate. opts: {progress, note, button}.
 function pcCurveMarkup(agg, opts = {}) {
-  const weight = (typeof currentAthlete !== 'undefined' && currentAthlete && currentAthlete.weight) || 0;
+  const weight = (typeof athWeightKg === 'function') ? athWeightKg() : ((typeof currentAthlete !== 'undefined' && currentAthlete && currentAthlete.weight) || 0);
   const maxV = Math.max(1, ...PC_WINDOWS.map(w => (agg.best[w] ? agg.best[w].v : 0)));
   const rows = PC_WINDOWS.map(w => {
     const b = agg.best[w];

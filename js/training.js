@@ -117,7 +117,7 @@ function _trBasisNote(basis) {
 const _TR_GUIDE = [
   ['Beban / Load (TSS)',
     'A single score for how hard a session was, first from power, else Strava Relative Effort, else heart rate, else duration. ~100 ≈ an hour at threshold.',
-    'Satu skor seberapa berat sebuah sesi — dari daya, atau Relative Effort, atau detak jantung, atau durasi. ~100 ≈ satu jam di ambang.'],
+    'Satu skor seberapa berat sebuah sesi — dari power, atau Relative Effort, atau detak jantung, atau durasi. ~100 ≈ satu jam di ambang.'],
   ['Fitness · CTL',
     'Chronic Training Load: a 42-day average of your daily load. A proxy for long-term fitness — it rises slowly as you train consistently.',
     'Chronic Training Load: rata-rata beban harian selama 42 hari. Proksi kebugaran jangka panjang — naik perlahan saat Anda latihan konsisten.'],
@@ -135,7 +135,7 @@ const _TR_GUIDE = [
     'Garis CTL / ATL / TSB dari waktu ke waktu — lihat kebugaran naik, kelelahan melonjak setelah blok berat, dan bentuk turun lalu pulih.'],
   ['FTP & W/kg',
     'Functional Threshold Power: the power you could roughly hold for an hour. W/kg divides it by body weight — the key climbing number. Estimated from your best sustained effort or your weight when you have no power meter.',
-    'Functional Threshold Power: daya yang kira-kira bisa Anda tahan selama satu jam. W/kg membaginya dengan berat badan — angka kunci untuk menanjak. Diperkirakan dari upaya terbaik atau berat badan bila tak ada power meter.'],
+    'Functional Threshold Power: power yang kira-kira bisa Anda tahan selama satu jam. W/kg membaginya dengan berat badan — angka kunci untuk menanjak. Diperkirakan dari upaya terbaik atau berat badan bila tak ada power meter.'],
   ['Recovery & Next Ride',
     'An estimate of when you have recovered enough for a hard effort, based on the load of your last session (and short-circuited when your form is already fresh).',
     'Perkiraan kapan Anda sudah cukup pulih untuk upaya berat, berdasar beban sesi terakhir (dan langsung siap bila bentuk Anda sudah segar).'],
@@ -150,7 +150,7 @@ const _TR_GUIDE = [
     'Velocità Ascensionale Media — kecepatan mendaki vertikal rata-rata dalam meter per jam. Makin tinggi = makin kuat menanjak; tanjakan elite ~1.600+ m/jam.'],
   ['Fitness Trend (Zone 2)',
     'Your speed/power on easy aerobic (Zone-2) rides over time. Going faster at the same easy heart rate is a real sign of improving aerobic fitness.',
-    'Kecepatan/daya Anda pada gowes aerobik ringan (Zona 2) dari waktu ke waktu. Makin cepat pada detak jantung ringan yang sama = tanda nyata kebugaran aerobik membaik.'],
+    'Kecepatan/power Anda pada gowes aerobik ringan (Zona 2) dari waktu ke waktu. Makin cepat pada detak jantung ringan yang sama = tanda nyata kebugaran aerobik membaik.'],
   ['Ride Quality Score',
     'Scores your latest ride 0–100 by percentile against your own history across endurance, climbing, efficiency and effort.',
     'Menilai gowes terbaru Anda 0–100 berdasar persentil terhadap riwayat Anda sendiri: ketahanan, menanjak, efisiensi, dan upaya.'],
@@ -162,23 +162,21 @@ const _TR_GUIDE = [
     'Seberapa banyak gowes melawan angin depan, belakang, atau samping, plus angin neto sepanjang arah perjalanan — gowes lambat melawan angin sering justru kuat.'],
   ['Power Curve',
     'Your best average power at each duration (5s to 60min), aggregated across rides — the shape of your sprint-to-endurance strengths. Needs power data.',
-    'Daya rata-rata terbaik Anda di tiap durasi (5 detik sampai 60 menit), digabung dari semua gowes — bentuk kekuatan dari sprint hingga ketahanan. Butuh data daya.'],
+    'Power rata-rata terbaik Anda di tiap durasi (5 detik sampai 60 menit), digabung dari semua gowes — bentuk kekuatan dari sprint hingga ketahanan. Butuh data power.'],
   ['Segment Intelligence',
     'Analyses your starred segments’ effort history — which you’re closest to a PR on, which are improving fastest, and which have stalled.',
     'Menganalisis riwayat upaya segmen berbintang Anda — mana yang paling dekat ke PR, mana yang membaik tercepat, dan mana yang mandek.'],
   ['Relative Effort / Suffer Score',
     'Strava’s measure of how hard a session was, from the time you spent in each heart-rate zone. It feeds the load model when you have no power.',
-    'Ukuran Strava tentang seberapa berat sesi, dari waktu di tiap zona detak jantung. Ini memberi masukan ke model beban saat Anda tak punya daya.'],
+    'Ukuran Strava tentang seberapa berat sesi, dari waktu di tiap zona detak jantung. Ini memberi masukan ke model beban saat Anda tak punya power.'],
 ];
 
-function _trGuideHTML() {
+// Inline plain-language note shown directly under its card (replaces the old
+// collapsed glossary — every metric explains itself where it appears).
+function _trNote(term) {
   const id = window.LANG === 'id';
-  const items = _TR_GUIDE.map(([term, en, idt]) =>
-    `<div class="tr-gd-item"><dt class="tr-gd-term">${term}</dt><dd class="tr-gd-def">${id ? idt : en}</dd></div>`).join('');
-  return `<details class="card tr-guide">
-    <summary>${id ? 'Panduan — arti tiap data' : 'Guide — what each metric means'}</summary>
-    <dl class="tr-gd-list">${items}</dl>
-  </details>`;
+  const e = _TR_GUIDE.find(x => x[0] === term);
+  return e ? `<div class="tr-note">${id ? e[2] : e[1]}</div>` : '';
 }
 
 /* ── TRAINING INTRO / MEASUREMENT LEGEND ──────────────────────────────────────
@@ -191,10 +189,10 @@ function _trIntroHTML(d) {
   const b = d.basis, hasPower = b.power > 0, hasHr = b.effort > 0 || b.hr > 0;
   let basis;
   if (hasPower && (b.effort || b.hr || b.time)) {
-    basis = id ? 'Beban latihan diukur dari <b>daya</b> bila tersedia, plus <b>Relative Effort & detak jantung</b>.'
+    basis = id ? 'Beban latihan diukur dari <b>power</b> bila tersedia, plus <b>Relative Effort & detak jantung</b>.'
                : 'Training load is measured from <b>power</b> where available, plus <b>Relative Effort &amp; heart rate</b>.';
   } else if (hasPower) {
-    basis = id ? 'Beban latihan diukur dari <b>data daya</b> Anda.' : 'Training load is measured from your <b>power data</b>.';
+    basis = id ? 'Beban latihan diukur dari <b>data power</b> Anda.' : 'Training load is measured from your <b>power data</b>.';
   } else if (hasHr) {
     basis = id ? 'Beban latihan diperkirakan dari <b>Relative Effort & detak jantung</b> — tak perlu power meter.'
                : 'Training load is estimated from <b>Relative Effort &amp; heart rate</b> — no power meter needed.';
@@ -441,7 +439,7 @@ function _trFtpTrendHTML() {
 function _trFtpCardHTML(ftpEst) {
   if (!ftpEst) return '';
   const ath = (typeof currentAthlete !== 'undefined' && currentAthlete) || {};
-  const weight = ath.weight || 0;                    // kg (Strava stores metric)
+  const weight = athWeightKg();                       // kg (Strava profile, else fallback)
   const wkg = weight > 0 ? ftpEst.value / weight : 0;
   const basisText = ftpEst.basis === 'strava'
     ? tr('From your Strava profile FTP.')
@@ -459,14 +457,10 @@ function _trFtpCardHTML(ftpEst) {
           <div class="tr-ftp-basis">${name ? name + ' · ' : ''}${basisText}</div>
         </div>
       </div>
-      ${wkg > 0 ? `
       <div class="tr-ftp-wkg">
         <div class="tr-ftp-wkg-val">${wkg.toFixed(1)}<span>W/kg</span></div>
         <div class="tr-ftp-wkg-band">${_trWkgLabel(wkg)}</div>
-      </div>` : `
-      <div class="tr-ftp-wkg tr-ftp-wkg-empty">
-        <div class="tr-ftp-wkg-hint">${tr('Add your weight on Strava for W/kg')}</div>
-      </div>`}
+      </div>
     </div>`;
 }
 
@@ -763,12 +757,16 @@ function renderTraining() {
     ${_trIntroHTML(d)}
     ${_trFtpCardHTML(d.ftpEst)}
     ${_trFtpTrendHTML()}
+    ${_trNote('FTP & W/kg')}
     <div class="tr-tiles">
       ${tile(Math.round(d.ctl), '', tr('Fitness · CTL'), 'var(--orange)', tr('42-day load'))}
       ${tile(Math.round(d.atl), '', tr('Fatigue · ATL'), '#a78bfa', tr('7-day load'))}
       ${tile(tsbStr, '', tr('Form · TSB'), band.color, `<span style="color:${band.color};font-weight:700">${band.label}</span>`)}
       ${tile(rampStr, '/wk', tr('Ramp rate'), d.ramp > 8 ? '#ef4444' : 'var(--text)', tr('CTL change, 7d'))}
     </div>
+    <div class="tr-note">${window.LANG === 'id'
+      ? '<b>Fitness (CTL)</b> = bentuk jangka panjang Anda. <b>Fatigue (ATL)</b> = kelelahan jangka pendek. <b>Form (TSB)</b> = Fitness − Fatigue, yaitu kesegaran Anda (positif = segar). <b>Ramp</b> = seberapa cepat fitness berubah tiap minggu.'
+      : '<b>Fitness (CTL)</b> is your long-term form. <b>Fatigue (ATL)</b> is short-term tiredness. <b>Form (TSB)</b> = Fitness − Fatigue, your freshness (positive = fresh). <b>Ramp</b> is how fast fitness is changing per week.'}</div>
 
     <div class="tr-rec card">
       <div class="tr-rec-head">
@@ -781,23 +779,33 @@ function renderTraining() {
     </div>
 
     ${_trRecoveryCardHTML(d)}
+    ${_trNote('Recovery & Next Ride')}
 
     <div class="card" style="padding:16px">
       <div class="tr-chart-title">${tr('Performance Management Chart')}</div>
       <div style="height:300px"><canvas id="trPmcChart"></canvas></div>
       <div class="tr-basis-note">${tr('Daily load basis: ')}${_trBasisNote(d.basis)}${d.ftpEst ? ` · FTP ${d.ftpEst.value}w${d.ftpEst.estimated ? tr(' (est.)') : ''}` : ''}</div>
     </div>
+    ${_trNote('Performance Management Chart')}
 
     ${_trConsistencyHTML()}
+    ${_trNote('Consistency')}
     ${_trTrendsHTML()}
+    ${_trNote('Fitness Trend (Zone 2)')}
     ${typeof _trPowerCurveHTML === 'function' ? _trPowerCurveHTML() : ''}
     ${typeof _trHrDecouplingHTML === 'function' ? _trHrDecouplingHTML() : ''}
     ${typeof _trTimeLostHTML === 'function' ? _trTimeLostHTML() : ''}
     ${typeof _trWindHTML === 'function' ? _trWindHTML() : ''}
-    ${typeof _trSegIntelHTML === 'function' ? _trSegIntelHTML() : ''}
-    ${_trGuideHTML()}`;
+    ${typeof _trSegIntelHTML === 'function' ? _trSegIntelHTML() : ''}`;
 
   _trDrawChart(d.series);
+
+  // Auto-run the cheap latest-ride analyses so there's no "Analyse" button to
+  // press. Power Curve & Segment Intel stay manual — they fetch streams for
+  // every ride/effort and would blow Strava's rate limit on each page view.
+  if (typeof analyzeWind === 'function') analyzeWind();
+  if (typeof analyzeTimeLost === 'function') analyzeTimeLost();
+  if (typeof analyzeHrDecoupling === 'function') analyzeHrDecoupling();
 }
 
 // Draw the CTL / ATL / TSB chart (last ~180 days) with Chart.js.
@@ -868,10 +876,11 @@ async function trainingAiRec() {
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.text) {
       out.innerHTML = (typeof aiMd === 'function' ? aiMd(data.text) : data.text);
-    } else if (data.error === 'not_authorized' || data.error === 'provider_not_configured') {
-      out.innerHTML = tr("AI coach isn't set up on this deployment — the guidance above is rule-based from your form (TSB) and ramp rate. (Owner: add a provider in AI Coach settings.)");
     } else {
-      out.innerHTML = tr("Couldn't reach the AI coach right now. The guidance above is rule-based from your numbers.");
+      // Surface the real reason (no key, out of credit, not authorized, …) plus
+      // a note that the rule-based advice above still stands.
+      const why = (typeof aiErrorMessage === 'function') ? aiErrorMessage(data, r.status) : tr("Couldn't reach the AI coach right now.");
+      out.innerHTML = why + '<br><span style="color:var(--muted)">' + tr('The guidance above is rule-based from your numbers.') + '</span>';
     }
   } catch {
     out.innerHTML = tr("Couldn't reach the AI coach right now. The guidance above is rule-based from your numbers.");

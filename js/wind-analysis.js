@@ -102,7 +102,7 @@ function _windMarkup(a, w) {
     <div class="tr-basis-note" style="margin-bottom:10px">${trf('Wind was {0} from the {1} ({2}°).', windVal, windDir, w.windFromDeg)}</div>
     ${rows}
     <div class="tr-basis-note">${tr('Net wind along your direction of travel: ')}${netTxt}</div>
-    <div class="tr-basis-note">${trf('Latest GPS ride: {0}. Wind sampled at the start hour/location.', a.name || 'Ride')}</div>`;
+    <div class="tr-basis-note">${trf('Your direction comes from the GPS route bearings of {0}; wind speed & direction from Open-Meteo historical weather, sampled at the ride’s start hour and location.', a.name || tr('latest ride'))}</div>`;
 }
 
 function _trWindHTML() {

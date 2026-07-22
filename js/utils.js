@@ -23,6 +23,11 @@ const kmDisp  = km => useImperial ? km/_MI : km;               // km value → k
 const elevVal = m  => useImperial ? m*_FT : m;                 // elevation value in m/ft
 const kmh     = ms => +(ms * (useImperial ? 2.23694 : 3.6)).toFixed(1); // speed value
 const fmtSpeed= ms => kmh(ms) + ' ' + speedUnit();
+// Body weight for W/kg. Strava only exposes weight with the profile:read_all
+// scope AND when the athlete has shared it; older tokens return nothing. Fall
+// back to the owner's known weight so W/kg always renders.
+const FALLBACK_WEIGHT_KG = 78;
+const athWeightKg = () => (typeof currentAthlete !== 'undefined' && currentAthlete && currentAthlete.weight) || FALLBACK_WEIGHT_KG;
 // Strava derives max_speed from a single GPS sample, so one satellite glitch
 // can report an impossible peak (90+ km/h on a road bike). Rather than hide
 // those, we now show the real max_speed everywhere — glitches can be corrected
