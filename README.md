@@ -232,6 +232,14 @@ Ascent-Strava-Dashboard/
 
 ---
 
+## Contributors
+
+- **Doni Wirawan** ([@doniwirawan](https://github.com/doniwirawan)) — creator & maintainer
+
+_Automated dependency/image bots (e.g. ImgBot) also contribute commits._
+
+---
+
 ## License
 
 **Personal, non-commercial use only.** You're welcome to clone this repo and run
