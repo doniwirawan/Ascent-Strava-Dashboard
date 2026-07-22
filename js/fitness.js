@@ -350,3 +350,45 @@ function estimateFtp() {
   if (ath.weight) return { value: Math.round(ath.weight * 2.5), estimated: true, basis: 'weight' };
   return null;
 }
+
+/* Cycling VO2max estimate — Garmin/Firstbeat-style: map power → VO2 with the
+   ACSM leg-cycling equation and extrapolate your power↔HR relationship out to
+   max HR. Garmin's exact model is proprietary; this follows the same principle.
+   ACSM: VO2 (ml/kg/min) = 10.8 * watts / kg + 7.
+   Returns {value, method} (ml/kg/min) or null. */
+function estimateVo2max() {
+  const weight = (typeof athWeightKg === 'function') ? athWeightKg() : 0;
+  if (!weight || typeof acts === 'undefined' || !acts.length) return null;
+  const vo2FromPower = watts => 10.8 * (watts / weight) + 7;
+
+  // Steady rides (≥20 min) with both power and heart rate.
+  const pts = acts
+    .filter(a => isRide(a) && (a.moving_time || 0) >= 1200
+      && (a.weighted_average_watts || a.average_watts) > 0 && a.average_heartrate > 0)
+    .map(a => ({ hr: a.average_heartrate, w: a.weighted_average_watts || a.average_watts }));
+
+  const hrMax = observedMaxHr();
+  if (hrMax > 0 && pts.length >= 8) {
+    // Least-squares fit power = a + b·HR, then read power at max HR.
+    const n = pts.length;
+    const meanHr = pts.reduce((s, p) => s + p.hr, 0) / n;
+    const meanW = pts.reduce((s, p) => s + p.w, 0) / n;
+    const hrSpread = Math.max(...pts.map(p => p.hr)) - Math.min(...pts.map(p => p.hr));
+    let num = 0, den = 0;
+    for (const p of pts) { num += (p.hr - meanHr) * (p.w - meanW); den += (p.hr - meanHr) ** 2; }
+    const b = den > 0 ? num / den : 0;
+    if (b > 0 && hrSpread >= 12) {
+      const pAtMax = (meanW - b * meanHr) + b * hrMax;
+      const v = vo2FromPower(pAtMax);
+      if (v >= 25 && v <= 90) return { value: Math.round(v), method: 'power-hr' };
+    }
+  }
+
+  // Fallback: from FTP (FTP ≈ 75% of power at VO2max).
+  const ftp = (typeof estimateFtp === 'function') && estimateFtp();
+  if (ftp && ftp.value > 0) {
+    const v = vo2FromPower(ftp.value / 0.75);
+    if (v >= 25 && v <= 90) return { value: Math.round(v), method: 'ftp' };
+  }
+  return null;
+}

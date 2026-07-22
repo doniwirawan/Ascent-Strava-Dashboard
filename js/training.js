@@ -134,8 +134,8 @@ const _TR_GUIDE = [
     'The CTL / ATL / TSB lines over time — see fitness build, fatigue spike after hard blocks, and form dip and recover.',
     'Garis CTL / ATL / TSB dari waktu ke waktu — lihat kebugaran naik, kelelahan melonjak setelah blok berat, dan bentuk turun lalu pulih.'],
   ['FTP & W/kg',
-    'Functional Threshold Power: the power you could roughly hold for an hour. W/kg divides it by body weight — the key climbing number. Estimated from your best sustained effort or your weight when you have no power meter.',
-    'Functional Threshold Power: power yang kira-kira bisa Anda tahan selama satu jam. W/kg membaginya dengan berat badan — angka kunci untuk menanjak. Diperkirakan dari upaya terbaik atau berat badan bila tak ada power meter.'],
+    'Functional Threshold Power: the power you could roughly hold for an hour. W/kg divides it by body weight — the key climbing number. Estimated from your best sustained effort or your weight when you have no power meter. VO₂max is estimated Garmin/Firstbeat-style: your power is converted to an oxygen cost (ACSM) and your power-to-heart-rate line is extrapolated to your max HR — an estimate, not Garmin’s exact number.',
+    'Functional Threshold Power: power yang kira-kira bisa Anda tahan selama satu jam. W/kg membaginya dengan berat badan — angka kunci untuk menanjak. Diperkirakan dari upaya terbaik atau berat badan bila tak ada power meter. VO₂max diperkirakan ala Garmin/Firstbeat: power Anda dikonversi ke kebutuhan oksigen (ACSM) dan garis power–detak jantung diekstrapolasi ke HR maksimum Anda — sebuah perkiraan, bukan angka persis Garmin.'],
   ['Recovery & Next Ride',
     'An estimate of when you have recovered enough for a hard effort, based on the load of your last session (and short-circuited when your form is already fresh).',
     'Perkiraan kapan Anda sudah cukup pulih untuk upaya berat, berdasar beban sesi terakhir (dan langsung siap bila bentuk Anda sudah segar).'],
@@ -447,6 +447,7 @@ function _trFtpCardHTML(ftpEst) {
       ? tr('Estimated from your best sustained power (≈20-min effort × 0.95).')
       : tr('Estimated from body weight (~2.5 W/kg baseline) — add power data for a sharper number.');
   const name = [ath.firstname, ath.lastname].filter(Boolean).join(' ');
+  const vo2 = (typeof estimateVo2max === 'function') ? estimateVo2max() : null;
 
   return `
     <div class="card tr-ftp">
@@ -461,6 +462,11 @@ function _trFtpCardHTML(ftpEst) {
         <div class="tr-ftp-wkg-val">${wkg.toFixed(1)}<span>W/kg</span></div>
         <div class="tr-ftp-wkg-band">${_trWkgLabel(wkg)}</div>
       </div>
+      ${vo2 ? `
+      <div class="tr-ftp-wkg tr-ftp-vo2">
+        <div class="tr-ftp-wkg-val">${vo2.value}<span>VO₂max</span></div>
+        <div class="tr-ftp-wkg-band">ml/kg/min · ${tr('est.')}</div>
+      </div>` : ''}
     </div>`;
 }
 

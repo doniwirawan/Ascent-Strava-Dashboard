@@ -952,6 +952,7 @@ body.dev .dev-tag { display: inline-block; }
 .tr-ftp-wkg-val { font-size: 26px; font-weight: 900; letter-spacing: -.5px; line-height: 1; color: var(--text); }
 .tr-ftp-wkg-val span { font-size: 12px; font-weight: 700; color: var(--muted); margin-left: 3px; }
 .tr-ftp-wkg-band { font-size: 11px; font-weight: 700; color: var(--orange); margin-top: 5px; letter-spacing: .03em; }
+.tr-ftp-vo2 .tr-ftp-wkg-val { color: #22c55e; }
 .tr-ftp-wkg-empty { border-left: none; }
 .tr-ftp-wkg-hint { font-size: 11px; color: var(--muted); max-width: 130px; }
 
