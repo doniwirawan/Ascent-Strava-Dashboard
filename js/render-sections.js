@@ -134,17 +134,25 @@ function renderMonthly(filterYear) {
 }
 
 /* ── BEST EFFORTS ── */
-const BEST_TOP_N=10;
+const BEST_TOP_N=10;      // maximum rows kept per ranking
+const BEST_SHOWN=5;       // rows visible before "Show more"
+// Toggle a card between showing the first BEST_SHOWN rows and all rows.
+function _bestToggle(btn){
+  const open=btn.closest('.best-card').classList.toggle('show-all');
+  const id=(()=>{ try{ return localStorage.getItem('lang')==='id'; }catch{ return false; } })();
+  btn.textContent = open ? (id?'Tampilkan lebih sedikit':'Show less') : (id?'Tampilkan selengkapnya':'Show more');
+}
 // Render one ranking card. `list` is already sorted+sliced; `fmtRow(a)` → value string.
 function _bestCard(title, sub, list, fmtRow){
   const rows=list.map((a,i)=>`
-      <div class="best-row">
+      <div class="best-row${i>=BEST_SHOWN?' best-extra':''}">
         <div class="best-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
         <div class="best-name">${a.name||'Activity'} <span style="color:var(--muted);font-size:10px;">${fmtDt(a.start_date)}</span></div>
         <div class="best-val">${fmtRow(a)}</div>
       </div>`).join('');
+  const more=list.length>BEST_SHOWN?`<button class="best-more" onclick="_bestToggle(this)">Show more</button>`:'';
   const subHtml=sub?` <span style="color:var(--muted);font-weight:400;letter-spacing:0;text-transform:none;">· ${sub}</span>`:'';
-  return `<div class="best-card"><div class="best-card-title">${title}${subHtml}</div>${rows}</div>`;
+  return `<div class="best-card"><div class="best-card-title">${title}${subHtml}</div>${rows}${more}</div>`;
 }
 function renderBestEfforts(){
   const CATS=[
@@ -176,21 +184,26 @@ function renderBestEfforts(){
       fmt:a=>`${kmh(a.average_speed).toFixed(1)} / ${kmh(cleanMax(a)).toFixed(1)} ${speedUnit()}`,
     },
     {
-      hi:'Most Efficient', lo:'Least Efficient', sub:'high speed · low HR',
+      // Efficiency = distance covered per heartbeat (avg m/s × 60 ÷ avg HR).
+      // High speed at low HR → high value; slow-but-hard rides → low value.
+      hi:'Most Efficient', lo:'Least Efficient', sub:'distance per heartbeat',
       valid:a=>a.average_speed>0 && a.average_heartrate>0,
-      parts:[{get:a=>a.average_speed,dir:1},{get:a=>a.average_heartrate,dir:-1}],
-      fmt:a=>`${kmh(a.average_speed).toFixed(1)} ${speedUnit()} · ${Math.round(a.average_heartrate)} bpm`,
+      score:a=>a.average_speed*60/a.average_heartrate,
+      fmt:a=>`${(a.average_speed*60/a.average_heartrate).toFixed(2)} m/beat`,
     },
   ];
   const composite=COMBOS.flatMap(c=>{
     const valid=src.filter(c.valid);
     if(valid.length<3) return [];
-    const norms=c.parts.map(p=>{
-      const vals=valid.map(p.get);
-      const mn=Math.min(...vals), mx=Math.max(...vals), d=mx-mn;
-      return a=>{ const n=d>0?(p.get(a)-mn)/d:0.5; return p.dir===-1?1-n:n; };
-    });
-    const score=a=>norms.reduce((s,fn)=>s+fn(a),0);
+    let score=c.score;
+    if(!score){
+      const norms=c.parts.map(p=>{
+        const vals=valid.map(p.get);
+        const mn=Math.min(...vals), mx=Math.max(...vals), d=mx-mn;
+        return a=>{ const n=d>0?(p.get(a)-mn)/d:0.5; return p.dir===-1?1-n:n; };
+      });
+      score=a=>norms.reduce((s,fn)=>s+fn(a),0);
+    }
     const ranked=[...valid].sort((a,b)=>score(b)-score(a));
     const top=ranked.slice(0,BEST_TOP_N);
     const bottom=ranked.slice().reverse().slice(0,BEST_TOP_N);

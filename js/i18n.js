@@ -255,6 +255,7 @@ const APP_ID = {
   'Highest Avg Heart Rate': 'Detak Jantung Rata-rata Tertinggi',
   'Fastest All-Round': 'Tercepat Menyeluruh', 'Slowest All-Round': 'Paling Lambat Menyeluruh',
   'Most Efficient': 'Paling Efisien', 'Least Efficient': 'Paling Tidak Efisien',
+  'Show more': 'Tampilkan selengkapnya', 'Show less': 'Tampilkan lebih sedikit',
   // gear
   'Total km': 'Total km', 'Total mi': 'Total mi', 'Rides logged': 'Gowes tercatat',
   'Elevation m': 'Elevasi m', 'Elevation ft': 'Elevasi ft', 'Primary': 'Utama',
@@ -512,7 +513,7 @@ window.trf = function (s, ...args) {
   // Dynamic labels are rebuilt (in English) by the render layer, so they can't
   // be captured once. Instead we re-scan known label elements and swap the text
   // after each render. English is the source, so this only acts for Indonesian.
-  const DYN_SEL = '.hero-label,.ctop-title,.best-card-title,.gear-stat-lbl,.gear-primary,' +
+  const DYN_SEL = '.hero-label,.ctop-title,.best-card-title,.best-more,.gear-stat-lbl,.gear-primary,' +
     '.mst-lbl,.mst-cl,.mst-sub,.seg-m-lbl,.actd-stat-lbl,.actd-badge,.actd-strava,' +
     '.seg-chip-btn,.seg-pr-empty,.seg-link,.seg-sum-top,.ryc-l,.gr-to,.gr-title,' +
     '.month-table th,.cal2-stats div,.cal2-legend,.ach-badge-name,.ach-badge-unit,' +

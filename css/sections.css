@@ -232,6 +232,22 @@
 
 .best-val { font-size: 14px; font-weight: 800; color: var(--text); flex-shrink: 0; }
 
+.best-card .best-extra { display: none; }
+.best-card.show-all .best-extra { display: flex; }
+.best-more {
+  margin-top: 10px;
+  background: none;
+  border: none;
+  padding: 4px 0 0;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+.best-more:hover { text-decoration: underline; }
+
 /* Gear */
 .gear-card {
   background: var(--surface);
