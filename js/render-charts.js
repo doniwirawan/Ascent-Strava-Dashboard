@@ -455,10 +455,12 @@ function openActivityModal(ref){
     ${a.id ? '<div class="actd-streams" id="actStreams"></div>' : ''}
     ${a.average_heartrate ? '<div class="actd-hrz" id="actHrz"></div>' : ''}
     ${a.id ? `<div class="actd-actions">
+      <button class="btn actd-ai-btn" type="button" onclick="aiAnalyzeActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} Analyze performance</button>
       <button class="btn actd-ai-btn" type="button" onclick="aiCaptionActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} AI title &amp; description</button>
       <button class="btn actd-stats-btn" type="button" onclick="aiStatsCaption('${a.id}')">Stats title &amp; description</button>
       <a class="btn btn-primary actd-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener">View on Strava ↗</a>
     </div>
+    <div id="actAnalysisPanel" class="ai-analysis-panel"></div>
     <div id="actAiPanel" class="ai-cap-panel"></div>` : ''}
   `;
   if (window.applyI18n) window.applyI18n();
@@ -466,6 +468,7 @@ function openActivityModal(ref){
   if(hasRoute) _actBuildMap(a);
   if(a.average_heartrate) renderActivityHrZones(a);
   if(a.id) renderActivityStreams(a);
+  if(a.id && typeof renderActivityAnalysis==='function') renderActivityAnalysis(a);
 }
 
 function closeActivityModal(){

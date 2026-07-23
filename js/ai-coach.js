@@ -243,6 +243,65 @@ async function aiCaptionActivity(id) {
   } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error — try again.</div>'; }
 }
 
+/* ── AI performance analysis (in the activity modal) ──────────────────────────
+   One-tap coach read of a single activity. The result is cached in localStorage
+   AND stored on the activity object so aiSyncCache() persists it to the remote
+   (Supabase) cache — so it's always there when you reopen the activity. */
+const _analysisKey = id => 'ai_analysis_' + id;
+
+function _getSavedAnalysis(id) {
+  try { const c = localStorage.getItem(_analysisKey(id)); if (c) return c; } catch {}
+  const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
+  return (a && a.ai_analysis) || null;
+}
+
+/* Called when the modal opens — shows a saved analysis if one exists, else nothing. */
+function renderActivityAnalysis(a) {
+  const panel = document.getElementById('actAnalysisPanel');
+  if (!panel) return;
+  const saved = _getSavedAnalysis(a.id);
+  if (saved) _showAnalysis(a.id, saved); else panel.innerHTML = '';
+}
+
+function _showAnalysis(id, text) {
+  const panel = document.getElementById('actAnalysisPanel');
+  if (!panel) return;
+  panel.innerHTML =
+    '<div class="ai-analysis-head"><span class="ai-ins-icon">' + AI_ICON + '</span>Performance analysis'
+    + '<button class="btn ai-analysis-regen" type="button" onclick="aiAnalyzeActivity(\'' + id + '\',true)">Re-analyze</button></div>'
+    + '<div class="ai-analysis-body">' + aiMd(text) + '</div>';
+}
+
+async function aiAnalyzeActivity(id, force) {
+  const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
+  const panel = document.getElementById('actAnalysisPanel');
+  if (!a || !panel) return;
+  if (!force) { const saved = _getSavedAnalysis(id); if (saved) { _showAnalysis(id, saved); return; } }
+  const token = localStorage.getItem('strava_access_token');
+  if (!token) { panel.innerHTML = '<div class="ai-cap-status err">Connect to Strava first.</div>'; return; }
+
+  panel.innerHTML = '<div class="ai-cap-loading"><span class="ai-dots"><span></span><span></span><span></span></span> Analyzing your performance…</div>';
+  const { provider, model, key } = aiProviderModel();
+  const messages = [
+    { role: 'system', content:
+      'You are an expert cycling and running coach. Analyse ONE activity using ONLY the numbers provided — never invent data. '
+      + 'Address the athlete directly as "you". Translate any Indonesian activity terms to English. '
+      + 'Structure the reply as short markdown: a one-line **verdict**, then a "Strengths" list (2–3 bullets), '
+      + 'a "Work on" list (2–3 bullets), and one concrete "Next time" tip. Reference the real stats (speed, HR, power, elevation, weather). '
+      + 'Keep it under ~160 words. No preamble, no headings other than those named.' },
+    { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nAnalyse my performance.' },
+  ];
+  try {
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.text) { panel.innerHTML = '<div class="ai-cap-status err">' + aiErrorMessage(data, r.status) + '</div>'; return; }
+    const text = data.text.trim();
+    try { localStorage.setItem(_analysisKey(id), text); } catch {}
+    a.ai_analysis = text; aiSyncCache();
+    _showAnalysis(id, text);
+  } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error — try again.</div>'; }
+}
+
 /* Shared editable preview used by both the AI and the stats (no-AI) buttons. */
 function aiShowCaptionPreview(id, title, desc, source, roast) {
   const panel = document.getElementById('actAiPanel');

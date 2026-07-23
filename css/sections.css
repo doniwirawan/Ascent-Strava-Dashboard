@@ -788,6 +788,16 @@ body.dev .dev-tag { display: inline-block; }
 .ai-cap-status.err { color: #fca5a5; }
 .ai-chip-roast { border-color: rgba(252,76,2,.5); }
 
+/* Performance analysis panel */
+.ai-analysis-panel:not(:empty) { margin-top: 14px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.ai-analysis-head { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--orange); margin-bottom: 10px; }
+.ai-analysis-regen { margin-left: auto; padding: 4px 10px; font-size: 11px; text-transform: none; letter-spacing: 0; }
+.ai-analysis-body { font-size: 13px; line-height: 1.55; color: var(--text); }
+.ai-analysis-body p { margin: 0 0 8px; }
+.ai-analysis-body ul { margin: 4px 0 10px; padding-left: 18px; }
+.ai-analysis-body li { margin-bottom: 3px; }
+.ai-analysis-body strong { color: var(--text); }
+
 /* Bulk AI rewrite progress + done rows */
 .ai-bulk-progress { height: 4px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: 8px 0; }
 .ai-bulk-bar { height: 100%; width: 0; background: var(--orange); transition: width .25s; }
