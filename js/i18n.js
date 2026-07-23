@@ -252,6 +252,9 @@ const APP_ID = {
   'Longest Rides': 'Gowes Terjauh', 'Most Elevation': 'Elevasi Terbanyak',
   'Fastest Avg Speed': 'Kecepatan Rata-rata Tercepat', 'Highest Max Speed': 'Kecepatan Maks Tertinggi',
   'Highest Heart Rate': 'Detak Jantung Tertinggi', 'Highest Suffer Score': 'Suffer Score Tertinggi',
+  'Highest Avg Heart Rate': 'Detak Jantung Rata-rata Tertinggi',
+  'Fastest All-Round': 'Tercepat Menyeluruh', 'Slowest All-Round': 'Paling Lambat Menyeluruh',
+  'Most Efficient': 'Paling Efisien', 'Least Efficient': 'Paling Tidak Efisien',
   // gear
   'Total km': 'Total km', 'Total mi': 'Total mi', 'Rides logged': 'Gowes tercatat',
   'Elevation m': 'Elevasi m', 'Elevation ft': 'Elevasi ft', 'Primary': 'Utama',
