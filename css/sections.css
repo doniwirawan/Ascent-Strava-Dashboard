@@ -1138,3 +1138,49 @@ body.dev .dev-tag { display: inline-block; }
 .si-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .si-meta { font-size: 12px; color: var(--muted); white-space: nowrap; flex: none; }
 .si-meta b { color: var(--orange); }
+
+/* ── RECOVERY & STRAIN RINGS (WHOOP-style) ───────────────────────────────
+   Two ring cards. On Overview the pair is pinned above the stat grid via
+   .wh-slot, which spans every column of that grid. */
+.wh-slot { grid-column: 1 / -1; }
+.wh-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 4px; }
+.wh-row:not(.wh-compact) { margin-bottom: 16px; }
+
+.wh-card {
+  --wh-track: rgba(255, 255, 255, .07);
+  display: flex; align-items: center; gap: 18px; min-width: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  position: relative; overflow: hidden;
+}
+/* A faint wash of the ring colour, so red/yellow/green reads at a glance. */
+.wh-card::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 100% at 0% 50%, color-mix(in srgb, var(--wh-accent) 13%, transparent), transparent 62%);
+}
+.wh-ring { position: relative; flex: none; line-height: 0; }
+.wh-ring-svg { display: block; }
+.wh-ring-mid {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; line-height: 1.05;
+}
+.wh-ring-val { font-size: 30px; font-weight: 900; letter-spacing: -1.2px; color: var(--text); }
+.wh-ring-val span { font-size: 15px; font-weight: 800; margin-left: 1px; }
+.wh-ring-cap {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--wh-accent); margin-top: 4px;
+}
+.wh-meta { min-width: 0; }
+.wh-title {
+  font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text); margin-bottom: 6px;
+}
+.wh-sub { font-size: 12px; line-height: 1.5; color: var(--text-2); }
+
+.wh-compact .wh-card { padding: 16px; gap: 14px; }
+.wh-compact .wh-ring-val { font-size: 25px; }
+.wh-compact .wh-sub { font-size: 11.5px; }
+
+@media (max-width: 780px) {
+  .wh-row { grid-template-columns: 1fr; }
+}

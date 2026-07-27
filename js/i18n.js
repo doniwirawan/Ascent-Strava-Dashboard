@@ -360,6 +360,11 @@ const TR_ID = {
   'Good': 'Baik', 'Moderate': 'Sedang', 'Building': 'Membangun',
   'Add your weight on Strava for W/kg': 'Tambahkan berat badan Anda di Strava untuk W/kg',
   // tiles
+  // Recovery & Strain rings
+  'Recovery': 'Pemulihan', 'Day Strain': 'Beban Hari Ini', 'of 21': 'dari 21',
+  'Recovered': 'Pulih', 'Adequate': 'Cukup', 'Rest': 'Istirahat',
+  "Today's load is {0}. This week totals {1} strain.": 'Beban hari ini {0}. Minggu ini totalnya {1} strain.',
+  'No activity logged today. This week totals {0} strain.': 'Belum ada aktivitas hari ini. Minggu ini totalnya {0} strain.',
   'Fitness · CTL': 'Kebugaran · CTL', '42-day load': 'beban 42 hari',
   'Fatigue · ATL': 'Kelelahan · ATL', '7-day load': 'beban 7 hari',
   'Form · TSB': 'Bentuk · TSB',

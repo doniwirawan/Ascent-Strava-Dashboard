@@ -761,6 +761,7 @@ function renderTraining() {
     </div>`;
 
   body.innerHTML = `
+    ${whoopRowHTML(false)}
     ${_trIntroHTML(d)}
     ${_trFtpCardHTML(d.ftpEst)}
     ${_trFtpTrendHTML()}
@@ -911,4 +912,112 @@ async function trainingAiRec() {
     out.innerHTML = tr("Couldn't reach the AI coach right now. The guidance above is rule-based from your numbers.");
   }
   if (btn) btn.disabled = false;
+}
+
+/* ── RECOVERY & STRAIN (WHOOP-style) ─────────────────────────────────────────
+   WHOOP derives recovery from HRV, resting HR and sleep. Strava exposes none of
+   those, so these are honest proxies built from the PMC model above:
+
+     Recovery %  — a logistic curve over TSB (form). TSB is fitness minus
+                   fatigue, so it already answers "how rested am I relative to
+                   what I'm used to". Centred so TSB 0 → 50%, and the band edges
+                   line up with _trFormBand: −30 → ~8%, −10 → ~30%, +25 → ~89%.
+     Strain      — today's training load on WHOOP's 0–21 logarithmic scale, so
+                   the first hour of a ride moves it far more than the fourth.
+
+   Both are labelled as estimates in the UI; nothing here pretends to be a
+   measured physiological signal. */
+
+function _trRecovery(d) {
+  if (!d) return null;
+
+  const recovery = Math.max(1, Math.min(99, Math.round(100 / (1 + Math.exp(-d.tsb / 12)))));
+
+  // Today's load, falling back to the most recent day that had any.
+  const last = d.series[d.series.length - 1] || { load: 0 };
+  const todayLoad = last.load || 0;
+  const strain = Math.max(0, Math.min(21, 6.5 * Math.log(1 + todayLoad / 12)));
+
+  // Last 7 days of load, for the week's accumulated strain.
+  const week = d.series.slice(-7).reduce((s, x) => s + (x.load || 0), 0);
+  const weekStrain = Math.max(0, Math.min(21, 6.5 * Math.log(1 + week / 60)));
+
+  const band =
+    recovery >= 67 ? { key: 'green',  color: '#16ec8b', label: tr('Recovered') } :
+    recovery >= 34 ? { key: 'yellow', color: '#ffde00', label: tr('Adequate')  } :
+                     { key: 'red',    color: '#ff0026', label: tr('Rest')      };
+
+  return { recovery, strain, weekStrain, todayLoad, band };
+}
+
+/* One WHOOP-style ring. `pct` fills the track; the arc starts at 12 o'clock. */
+function _trRingSVG(pct, color, size, stroke) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const fill = Math.max(0, Math.min(1, pct)) * c;
+  // A round cap on a zero-length arc draws a stray dot, so omit the arc entirely.
+  const arc = fill <= 0.5 ? '' :
+    `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+             stroke-linecap="round" stroke-dasharray="${fill.toFixed(1)} ${(c - fill).toFixed(1)}"
+             transform="rotate(-90 ${size / 2} ${size / 2})"/>`;
+  return `<svg class="wh-ring-svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true">
+      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--wh-track)" stroke-width="${stroke}"/>
+      ${arc}
+    </svg>`;
+}
+
+/* The Recovery + Strain pair. `compact` is the Overview variant. */
+function whoopRowHTML(compact) {
+  const d = _trBuildSeries();
+  const r = _trRecovery(d);
+  if (!r) return '';
+
+  const band = _trFormBand(d.tsb, d.ramp);
+  const size = compact ? 132 : 168;
+  const stroke = compact ? 12 : 15;
+
+  return `<div class="wh-row${compact ? ' wh-compact' : ''}">
+    <div class="wh-card" style="--wh-accent:${r.band.color}">
+      <div class="wh-ring">
+        ${_trRingSVG(r.recovery / 100, r.band.color, size, stroke)}
+        <div class="wh-ring-mid">
+          <div class="wh-ring-val">${r.recovery}<span>%</span></div>
+          <div class="wh-ring-cap">${r.band.label}</div>
+        </div>
+      </div>
+      <div class="wh-meta">
+        <div class="wh-title">${tr('Recovery')}</div>
+        <div class="wh-sub">${band.advice}</div>
+      </div>
+    </div>
+
+    <div class="wh-card" style="--wh-accent:#0093e7">
+      <div class="wh-ring">
+        ${_trRingSVG(r.strain / 21, '#0093e7', size, stroke)}
+        <div class="wh-ring-mid">
+          <div class="wh-ring-val">${r.strain.toFixed(1)}</div>
+          <div class="wh-ring-cap">${tr('of 21')}</div>
+        </div>
+      </div>
+      <div class="wh-meta">
+        <div class="wh-title">${tr('Day Strain')}</div>
+        <div class="wh-sub">${r.todayLoad > 0
+          ? trf("Today's load is {0}. This week totals {1} strain.", Math.round(r.todayLoad), r.weekStrain.toFixed(1))
+          : trf('No activity logged today. This week totals {0} strain.', r.weekStrain.toFixed(1))}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* Overview placement: a full-width band pinned above the stat cards. */
+function renderWhoopOverview() {
+  const grid = document.getElementById('statRow');
+  if (!grid) return;
+  grid.querySelectorAll('.wh-slot').forEach(n => n.remove());
+  const html = whoopRowHTML(true);
+  if (!html) return;
+  const slot = document.createElement('div');
+  slot.className = 'wh-slot';
+  slot.innerHTML = html;
+  grid.prepend(slot);
 }
