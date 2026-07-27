@@ -70,14 +70,16 @@ function _trBuildSeries() {
 
   // Walk every day from the first activity to today, decaying CTL/ATL.
   const today = _trToday();
-  const kC = 1 - Math.exp(-1 / 42), kA = 1 - Math.exp(-1 / 7);
-  let ctl = 0, atl = 0;
+  // kS is a ~2.5-day window: acute fatigue that a rest day visibly clears.
+  const kC = 1 - Math.exp(-1 / 42), kA = 1 - Math.exp(-1 / 7), kS = 1 - Math.exp(-1 / 2.5);
+  let ctl = 0, atl = 0, stl = 0;
   const series = [];
   for (let key = earliest; key <= today; key = _trAddDays(key, 1)) {
     const L = byDay.get(key) || 0;
     ctl += (L - ctl) * kC;
     atl += (L - atl) * kA;
-    series.push({ date: key, load: L, ctl, atl, tsb: ctl - atl });
+    stl += (L - stl) * kS;
+    series.push({ date: key, load: L, ctl, atl, stl, tsb: ctl - atl });
     if (series.length > 4000) break; // runaway guard (~11 years)
   }
   const last = series[series.length - 1];
@@ -85,7 +87,7 @@ function _trBuildSeries() {
   const ramp = ago7 ? last.ctl - ago7.ctl : 0;
   return {
     series, basis, ftpEst,
-    ctl: last.ctl, atl: last.atl, tsb: last.tsb, ramp,
+    ctl: last.ctl, atl: last.atl, stl: last.stl, tsb: last.tsb, ramp,
   };
 }
 
@@ -918,10 +920,16 @@ async function trainingAiRec() {
    WHOOP derives recovery from HRV, resting HR and sleep. Strava exposes none of
    those, so these are honest proxies built from the PMC model above:
 
-     Recovery %  — a logistic curve over TSB (form). TSB is fitness minus
-                   fatigue, so it already answers "how rested am I relative to
-                   what I'm used to". Centred so TSB 0 → 50%, and the band edges
-                   line up with _trFormBand: −30 → ~8%, −10 → ~30%, +25 → ~89%.
+     Recovery %  — the mean of two halves:
+                   · BALANCE, a logistic over TSB (fitness − fatigue): "am I
+                     fresh relative to my current training block?"
+                   · FRESHNESS, how far a ~2.5-day load average has fallen
+                     relative to CTL: "am I rested right now?"
+                   Balance alone — the first version of this — moved far too
+                   slowly to be called recovery. ATL decays on a 7-day constant,
+                   so two rest days cleared only about a quarter of the fatigue
+                   and still read yellow. The short window is what lets
+                   consecutive rest days actually show up.
      Strain      — today's training load on WHOOP's 0–21 logarithmic scale, so
                    the first hour of a ride moves it far more than the fourth.
 
@@ -931,7 +939,11 @@ async function trainingAiRec() {
 function _trRecovery(d) {
   if (!d) return null;
 
-  const recovery = Math.max(1, Math.min(99, Math.round(100 / (1 + Math.exp(-d.tsb / 12)))));
+  const balance = 100 / (1 + Math.exp(-d.tsb / 12));
+  // Guard a tiny CTL (a brand-new athlete) from exploding the ratio.
+  const acuteRatio = (d.stl || 0) / Math.max(d.ctl, 10);
+  const freshness = 100 / (1 + Math.exp((acuteRatio - 0.85) * 5));
+  const recovery = Math.max(1, Math.min(99, Math.round((balance + freshness) / 2)));
 
   // Today's load, falling back to the most recent day that had any.
   const last = d.series[d.series.length - 1] || { load: 0 };

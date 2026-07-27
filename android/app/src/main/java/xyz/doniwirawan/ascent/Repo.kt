@@ -264,7 +264,7 @@ object Repo {
             days = DoubleArray(7) { perDay[recent[it]] ?: 0.0 },
             lastName = lastName,
             syncedAt = System.currentTimeMillis(),
-            recovery = recoveryFor(p.ctl - p.atl),
+            recovery = recoveryFor(p.ctl - p.atl, p.stl, p.ctl),
             strain = strainFor(p.todayLoad),
             ctl = p.ctl,
             atl = p.atl,
@@ -282,7 +282,7 @@ object Repo {
 
        CTL = 42-day EWMA of daily load, ATL = 7-day, TSB = CTL − ATL. */
 
-    private class Pmc(val ctl: Double, val atl: Double, val todayLoad: Double)
+    private class Pmc(val ctl: Double, val atl: Double, val stl: Double, val todayLoad: Double)
 
     private fun activityLoad(a: JSONObject, hrMax: Double): Double {
         val dur = (a.optLong("moving_time").takeIf { it > 0 } ?: a.optLong("elapsed_time")).toDouble()
@@ -314,20 +314,22 @@ object Repo {
             byDay[key] = (byDay[key] ?: 0.0) + activityLoad(a, hrMax)
             if (earliest == null || key < earliest!!) earliest = key
         }
-        val start = earliest ?: return Pmc(0.0, 0.0, 0.0)
+        val start = earliest ?: return Pmc(0.0, 0.0, 0.0, 0.0)
 
         val kC = 1 - Math.exp(-1.0 / 42)
         val kA = 1 - Math.exp(-1.0 / 7)
-        var ctl = 0.0; var atl = 0.0
+        val kS = 1 - Math.exp(-1.0 / 2.5)   // acute window a rest day clears
+        var ctl = 0.0; var atl = 0.0; var stl = 0.0
         var key = start
         var guard = 0
         while (key <= todayKey && guard++ < 4000) {
             val load = byDay[key] ?: 0.0
             ctl += (load - ctl) * kC
             atl += (load - atl) * kA
+            stl += (load - stl) * kS
             key = nextDay(key)
         }
-        return Pmc(ctl, atl, byDay[todayKey] ?: 0.0)
+        return Pmc(ctl, atl, stl, byDay[todayKey] ?: 0.0)
     }
 
     private fun nextDay(key: String): String {
@@ -338,9 +340,17 @@ object Repo {
         return dayKey(c)
     }
 
-    /** Logistic curve over TSB: 0 -> 50%, -30 -> ~8%, +25 -> ~89%. */
-    fun recoveryFor(tsb: Double): Int =
-        (100 / (1 + Math.exp(-tsb / 12))).toInt().coerceIn(1, 99)
+    /**
+     * Mean of long-term balance (TSB) and short-term freshness (how far a
+     * ~2.5-day load average has fallen relative to CTL). Balance alone moved
+     * too slowly to deserve the name "recovery" — two rest days barely shifted
+     * it. Kept identical to the web model in js/training.js.
+     */
+    fun recoveryFor(tsb: Double, stl: Double, ctl: Double): Int {
+        val balance = 100 / (1 + Math.exp(-tsb / 12))
+        val freshness = 100 / (1 + Math.exp((stl / Math.max(ctl, 10.0) - 0.85) * 5))
+        return ((balance + freshness) / 2).toInt().coerceIn(1, 99)
+    }
 
     /** WHOOP's 0-21 strain scale is logarithmic, so early effort counts most. */
     fun strainFor(load: Double): Double =
