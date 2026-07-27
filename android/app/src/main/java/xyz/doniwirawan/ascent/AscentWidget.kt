@@ -22,16 +22,19 @@ import kotlin.math.roundToInt
  * bar chart. Draws from the cached snapshot immediately, then refreshes in the
  * background. Tapping anywhere refreshes.
  */
-class AscentWidget : AppWidgetProvider() {
+open class AscentWidget : AppWidgetProvider() {
+
+    /** Which layout this provider inflates. Subclasses pick a different size. */
+    open val layout: Int get() = R.layout.widget
 
     override fun onUpdate(ctx: Context, mgr: AppWidgetManager, ids: IntArray) {
-        ids.forEach { draw(ctx, mgr, it) }
+        ids.forEach { draw(ctx, mgr, it, layout) }
         fetch(ctx, null)
     }
 
     override fun onAppWidgetOptionsChanged(
         ctx: Context, mgr: AppWidgetManager, id: Int, options: android.os.Bundle
-    ) = draw(ctx, mgr, id)
+    ) = draw(ctx, mgr, id, layout)
 
     override fun onReceive(ctx: Context, intent: Intent) {
         if (intent.action != ACTION_REFRESH) { super.onReceive(ctx, intent); return }
@@ -63,36 +66,48 @@ class AscentWidget : AppWidgetProvider() {
             }
         }
 
+        /** Every size of the widget, so one refresh redraws them all. */
+        private val PROVIDERS = listOf(
+            AscentWidget::class.java to R.layout.widget,
+            AscentWidgetSmall::class.java to R.layout.widget_small,
+            AscentWidgetLarge::class.java to R.layout.widget_large,
+        )
+
         fun drawAll(ctx: Context) {
             val mgr = AppWidgetManager.getInstance(ctx)
-            val ids = mgr.getAppWidgetIds(ComponentName(ctx, AscentWidget::class.java))
-            ids.forEach { draw(ctx, mgr, it) }
+            PROVIDERS.forEach { (cls, layout) ->
+                mgr.getAppWidgetIds(ComponentName(ctx, cls)).forEach { draw(ctx, mgr, it, layout) }
+            }
         }
 
-        private fun draw(ctx: Context, mgr: AppWidgetManager, id: Int) {
-            val v = RemoteViews(ctx.packageName, R.layout.widget)
-            populate(ctx, v, widthDp(mgr, id))
+        private fun draw(ctx: Context, mgr: AppWidgetManager, id: Int, layout: Int) {
+            val v = RemoteViews(ctx.packageName, layout)
+            populate(ctx, v, widthDp(mgr, id), layout)
             mgr.updateAppWidget(id, v)
         }
 
-        /** Fills the RemoteViews. Split out so the preview harness shares it. */
-        private fun populate(ctx: Context, v: RemoteViews, widthDp: Int) {
+        /** Fills whichever layout was inflated; the small one omits most of it. */
+        private fun populate(ctx: Context, v: RemoteViews, widthDp: Int, layout: Int) {
             val snap = Repo.cached(ctx)
             val error = Repo.lastError(ctx)
+            val small = layout == R.layout.widget_small
+
+            if (small) { populateSmall(ctx, v, snap); return }
 
             if (snap == null) {
                 v.setTextViewText(R.id.tvBig, "—")
                 v.setTextViewText(R.id.tvTime, "")
                 v.setTextViewText(R.id.tvTotals, "")
             } else {
-                v.setTextViewText(R.id.tvBig, km(snap.week.km))
+                val r7 = snap.rolling7
+                v.setTextViewText(R.id.tvBig, km(r7.km))
                 v.setTextViewText(
                     R.id.tvTime,
-                    "${hours(snap.week.seconds)} h  ·  ${snap.week.elevation.roundToInt().withCommas()} m"
+                    "${hours(r7.seconds)}  ·  ${r7.elevation.roundToInt().withCommas()} m  ·  ${r7.count} act"
                 )
                 v.setTextViewText(
                     R.id.tvTotals,
-                    "month ${km(snap.month.km)}  ·  year ${km(snap.ytd.km)} km"
+                    "MONTH ${km(snap.month.km)}   YEAR ${km(snap.ytd.km)}"
                 )
             }
 
@@ -122,6 +137,13 @@ class AscentWidget : AppWidgetProvider() {
 
             v.setImageViewBitmap(R.id.ivChart, chart(ctx, snap?.days, widthDp))
 
+            if (layout == R.layout.widget_large) {
+                v.setTextViewText(
+                    R.id.tvLast,
+                    snap?.lastName?.let { "Latest  ·  $it" } ?: ""
+                )
+            }
+
             v.setOnClickPendingIntent(
                 R.id.root,
                 PendingIntent.getBroadcast(
@@ -139,6 +161,36 @@ class AscentWidget : AppWidgetProvider() {
             v.setOnClickPendingIntent(R.id.ivStrain, openRecovery)
         }
 
+        /** 2x2: one big Recovery ring and nothing else. */
+        private fun populateSmall(ctx: Context, v: RemoteViews, snap: Repo.Snapshot?) {
+            v.setImageViewBitmap(
+                R.id.ivRecovery,
+                ring(ctx, snap?.let { it.recovery / 100f },
+                    snap?.let { Repo.recoveryBandColor(it.recovery) } ?: ctx.getColor(R.color.dim),
+                    snap?.let { "${it.recovery}%" } ?: "—", "RECOVERY", 96)
+            )
+            v.setTextViewText(
+                R.id.tvBand,
+                snap?.let { Repo.recoveryBandLabel(it.recovery).uppercase(Locale.US) } ?: "NO DATA"
+            )
+            v.setTextColor(
+                R.id.tvBand,
+                snap?.let { Repo.recoveryBandColor(it.recovery) } ?: ctx.getColor(R.color.dim)
+            )
+            v.setTextViewText(
+                R.id.tvStrainLine,
+                snap?.let { "strain ${String.format(Locale.US, "%.1f", it.strain)}" } ?: ""
+            )
+            v.setOnClickPendingIntent(
+                R.id.root,
+                PendingIntent.getActivity(
+                    ctx, 1, Intent(ctx, RecoveryActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            )
+        }
+
         private fun widthDp(mgr: AppWidgetManager, id: Int): Int =
             mgr.getAppWidgetOptions(id)
                 .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
@@ -147,13 +199,13 @@ class AscentWidget : AppWidgetProvider() {
         // ── Formatting ──────────────────────────────────────────────────────
 
         private fun km(v: Double) =
-            if (v >= 100) String.format(Locale.US, "%.0f", v)
+            if (v >= 100) String.format(Locale.US, "%,.0f", v)
             else String.format(Locale.US, "%.1f", v)
 
         private fun hours(seconds: Long): String {
             val h = seconds / 3600
             val m = (seconds % 3600) / 60
-            return String.format(Locale.US, "%d:%02d", h, m)
+            return String.format(Locale.US, "%d:%02d h", h, m)
         }
 
         private fun Int.withCommas() = String.format(Locale.US, "%,d", this)
@@ -177,12 +229,14 @@ class AscentWidget : AppWidgetProvider() {
          * One ring as a bitmap: track, arc from 12 o'clock, value, caption.
          * A null pct means "no data" and draws the bare track.
          */
-        private fun ring(ctx: Context, pct: Float?, colour: Int, big: String, cap: String): Bitmap {
+        private fun ring(
+            ctx: Context, pct: Float?, colour: Int, big: String, cap: String, sizeDp: Int = 44
+        ): Bitmap {
             val d = ctx.resources.displayMetrics.density
-            val size = (44 * d).toInt()
+            val size = (sizeDp * d).toInt()
             val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bmp)
-            val stroke = 5f * d
+            val stroke = (sizeDp / 8.8f) * d
             val pad = stroke / 2f + 1f
             val box = RectF(pad, pad, size - pad, size - pad)
 
@@ -221,7 +275,7 @@ class AscentWidget : AppWidgetProvider() {
         private fun chart(ctx: Context, days: DoubleArray?, widthDp: Int): Bitmap {
             val density = ctx.resources.displayMetrics.density
             val w = max(160, (widthDp * density).toInt())
-            val h = (34 * density).toInt()
+            val h = (42 * density).toInt()
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bmp)
 
@@ -234,11 +288,26 @@ class AscentWidget : AppWidgetProvider() {
             // corners into blobs — keep the radius small and absolute.
             val radius = minOf(barW * 0.28f, 2f * density)
 
+            // Reserve a strip for weekday initials so the bars have context.
+            val labelH = h * 0.28f
+            val barsH = h - labelH
+            val today = java.util.Calendar.getInstance()
+            val initials = CharArray(7) { idx ->
+                val c = today.clone() as java.util.Calendar
+                c.add(java.util.Calendar.DAY_OF_MONTH, -(6 - idx))
+                "SMTWTFS"[c.get(java.util.Calendar.DAY_OF_WEEK) - 1]
+            }
+            val lp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                textAlign = Paint.Align.CENTER
+                textSize = labelH * 0.72f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            }
+
             for (i in 0 until 7) {
                 val isToday = i == 6
                 // Empty days still get a sliver so the week's shape stays legible.
                 val ratio = if (peak > 0) (values[i] / peak).toFloat() else 0f
-                val barH = max(h * 0.10f, h * ratio)
+                val barH = max(barsH * 0.10f, barsH * ratio)
                 val left = i * (barW + gap)
                 paint.color = when {
                     values[i] <= 0.0 -> Color.parseColor("#1E1E26")
@@ -246,8 +315,10 @@ class AscentWidget : AppWidgetProvider() {
                     else -> Color.parseColor("#C2521A")
                 }
                 canvas.drawRoundRect(
-                    RectF(left, h - barH, left + barW, h.toFloat()), radius, radius, paint
+                    RectF(left, barsH - barH, left + barW, barsH), radius, radius, paint
                 )
+                lp.color = if (isToday) ctx.getColor(R.color.orange) else Color.parseColor("#55555F")
+                canvas.drawText(initials[i].toString(), left + barW / 2f, h - labelH * 0.12f, lp)
             }
             return bmp
         }

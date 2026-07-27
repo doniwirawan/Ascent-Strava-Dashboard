@@ -4,6 +4,7 @@
     <string name="brand">ASCENT</string>
     <string name="km">km</string>
     <string name="this_week">this week</string>
+    <string name="last_7_days">LAST 7 DAYS</string>
     <string name="this_month">month</string>
     <string name="time">time</string>
     <string name="climb">climb</string>
@@ -11,4 +12,6 @@
     <string name="recovery_desc">Recovery percentage</string>
     <string name="strain_desc">Day strain out of 21</string>
     <string name="widget_desc">This week\'s riding at a glance. Tap to refresh.</string>
+    <string name="widget_small_desc">Recovery at a glance.</string>
+    <string name="widget_large_desc">Recovery, strain, this week and your last seven days.</string>
 </resources>

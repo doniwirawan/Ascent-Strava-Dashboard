@@ -40,6 +40,8 @@ object Repo {
         val week: Bucket,
         val month: Bucket,
         val ytd: Bucket,
+        /** Rolling last 7 days — what the widget's seven bars actually add up to. */
+        val rolling7: Bucket,
         /** km per day for the last 7 days, oldest → newest. */
         val days: DoubleArray,
         val lastName: String?,
@@ -231,7 +233,7 @@ object Repo {
             dayKey((today.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, -back) })
         }
 
-        val week = Bucket(); val month = Bucket(); val ytd = Bucket()
+        val week = Bucket(); val month = Bucket(); val ytd = Bucket(); val rolling7 = Bucket()
         val perDay = HashMap<String, Double>()
         var lastName: String? = null
         var lastKey = ""
@@ -250,7 +252,10 @@ object Repo {
             if (key.startsWith(yearKey)) add(ytd)
             if (key.startsWith(monthKey)) add(month)
             if (key >= weekStartKey && key <= todayKey) add(week)
-            if (key in recent) perDay[key] = (perDay[key] ?: 0.0) + km
+            if (key in recent) {
+                perDay[key] = (perDay[key] ?: 0.0) + km
+                add(rolling7)
+            }
 
             if (key >= lastKey) {
                 lastKey = key
@@ -260,7 +265,7 @@ object Repo {
 
         val p = pmc(activities, todayKey)
         return Snapshot(
-            week, month, ytd,
+            week, month, ytd, rolling7,
             days = DoubleArray(7) { perDay[recent[it]] ?: 0.0 },
             lastName = lastName,
             syncedAt = System.currentTimeMillis(),
@@ -382,6 +387,7 @@ object Repo {
         .put("week", bucketJson(s.week))
         .put("month", bucketJson(s.month))
         .put("ytd", bucketJson(s.ytd))
+        .put("rolling7", bucketJson(s.rolling7))
         .put("days", JSONArray().apply { s.days.forEach { put(it) } })
         .put("lastName", s.lastName ?: JSONObject.NULL)
         .put("syncedAt", s.syncedAt)
@@ -396,6 +402,7 @@ object Repo {
             week = bucketOf(o.getJSONObject("week")),
             month = bucketOf(o.getJSONObject("month")),
             ytd = bucketOf(o.getJSONObject("ytd")),
+            rolling7 = o.optJSONObject("rolling7")?.let { bucketOf(it) } ?: Bucket(),
             days = DoubleArray(7) { arr?.optDouble(it, 0.0) ?: 0.0 },
             lastName = o.optString("lastName").takeIf { it.isNotEmpty() && it != "null" },
             syncedAt = o.optLong("syncedAt"),
