@@ -147,6 +147,7 @@ const LAYOUTS = [
   { id: 'map', name: 'Map' },
   { id: 'collage', name: 'Collage' },
   { id: 'minimal', name: 'Minimal' },
+  { id: 'splits', name: 'Splits' },
   { id: 'split', name: 'Split' },
   { id: 'stacked', name: 'Stacked' },
   { id: 'cinema', name: 'Cinema' },

@@ -2081,5 +2081,147 @@ function drawLayout(canvas, act, selected, sc, layout) {
     }
 
 
+    /* SPLITS — per-kilometre (or per-mile) breakdown of the activity.
+       Strava returns these on the DETAILED activity, which the story modal
+       already fetches, so this costs no extra API call. Few splits get a
+       labelled row each; a long ride gets a column chart instead, because 100
+       labelled rows would be unreadable at 1080x1920. */
+    case 'splits': {
+      if (sc.card !== 'transparent') { ctx.fillStyle = sc.card; ctx.fillRect(0, 0, W, H); }
+      title(P, Math.round(130 * S), W - P * 2, 54);
+
+      // Prefer miles when the dashboard is in imperial and Strava sent them.
+      const rawSplits = (useImperial && Array.isArray(act.splits_standard) && act.splits_standard.length)
+        ? act.splits_standard
+        : (Array.isArray(act.splits_metric) ? act.splits_metric : []);
+      const sp = rawSplits.filter(s => s && (s.moving_time || s.elapsed_time) > 0);
+
+      const topY = Math.round(280 * S);
+      if (!sp.length) {
+        ctx.fillStyle = sc.muted; ctx.textAlign = 'center'; ctx.font = F(30, 500); ctx.letterSpacing = '0';
+        ctx.fillText('No split data for this activity', W / 2, Math.round(H * 0.46));
+        ctx.textAlign = 'left';
+        break;
+      }
+
+      const running = typeof isRun === 'function' && isRun(act);
+      const secsOf = s => s.moving_time || s.elapsed_time || 0;
+      const spdOf = s => s.average_speed || ((s.distance || 0) / (secsOf(s) || 1));
+      const unitLbl = useImperial ? 'MILE' : 'KM';
+      // fmtT() rounds to whole minutes, which flattens every split to "4m" —
+      // splits need mm:ss (or h:mm:ss on a very slow one).
+      const clock = t => {
+        t = Math.round(t);
+        const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s2 = t % 60;
+        const pad = n => (n < 10 ? '0' : '') + n;
+        return h ? `${h}:${pad(m)}:${pad(s2)}` : `${m}:${pad(s2)}`;
+      };
+      // On a 1 km split the duration IS the pace, so runs don't repeat it —
+      // rides get their average speed alongside instead.
+      const perfLabel = s => running ? '' : (kmh(spdOf(s)) + ' ' + speedUnit());
+
+      const speeds = sp.map(spdOf);
+      const fastest = Math.max.apply(null, speeds);
+      const slowest = Math.min.apply(null, speeds);
+      const span = Math.max(fastest - slowest, 0.0001);
+      const bestIdx = speeds.indexOf(fastest);
+
+      ctx.letterSpacing = '0.14em';
+      ctx.fillStyle = sc.accent; ctx.font = `700 ${Math.round(20 * S)}px -apple-system,sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText('SPLITS PER ' + unitLbl, P, topY);
+      ctx.letterSpacing = '0';
+
+      const listY = topY + Math.round(44 * S);
+      const listH = H - listY - Math.round(190 * S);
+      const innerW = W - P * 2;
+
+      if (sp.length <= 12) {
+        // ── Labelled rows: index · bar · speed · time ──
+        const rH = Math.min(Math.round(150 * S), listH / sp.length);
+        // Centre the block so a short list doesn't leave the card bottom-heavy.
+        const listTop = listY + Math.max(0, (listH - rH * sp.length) / 2);
+        const barX = P + Math.round(78 * S);
+        const barW = innerW * 0.42;
+        sp.forEach((s, i) => {
+          const y = listTop + i * rH;
+          const best = i === bestIdx;
+          const col = best ? sc.accent : sc.text;
+          const mid = y + rH * 0.52;
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = withAlpha(sc.muted, 200);
+          ctx.font = `700 ${Math.round(30 * S)}px -apple-system,sans-serif`;
+          ctx.fillText(String(i + 1), P, mid);
+
+          // Bar length maps slowest→fastest onto 22%→100% so differences read.
+          const frac = 0.22 + 0.78 * ((spdOf(s) - slowest) / span);
+          const bh = Math.round(16 * S);
+          ctx.fillStyle = withAlpha(sc.text, 38);
+          ctx.fillRect(barX, mid - bh / 2, barW, bh);
+          ctx.fillStyle = col;
+          ctx.fillRect(barX, mid - bh / 2, Math.max(bh, barW * frac), bh);
+
+          ctx.textAlign = 'right';
+          ctx.fillStyle = col;
+          ctx.font = `800 ${Math.round(38 * S)}px -apple-system,sans-serif`;
+          ctx.fillText(clock(secsOf(s)), W - P, mid);
+          const sub = perfLabel(s);
+          if (sub) {
+            ctx.fillStyle = withAlpha(sc.muted, 210);
+            ctx.font = `600 ${Math.round(23 * S)}px -apple-system,sans-serif`;
+            ctx.fillText(sub, W - P - Math.round(180 * S), mid);
+          }
+        });
+      } else {
+        // ── Column chart: one bar per split, fastest and slowest called out ──
+        // Leave room under the chart for the fastest/slowest callouts.
+        const chartH = Math.min(listH - Math.round(200 * S), Math.round(1120 * S));
+        const gap = sp.length > 40 ? Math.max(1, Math.round(2 * S)) : Math.round(6 * S);
+        const cW = (innerW - gap * (sp.length - 1)) / sp.length;
+        const baseY = listY + chartH;
+        sp.forEach((s, i) => {
+          const frac = 0.18 + 0.82 * ((spdOf(s) - slowest) / span);
+          const bh = Math.max(Math.round(4 * S), chartH * frac);
+          ctx.fillStyle = i === bestIdx ? sc.accent : withAlpha(sc.text, 120);
+          ctx.fillRect(P + i * (cW + gap), baseY - bh, Math.max(1, cW), bh);
+        });
+        ctx.fillStyle = withAlpha(sc.muted, 170);
+        ctx.font = `600 ${Math.round(22 * S)}px -apple-system,sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.fillText('1', P, baseY + Math.round(38 * S));
+        ctx.textAlign = 'right';
+        ctx.fillText(String(sp.length), W - P, baseY + Math.round(38 * S));
+
+        const sumY = baseY + Math.round(110 * S);
+        ctx.textAlign = 'left';
+        ctx.fillStyle = sc.accent; ctx.font = `800 ${Math.round(34 * S)}px -apple-system,sans-serif`;
+        ctx.fillText(running ? clock(secsOf(sp[bestIdx])) : perfLabel(sp[bestIdx]), P, sumY);
+        ctx.fillStyle = withAlpha(sc.muted, 200); ctx.font = `600 ${Math.round(21 * S)}px -apple-system,sans-serif`;
+        ctx.letterSpacing = '0.1em';
+        ctx.fillText('FASTEST ' + unitLbl + ' (#' + (bestIdx + 1) + ')', P, sumY + Math.round(32 * S));
+        ctx.letterSpacing = '0';
+
+        const avgIdx = speeds.indexOf(slowest);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = sc.text; ctx.font = `800 ${Math.round(34 * S)}px -apple-system,sans-serif`;
+        ctx.fillText(running ? clock(secsOf(sp[avgIdx])) : perfLabel(sp[avgIdx]), W - P, sumY);
+        ctx.fillStyle = withAlpha(sc.muted, 200); ctx.font = `600 ${Math.round(21 * S)}px -apple-system,sans-serif`;
+        ctx.letterSpacing = '0.1em';
+        ctx.fillText('SLOWEST ' + unitLbl + ' (#' + (avgIdx + 1) + ')', W - P, sumY + Math.round(32 * S));
+        ctx.letterSpacing = '0';
+      }
+
+      if (!hideLogo) {
+        ctx.textAlign = 'center'; ctx.fillStyle = withAlpha(sc.text, 150);
+        ctx.font = `800 ${Math.round(24 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.06em';
+        ctx.fillText('ASCENT', W / 2, H - Math.round(70 * S));
+        ctx.letterSpacing = '0';
+      }
+      ctx.textAlign = 'left';
+      break;
+    }
+
+
   }
 }
