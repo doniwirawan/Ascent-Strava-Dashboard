@@ -71,30 +71,44 @@ class AscentWidget : AppWidgetProvider() {
 
         private fun draw(ctx: Context, mgr: AppWidgetManager, id: Int) {
             val v = RemoteViews(ctx.packageName, R.layout.widget)
+            populate(ctx, v, widthDp(mgr, id))
+            mgr.updateAppWidget(id, v)
+        }
+
+        /** Fills the RemoteViews. Split out so the preview harness shares it. */
+        private fun populate(ctx: Context, v: RemoteViews, widthDp: Int) {
             val snap = Repo.cached(ctx)
             val error = Repo.lastError(ctx)
 
             if (snap == null) {
                 v.setTextViewText(R.id.tvBig, "—")
-                v.setTextViewText(R.id.tvTime, "—")
-                v.setTextViewText(R.id.tvElev, "—")
-                v.setTextViewText(R.id.tvMonth, "—")
+                v.setTextViewText(R.id.tvTime, "")
+                v.setTextViewText(R.id.tvTotals, "")
             } else {
                 v.setTextViewText(R.id.tvBig, km(snap.week.km))
-                v.setTextViewText(R.id.tvTime, hours(snap.week.seconds))
-                v.setTextViewText(R.id.tvElev, "${snap.week.elevation.roundToInt().withCommas()} m")
-                v.setTextViewText(R.id.tvMonth, "${km(snap.month.km)} km")
+                v.setTextViewText(
+                    R.id.tvTime,
+                    "${hours(snap.week.seconds)} h  ·  ${snap.week.elevation.roundToInt().withCommas()} m"
+                )
+                v.setTextViewText(
+                    R.id.tvTotals,
+                    "month ${km(snap.month.km)}  ·  year ${km(snap.ytd.km)} km"
+                )
             }
 
-            // Recovery pill, tinted by band. Hidden until we have a snapshot,
-            // so a fresh widget never shows a made-up 50%.
-            if (snap == null) {
-                v.setViewVisibility(R.id.tvRecovery, android.view.View.GONE)
-            } else {
-                v.setViewVisibility(R.id.tvRecovery, android.view.View.VISIBLE)
-                v.setTextViewText(R.id.tvRecovery, "${snap.recovery}%")
-                v.setTextColor(R.id.tvRecovery, Repo.recoveryBandColor(snap.recovery))
-            }
+            // The two rings mirror the web dashboard. Until a snapshot exists
+            // they draw as empty tracks rather than inventing a 50%.
+            v.setImageViewBitmap(
+                R.id.ivRecovery,
+                ring(ctx, snap?.let { it.recovery / 100f },
+                    snap?.let { Repo.recoveryBandColor(it.recovery) } ?: ctx.getColor(R.color.dim),
+                    snap?.let { "${it.recovery}%" } ?: "—", "RECOVERY")
+            )
+            v.setImageViewBitmap(
+                R.id.ivStrain,
+                ring(ctx, snap?.let { (it.strain / 21.0).toFloat() }, STRAIN_BLUE,
+                    snap?.let { String.format(Locale.US, "%.1f", it.strain) } ?: "—", "STRAIN")
+            )
 
             // The right-hand slot carries whichever matters more: a live error,
             // or how stale the numbers are.
@@ -106,7 +120,7 @@ class AscentWidget : AppWidgetProvider() {
                 v.setTextColor(R.id.tvSync, ctx.getColor(R.color.dim))
             }
 
-            v.setImageViewBitmap(R.id.ivChart, chart(ctx, snap?.days, widthDp(mgr, id)))
+            v.setImageViewBitmap(R.id.ivChart, chart(ctx, snap?.days, widthDp))
 
             v.setOnClickPendingIntent(
                 R.id.root,
@@ -115,16 +129,14 @@ class AscentWidget : AppWidgetProvider() {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
             )
-            // The recovery pill is the one spot that opens the native screen.
-            v.setOnClickPendingIntent(
-                R.id.tvRecovery,
-                PendingIntent.getActivity(
-                    ctx, 1, Intent(ctx, RecoveryActivity::class.java)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
+            // Either ring opens the native Recovery screen; the rest refreshes.
+            val openRecovery = PendingIntent.getActivity(
+                ctx, 1, Intent(ctx, RecoveryActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            mgr.updateAppWidget(id, v)
+            v.setOnClickPendingIntent(R.id.ivRecovery, openRecovery)
+            v.setOnClickPendingIntent(R.id.ivStrain, openRecovery)
         }
 
         private fun widthDp(mgr: AppWidgetManager, id: Int): Int =
@@ -157,6 +169,48 @@ class AscentWidget : AppWidgetProvider() {
             }
         }
 
+        // ── Rings ───────────────────────────────────────────────────────────
+
+        private const val STRAIN_BLUE = 0xFF0093E7.toInt()
+
+        /**
+         * One ring as a bitmap: track, arc from 12 o'clock, value, caption.
+         * A null pct means "no data" and draws the bare track.
+         */
+        private fun ring(ctx: Context, pct: Float?, colour: Int, big: String, cap: String): Bitmap {
+            val d = ctx.resources.displayMetrics.density
+            val size = (44 * d).toInt()
+            val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bmp)
+            val stroke = 5f * d
+            val pad = stroke / 2f + 1f
+            val box = RectF(pad, pad, size - pad, size - pad)
+
+            val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = stroke
+                strokeCap = Paint.Cap.ROUND
+                color = Color.parseColor("#22222B")
+            }
+            canvas.drawArc(box, 0f, 360f, false, p)
+            if (pct != null && pct > 0.004f) {
+                p.color = colour
+                canvas.drawArc(box, -90f, 360f * pct.coerceIn(0f, 1f), false, p)
+            }
+
+            val t = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                textAlign = Paint.Align.CENTER
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            }
+            t.color = Color.WHITE
+            t.textSize = size * 0.26f
+            canvas.drawText(big, size / 2f, size / 2f + t.textSize * 0.16f, t)
+            t.color = colour
+            t.textSize = size * 0.115f
+            canvas.drawText(cap, size / 2f, size * 0.77f, t)
+            return bmp
+        }
+
         // ── Seven-day bar chart ─────────────────────────────────────────────
 
         /**
@@ -174,9 +228,11 @@ class AscentWidget : AppWidgetProvider() {
             val values = days ?: DoubleArray(7)
             val peak = values.maxOrNull() ?: 0.0
             val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-            val gap = w * 0.02f
+            val gap = w * 0.045f
             val barW = (w - gap * 6) / 7f
-            val radius = barW * 0.28f
+            // fitXY stretches this bitmap to the view, which inflates rounded
+            // corners into blobs — keep the radius small and absolute.
+            val radius = minOf(barW * 0.28f, 2f * density)
 
             for (i in 0 until 7) {
                 val isToday = i == 6
@@ -187,7 +243,7 @@ class AscentWidget : AppWidgetProvider() {
                 paint.color = when {
                     values[i] <= 0.0 -> Color.parseColor("#1E1E26")
                     isToday -> ctx.getColor(R.color.orange)
-                    else -> Color.parseColor("#7A3A18")
+                    else -> Color.parseColor("#C2521A")
                 }
                 canvas.drawRoundRect(
                     RectF(left, h - barH, left + barW, h.toFloat()), radius, radius, paint

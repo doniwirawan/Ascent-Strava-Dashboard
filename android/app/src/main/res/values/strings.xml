@@ -8,5 +8,7 @@
     <string name="time">time</string>
     <string name="climb">climb</string>
     <string name="chart_desc">Distance for each of the last seven days</string>
+    <string name="recovery_desc">Recovery percentage</string>
+    <string name="strain_desc">Day strain out of 21</string>
     <string name="widget_desc">This week\'s riding at a glance. Tap to refresh.</string>
 </resources>

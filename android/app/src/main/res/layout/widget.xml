@@ -33,128 +33,93 @@
             android:ellipsize="end"
             android:textColor="@color/dim"
             android:textSize="10sp" />
-
-        <!-- Recovery %. Tapping it opens the native Recovery screen; tapping
-             anywhere else on the widget refreshes. -->
-        <TextView
-            android:id="@+id/tvRecovery"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:paddingStart="7dp"
-            android:paddingEnd="7dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:background="@drawable/recovery_pill"
-            android:textColor="@color/text"
-            android:textStyle="bold"
-            android:textSize="10sp" />
     </LinearLayout>
 
+    <!-- Recovery and Strain rings, mirroring the web dashboard. RemoteViews has
+         no drawing primitives, so each ring is a bitmap rendered in Kotlin.
+         Tapping a ring opens the native Recovery screen. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:baselineAligned="true"
+        android:gravity="center_vertical"
         android:layout_marginTop="4dp">
 
-        <TextView
-            android:id="@+id/tvBig"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text"
-            android:textSize="32sp"
-            android:textStyle="bold"
-            android:includeFontPadding="false" />
+        <ImageView
+            android:id="@+id/ivRecovery"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:contentDescription="@string/recovery_desc" />
 
-        <TextView
-            android:id="@+id/tvBigUnit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="3dp"
-            android:text="@string/km"
-            android:textColor="@color/muted"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvBigLabel"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:gravity="end"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:text="@string/this_week"
-            android:textColor="@color/dim"
-            android:textSize="11sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="6dp">
+        <ImageView
+            android:id="@+id/ivStrain"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="6dp"
+            android:contentDescription="@string/strain_desc" />
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:layout_marginStart="10dp"
             android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="true">
+
+                <TextView
+                    android:id="@+id/tvBig"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/tvBigUnit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="3dp"
+                    android:text="@string/km"
+                    android:textColor="@color/muted"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvBigLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="@string/this_week"
+                android:textColor="@color/dim"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/tvTotals"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/dim"
+                android:textSize="10sp" />
+
             <TextView
                 android:id="@+id/tvTime"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text"
-                android:textSize="13sp"
+                android:layout_marginTop="2dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/muted"
+                android:textSize="11sp"
                 android:textStyle="bold" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/time"
-                android:textColor="@color/dim"
-                android:textSize="9sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-            <TextView
-                android:id="@+id/tvElev"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/climb"
-                android:textColor="@color/dim"
-                android:textSize="9sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-            <TextView
-                android:id="@+id/tvMonth"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/this_month"
-                android:textColor="@color/dim"
-                android:textSize="9sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -163,7 +128,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:minHeight="18dp"
         android:scaleType="fitXY"
         android:contentDescription="@string/chart_desc" />
