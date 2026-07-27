@@ -306,6 +306,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 18px 20px;
+  /* HR zones and Speed zones are separate blocks stacked below the stat grid;
+     without this they butt straight up against each other. */
+  margin-top: 16px;
 }
 .hrz-body { display: flex; align-items: center; gap: 48px; margin-top: 18px; flex-wrap: wrap; }
 .hrz-ring { flex: 0 0 auto; }
