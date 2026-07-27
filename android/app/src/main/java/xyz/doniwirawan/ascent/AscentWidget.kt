@@ -86,6 +86,16 @@ class AscentWidget : AppWidgetProvider() {
                 v.setTextViewText(R.id.tvMonth, "${km(snap.month.km)} km")
             }
 
+            // Recovery pill, tinted by band. Hidden until we have a snapshot,
+            // so a fresh widget never shows a made-up 50%.
+            if (snap == null) {
+                v.setViewVisibility(R.id.tvRecovery, android.view.View.GONE)
+            } else {
+                v.setViewVisibility(R.id.tvRecovery, android.view.View.VISIBLE)
+                v.setTextViewText(R.id.tvRecovery, "${snap.recovery}%")
+                v.setTextColor(R.id.tvRecovery, Repo.recoveryBandColor(snap.recovery))
+            }
+
             // The right-hand slot carries whichever matters more: a live error,
             // or how stale the numbers are.
             if (error != null) {
@@ -102,6 +112,15 @@ class AscentWidget : AppWidgetProvider() {
                 R.id.root,
                 PendingIntent.getBroadcast(
                     ctx, 0, refreshIntent(ctx),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            )
+            // The recovery pill is the one spot that opens the native screen.
+            v.setOnClickPendingIntent(
+                R.id.tvRecovery,
+                PendingIntent.getActivity(
+                    ctx, 1, Intent(ctx, RecoveryActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
             )

@@ -33,6 +33,22 @@
             android:ellipsize="end"
             android:textColor="@color/dim"
             android:textSize="10sp" />
+
+        <!-- Recovery %. Tapping it opens the native Recovery screen; tapping
+             anywhere else on the widget refreshes. -->
+        <TextView
+            android:id="@+id/tvRecovery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:background="@drawable/recovery_pill"
+            android:textColor="@color/text"
+            android:textStyle="bold"
+            android:textSize="10sp" />
     </LinearLayout>
 
     <LinearLayout

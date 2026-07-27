@@ -44,7 +44,15 @@ object Repo {
         val days: DoubleArray,
         val lastName: String?,
         val syncedAt: Long,
-    )
+        /** 1–99. WHOOP-style readiness, from training-load balance. */
+        val recovery: Int = 50,
+        /** Today's load on a 0–21 scale. */
+        val strain: Double = 0.0,
+        val ctl: Double = 0.0,
+        val atl: Double = 0.0,
+    ) {
+        val tsb: Double get() = ctl - atl
+    }
 
     fun refreshToken(ctx: Context): String =
         prefs(ctx).getString("refresh_token", null)?.takeIf { it.isNotBlank() }
@@ -161,13 +169,22 @@ object Repo {
         return stream?.bufferedReader()?.use { it.readText() } ?: ""
     }
 
-    /** All activities since Jan 1, paging until Strava returns a short page. */
+    /**
+     * Activities since Jan 1 — or 180 days back if that is earlier, so the
+     * 42-day fitness average has warmed up before we report a recovery score.
+     * In January, "since Jan 1" alone would leave CTL near zero and make every
+     * recovery reading look artificially good.
+     */
     private fun fetchThisYear(token: String): List<JSONObject> {
-        val jan1 = Calendar.getInstance().apply {
+        val startOfYear = Calendar.getInstance().apply {
             set(Calendar.MONTH, Calendar.JANUARY)
             set(Calendar.DAY_OF_MONTH, 1)
             zeroTime()
         }.timeInMillis / 1000
+        val halfYearAgo = Calendar.getInstance().apply {
+            zeroTime(); add(Calendar.DAY_OF_MONTH, -180)
+        }.timeInMillis / 1000
+        val jan1 = minOf(startOfYear, halfYearAgo)
 
         val out = ArrayList<JSONObject>()
         for (page in 1..MAX_PAGES) {
@@ -241,12 +258,104 @@ object Repo {
             }
         }
 
+        val p = pmc(activities, todayKey)
         return Snapshot(
             week, month, ytd,
             days = DoubleArray(7) { perDay[recent[it]] ?: 0.0 },
             lastName = lastName,
             syncedAt = System.currentTimeMillis(),
+            recovery = recoveryFor(p.ctl - p.atl),
+            strain = strainFor(p.todayLoad),
+            ctl = p.ctl,
+            atl = p.atl,
         )
+    }
+
+
+    /* ── Training load → Recovery & Strain ───────────────────────────────────
+       A port of the web dashboard's PMC model (js/training.js) so the widget
+       agrees with the site. Per-activity load prefers Strava's Relative Effort
+       (suffer_score, already an HR-TRIMP), then an HR-TRIMP of our own, then
+       duration. The app has no FTP, so the power branch the website uses first
+       is not available here — for most activities Strava supplies a suffer
+       score anyway, so the two agree in practice.
+
+       CTL = 42-day EWMA of daily load, ATL = 7-day, TSB = CTL − ATL. */
+
+    private class Pmc(val ctl: Double, val atl: Double, val todayLoad: Double)
+
+    private fun activityLoad(a: JSONObject, hrMax: Double): Double {
+        val dur = (a.optLong("moving_time").takeIf { it > 0 } ?: a.optLong("elapsed_time")).toDouble()
+        if (dur <= 0) return 0.0
+
+        val suffer = a.optDouble("suffer_score", 0.0)
+        if (suffer > 0) return suffer
+
+        val hr = a.optDouble("average_heartrate", 0.0)
+        val hrRest = 60.0                       // the API exposes no resting HR
+        if (hr > 0 && hrMax > hrRest) {
+            val hrr = ((hr - hrRest) / (hrMax - hrRest)).coerceIn(0.0, 1.0)
+            val trimp = (dur / 60) * hrr * 0.64 * Math.exp(1.92 * hrr)
+            return trimp * 0.6
+        }
+        return (dur / 3600) * 50                // moderate-intensity fallback
+    }
+
+    /** Walks every day from the first activity to today, decaying CTL and ATL. */
+    private fun pmc(activities: List<JSONObject>, todayKey: String): Pmc {
+        val hrMax = activities.fold(0.0) { m, a -> maxOf(m, a.optDouble("max_heartrate", 0.0)) }
+
+        val byDay = HashMap<String, Double>()
+        var earliest: String? = null
+        for (a in activities) {
+            val local = a.optString("start_date_local").ifEmpty { a.optString("start_date") }
+            if (local.length < 10) continue
+            val key = local.substring(0, 10)
+            byDay[key] = (byDay[key] ?: 0.0) + activityLoad(a, hrMax)
+            if (earliest == null || key < earliest!!) earliest = key
+        }
+        val start = earliest ?: return Pmc(0.0, 0.0, 0.0)
+
+        val kC = 1 - Math.exp(-1.0 / 42)
+        val kA = 1 - Math.exp(-1.0 / 7)
+        var ctl = 0.0; var atl = 0.0
+        var key = start
+        var guard = 0
+        while (key <= todayKey && guard++ < 4000) {
+            val load = byDay[key] ?: 0.0
+            ctl += (load - ctl) * kC
+            atl += (load - atl) * kA
+            key = nextDay(key)
+        }
+        return Pmc(ctl, atl, byDay[todayKey] ?: 0.0)
+    }
+
+    private fun nextDay(key: String): String {
+        val c = Calendar.getInstance()
+        c.set(key.substring(0, 4).toInt(), key.substring(5, 7).toInt() - 1, key.substring(8, 10).toInt())
+        c.zeroTime()
+        c.add(Calendar.DAY_OF_MONTH, 1)
+        return dayKey(c)
+    }
+
+    /** Logistic curve over TSB: 0 -> 50%, -30 -> ~8%, +25 -> ~89%. */
+    fun recoveryFor(tsb: Double): Int =
+        (100 / (1 + Math.exp(-tsb / 12))).toInt().coerceIn(1, 99)
+
+    /** WHOOP's 0-21 strain scale is logarithmic, so early effort counts most. */
+    fun strainFor(load: Double): Double =
+        (6.5 * Math.log(1 + load / 12)).coerceIn(0.0, 21.0)
+
+    fun recoveryBandColor(recovery: Int): Int = when {
+        recovery >= 67 -> 0xFF16EC8B.toInt()
+        recovery >= 34 -> 0xFFFFDE00.toInt()
+        else           -> 0xFFFF0026.toInt()
+    }
+
+    fun recoveryBandLabel(recovery: Int): String = when {
+        recovery >= 67 -> "Recovered"
+        recovery >= 34 -> "Adequate"
+        else           -> "Rest"
     }
 
     // ── Persistence ─────────────────────────────────────────────────────────
@@ -266,6 +375,10 @@ object Repo {
         .put("days", JSONArray().apply { s.days.forEach { put(it) } })
         .put("lastName", s.lastName ?: JSONObject.NULL)
         .put("syncedAt", s.syncedAt)
+        .put("recovery", s.recovery)
+        .put("strain", s.strain)
+        .put("ctl", s.ctl)
+        .put("atl", s.atl)
 
     private fun fromJson(o: JSONObject): Snapshot {
         val arr = o.optJSONArray("days")
@@ -276,6 +389,10 @@ object Repo {
             days = DoubleArray(7) { arr?.optDouble(it, 0.0) ?: 0.0 },
             lastName = o.optString("lastName").takeIf { it.isNotEmpty() && it != "null" },
             syncedAt = o.optLong("syncedAt"),
+            recovery = o.optInt("recovery", 50),
+            strain = o.optDouble("strain", 0.0),
+            ctl = o.optDouble("ctl", 0.0),
+            atl = o.optDouble("atl", 0.0),
         )
     }
 }

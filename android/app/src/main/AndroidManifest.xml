@@ -26,6 +26,11 @@
              again on long-press thanks to widgetFeatures="reconfigurable". That
              is the only route to it, since MainActivity runs without a title bar. -->
         <activity
+            android:name=".RecoveryActivity"
+            android:exported="false"
+            android:label="Recovery" />
+
+        <activity
             android:name=".SetupActivity"
             android:exported="true"
             android:label="Widget settings">
