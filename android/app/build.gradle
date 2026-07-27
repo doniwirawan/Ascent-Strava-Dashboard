@@ -39,8 +39,8 @@ android {
         applicationId "xyz.doniwirawan.ascent"
         minSdk 29
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
 
         buildConfigField "String", "DEFAULT_REFRESH_TOKEN", "\"${bakedRefreshToken}\""
         buildConfigField "String", "TOKEN_ENDPOINT", "\"https://ascent-analytics.doniwirawan.xyz/api/strava-token\""

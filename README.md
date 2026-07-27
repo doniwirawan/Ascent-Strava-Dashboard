@@ -204,6 +204,43 @@ Open http://localhost:3000 and click **Connect with Strava**.
 
 ---
 
+## Android app
+
+[![Download APK](https://img.shields.io/badge/Download-APK-FC4C02?style=flat-square)](https://github.com/doniwirawan/Ascent-Strava-Dashboard/releases/latest)
+
+`android/` holds a small Kotlin app that wraps the dashboard and adds home-screen
+widgets. Grab the APK from [Releases](https://github.com/doniwirawan/Ascent-Strava-Dashboard/releases/latest),
+or build it yourself:
+
+```bash
+cd android
+./gradlew assembleRelease -PpublicBuild    # no credentials baked in
+```
+
+- **Widgets** in three sizes — Recovery, Day Strain, the rolling 7-day distance,
+  and a bar per day. Tapping a ring opens a native Recovery screen.
+- **The full dashboard** in a WebView, with story-card downloads and the Android
+  share sheet wired up (a bare WebView drops `blob:` downloads silently).
+- **Sign-in** happens through Strava in the app; the widget then inherits that
+  session.
+
+> **`-PpublicBuild` matters.** Without it the build bakes `STRAVA_REFRESH_TOKEN`
+> from your `.env.local` into the APK so it logs in automatically — convenient
+> for your own phone, but that token sits in `classes.dex` in plain text and
+> grants read access to your Strava. Never publish a build made without the flag.
+
+### Recovery & Strain
+
+Strava exposes no HRV, resting heart rate or sleep, so these are **not** measured
+physiological signals — they are derived from training load (see `js/training.js`,
+mirrored in `android/.../Repo.kt`):
+
+- **Recovery %** — half long-term balance (CTL − ATL), half short-term freshness
+  from a ~2.5-day load average.
+- **Day Strain** — today's load on a logarithmic 0–21 scale.
+
+---
+
 ## Project Structure
 
 ```
@@ -213,6 +250,7 @@ Ascent-Strava-Dashboard/
 ├── build.js         # Injects env vars into dist/ at build time
 ├── manifest.json    # PWA manifest
 ├── sw.js            # Service worker (offline cache)
+├── android/         # Kotlin app: WebView shell + home-screen widgets
 ├── icon.png         # App icon
 ├── vercel.json      # Vercel config
 ├── package.json
