@@ -220,7 +220,8 @@ const fmtTc = s => {
 
 // Draw a segmented "activity ring" of zone times onto a canvas.
 // totals: seconds per zone. centre: {big, small}. size: logical px (DPR-scaled).
-function drawZoneRing(canvas, totals, centre, size = 220) {
+// `colors` lets non-HR rings (e.g. speed zones) reuse this; defaults to HR_ZONES.
+function drawZoneRing(canvas, totals, centre, size = 220, colors) {
   if (!canvas) return;
   const dpr = window.devicePixelRatio || 1;
   canvas.width = size * dpr; canvas.height = size * dpr;
@@ -245,7 +246,8 @@ function drawZoneRing(canvas, totals, centre, size = 220) {
       const sweep = (v / sum) * Math.PI * 2;
       const a0 = start + gap / 2, a1 = start + sweep - gap / 2;
       if (a1 > a0) {
-        ctx.strokeStyle = HR_ZONES[Math.min(i, 4)].color;
+        ctx.strokeStyle = colors ? colors[Math.min(i, colors.length - 1)]
+                                 : HR_ZONES[Math.min(i, 4)].color;
         ctx.beginPath(); ctx.arc(cx, cy, r, a0, a1); ctx.stroke();
       }
       start += sweep;
@@ -391,4 +393,95 @@ function estimateVo2max() {
     if (v >= 25 && v <= 90) return { value: Math.round(v), method: 'ftp' };
   }
   return null;
+}
+
+/* ── TIME IN SPEED ZONES ──────────────────────────────────────────────────────
+   The companion to Time in HR Zones: how many hours were spent riding (or
+   running) at each speed.
+
+   Strava's activity list carries only an average speed per activity, so an
+   activity's whole moving time lands in the band its average falls into. That
+   is an approximation — a rolling ride averaging 22 km/h spends real time above
+   and below that — and the card says so. Getting it exact would need a
+   velocity_smooth stream per activity, i.e. one API call each. */
+
+const SPEED_ZONES = [
+  { name: 'Easy',    color: '#3b82f6' },
+  { name: 'Steady',  color: '#22c55e' },
+  { name: 'Brisk',   color: '#eab308' },
+  { name: 'Fast',    color: '#f97316' },
+  { name: 'Flying',  color: '#ef4444' },
+];
+
+// Lower edge of each band, in m/s. Runners move slower, so they get their own.
+const SPEED_BAND_EDGES = {
+  ride: [0, 15 / 3.6, 20 / 3.6, 25 / 3.6, 30 / 3.6],
+  run:  [0,  8 / 3.6, 10 / 3.6, 12 / 3.6, 14 / 3.6],
+};
+
+function _spdEdges() {
+  const running = (typeof sportMode === 'function') && sportMode() === 'run';
+  return SPEED_BAND_EDGES[running ? 'run' : 'ride'];
+}
+
+function speedZoneFor(ms) {
+  const edges = _spdEdges();
+  let i = 0;
+  for (let k = 0; k < edges.length; k++) if (ms >= edges[k]) i = k;
+  return i;
+}
+
+// "20–25 km/h" / "30+ km/h", in whichever unit is active.
+function speedZoneRange(i) {
+  const edges = _spdEdges();
+  const lo = kmh(edges[i]);
+  if (i === edges.length - 1) return `${lo}+`;
+  return `${lo}–${kmh(edges[i + 1])}`;
+}
+
+// Moving time per band across the active sport set.
+function speedZoneTotals(set) {
+  const totals = [0, 0, 0, 0, 0];
+  let tracked = 0, untracked = 0;
+  set.forEach(a => {
+    const ms = a.average_speed || 0;
+    const t = a.moving_time || 0;
+    if (ms <= 0 || t <= 0) { untracked++; return; }
+    totals[speedZoneFor(ms)] += t;
+    tracked++;
+  });
+  return { totals, tracked, untracked };
+}
+
+function speedLegendHTML(totals) {
+  const sum = totals.reduce((s, v) => s + v, 0) || 1;
+  const peak = Math.max(...totals) || 1;
+  return totals.map((v, i) => {
+    const z = SPEED_ZONES[Math.min(i, 4)];
+    return `<div class="hrz-row">
+      <span class="hrz-dot" style="background:${z.color}"></span>
+      <span class="hrz-name">Z${i + 1} · ${z.name} <span class="hrz-range">${speedZoneRange(i)} ${speedUnit()}</span></span>
+      <span class="hrz-bar"><span style="width:${Math.round(v / peak * 100)}%;background:${z.color}"></span></span>
+      <span class="hrz-time">${v ? fmtT(v) : '—'}</span>
+      <span class="hrz-pct">${v ? Math.round(v / sum * 100) + '%' : ''}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderOverviewSpeedZones() {
+  const card = document.getElementById('spdzCard');
+  if (!card) return;
+  const set = (typeof modeActs === 'function') ? modeActs() : (typeof acts !== 'undefined' ? acts : []);
+  const { totals, tracked, untracked } = speedZoneTotals(set);
+  const sum = totals.reduce((s, v) => s + v, 0);
+  if (sum <= 0) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  drawZoneRing(
+    document.getElementById('spdzRing'), totals,
+    { big: fmtTc(sum), small: 'moving' }, 220,
+    SPEED_ZONES.map(z => z.color)
+  );
+  document.getElementById('spdzLegend').innerHTML = speedLegendHTML(totals);
+  document.getElementById('spdzNote').textContent =
+    `Each activity's moving time counted at its average speed · ${tracked} of ${tracked + untracked} activities have speed data`;
 }

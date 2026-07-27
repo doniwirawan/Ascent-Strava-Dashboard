@@ -107,6 +107,7 @@ function navScrollTo(id, btn) {
   // Fun-insights panel, HR-zones card + install banner live with the Overview (statRow) view only
   const ovi=document.getElementById('ovInsights'); if(ovi) ovi.style.display = id==='statRow' ? '' : 'none';
   const ovHrz=document.getElementById('ovHrz'); if(ovHrz) ovHrz.style.display = id==='statRow' ? '' : 'none';
+  const ovSpdz=document.getElementById('ovSpdz'); if(ovSpdz) ovSpdz.style.display = id==='statRow' ? '' : 'none';
   const ovInst=document.getElementById('ovInstall');
   if(ovInst) ovInst.style.display = (id==='statRow' && window._pwaInstallReady) ? '' : 'none';
   try{ localStorage.setItem('lastSection', id); }catch{}

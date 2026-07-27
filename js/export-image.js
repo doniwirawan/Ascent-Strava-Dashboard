@@ -252,7 +252,7 @@ async function _doSaveImg() {
       // export shows the whole view, not just the stat cards.
       let captureEl = section;
       if (section.id === 'statRow') {
-        const extras = ['ovInsights', 'ovHrz']
+        const extras = ['ovInsights', 'ovHrz', 'ovSpdz']
           .map(id => document.getElementById(id))
           .filter(el => el && el.style.display !== 'none' && el.innerHTML.trim());
         if (extras.length) {
