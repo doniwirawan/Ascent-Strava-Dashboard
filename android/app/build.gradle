@@ -1,0 +1,73 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+// The Strava refresh token is baked in from the web app's .env.local so the
+// widget works the moment it is placed on the home screen. It can be replaced
+// from the app's setup screen without rebuilding.
+// Values in .env.local are written quoted with a trailing literal "\n" escape,
+// e.g. STRAVA_REFRESH_TOKEN="<40 hex>\n" — strip both, or the token is unusable.
+def bakedRefreshToken = {
+    def f = rootProject.file('../.env.local')
+    if (!f.exists()) return ''
+    def m = (f.text =~ /(?m)^STRAVA_REFRESH_TOKEN=(.*)$/)
+    if (!m) return ''
+    return m[0][1].trim()
+        .replaceAll('^["\']|["\']$', '')
+        .replaceAll('\\\\[nrt]+$', '')
+        .trim()
+}()
+
+// Release signing comes from keystore.properties when it exists; without it the
+// release build falls back to the debug key so `assembleRelease` always works.
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file('keystore.properties')
+if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProps.load(it) }
+
+android {
+    namespace 'xyz.doniwirawan.ascent'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "xyz.doniwirawan.ascent"
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        buildConfigField "String", "DEFAULT_REFRESH_TOKEN", "\"${bakedRefreshToken}\""
+        buildConfigField "String", "TOKEN_ENDPOINT", "\"https://ascent-analytics.doniwirawan.xyz/api/strava-token\""
+        buildConfigField "String", "DASHBOARD_URL", "\"https://ascent-analytics.doniwirawan.xyz/\""
+    }
+
+    signingConfigs {
+        release {
+            if (keystoreProps['storeFile']) {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig keystoreProps['storeFile'] ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = '17' }
+    buildFeatures { buildConfig true }
+}
+
+dependencies {
+    // Only for FileProvider, which the story-card share sheet needs.
+    implementation 'androidx.core:core-ktx:1.13.1'
+}

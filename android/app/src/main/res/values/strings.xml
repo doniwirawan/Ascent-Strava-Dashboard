@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ascent Widget</string>
+    <string name="brand">ASCENT</string>
+    <string name="km">km</string>
+    <string name="this_week">this week</string>
+    <string name="this_month">month</string>
+    <string name="time">time</string>
+    <string name="climb">climb</string>
+    <string name="chart_desc">Distance for each of the last seven days</string>
+    <string name="widget_desc">This week\'s riding at a glance. Tap to refresh.</string>
+</resources>

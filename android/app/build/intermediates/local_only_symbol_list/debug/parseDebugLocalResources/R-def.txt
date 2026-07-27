@@ -1,0 +1,33 @@
+R_DEF: Internal format may change without notice
+local
+color dim
+color error
+color muted
+color orange
+color text
+color widget_bg
+color widget_border
+drawable widget_bg
+id ivChart
+id root
+id tvBig
+id tvBigLabel
+id tvBigUnit
+id tvBrand
+id tvElev
+id tvMonth
+id tvSync
+id tvTime
+layout widget
+mipmap ic_launcher
+string app_name
+string brand
+string chart_desc
+string climb
+string km
+string this_month
+string this_week
+string time
+string widget_desc
+xml ascent_widget_info
+xml file_paths

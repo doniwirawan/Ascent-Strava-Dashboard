@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="orange">#FC4C02</color>
+    <color name="text">#FFFFFF</color>
+    <color name="muted">#8A8A96</color>
+    <color name="dim">#63636F</color>
+    <color name="widget_bg">#101014</color>
+    <color name="widget_border">#26262E</color>
+    <color name="error">#F87171</color>
+</resources>
