@@ -8,7 +8,13 @@ plugins {
 // from the app's setup screen without rebuilding.
 // Values in .env.local are written quoted with a trailing literal "\n" escape,
 // e.g. STRAVA_REFRESH_TOKEN="<40 hex>\n" — strip both, or the token is unusable.
+// -PpublicBuild produces a shareable APK with no personal token in it. The
+// token below is readable in plain text inside classes.dex, so a build carrying
+// it must never be published — it grants read access to the owner's Strava.
+def publicBuild = project.hasProperty('publicBuild')
+
 def bakedRefreshToken = {
+    if (publicBuild) return ''
     def f = rootProject.file('../.env.local')
     if (!f.exists()) return ''
     def m = (f.text =~ /(?m)^STRAVA_REFRESH_TOKEN=(.*)$/)

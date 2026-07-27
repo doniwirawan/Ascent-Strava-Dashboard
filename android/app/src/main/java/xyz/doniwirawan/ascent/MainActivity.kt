@@ -84,6 +84,7 @@ class MainActivity : Activity() {
                 if (Uri.parse(url).host?.endsWith(appHost) == true) {
                     v.evaluateJavascript(seedTokensJs(), null)
                     v.evaluateJavascript(BRIDGE_JS, null)
+                    harvestToken(v)
                 }
             }
         }
@@ -131,6 +132,27 @@ class MainActivity : Activity() {
               } catch (e) {}
             })();
         """.trimIndent()
+    }
+
+    /**
+     * Copies the web app's refresh token back into the widget's storage.
+     *
+     * This is what makes the widget work in a build with no token baked in: the
+     * user signs in once through Strava in the WebView and the widget inherits
+     * that session. It also self-heals the personal build — when Strava rotates
+     * the token, the site stores the new one and the widget picks it up here,
+     * instead of silently failing until the APK is rebuilt.
+     */
+    private fun harvestToken(v: WebView) {
+        v.evaluateJavascript(
+            "(function(){try{return localStorage.getItem('strava_refresh_token')||'';}catch(e){return '';}})();"
+        ) { raw ->
+            val token = raw?.trim('"')?.takeIf { it.isNotBlank() && it != "null" } ?: return@evaluateJavascript
+            if (token != Repo.refreshToken(this)) {
+                Repo.setRefreshToken(this, token)
+                AscentWidget.fetch(this, null)
+            }
+        }
     }
 
     override fun onSaveInstanceState(out: Bundle) {
