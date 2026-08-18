@@ -647,13 +647,13 @@ const TR_ID = {
 
   /* ── weekday abbreviations (day-of-week charts build these from a variable,
      so they never show up in a literal tr('…') scan) ── */
-  'Mon': 'Sen',
-  'Tue': 'Sel',
-  'Wed': 'Rab',
-  'Thu': 'Kam',
-  'Fri': 'Jum',
-  'Sat': 'Sab',
-  'Sun': 'Min',
+  'Mon': 'Senin',
+  'Tue': 'Selasa',
+  'Wed': 'Rabu',
+  'Thu': 'Kamis',
+  'Fri': 'Jumat',
+  'Sat': 'Sabtu',
+  'Sun': 'Minggu',
 };
 window.tr = function (s) {
   return (window.LANG === 'id' && TR_ID[s] != null) ? TR_ID[s] : s;

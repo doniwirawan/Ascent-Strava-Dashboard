@@ -504,6 +504,28 @@ const AI_SECTION_LABEL = {
 /* Per-section computed context for pages whose data isn't readable from the DOM
    (a map, a calendar grid). Kept factual and aggregate — no place names. */
 const AI_SECTION_EXTRA = {
+  // The Sleep section renders asynchronously and draws most of its numbers into
+  // canvases, so scraping the DOM is both slow and lossy. Hand the model the
+  // same computed summary the chat uses instead.
+  async sleepSection() {
+    if (typeof sleepAiEnsure !== 'function') return '';
+    await sleepAiEnsure();
+    const s = (typeof sleepAiSummary === 'function') ? sleepAiSummary() : null;
+    if (!s) return '';
+    return 'Computed sleep summary (minutes unless stated; a night is labelled by the '
+      + 'morning of waking):\n' + JSON.stringify({
+        coverage: s.coverage,
+        baseline: s.baseline,
+        night_after_training_vs_rest: s.night_after_training_vs_rest,
+        by_day_of_week: s.by_day_of_week,
+        ride_start_time: s.ride_start_time,
+        recovery_arc: s.recovery_arc_around_2h_plus_days,
+        bedtime_regression: s.bedtime_regression,
+        stage_mix_by_year: s.stage_mix_by_year,
+        correlations: s.correlations,
+      });
+  },
+
   async heatSection() {
     const mapped = acts.filter(a => a.start_latlng && a.start_latlng.length === 2);
     if (!mapped.length) return 'No GPS-mapped activities.';
@@ -639,7 +661,15 @@ async function aiSectionInsight(sectionId, tries = 0) {
   const combined = [screen, chartTxt && ('Chart data (label=value):\n' + chartTxt), extra].filter(Boolean).join('\n\n').trim();
 
   // Some pages (Trophies, Gear, Segments) load asynchronously — retry until ready.
-  if (combined.length < 30) {
+  // A section that is still fetching has plenty of text ("Loading sleep data…"),
+  // so a length check alone is not enough — it would ship the placeholder to the
+  // model and get back "no data is available to analyse".
+  // NB: scope the spinner check away from our own element - .ai-insight
+  // holds ai-dots while it waits, so an unscoped query would match itself
+  // and retry until it hit the cap.
+  const stillLoading = /^\s*(Loading|Memuat)/i.test(screen)
+    || [...sec.querySelectorAll('.ai-dots, .spin')].some(n => !n.closest('.ai-insight'));
+  if (combined.length < 30 || stillLoading) {
     if (tries < 8) { render('<span class="ai-dots"><span></span><span></span><span></span></span>'); setTimeout(() => aiSectionInsight(sectionId, tries + 1), 500); }
     else el.remove();
     return;

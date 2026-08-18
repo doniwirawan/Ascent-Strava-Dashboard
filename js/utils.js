@@ -151,6 +151,11 @@ function navScrollTo(id, btn) {
   } catch(e){ console.error('lazy render failed:', id, e); }
   // Resize charts after section becomes visible
   setTimeout(()=>{Object.values(charts).forEach(c=>{try{if(c&&c.resize)c.resize();}catch{}});},80);
+  // Re-attach pan/zoom controls: lazy sections (Gear, Segments, Trophies) and
+  // Rewind's requestAnimationFrame build their charts after renderAll has run.
+  // addChartZoomControls replaces its own controls, so repeat calls are safe.
+  setTimeout(()=>{try{ addChartZoomControls(document.getElementById(id)); }catch{}},120);
+  setTimeout(()=>{try{ addChartZoomControls(document.getElementById(id)); }catch{}},900);
   // AI insight for relevant sections (cached per data signature, lazy)
   try { if (typeof aiSectionInsight === 'function') aiSectionInsight(id); } catch {}
   // Build the bulk caption tool lists when the Activities page opens
@@ -168,7 +173,11 @@ function addChartZoomControls(root) {
   if (typeof Chart === 'undefined' || !Chart.registry || !Chart.registry.plugins.get('zoom')) return;
   const scope = root || document;
   scope.querySelectorAll('canvas').forEach(cv => {
-    const ch = (typeof charts !== 'undefined' && charts) ? charts[cv.id] : null;
+    // Chart.getChart() resolves by canvas, so this works regardless of what key
+    // the chart was stored under (charts['trPmc'] for canvas #trPmcChart) or
+    // whether it was put in the `charts` map at all (Rewind keeps its own ref).
+    const ch = (typeof Chart !== 'undefined' && Chart.getChart) ? Chart.getChart(cv)
+             : ((typeof charts !== 'undefined' && charts) ? charts[cv.id] : null);
     if (!ch) return;
     const wrap = cv.parentElement;
     if (!wrap) return;

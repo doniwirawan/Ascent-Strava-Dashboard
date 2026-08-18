@@ -849,6 +849,7 @@ function _trDrawChart(series) {
       plugins: {
         legend: { display: true, labels: { color: '#888', font: { size: 11 }, boxWidth: 12, usePointStyle: true } },
         tooltip: { backgroundColor: '#1a1a1a', borderColor: '#2a2a2a', borderWidth: 1, titleColor: '#fff', bodyColor: '#aaa' },
+        zoom: (typeof chartZoomOpts === 'function') ? chartZoomOpts() : undefined,
       },
       scales: {
         x: { grid: { color: '#1c1c1c' }, ticks: { color: '#555', font: { size: 9 }, maxTicksLimit: 8, maxRotation: 0 } },

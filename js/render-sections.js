@@ -604,7 +604,8 @@ function renderRewind(filterYear){
         {label:t('distanceWord')+' ('+distUnit()+')',data:monthly.map(m=>kmVal(m.dist).toFixed(1)),backgroundColor:'rgba(252,76,2,0.7)',borderRadius:4,order:1},
         {label:t('chActs'),data:monthly.map(m=>m.count),type:'line',borderColor:'rgba(255,255,255,0.5)',borderWidth:2,pointRadius:3,fill:false,yAxisID:'y2',order:0}
       ]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#aaa',boxWidth:12}}},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#aaa',boxWidth:12}},
+        zoom:(typeof chartZoomOpts==='function')?chartZoomOpts():undefined},
         scales:{
           x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#888'}},
           y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#888'},title:{display:true,text:distUnit(),color:'#888'}},
