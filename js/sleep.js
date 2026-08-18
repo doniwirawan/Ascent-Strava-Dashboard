@@ -49,7 +49,7 @@ const _slpHM   = m => Math.floor(m / 60) + 'h ' + String(Math.round(m % 60)).pad
 const _slpUTC  = d => new Date(d + 'T00:00:00Z');
 const _slpISO  = t => t.toISOString().slice(0, 10);
 const _slpDay  = d => _slpUTC(d).getUTCDay();                      // 0=Sun
-const _slpNext = d => { const t = _slpUTC(d); t.setUTCDate(t.getUTCDate() + 1); return _slpISO(t); };
+const _slpNext = (d, k = 1) => { const t = _slpUTC(d); t.setUTCDate(t.getUTCDate() + k); return _slpISO(t); };
 /* every calendar date from a→b inclusive */
 function _slpRange(a, b) {
   const out = [];
@@ -70,11 +70,18 @@ function _slpTrainingDays() {
   acts.forEach(a => {
     const d = (a.start_date_local || '').slice(0, 10);
     if (!d) return;
-    const cur = map.get(d) || { load: 0, re: 0, min: 0, n: 0, dist: 0 };
+    const cur = map.get(d) || { load: 0, re: 0, min: 0, n: 0, dist: 0, startH: null };
     cur.n++;
     cur.re += a.suffer_score || 0;
     cur.min += (a.moving_time || 0) / 60;
     cur.dist += a.distance || 0;
+    // earliest start of the day, as local decimal hours — this is what actually
+    // sets the alarm, so it is the lever the sleep numbers respond to
+    const hm = (a.start_date_local || '').slice(11, 16);
+    if (hm) {
+      const h = +hm.slice(0, 2) + (+hm.slice(3, 5)) / 60;
+      if (cur.startH == null || h < cur.startH) cur.startH = h;
+    }
     map.set(d, cur);
   });
   map.forEach(v => { v.load = v.re || v.min; });
@@ -178,6 +185,46 @@ function _slpDraw(nights, body) {
   });
   const months = [...byMonth.keys()].sort();
 
+  /* ── start time: the lever behind everything else. An early ride start moves
+     the alarm, and the bedtime does not move with it, so the sleep is lost. ── */
+  const starts = [];
+  train.forEach((t, d) => {
+    const n = byDate.get(d);
+    if (n && t.startH != null) starts.push({ h: t.startH, sleep: n.asleep, up: n.up, hours: t.min / 60, km: t.dist / 1000 });
+  });
+  const dawn = starts.filter(s => s.h < 6), later = starts.filter(s => s.h >= 6);
+  const startBuckets = [
+    { lbl: tr('before 06:00'), g: starts.filter(s => s.h < 6) },
+    { lbl: '06–09', g: starts.filter(s => s.h >= 6 && s.h < 9) },
+    { lbl: '09–15', g: starts.filter(s => s.h >= 9 && s.h < 15) },
+    { lbl: tr('after 15:00'), g: starts.filter(s => s.h >= 15) },
+  ].filter(b => b.g.length >= 3);
+
+  /* ── the recovery arc around a big day (>= 2h moving) ── */
+  const bigDays = [...train.keys()].filter(d => train.get(d).min >= 120).sort();
+  const arc = [-1, 0, 1, 2].map(k => {
+    const g = bigDays.map(d => byDate.get(_slpNext(d, k))).filter(Boolean);
+    return { k, ...(_slpAgg(g)) };
+  });
+
+  /* ── how the nights are distributed ── */
+  const HIST = [
+    { lbl: '<5h', lo: 0, hi: 300 }, { lbl: '5–6h', lo: 300, hi: 360 },
+    { lbl: '6–7h', lo: 360, hi: 420 }, { lbl: '7–8h', lo: 420, hi: 480 },
+    { lbl: '8–9h', lo: 480, hi: 540 }, { lbl: '9h+', lo: 540, hi: 1e9 },
+  ].map(b => ({ ...b, n: real.filter(x => x.asleep >= b.lo && x.asleep < b.hi).length }));
+  const under6 = real.filter(x => x.asleep < 360).length;
+  const over7 = real.filter(x => x.asleep >= 420).length;
+
+  /* ── stage composition per year: total can stay flat while quality shifts ── */
+  const byYear = new Map();
+  real.forEach(n => {
+    const y = n.date.slice(0, 4);
+    if (!byYear.has(y)) byYear.set(y, []);
+    byYear.get(y).push(n);
+  });
+  const years = [...byYear.keys()].sort();
+
   const all = _slpAgg(real);
   const stageTotal = all.deep + all.light + all.rem;
 
@@ -216,9 +263,11 @@ function _slpDraw(nights, body) {
       ${tile(Math.round(all.rem), 'm', tr('REM sleep'), '#a78bfa', trf('{0}% of sleep', Math.round(100 * all.rem / stageTotal)))}
       ${tile(all.eff.toFixed(1), '%', tr('Efficiency'), all.eff >= 90 ? '#22c55e' : '#f59e0b', trf('{0} awake per night', _slpHM(all.wake)))}
       ${tile(_slpClock(all.bed), '', tr('Typical bedtime'), 'var(--text)', trf('up at {0}', _slpClock(_slpMean(real.filter(x => x.up != null).map(x => x.up)))))}
+      ${tile(Math.round(100 * under6 / real.length), '%', tr('Nights under 6h'), under6 / real.length > 0.25 ? '#ef4444' : 'var(--text)', trf('{0} nights', under6))}
+      ${tile(Math.round(100 * over7 / real.length), '%', tr('Nights over 7h'), '#22c55e', trf('{0} nights', over7))}
     </div>
 
-    ${_slpHeadline(worst, dowAgg, aT, aR, real)}
+    ${_slpHeadline(worst, dowAgg, aT, aR, real, { dawn, later, arc, years, byYear })}
 
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('The night after training vs the night after rest')}</div>
@@ -249,8 +298,32 @@ function _slpDraw(nights, body) {
     </div>
 
     <div class="slp-chart-card card">
+      <div class="slp-chart-title">${tr('What time you set off, and what it cost you')}</div>
+      <div class="slp-chart-sub">${tr('Sleep the morning of the ride, grouped by the day’s earliest start time')}</div>
+      <div class="slp-chart-wrap"><canvas id="slpStartChart"></canvas></div>
+      <div class="slp-note">${tr('Your bedtime barely moves when the start time does — so an earlier alarm comes straight out of sleep, and those are exactly the days you ride longest.')}</div>
+    </div>
+
+    <div class="slp-chart-card card">
+      <div class="slp-chart-title">${trf('The recovery arc around a big day ({0} days over 2h)', bigDays.length)}</div>
+      <div class="slp-chart-sub">${tr('The night before, the night of, and the two nights after')}</div>
+      <div class="slp-chart-wrap"><canvas id="slpArcChart"></canvas></div>
+    </div>
+
+    <div class="slp-chart-card card">
+      <div class="slp-chart-title">${tr('How your nights are distributed')}</div>
+      <div class="slp-chart-wrap"><canvas id="slpHistChart"></canvas></div>
+    </div>
+
+    <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('Two years of sleep, month by month')}</div>
       <div class="slp-chart-wrap"><canvas id="slpTrendChart"></canvas></div>
+    </div>
+
+    <div class="slp-chart-card card">
+      <div class="slp-chart-title">${tr('Same hours, different sleep: stage mix by year')}</div>
+      <div class="slp-chart-sub">${tr('Share of each night spent in each stage')}</div>
+      <div class="slp-chart-wrap"><canvas id="slpYearChart"></canvas></div>
     </div>
 
     <div class="slp-chart-card card">
@@ -304,6 +377,55 @@ function _slpDraw(nights, body) {
     })(),
   });
 
+  destroyChart('slpStartChart');
+  charts['slpStartChart'] = new Chart(document.getElementById('slpStartChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: startBuckets.map(b => b.lbl + ' (' + b.g.length + ')'),
+      datasets: [
+        { label: tr('Sleep (min)'), data: startBuckets.map(b => Math.round(_slpMean(b.g.map(s => s.sleep)))), backgroundColor: startBuckets.map(b => b.lbl === tr('before 06:00') ? '#ef4444' : 'rgba(252,76,2,.65)'), yAxisID: 'y', order: 2 },
+        { label: tr('Ride length (h)'), data: startBuckets.map(b => +_slpMean(b.g.map(s => s.hours)).toFixed(2)), type: 'line', borderColor: '#22c55e', backgroundColor: '#22c55e', tension: .35, pointRadius: 4, yAxisID: 'y1', order: 1 },
+      ],
+    },
+    options: (() => {
+      const o = chartOpts('', true);
+      o.scales.y.beginAtZero = true;
+      o.scales.y1 = { position: 'right', beginAtZero: true, grid: { display: false }, ticks: { color: '#22c55e', font: { size: 10 } } };
+      return o;
+    })(),
+  });
+
+  destroyChart('slpArcChart');
+  charts['slpArcChart'] = new Chart(document.getElementById('slpArcChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: arc.map(a => a.k === 0 ? tr('night of the ride') : a.k < 0 ? trf('{0} night before', -a.k) : trf('{0} night after', a.k)),
+      datasets: [
+        { label: tr('Deep'), data: arc.map(a => Math.round(a.deep)), backgroundColor: '#6366f1', stack: 's' },
+        { label: tr('REM'), data: arc.map(a => Math.round(a.rem)), backgroundColor: '#a78bfa', stack: 's' },
+        { label: tr('Light'), data: arc.map(a => Math.round(a.light)), backgroundColor: '#3f3f6b', stack: 's' },
+      ],
+    },
+    options: (() => {
+      const o = chartOpts('min', true);
+      o.scales.x.stacked = true; o.scales.y.stacked = true; o.scales.y.beginAtZero = true;
+      return o;
+    })(),
+  });
+
+  destroyChart('slpHistChart');
+  charts['slpHistChart'] = new Chart(document.getElementById('slpHistChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: HIST.map(b => b.lbl),
+      datasets: [{
+        label: tr('Nights'), data: HIST.map(b => b.n),
+        backgroundColor: HIST.map(b => b.hi <= 360 ? '#ef4444' : b.lo >= 420 ? '#22c55e' : 'rgba(252,76,2,.65)'),
+      }],
+    },
+    options: (() => { const o = chartOpts(tr('nights')); o.scales.y.beginAtZero = true; return o; })(),
+  });
+
   destroyChart('slpTrendChart');
   charts['slpTrendChart'] = new Chart(document.getElementById('slpTrendChart').getContext('2d'), {
     type: 'line',
@@ -316,6 +438,24 @@ function _slpDraw(nights, body) {
       ],
     },
     options: chartOpts('min', true),
+  });
+
+  destroyChart('slpYearChart');
+  charts['slpYearChart'] = new Chart(document.getElementById('slpYearChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: years.map(y => y + ' (' + byYear.get(y).length + ' nights)'),
+      datasets: [
+        { label: tr('Deep %'), data: years.map(y => { const a = _slpAgg(byYear.get(y)); return +(100 * a.deep / (a.deep + a.rem + a.light)).toFixed(1); }), backgroundColor: '#6366f1', stack: 's' },
+        { label: tr('REM %'), data: years.map(y => { const a = _slpAgg(byYear.get(y)); return +(100 * a.rem / (a.deep + a.rem + a.light)).toFixed(1); }), backgroundColor: '#a78bfa', stack: 's' },
+        { label: tr('Light %'), data: years.map(y => { const a = _slpAgg(byYear.get(y)); return +(100 * a.light / (a.deep + a.rem + a.light)).toFixed(1); }), backgroundColor: '#3f3f6b', stack: 's' },
+      ],
+    },
+    options: (() => {
+      const o = chartOpts('%', true);
+      o.scales.x.stacked = true; o.scales.y.stacked = true; o.scales.y.beginAtZero = true; o.scales.y.max = 100;
+      return o;
+    })(),
   });
 
   const last60 = real.slice(-60);
@@ -340,9 +480,10 @@ function _slpDraw(nights, body) {
 }
 
 /* ── the findings, written from the numbers actually on screen ── */
-function _slpHeadline(worst, dowAgg, aT, aR, real) {
+function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
   const cards = [];
 
+  /* 1. The concrete headline: the day where the worst sleep meets the most work. */
   if (worst) {
     const rest = dowAgg.filter(d => d.label !== worst.label);
     const restAvg = _slpMean(rest.map(d => d.asleep));
@@ -360,31 +501,64 @@ function _slpHeadline(worst, dowAgg, aT, aR, real) {
     });
   }
 
+  /* 2. Why it happens: an early start moves the alarm, the bedtime does not follow. */
+  if (x && x.dawn.length >= 5 && x.later.length >= 5) {
+    const dS = _slpMean(x.dawn.map(s => s.sleep)), lS = _slpMean(x.later.map(s => s.sleep));
+    cards.push({
+      tone: 'warn',
+      title: trf('Dawn starts cost you {0} of sleep', _slpHM(lS - dS)),
+      body: trf('On days you roll out before 06:00 you sleep {0} and are up at {1}; when you start later, {2}. Those dawn days are also your longest rides — {3} against {4} — so the biggest efforts sit on the thinnest sleep. Your bedtime does not move to meet the earlier alarm, so the hour simply disappears.',
+        _slpHM(dS), _slpClock(_slpMean(x.dawn.filter(s => s.up != null).map(s => s.up))), _slpHM(lS),
+        _slpMean(x.dawn.map(s => s.hours)).toFixed(1) + 'h', _slpMean(x.later.map(s => s.hours)).toFixed(1) + 'h'),
+    });
+  }
+
+  /* 3. Bedtime, quantified two ways in one card: the slope, and what it costs in deep. */
+  const bp = real.filter(n => n.bed != null && n.up != null);
+  if (bp.length > 50) {
+    const mx = _slpMean(bp.map(n => n.bed)), my = _slpMean(bp.map(n => n.up));
+    const den = bp.reduce((s, n) => s + (n.bed - mx) ** 2, 0);
+    const slope = den ? bp.reduce((s, n) => s + (n.bed - mx) * (n.up - my), 0) / den : 0;
+    const lost = Math.round(60 * (1 - slope));
+    const beds = bp.map(n => n.bed).sort((a, b) => a - b);
+    const med = beds[Math.floor(beds.length / 2)];
+    const early = _slpAgg(bp.filter(n => n.bed <= med)), late = _slpAgg(bp.filter(n => n.bed > med));
+    if (lost > 0 && lost <= 60) {
+      cards.push({
+        tone: 'info',
+        title: trf('Every hour you go to bed late costs you {0} minutes', lost),
+        body: trf('Across {0} nights, an hour’s later bedtime buys back only {1} minutes of lie-in — the other {2} are gone. In practice: turn in before {3} and you average {4} with {5} min of deep; after it, {6} with {7} min. Bedtime is the decision that sets the night.',
+          bp.length, Math.round(60 * slope), lost, _slpClock(med),
+          _slpHM(early.asleep), Math.round(early.deep), _slpHM(late.asleep), Math.round(late.deep)),
+      });
+    }
+  }
+
+  /* 4. Training earns sleep. */
   if (aT.n && aR.n) {
-    const d = aT.asleep - aR.asleep;
     cards.push({
       tone: 'good',
-      title: trf('Training buys you {0} more sleep', _slpHM(Math.abs(d))),
+      title: trf('Training buys you {0} more sleep', _slpHM(Math.abs(aT.asleep - aR.asleep))),
       body: trf('After a training day you sleep {0}; after a rest day, {1}. The extra is not just padding — deep sleep goes up {2} minutes and REM {3} minutes. Rest days are quietly your worst-sleeping days.',
         _slpHM(aT.asleep), _slpHM(aR.asleep), Math.round(aT.deep - aR.deep), Math.round(aT.rem - aR.rem)),
     });
   }
 
-  /* bedtime is the lever with the largest measured effect */
-  const withBed = real.filter(n => n.bed != null);
-  if (withBed.length > 20) {
-    const beds = withBed.map(n => n.bed).sort((a, b) => a - b);
-    const med = beds[Math.floor(beds.length / 2)];
-    const early = _slpAgg(withBed.filter(n => n.bed <= med));
-    const late = _slpAgg(withBed.filter(n => n.bed > med));
-    cards.push({
-      tone: 'info',
-      title: trf('Going to bed before {0} is worth {1} of sleep', _slpClock(med), _slpHM(early.asleep - late.asleep)),
-      body: trf('Nights you turn in earlier than {0}: {1} asleep, {2} of deep. Later nights: {3} asleep, {4} of deep. You do not sleep in to make it up — the lost time is simply lost.',
-        _slpClock(med), _slpHM(early.asleep), Math.round(early.deep) + 'm', _slpHM(late.asleep), Math.round(late.deep) + 'm'),
-    });
+  /* 5. The rebound is one night wide. */
+  if (x && x.arc && x.arc.length === 4) {
+    const before = x.arc[1], after = x.arc[2], two = x.arc[3];
+    if (after.n >= 10 && before.n >= 10) {
+      cards.push({
+        tone: 'good',
+        title: tr('A big ride buys one great night — then it is over'),
+        body: trf('The night of a 2h+ day you sleep {0}. The night after jumps to {1}, with deep at {2} min and REM at {3} min — well above your {4} / {5} min normal. By the second night you are back to {6}. The repair lands in a single window, so the night straight after a big day is the one worth protecting.',
+          _slpHM(before.asleep), _slpHM(after.asleep), Math.round(after.deep), Math.round(after.rem),
+          Math.round(_slpMean(real.map(n => n.deep))), Math.round(_slpMean(real.map(n => n.rem))), _slpHM(two.asleep)),
+      });
+    }
   }
 
+  /* 6. Naps. */
   const naps = real.filter(n => n.nap > 0);
   if (naps.length) {
     cards.push({
@@ -393,6 +567,21 @@ function _slpHeadline(worst, dowAgg, aT, aR, real) {
       body: trf('Nap days follow a short night: {0} of night sleep against {1} on days you do not nap. The nap is compensation, not a bonus.',
         _slpHM(_slpMean(naps.map(n => n.asleep))), _slpHM(_slpMean(real.filter(n => !n.nap).map(n => n.asleep)))),
     });
+  }
+
+  /* 7. Long-horizon drift, stated as the mild thing it is. */
+  if (x && x.years && x.years.length >= 3) {
+    const first = _slpAgg(x.byYear.get(x.years[0])), last = _slpAgg(x.byYear.get(x.years[x.years.length - 1]));
+    const pct = a => 100 * a.deep / (a.deep + a.rem + a.light);
+    if (pct(first) - pct(last) > 1) {
+      cards.push({
+        tone: 'info',
+        title: tr('Same hours, slightly thinner sleep than two years ago'),
+        body: trf('Your nightly total has not moved — {0} in {1}, {2} in {3}. The mix has: deep {4} → {5} min and REM {6} → {7} min, with light sleep taking up the slack. A mild drift rather than a cliff, and the year-to-year correlation is weak, so watch it rather than worry about it.',
+          _slpHM(first.asleep), x.years[0], _slpHM(last.asleep), x.years[x.years.length - 1],
+          Math.round(first.deep), Math.round(last.deep), Math.round(first.rem), Math.round(last.rem)),
+      });
+    }
   }
 
   return '<div class="slp-cards">' + cards.map(c => `
