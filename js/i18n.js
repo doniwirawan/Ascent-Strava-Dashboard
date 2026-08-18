@@ -204,6 +204,7 @@ const APP_ID = {
   // section titles
   'Cycling Performance': 'Performa Bersepeda', 'Running Performance': 'Performa Lari',
   'Training Load & Fatigue': 'Beban Latihan & Kelelahan',
+  'Sleep & Recovery': 'Tidur & Pemulihan', 'Sleep': 'Tidur',
   'Activity Calendar — Last 12 Months': 'Kalender Aktivitas — 12 Bulan Terakhir',
   'Eddington Number': 'Angka Eddington', 'Monthly Stats': 'Statistik Bulanan',
   'Activity Heatmap': 'Heatmap Aktivitas', 'Starred Segments': 'Segmen Berbintang',
