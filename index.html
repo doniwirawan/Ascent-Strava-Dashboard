@@ -69,6 +69,9 @@
   <meta name="apple-mobile-web-app-title" content="Ascent">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <!-- Hammer first: chartjs-plugin-zoom needs it for pinch-zoom on touch devices -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
   <!-- html2canvas-pro: drop-in fork that supports modern CSS colors (color-mix, oklch, color()) which break classic html2canvas 1.4.1 -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">

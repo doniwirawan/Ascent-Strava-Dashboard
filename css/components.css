@@ -335,3 +335,43 @@
   .hrz-body { flex-direction: column; align-items: stretch; gap: 18px; }
   .hrz-legend { max-width: none; }
 }
+
+/* ── CHART ZOOM CONTROLS ──
+   One cluster per chart, sitting inside the chart's own wrapper. Kept faint
+   until hover so it never competes with the data. */
+.chart-zoom {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 3px;
+  z-index: 3;
+  opacity: .35;
+  transition: opacity .15s ease;
+}
+.chart-zoom:hover,
+.chart-zoom:focus-within { opacity: 1; }
+.chart-zoom button {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text-2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  padding: 0;
+}
+.chart-zoom button:hover {
+  color: var(--text);
+  border-color: var(--border-hover);
+  background: var(--surface3);
+}
+@media (hover: none) {
+  .chart-zoom { opacity: .8; }
+  .chart-zoom button { width: 30px; height: 30px; font-size: 15px; }
+}

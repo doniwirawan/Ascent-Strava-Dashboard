@@ -80,11 +80,28 @@ function setStatus(msg, cls='') {
 
 function destroyChart(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
 
+/* Pan/zoom for every chart in the app.
+   The wheel is deliberately gated behind Ctrl: these pages are long stacks of
+   charts, and un-gated wheel zoom would swallow the page scroll every time the
+   cursor crossed one. Pinch works bare on touch, and drag pans. */
+function chartZoomOpts() {
+  if (typeof Chart === 'undefined' || !Chart.registry || !Chart.registry.plugins.get('zoom')) return undefined;
+  return {
+    pan:  { enabled:true, mode:'x', modifierKey:null, threshold:8 },
+    zoom: { wheel:{ enabled:true, modifierKey:'ctrl', speed:0.08 },
+            pinch:{ enabled:true },
+            drag:{ enabled:false },
+            mode:'x' },
+    limits: { x:{ minRange: 2 } }
+  };
+}
+
 function chartOpts(unit='', legend=false) {
   return {
     responsive:true, maintainAspectRatio:false,
     plugins:{
       legend:{ display:legend, labels:{color:'#666',font:{size:11},boxWidth:10} },
+      zoom: chartZoomOpts(),
       tooltip:{ backgroundColor:'#1a1a1a', borderColor:'#2a2a2a', borderWidth:1,
         titleColor:'#fff', bodyColor:'#aaa',
         callbacks:{ label: ctx=>' '+ctx.parsed.y+' '+unit } }
@@ -139,4 +156,38 @@ function navScrollTo(id, btn) {
   // Build the bulk caption tool lists when the Activities page opens
   try { if (id === 'actSection' && typeof bulkBuildList === 'function') { bulkBuildList('aiBulk'); bulkBuildList('stBulk'); } } catch {}
   if (window.applyI18n) window.applyI18n();
+}
+
+
+/* ── CHART ZOOM CONTROLS ──────────────────────────────────────────────────────
+   Buttons rather than gestures alone: Ctrl+wheel is not discoverable, and on a
+   phone there is no wheel at all. Attaches one control cluster per canvas that
+   has a registered Chart, and is safe to call repeatedly (it replaces its own
+   controls rather than stacking them up). */
+function addChartZoomControls(root) {
+  if (typeof Chart === 'undefined' || !Chart.registry || !Chart.registry.plugins.get('zoom')) return;
+  const scope = root || document;
+  scope.querySelectorAll('canvas').forEach(cv => {
+    const ch = (typeof charts !== 'undefined' && charts) ? charts[cv.id] : null;
+    if (!ch) return;
+    const wrap = cv.parentElement;
+    if (!wrap) return;
+    const old = wrap.querySelector(':scope > .chart-zoom');
+    if (old) old.remove();
+    if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
+
+    const bar = document.createElement('div');
+    bar.className = 'chart-zoom';
+    const mk = (txt, title, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title);
+      b.onclick = e => { e.preventDefault(); e.stopPropagation(); fn(); };
+      bar.appendChild(b);
+    };
+    const T = (typeof tr === 'function') ? tr : (x => x);
+    mk('+', T('Zoom in'),  () => { try { ch.zoom(1.25); } catch {} });
+    mk('−', T('Zoom out'), () => { try { ch.zoom(0.8); } catch {} });
+    mk('⟲', T('Reset zoom'), () => { try { ch.resetZoom(); } catch {} });
+    wrap.appendChild(bar);
+  });
 }

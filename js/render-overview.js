@@ -12,6 +12,8 @@ function renderAll() {
    renderMilestones, renderRewind, renderPhotos].forEach(fn => {
     try { fn(); } catch (e) { console.error('render failed:', fn.name, e); }
   });
+  // pan/zoom controls for every chart that just got (re)built
+  try { addChartZoomControls(); } catch (e) { console.error('zoom controls failed', e); }
   // API-heavy sections (Gear, Segments, Trophies) are lazy-loaded on first
   // navigation to spare Strava's shared public rate limit — see navScrollTo.
   // Clear their containers so a unit/lang re-render rebuilds them from cache.
