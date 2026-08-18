@@ -16,3 +16,6 @@ private/
 
 # Raw Huawei Health export (personal health data, ~190MB)
 HUAWEI_HEALTH_*.zip
+
+# Vendored agent skills — restore with `npx skills add` (pinned by skills-lock.json)
+.agents/
