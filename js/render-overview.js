@@ -8,7 +8,7 @@ function renderAll() {
   // Render each section in isolation so one failing section can never blank
   // out the others (or abort navScrollTo at the end).
   [renderStats, renderWhoopOverview, renderOverviewInsights, renderOverviewZones, renderOverviewSpeedZones, renderCycling, renderRunning, renderTrends, renderActivities,
-   renderCalendar, renderEddington, renderTraining, renderMonthly, renderBestEfforts,
+   renderCalendar, renderEddington, renderTraining, renderSleep, renderMonthly, renderBestEfforts,
    renderMilestones, renderRewind, renderPhotos].forEach(fn => {
     try { fn(); } catch (e) { console.error('render failed:', fn.name, e); }
   });
@@ -33,6 +33,10 @@ function renderAll() {
   nl.style.pointerEvents = '';
   const sn = document.getElementById('sidebarNav');
   if(sn) sn.classList.remove('locked');
+  // Sleep is a personal section backed by a private Huawei Health export —
+  // only surface it for the dashboard owner.
+  const slpNav = document.getElementById('sleepNavLink');
+  if(slpNav) slpNav.style.display = (typeof _slpIsOwner==='function' && _slpIsOwner()) ? '' : 'none';
 
   // Restore the last section the user had open before refresh (default: Overview)
   let last = 'statRow';

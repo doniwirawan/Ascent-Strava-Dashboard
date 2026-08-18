@@ -1,0 +1,14 @@
+# Without this file the Vercel CLI falls back to .gitignore — which excludes
+# private/, the sleep export that api/sleep.js reads. That would deploy a broken
+# endpoint. So list the deploy exclusions explicitly here and keep private/ IN.
+.git
+node_modules
+.vercel
+dist
+supabase/.temp
+.claude
+1.1-Connect-with-Strava-Buttons
+1.2-Strava-API-Logos
+1.1-Connect-with-Strava-Buttons.zip
+1.2-Strava-API-Logos.zip
+*.zip

@@ -97,7 +97,7 @@ function chartOpts(unit='', legend=false) {
 }
 
 const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','trendsSection','actSection','calSection',
-  'eddySection','trainingSection','monthlySection','bestSection','gearSection','heatSection',
+  'eddySection','trainingSection','sleepSection','monthlySection','bestSection','gearSection','heatSection',
   'segmentsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','settingsSection','helpSection'];
 
 function navScrollTo(id, btn) {

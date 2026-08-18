@@ -9,3 +9,10 @@ supabase/.temp/
 1.2-Strava-API-Logos/
 1.1-Connect-with-Strava-Buttons.zip
 1.2-Strava-API-Logos.zip
+
+# Personal Huawei Health sleep export — served only via the owner-gated
+# /api/sleep endpoint, never committed and never served as a static file.
+private/
+
+# Raw Huawei Health export (personal health data, ~190MB)
+HUAWEI_HEALTH_*.zip

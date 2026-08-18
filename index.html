@@ -82,6 +82,7 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/story.css">
   <link rel="stylesheet" href="css/sections.css">
+  <link rel="stylesheet" href="css/sleep.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/landing.css">
 </head>
@@ -370,6 +371,10 @@
     <button class="nav-link" onclick="navScrollTo('trainingSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
       Training
+    </button>
+    <button class="nav-link" id="sleepNavLink" style="display:none" onclick="navScrollTo('sleepSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      Sleep
     </button>
 
     <div class="sidebar-group-label">Activities</div>
@@ -709,6 +714,12 @@
   <div id="trainingSection" style="display:none">
     <div class="section-title">Training Load &amp; Fatigue</div>
     <div id="trainingBody"></div>
+  </div>
+
+  <!-- SLEEP (owner only) -->
+  <div id="sleepSection" style="display:none">
+    <div class="section-title">Sleep &amp; Recovery</div>
+    <div id="sleepBody"></div>
   </div>
 
   <!-- GEAR -->
@@ -1234,6 +1245,7 @@
 <script src="js/i18n.js"></script>
 <script src="js/ai-coach.js"></script>
 <script src="js/training.js"></script>
+<script src="js/sleep.js"></script>
 <script src="js/power-curve.js"></script>
 <script src="js/hr-decoupling.js"></script>
 <script src="js/time-lost.js"></script>
