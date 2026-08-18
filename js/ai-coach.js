@@ -10,7 +10,14 @@ const AI_SYS =
   'Reply in short markdown (a heading or two, bullets). Stay under ~250 words unless ' +
   'asked for more. Distances are km, elevation m, durations as given, speed km/h. ' +
   'avg_kmh is average speed, max_kmh is peak/top speed — never confuse the two. ' +
-  '`fastest_rides_all_time` covers the ENTIRE history; `recent` is only the latest activities.';
+  '`fastest_rides_all_time` covers the ENTIRE history; `recent` is only the latest activities. ' +
+  'If a `sleep` object is present it is real measured sleep (Huawei TruSleep) joined to the training ' +
+  'history — read its `_README` before using it. Sleep durations are MINUTES, and a night is labelled ' +
+  'by the morning of waking, so `sleep_before_min` is the sleep going INTO that ride and ' +
+  '`sleep_after_min` is the recovery sleep following it. When asked about recovery, tiredness, ' +
+  'form or why a ride felt hard, USE the sleep data and connect it to the training numbers. ' +
+  'Respect the sample sizes and correlations given: call a relationship weak when |r| < 0.2, ' +
+  'and never state a causal claim the data does not support.';
 
 /* Inline SVG used wherever the assistant is represented (no emoji). */
 const AI_ICON = '<svg class="ai-icon-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6l1.5 4.1 4.1 1.5-4.1 1.5L12 13.8l-1.5-4.1L6.4 8.2l4.1-1.5L12 2.6zM18.5 12l.85 2.35 2.35.85-2.35.85-.85 2.35-.85-2.35-2.35-.85 2.35-.85L18.5 12zM5.4 12.6l.75 2.05 2.05.75-2.05.75-.75 2.05-.75-2.05L4.6 15.4l2.05-.75L5.4 12.6z"/></svg>';
@@ -491,6 +498,7 @@ const AI_SECTION_LABEL = {
   challengesSection: 'Trophies — all-time, year-to-date and last-4-week training totals (these are training stats, NOT KOM/segment awards)',
   calSection:        'Calendar — activity frequency and consistency',
   heatSection:       'Heatmap — where you train (geographic spread of routes)',
+  sleepSection:      'Sleep & Recovery — measured sleep stages joined to training days (a night is labelled by the morning of waking)',
 };
 
 /* Per-section computed context for pages whose data isn't readable from the DOM
@@ -802,7 +810,12 @@ function aiBuildSummary() {
     .sort((x, y) => (y.average_speed || 0) - (x.average_speed || 0))
     .slice(0, 5).map(rideRow);
 
+  // Sleep is owner-only and loads asynchronously; include it when it's ready.
+  let sleep = null;
+  try { if (typeof sleepAiSummary === 'function') sleep = sleepAiSummary(); } catch {}
+
   return {
+    ...(sleep ? { sleep } : {}),
     totals: { ...agg(sorted), date_range: [sorted.at(-1)?.start_date.slice(0, 10), sorted[0]?.start_date.slice(0, 10)] },
     by_sport: bySport,
     last_4_weeks: agg(sorted.filter(a => ageDays(a.start_date) <= 28)),
@@ -927,6 +940,9 @@ async function aiSend(userText) {
   aiMessages.push({ role: 'user', content: userText });
   aiPersist();
   const thinking = aiAppend('bot', '<span class="ai-dots"><span></span><span></span><span></span></span>');
+
+  // Pull the sleep export in first so even the first question already has it.
+  if (typeof sleepAiEnsure === 'function') { try { await sleepAiEnsure(); } catch {} }
 
   const summary = aiSummaryCache || (aiSummaryCache = aiBuildSummary());
   const sys = { role: 'system', content: AI_SYS + '\n\nAthlete data (JSON):\n' + JSON.stringify(summary) };

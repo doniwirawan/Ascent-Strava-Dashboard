@@ -36,6 +36,9 @@ async function _slpLoad() {
     c.forEach((k, i) => { o[k] = r[i]; });
     return o;
   });
+  // The AI summary is cached on first build. If it was built before this fetch
+  // landed it has no `sleep` block, so drop it and let it rebuild with one.
+  if (typeof clearAISummary === 'function') clearAISummary();
   return _slpNights;
 }
 
@@ -132,14 +135,18 @@ function renderSleep() {
   });
 }
 
-function _slpDraw(nights, body) {
+/* ── ANALYSIS ────────────────────────────────────────────────────────────────
+   Every derived number the section shows — and everything the AI Coach is told
+   — comes from here, so the page and the assistant can never disagree.
+   ────────────────────────────────────────────────────────────────────────── */
+function _slpAnalyse(nights) {
   const real = nights.filter(n => n.asleep >= 60);          // ignore stub nights
   const train = _slpTrainingDays();
   const win = _slpWindow(real, train);
+  const byDate = new Map(real.map(n => [n.date, n]));
 
   /* ── training vs rest: the night AFTER each day ── */
   const afterT = [], afterR = [];
-  const byDate = new Map(real.map(n => [n.date, n]));
   const tDates = [...train.keys()].sort();
   const days = tDates.length ? _slpRange(tDates[0], tDates[tDates.length - 1]) : [];
   days.forEach(day => {
@@ -225,7 +232,26 @@ function _slpDraw(nights, body) {
   });
   const years = [...byYear.keys()].sort();
 
+  /* ── bedtime → wake-time regression: how much of a late night is recovered ── */
+  const bp = real.filter(n => n.bed != null && n.up != null);
+  let bedSlope = null;
+  if (bp.length > 50) {
+    const mx = _slpMean(bp.map(n => n.bed)), my = _slpMean(bp.map(n => n.up));
+    const den = bp.reduce((s, n) => s + (n.bed - mx) ** 2, 0);
+    if (den) bedSlope = bp.reduce((s, n) => s + (n.bed - mx) * (n.up - my), 0) / den;
+  }
+
   const all = _slpAgg(real);
+  return { real, train, win, byDate, days, afterT, afterR, aT, aR, cuts, buckets,
+           dowAgg, worst, byMonth, months, starts, dawn, later, startBuckets,
+           bigDays, arc, HIST, under6, over7, byYear, years, bp, bedSlope, all };
+}
+
+function _slpDraw(nights, body) {
+  const A = _slpAnalyse(nights);
+  const { real, train, byDate, aT, aR, buckets, dowAgg, worst, byMonth, months,
+          dawn, later, startBuckets, bigDays, arc, HIST, under6, over7,
+          byYear, years, all } = A;
   const stageTotal = all.deep + all.light + all.rem;
 
   /* ── tiles ── */
@@ -589,4 +615,117 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
       <div class="slp-insight-t">${c.title}</div>
       <div class="slp-insight-b">${c.body}</div>
     </div>`).join('') + '</div>';
+}
+
+/* ── AI CONTEXT ──────────────────────────────────────────────────────────────
+   What the AI Coach is told about sleep. Built from _slpAnalyse, so it is the
+   same arithmetic the section renders — the assistant can never contradict the
+   page. Deliberately includes sample sizes and correlation coefficients so the
+   model can judge how hard to lean on each relationship instead of overclaiming.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Make sure the data is in memory before the AI builds its prompt. Safe to call
+   for non-owners and safe to call repeatedly — the fetch is cached. */
+async function sleepAiEnsure() {
+  if (!_slpIsOwner()) return false;
+  try { await _slpLoad(); return true; }
+  catch { return false; }
+}
+
+function _slpR(xs, ys) {
+  const n = xs.length;
+  if (n < 5) return null;
+  const mx = _slpMean(xs), my = _slpMean(ys);
+  let num = 0, dx = 0, dy = 0;
+  for (let i = 0; i < n; i++) { num += (xs[i] - mx) * (ys[i] - my); dx += (xs[i] - mx) ** 2; dy += (ys[i] - my) ** 2; }
+  const den = Math.sqrt(dx * dy);
+  return den ? +(num / den).toFixed(3) : null;
+}
+
+/* Synchronous — returns null if the data has not loaded yet (call sleepAiEnsure
+   first). Minutes throughout; bedtime is local decimal hours, negative before
+   midnight (-0.5 = 23:30). */
+function sleepAiSummary() {
+  if (!_slpIsOwner() || !_slpNights) return null;
+  const A = _slpAnalyse(_slpNights);
+  const { real, train, byDate, aT, aR, buckets, dowAgg, dawn, later, arc,
+          bigDays, under6, over7, byYear, years, bp, bedSlope, all } = A;
+  if (!real.length) return null;
+
+  const r1 = x => x == null || isNaN(x) ? null : +x.toFixed(1);
+  const grp = g => ({ nights: g.n, asleep_min: r1(g.asleep), deep_min: r1(g.deep),
+                      rem_min: r1(g.rem), light_min: r1(g.light), wake_min: r1(g.wake) });
+
+  /* The ride-by-ride join: for each recent training day, the night going INTO
+     it and the night after it. This is what lets the AI reason about a specific
+     ride rather than only about averages. */
+  const perRide = [...train.keys()].sort()
+    // The sleep export stops before the Strava history does, so pick the most
+    // recent training days that actually HAVE a night attached — otherwise the
+    // most useful part of this payload is a list of nulls.
+    .filter(d => byDate.has(d) || byDate.has(_slpNext(d)))
+    .slice(-30).map(d => {
+    const t = train.get(d);
+    const before = byDate.get(d), after = byDate.get(_slpNext(d));
+    return {
+      date: d,
+      start_time: t.startH == null ? null : _slpClock(t.startH),
+      moving_h: r1(t.min / 60), km: r1(t.dist / 1000),
+      relative_effort: t.re || null,
+      sleep_before_min: before ? before.asleep : null,
+      deep_before_min: before ? before.deep : null,
+      bedtime_before: before && before.bed != null ? _slpClock(before.bed) : null,
+      woke_before: before && before.up != null ? _slpClock(before.up) : null,
+      sleep_after_min: after ? after.asleep : null,
+      deep_after_min: after ? after.deep : null,
+      rem_after_min: after ? after.rem : null,
+    };
+  });
+
+  /* Correlations, so the model can weight each relationship honestly. */
+  const withBed = real.filter(n => n.bed != null);
+  const sameDay = [...train.keys()].map(d => ({ t: train.get(d), n: byDate.get(d) })).filter(x => x.n);
+  const corr = {
+    bedtime_vs_total_sleep: _slpR(withBed.map(n => n.bed), withBed.map(n => n.asleep)),
+    bedtime_vs_rem: _slpR(withBed.map(n => n.bed), withBed.map(n => n.rem)),
+    bedtime_vs_deep: _slpR(withBed.map(n => n.bed), withBed.map(n => n.deep)),
+    ride_start_hour_vs_sleep_that_morning: _slpR(A.starts.map(s => s.h), A.starts.map(s => s.sleep)),
+    ride_duration_vs_start_hour: _slpR(A.starts.map(s => s.h), A.starts.map(s => s.hours)),
+    sleep_that_morning_vs_ride_duration: _slpR(sameDay.map(x => x.n.asleep), sameDay.map(x => x.t.min / 60)),
+  };
+
+  return {
+    _README: 'Personal sleep from a Huawei Health TruSleep export, joined to Strava. '
+      + 'A night is labelled with the date you WOKE UP: the night dated D is the sleep BEFORE training on D, '
+      + 'and the night dated D+1 is the recovery sleep AFTER training on D. All durations are MINUTES. '
+      + 'Bedtimes/wake times are local clock strings. Treat correlations with |r| < 0.2 as weak and say so; '
+      + 'always respect the sample sizes given and never claim a causal effect the numbers do not support.',
+    coverage: { nights: real.length, first: real[0].date, last: real[real.length - 1].date,
+                note: 'Sleep tracking ends ' + real[real.length - 1].date
+                      + '. Any training after that date has no sleep to pair with — say so rather than guessing.' },
+    baseline: { ...grp(all), efficiency_pct: r1(all.eff),
+                typical_bedtime: _slpClock(all.bed),
+                typical_waketime: _slpClock(_slpMean(real.filter(n => n.up != null).map(n => n.up))),
+                nights_under_6h_pct: Math.round(100 * under6 / real.length),
+                nights_over_7h_pct: Math.round(100 * over7 / real.length) },
+    night_after_training_vs_rest: { after_training: grp(aT), after_rest: grp(aR) },
+    next_night_by_training_load: Object.fromEntries(
+      Object.entries(buckets).filter(([, g]) => g.length).map(([k, g]) => [k, grp(_slpAgg(g))])),
+    by_day_of_week: dowAgg.map(d => ({ day: d.label, nights: d.n, asleep_min: r1(d.asleep),
+                                       deep_min: r1(d.deep), training_days: d.trained })),
+    ride_start_time: {
+      before_0600: { rides: dawn.length, sleep_min: r1(_slpMean(dawn.map(s => s.sleep))), avg_ride_h: r1(_slpMean(dawn.map(s => s.hours))) },
+      from_0600:   { rides: later.length, sleep_min: r1(_slpMean(later.map(s => s.sleep))), avg_ride_h: r1(_slpMean(later.map(s => s.hours))) },
+    },
+    recovery_arc_around_2h_plus_days: { days: bigDays.length,
+      nights: arc.map(a => ({ offset: a.k, label: a.k === 0 ? 'night of the ride' : (a.k < 0 ? 'night before' : 'night after'), ...grp(a) })) },
+    bedtime_regression: bedSlope == null ? null : {
+      nights: bp.length, wake_shift_per_hour_later_to_bed: r1(bedSlope),
+      minutes_of_sleep_lost_per_hour_later: Math.round(60 * (1 - bedSlope)),
+    },
+    stage_mix_by_year: years.map(y => { const a = _slpAgg(byYear.get(y)); const tot = a.deep + a.rem + a.light;
+      return { year: y, nights: a.n, asleep_min: r1(a.asleep), deep_pct: r1(100 * a.deep / tot), rem_pct: r1(100 * a.rem / tot), light_pct: r1(100 * a.light / tot) }; }),
+    correlations: corr,
+    recent_rides_with_sleep: perRide,
+  };
 }
