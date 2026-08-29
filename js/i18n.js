@@ -207,7 +207,8 @@ const APP_ID = {
   'Sleep & Recovery': 'Tidur & Pemulihan', 'Sleep': 'Tidur',
   'Activity Calendar — Last 12 Months': 'Kalender Aktivitas — 12 Bulan Terakhir',
   'Eddington Number': 'Angka Eddington', 'Monthly Stats': 'Statistik Bulanan',
-  'Activity Heatmap': 'Heatmap Aktivitas', 'Starred Segments': 'Segmen Berbintang',
+  'Activity Heatmap': 'Heatmap Aktivitas', 'Rides here': 'Lewat sini',
+  'Dark': 'Gelap', 'Satellite': 'Satelit', 'Terrain': 'Medan', 'Relief': 'Relief', 'Starred Segments': 'Segmen Berbintang',
   'Year in Review': 'Kilas Balik Tahun', 'Trophies & KOMs': 'Trofi & KOM',
   // stat-card labels (static)
   'Distance': 'Jarak', 'Moving Time': 'Waktu Bergerak', 'Elevation': 'Elevasi',

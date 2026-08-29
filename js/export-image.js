@@ -91,8 +91,9 @@ async function _mapToCanvas(map, targetW, targetH) {
   const max = Math.pow(2, z);
   const x0 = Math.floor(origin.x / ts), x1 = Math.floor((origin.x + W) / ts);
   const y0 = Math.floor(origin.y / ts), y1 = Math.floor((origin.y + H) / ts);
-  // Tiles land on their own canvas first so BASEMAP.filter can be applied to
-  // the basemap alone — canvas ignores the .leaflet-dark-tiles CSS rule.
+  // Tiles land on their own canvas first so the view's filter can be applied
+  // to the basemap alone — canvas ignores the .leaflet-dark-tiles CSS rule.
+  const view = map._bmView || BASEMAP;   // whichever view the switcher is on
   const tcv = document.createElement('canvas');
   tcv.width = cv.width; tcv.height = cv.height;
   const tctx = tcv.getContext('2d');
@@ -102,7 +103,7 @@ async function _mapToCanvas(map, targetW, targetH) {
     for (let y = y0; y <= y1; y++) {
       if (y < 0 || y >= max) continue;
       const tx = ((x % max) + max) % max;
-      const url = BASEMAP.url
+      const url = view.url
         .replace('{s}', subs[((x % 4) + 4) % 4])
         .replace('{z}', z).replace('{x}', tx).replace('{y}', y)
         .replace('{r}', '@2x');
@@ -117,7 +118,7 @@ async function _mapToCanvas(map, targetW, targetH) {
     }
   }
   await Promise.all(loads);
-  if (BASEMAP.filter) ctx.filter = BASEMAP.filter;
+  if (view.filter) ctx.filter = view.filter;
   ctx.drawImage(tcv, 0, 0, W, H);
   ctx.filter = 'none';
 

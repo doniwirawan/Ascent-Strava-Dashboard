@@ -349,29 +349,138 @@ async function gearReassignSubmit(bikes){
   renderGear();
 }
 
-/* ── HEATMAP ── */
+/* ── HEATMAP ──
+   Roads get hotter the more often they've been ridden. Counting works on a
+   ~25 m grid: each activity is walked at grid resolution and the cells it
+   touches are collected in a Set, so one slow ride can't inflate a cell —
+   a cell's count is "how many separate activities passed through here".
+   Points are then bucketed by that count and drawn as four multi-polylines
+   (one per heat band) instead of thousands of tiny layers. */
+const HEAT_CELL = 0.00025;             // ~28 m of latitude
+const HEAT_BANDS = [                   // ascending; `min` = rides through the cell
+  { min: 1, color: '#9c4116', weight: 1.3, opacity: 0.58 },
+  { min: 2, color: '#FC4C02', weight: 1.8, opacity: 0.70 },
+  { min: 4, color: '#FF9436', weight: 2.6, opacity: 0.85 },
+  { min: 8, color: '#FFD98A', weight: 3.6, opacity: 0.95 },
+];
+
+// Cells are keyed by a packed integer rather than a "lat:lng" string — with
+// ~300k samples across a full history, numeric Map keys avoid a lot of
+// string allocation. Offsets keep both indices positive; the product stays
+// well inside Number.MAX_SAFE_INTEGER.
+const heatCell = (lat, lng) =>
+  (Math.round(lat / HEAT_CELL) + 400000) * 1600001 + (Math.round(lng / HEAT_CELL) + 800000);
+
+// How many activities pass through each grid cell.
+function heatCounts(tracks) {
+  const counts = new Map();
+  tracks.forEach(pts => {
+    const seen = new Set();
+    for (let i = 0; i < pts.length; i++) {
+      seen.add(heatCell(pts[i][0], pts[i][1]));
+      if (i + 1 >= pts.length) break;
+      // Walk the gap so two rides on the same road land in the same cells
+      // even when Strava simplified their points to different positions.
+      const [aLat, aLng] = pts[i], [bLat, bLng] = pts[i + 1];
+      const steps = Math.min(400, Math.ceil(
+        Math.max(Math.abs(bLat - aLat), Math.abs(bLng - aLng)) / HEAT_CELL));
+      for (let s = 1; s < steps; s++) {
+        const t = s / steps;
+        seen.add(heatCell(aLat + (bLat - aLat) * t, aLng + (bLng - aLng) * t));
+      }
+    }
+    seen.forEach(c => counts.set(c, (counts.get(c) || 0) + 1));
+  });
+  return counts;
+}
+
+const heatBand = n => {
+  let b = 0;
+  for (let i = 0; i < HEAT_BANDS.length; i++) if (n >= HEAT_BANDS[i].min) b = i;
+  return b;
+};
+
+// Split every track into runs of same-band points, grouped per band, so each
+// band renders as a single Leaflet layer holding many line segments.
+function heatBandLines(tracks, counts) {
+  const out = HEAT_BANDS.map(() => []);
+  tracks.forEach(pts => {
+    if (pts.length < 2) return;
+    const bands = pts.map(p => heatBand(counts.get(heatCell(p[0], p[1])) || 1));
+    let run = [pts[0]], cur = bands[0];
+    for (let i = 1; i < pts.length; i++) {
+      run.push(pts[i]);
+      if (bands[i] !== cur) {                 // close this run, overlap one point
+        out[cur].push(run);                   // so bands join without a gap
+        run = [pts[i]]; cur = bands[i];
+      }
+    }
+    if (run.length > 1) out[cur].push(run);
+  });
+  return out;
+}
+
+// Small key so the colour ramp reads as "how often", not "which activity".
+function heatLegend(map){
+  const T=(typeof tr==='function')?tr:(x=>x);
+  const c=L.control({position:'bottomleft'});
+  c.onAdd=()=>{
+    const d=L.DomUtil.create('div','heat-legend');
+    d.innerHTML='<span class="hl-t">'+T('Rides here')+'</span>'+
+      HEAT_BANDS.map((b,i)=>{
+        const next=HEAT_BANDS[i+1];
+        const label=next ? (next.min-b.min===1 ? b.min : b.min+'–'+(next.min-1)) : b.min+'+';
+        return '<span class="hl-i"><i style="background:'+b.color+
+               ';height:'+b.weight+'px;opacity:'+b.opacity+'"></i>'+label+'</span>';
+      }).join('');
+    L.DomEvent.disableClickPropagation(d);
+    return d;
+  };
+  c.addTo(map);
+  return c;
+}
+
 function renderHeatmap(){
   if(!window.L){setTimeout(renderHeatmap,300);return;}
   const el=document.getElementById('leafletMap');
   if(leafletMapInst){leafletMapInst.remove();leafletMapInst=null;}
 
   leafletMapInst=L.map(el,{zoomControl:true,scrollWheelZoom:true,center:[-8.34,115.09],zoom:12});
-  addBasemap(leafletMapInst);
+  addBasemap(leafletMapInst,{switcher:true});
 
   const bounds=[];
+  const tracks=[], withAct=[];
   modeActs().forEach(a=>{
     if(!a.map||!a.map.summary_polyline) return;
     try{
       const pts=decodePolyline(a.map.summary_polyline);
-      if(!pts.length) return;
+      if(pts.length<2) return;
       const latlngs=pts.map(p=>[p[0],p[1]]);
-      const line=L.polyline(latlngs,{color:'#FC4C02',weight:1.5,opacity:0.65,interactive:true}).addTo(leafletMapInst);
-      line.bindTooltip(a.name||'Activity',{sticky:true});
-      line.on('mouseover',()=>line.setStyle({weight:4,opacity:1}));
-      line.on('mouseout',()=>line.setStyle({weight:1.5,opacity:0.65}));
-      line.on('click',()=>{ try{ openActivityModal(String(a.id)); }catch{} });
+      tracks.push(latlngs); withAct.push({a,latlngs});
       latlngs.forEach(ll=>bounds.push(ll));
     }catch{}
+  });
+
+  // Heat bands first (cold underneath, hot on top) — display only.
+  const counts=heatCounts(tracks);
+  heatBandLines(tracks,counts).forEach((segs,i)=>{
+    if(!segs.length) return;
+    const b=HEAT_BANDS[i];
+    L.polyline(segs,{color:b.color,weight:b.weight,opacity:b.opacity,interactive:false})
+      .addTo(leafletMapInst);
+  });
+
+  if(tracks.length) heatLegend(leafletMapInst);
+
+  // Invisible per-activity lines on top keep the tooltip / hover / click that
+  // the merged bands can't carry.
+  withAct.forEach(({a,latlngs})=>{
+    const hit=L.polyline(latlngs,{color:'#FC4C02',weight:8,opacity:0,interactive:true})
+      .addTo(leafletMapInst);
+    hit.bindTooltip(a.name||'Activity',{sticky:true});
+    hit.on('mouseover',()=>hit.setStyle({weight:4,opacity:1}));
+    hit.on('mouseout',()=>hit.setStyle({weight:8,opacity:0}));
+    hit.on('click',()=>{ try{ openActivityModal(String(a.id)); }catch{} });
   });
 
   if(bounds.length){

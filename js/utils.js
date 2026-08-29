@@ -218,9 +218,51 @@ const BASEMAP = (typeof CONFIG !== 'undefined' && CONFIG.cartoKey)
       // keep in sync with .leaflet-dark-tiles in css/components.css
       filter: 'invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.82) contrast(1.05)' };
 
-// Add the dark basemap to a Leaflet map. Extra tileLayer options are merged in.
+/* Alternate views offered by the map switcher. Esri's tiles are key-free and
+   global; `invert` marks the one view that needs the dark CSS filter. */
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+const BASEMAP_VIEWS = [
+  Object.assign({ id: 'dark', name: 'Dark' }, BASEMAP),
+  { id: 'sat',    name: 'Satellite', invert: false, url: ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    opts: { maxZoom: 19, attribution: 'Imagery &copy; Esri' } },
+  { id: 'topo',   name: 'Terrain',   invert: false, url: ESRI + 'World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    opts: { maxZoom: 19, attribution: '&copy; Esri' } },
+  { id: 'relief', name: 'Relief',    invert: false, url: ESRI + 'Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',
+    opts: { maxZoom: 19, attribution: 'Hillshade &copy; Esri' } },
+];
+
+/* Add the basemap to a Leaflet map. Pass {switcher:true} to also attach the
+   Dark/Satellite/Terrain/Relief layer control; the pick is remembered across
+   visits. Any other option is merged into the tileLayer. */
 function addBasemap(map, extra) {
-  const layer = L.tileLayer(BASEMAP.url, Object.assign({}, BASEMAP.opts, extra || {})).addTo(map);
-  if (BASEMAP.invert) { try { map.getContainer().classList.add('leaflet-dark-tiles'); } catch {} }
-  return layer;
+  extra = extra || {};
+  const switcher = extra.switcher;
+  delete extra.switcher;
+
+  const mk = v => L.tileLayer(v.url, Object.assign({}, v.opts, extra));
+  const applyInvert = v => {
+    try { map.getContainer().classList.toggle('leaflet-dark-tiles', !!v.invert); } catch {}
+  };
+
+  if (!switcher) { const l = mk(BASEMAP).addTo(map); applyInvert(BASEMAP); map._bmView = BASEMAP; return l; }
+
+  const T = (typeof tr === 'function') ? tr : (x => x);
+  const saved = localStorage.getItem('map_view');
+  const start = BASEMAP_VIEWS.find(v => v.id === saved) || BASEMAP_VIEWS[0];
+  const layers = {}, byLayer = new Map();
+  BASEMAP_VIEWS.forEach(v => { const l = mk(v); layers[T(v.name)] = l; byLayer.set(l, v); });
+
+  const active = layers[T(start.name)];
+  active.addTo(map);
+  applyInvert(start);
+  map._bmView = start;                    // PNG export renders the view on screen
+  L.control.layers(layers, null, { position: 'topright' }).addTo(map);
+  map.on('baselayerchange', e => {
+    const v = byLayer.get(e.layer);
+    if (!v) return;
+    applyInvert(v);
+    map._bmView = v;
+    try { localStorage.setItem('map_view', v.id); } catch {}
+  });
+  return active;
 }
