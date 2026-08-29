@@ -85,29 +85,41 @@ async function _mapToCanvas(map, targetW, targetH) {
   ctx.fillStyle = '#0e0e0e'; // dark basemap tone — only shows if a tile is missing
   ctx.fillRect(0, 0, W, H);
 
-  // ── basemap tiles (CARTO supports CORS, so crossOrigin keeps the canvas
-  // untainted and exportable; @2x tiles match the dpr=2 device resolution) ──
+  // ── basemap tiles (both providers send CORS headers, so crossOrigin keeps
+  // the canvas untainted and exportable) ──
   const subs = ['a', 'b', 'c', 'd'];
   const max = Math.pow(2, z);
   const x0 = Math.floor(origin.x / ts), x1 = Math.floor((origin.x + W) / ts);
   const y0 = Math.floor(origin.y / ts), y1 = Math.floor((origin.y + H) / ts);
+  // Tiles land on their own canvas first so BASEMAP.filter can be applied to
+  // the basemap alone — canvas ignores the .leaflet-dark-tiles CSS rule.
+  const tcv = document.createElement('canvas');
+  tcv.width = cv.width; tcv.height = cv.height;
+  const tctx = tcv.getContext('2d');
+  tctx.scale(dpr, dpr);
   const loads = [];
   for (let x = x0; x <= x1; x++) {
     for (let y = y0; y <= y1; y++) {
       if (y < 0 || y >= max) continue;
       const tx = ((x % max) + max) % max;
-      const url = `https://${subs[((x % 4) + 4) % 4]}.basemaps.cartocdn.com/dark_all/${z}/${tx}/${y}@2x.png`;
+      const url = BASEMAP.url
+        .replace('{s}', subs[((x % 4) + 4) % 4])
+        .replace('{z}', z).replace('{x}', tx).replace('{y}', y)
+        .replace('{r}', '@2x');
       const dx = x * ts - origin.x, dy = y * ts - origin.y;
       loads.push(new Promise(res => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
-        img.onload = () => { try { ctx.drawImage(img, dx, dy, ts, ts); } catch {} res(); };
+        img.onload = () => { try { tctx.drawImage(img, dx, dy, ts, ts); } catch {} res(); };
         img.onerror = () => res();
         img.src = url;
       }));
     }
   }
   await Promise.all(loads);
+  if (BASEMAP.filter) ctx.filter = BASEMAP.filter;
+  ctx.drawImage(tcv, 0, 0, W, H);
+  ctx.filter = 'none';
 
   // project a latlng to container px the same way Leaflet does, so vectors
   // line up exactly with the tiles

@@ -377,12 +377,11 @@ function _actBuildMap(a){
   let coords=[];
   const enc=a.map&&a.map.summary_polyline;
   if(enc) try{coords=decodePolyline(enc);}catch{}
-  if(coords.length>2 && typeof smoothTrack==='function') coords=smoothTrack(coords);
   if(!window.L||coords.length<2){ el.style.display='none'; return; }
   el.style.display='';
   try{
     const m=L.map(el,{zoomControl:true,scrollWheelZoom:true,attributionControl:false});
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
+    addBasemap(m);
     const line=L.polyline(coords,{color:'#FC4C02',weight:4,opacity:.95}).addTo(m);
     L.circleMarker(coords[0],{radius:6,color:'#22c55e',fillColor:'#22c55e',fillOpacity:1,weight:0}).addTo(m);
     L.circleMarker(coords[coords.length-1],{radius:6,color:'#ef4444',fillColor:'#ef4444',fillOpacity:1,weight:0}).addTo(m);

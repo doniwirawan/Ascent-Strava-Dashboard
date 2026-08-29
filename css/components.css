@@ -375,3 +375,10 @@
   .chart-zoom { opacity: .8; }
   .chart-zoom button { width: 30px; height: 30px; font-size: 15px; }
 }
+
+/* Dark basemap without a CARTO API key: OSM tiles inverted to match the theme.
+   Scoped to the tile pane so route overlays keep their real colours.
+   Keep in sync with BASEMAP.filter in js/utils.js. */
+.leaflet-dark-tiles .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.82) contrast(1.05);
+}

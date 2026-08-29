@@ -356,9 +356,7 @@ function renderHeatmap(){
   if(leafletMapInst){leafletMapInst.remove();leafletMapInst=null;}
 
   leafletMapInst=L.map(el,{zoomControl:true,scrollWheelZoom:true,center:[-8.34,115.09],zoom:12});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-    attribution:'&copy; <a href="https://carto.com">CARTO</a>',maxZoom:19,subdomains:'abcd'
-  }).addTo(leafletMapInst);
+  addBasemap(leafletMapInst);
 
   const bounds=[];
   modeActs().forEach(a=>{
@@ -366,8 +364,7 @@ function renderHeatmap(){
     try{
       const pts=decodePolyline(a.map.summary_polyline);
       if(!pts.length) return;
-      let latlngs=pts.map(p=>[p[0],p[1]]);
-      if(typeof smoothTrack==='function') latlngs=smoothTrack(latlngs);
+      const latlngs=pts.map(p=>[p[0],p[1]]);
       const line=L.polyline(latlngs,{color:'#FC4C02',weight:1.5,opacity:0.65,interactive:true}).addTo(leafletMapInst);
       line.bindTooltip(a.name||'Activity',{sticky:true});
       line.on('mouseover',()=>line.setStyle({weight:4,opacity:1}));
@@ -1105,7 +1102,7 @@ function _initSegMapEl(mapEl){
     if(coords.length<2){ mapEl.style.display='none'; return; }
     try{
       const m=L.map(mapEl,{zoomControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,attributionControl:false});
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
+      addBasemap(m);
       const line=L.polyline(coords,{color:'#FC4C02',weight:3,opacity:.95}).addTo(m);
       L.circleMarker(coords[0],{radius:5,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m);
       L.circleMarker(coords[coords.length-1],{radius:5,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m);
@@ -1358,7 +1355,7 @@ async function openSegMap(id){
   if(!window.L||!coords.length){ mapEl.innerHTML='<div class="segmap-empty">No map available for this segment.</div>'; return; }
   try{
     const m=L.map(mapEl,{scrollWheelZoom:true});
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
+    addBasemap(m);
     const line=L.polyline(coords,{color:'#FC4C02',weight:4,opacity:.95}).addTo(m);
     L.circleMarker(coords[0],{radius:6,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m).bindTooltip('Start');
     L.circleMarker(coords[coords.length-1],{radius:6,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m).bindTooltip('Finish');

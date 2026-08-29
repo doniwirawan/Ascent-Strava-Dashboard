@@ -200,3 +200,27 @@ function addChartZoomControls(root) {
     wrap.appendChild(bar);
   });
 }
+
+/* ── BASEMAP ──
+   CARTO stopped serving anonymous basemap tiles — requests without an API key
+   now come back stamped "API KEY REQUIRED". Set CONFIG.cartoKey (free account
+   at carto.com) to go back to CARTO's dark_all; with no key we use OSM tiles
+   turned dark by a CSS filter. The filter is scoped to .leaflet-dark-tiles on
+   the map container so it hits the tile pane only — route overlays keep their
+   real colours. */
+const BASEMAP = (typeof CONFIG !== 'undefined' && CONFIG.cartoKey)
+  ? { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=' + CONFIG.cartoKey,
+      opts: { maxZoom: 19, subdomains: 'abcd', attribution: '&copy; <a href="https://carto.com">CARTO</a>' },
+      invert: false, filter: '' }
+  : { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' },
+      invert: true,
+      // keep in sync with .leaflet-dark-tiles in css/components.css
+      filter: 'invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.82) contrast(1.05)' };
+
+// Add the dark basemap to a Leaflet map. Extra tileLayer options are merged in.
+function addBasemap(map, extra) {
+  const layer = L.tileLayer(BASEMAP.url, Object.assign({}, BASEMAP.opts, extra || {})).addTo(map);
+  if (BASEMAP.invert) { try { map.getContainer().classList.add('leaflet-dark-tiles'); } catch {} }
+  return layer;
+}

@@ -43,7 +43,7 @@ function rbInitMap() {
   const [hlat, hlng] = RB_HOME.split(',').map(Number);
   if (!_rbMap) {
     _rbMap = L.map(el, { zoomControl: true, scrollWheelZoom: true, attributionControl: false }).setView([hlat, hlng], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(_rbMap);
+    addBasemap(_rbMap);
     L.circleMarker([hlat, hlng], { radius: 6, color: '#22c55e', fillColor: '#22c55e', fillOpacity: 1, weight: 0 }).addTo(_rbMap);
   }
   // Map containers measure 0×0 while hidden — fix once visible.
@@ -469,7 +469,7 @@ function rbDrawRoute(route) {
   const latlngs = route.coordinates.map(c => [c[1], c[0]]);
   if (!_rbMap) {
     _rbMap = L.map(el, { zoomControl: true, scrollWheelZoom: true, attributionControl: false });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(_rbMap);
+    addBasemap(_rbMap);
   }
   if (_rbLine) { try { _rbMap.removeLayer(_rbLine); } catch {} }
   // Group the route line + start marker so they draw, fit and clear together.

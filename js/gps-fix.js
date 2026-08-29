@@ -1,7 +1,8 @@
 /* ── GPS FIX & SPEED NORMALIZATION ──
-   Shared track-smoothing + speed-spike interpolation (used by the heatmap,
-   the activity detail map, and the speed stream chart), a standalone GPX
-   upload/fix/download tool, and a list of activities with abnormal speeds.
+   Shared track-smoothing + speed-spike interpolation (used on raw GPX/stream
+   points — Strava's summary_polyline is already simplified, so smoothing it
+   again only rounds off real corners), a standalone GPX upload/fix/download
+   tool, and a list of activities with abnormal speeds.
    The speed ceiling reuses MAX_SPEED_CEILING (65 km/h, m/s) from utils.js. */
 
 // median of a numeric array (NaN/null ignored)
@@ -328,7 +329,7 @@ function _gfPreview(before, after){
   const mk=(id,pts,color)=>{
     if(pts.length<2) return null;
     const m=L.map(id,{zoomControl:false,attributionControl:false});
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
+    addBasemap(m);
     const line=L.polyline(pts,{color,weight:2.5,opacity:.95}).addTo(m);
     m.fitBounds(line.getBounds(),{padding:[12,12]});
     setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[12,12]});}catch{}},200);
