@@ -69,6 +69,12 @@ function setUnits(imperial){
 const fmtT  = s   => { const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h>0?`${h}h ${m}m`:`${m}m`; };
 const fmtDays = s => { const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600); return d>0?`${d}d ${h}h`:`${h}h`; }; // duration as days+hours
 const fmtDt = d   => new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+// Same, but with the weekday, localised to the app language ("Sat, 20 Sep" /
+// "Sab, 20 Sep"). Callers pass the local wall-clock time, so format it in UTC
+// (start_date_local carries a fake 'Z') to keep the weekday on the right day.
+const fmtDtDow = d => new Date(d).toLocaleDateString(
+  (typeof window!=='undefined' && window.LANG==='id') ? 'id-ID' : 'en-GB',
+  {weekday:'short', day:'numeric', month:'short', timeZone:'UTC'});
 const isRide= a   => ['Ride','VirtualRide','EBikeRide','GravelRide','MountainBikeRide'].includes(a.type);
 // NOTE: isRun() is defined in render-sections.js (loaded after this file)
 

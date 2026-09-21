@@ -682,7 +682,10 @@ async function aiSectionInsight(sectionId, tries = 0) {
     else el.remove();
     return;
   }
-  const key = 'ai_ins_' + sectionId, sig = aiHash(combined); // changes if displayed numbers/units change
+  // Cache per language: the displayed numbers are identical in EN and ID, so
+  // without the language in the key a cached English insight would keep showing
+  // after switching to Indonesian (and vice-versa).
+  const key = 'ai_ins_' + sectionId + '_' + (window.LANG || 'en'), sig = aiHash(combined);
   try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.sig === sig && c.text) { render(aiMd(c.text)); return; } } catch {}
 
   const token = localStorage.getItem('strava_access_token');
@@ -708,7 +711,8 @@ async function aiSectionInsight(sectionId, tries = 0) {
 function aiDataSig() {
   if (typeof acts === 'undefined' || !acts.length) return 'none';
   const a = acts[0] || {};
-  return acts.length + ':' + (a.id || '') + ':' + (a.start_date || '');
+  // include the language so the cached highlight regenerates when you switch EN/ID
+  return (window.LANG || 'en') + ':' + acts.length + ':' + (a.id || '') + ':' + (a.start_date || '');
 }
 
 /* Auto "highlight" shown at the top of the popup. Cached in localStorage and

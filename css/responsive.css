@@ -35,7 +35,14 @@
      drawer. Keep the EN/ID, km/mi and sport toggles in the top bar. */
   #shareBtn, #logoutBtn, #mainBtn, #saveImgBtn { display: none !important; }
 
-  .nav-right { gap: 6px; }
+  /* The sport toggle can be up to 5 buttons; with EN/ID + km/mi that's a lot for
+     a phone bar. Tighten the toggles and let nav-right scroll internally so
+     nothing ever clips off the edge. */
+  .nav-right { gap: 5px; min-width: 0; flex-shrink: 1; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .nav-right::-webkit-scrollbar { display: none; }
+  .mode-toggle button { padding: 5px 7px; }
+  .mode-toggle button svg { width: 15px; height: 15px; }
+  .lang-toggle button, .nav-right .unit-toggle button { padding: 5px 9px; font-size: 11px; }
   .app-layout { margin-left: 0; }
   main { padding: 16px; }
 

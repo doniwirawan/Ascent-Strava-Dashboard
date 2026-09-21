@@ -351,7 +351,7 @@ function _renderActList(q){
       <div style="flex:1;min-width:0">
         <div class="act-name">${a.name}</div>
         <div class="act-meta">
-          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDt(a.start_date)}
+          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDtDow(a.start_date_local||a.start_date)}
         </div>
       </div>
       <div class="act-right">
