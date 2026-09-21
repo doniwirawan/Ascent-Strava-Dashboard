@@ -6,7 +6,6 @@
 const AI_SYS =
   'You are a concise, encouraging endurance-sports coach analysing ONE athlete\'s ' +
   'Strava history. Use only the numbers in the provided JSON — never invent data. ' +
-  'Always reply in English. ' +
   'Reply in short markdown (a heading or two, bullets). Stay under ~250 words unless ' +
   'asked for more. Distances are km, elevation m, durations as given, speed km/h. ' +
   'avg_kmh is average speed, max_kmh is peak/top speed — never confuse the two. ' +
@@ -18,6 +17,15 @@ const AI_SYS =
   'form or why a ride felt hard, USE the sleep data and connect it to the training numbers. ' +
   'Respect the sample sizes and correlations given: call a relationship weak when |r| < 0.2, ' +
   'and never state a causal claim the data does not support.';
+
+/* AI insights follow the app's language switch: Indonesian when the UI is in
+   `id` mode, English otherwise. Evaluated per request (window.LANG can change at
+   runtime), so it can't be baked into the AI_SYS const above. */
+function aiLangLine() {
+  return (typeof window !== 'undefined' && window.LANG === 'id')
+    ? 'Reply entirely in natural Bahasa Indonesia; keep numbers, units and proper nouns unchanged. '
+    : 'Always reply in English. ';
+}
 
 /* Inline SVG used wherever the assistant is represented (no emoji). */
 const AI_ICON = '<svg class="ai-icon-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6l1.5 4.1 4.1 1.5-4.1 1.5L12 13.8l-1.5-4.1L6.4 8.2l4.1-1.5L12 2.6zM18.5 12l.85 2.35 2.35.85-2.35.85-.85 2.35-.85-2.35-2.35-.85 2.35-.85L18.5 12zM5.4 12.6l.75 2.05 2.05.75-2.05.75-.75 2.05-.75-2.05L4.6 15.4l2.05-.75L5.4 12.6z"/></svg>';
@@ -292,7 +300,7 @@ async function aiAnalyzeActivity(id, force) {
   const messages = [
     { role: 'system', content:
       'You are an expert cycling and running coach. Analyse ONE activity using ONLY the numbers provided — never invent data. '
-      + 'Address the athlete directly as "you". Translate any Indonesian activity terms to English. '
+      + 'Address the athlete directly as "you". ' + aiLangLine()
       + 'Structure the reply as short markdown: a one-line **verdict**, then a "Strengths" list (2–3 bullets), '
       + 'a "Work on" list (2–3 bullets), and one concrete "Next time" tip. Reference the real stats (speed, HR, power, elevation, weather). '
       + 'Keep it under ~160 words. No preamble, no headings other than those named.' },
@@ -683,7 +691,7 @@ async function aiSectionInsight(sectionId, tries = 0) {
   const messages = [
     { role: 'system', content:
       'You are a sharp, neutral sports-data analyst. From what is shown on one dashboard page, surface ONE specific, non-obvious insight that CONNECTS multiple numbers — e.g. how speed relates to distance or elevation, a trend across weeks/months, the balance between sports, consistency, or an outlier and what it implies. '
-      + 'Do NOT just praise a single headline stat (like top speed) and do NOT use motivational filler or exclamations. Use ONLY the numbers given; never invent data or mention metrics that are not present. Always reply in English. 1–2 plain sentences, max 40 words. No headings, no preamble.' },
+      + 'Do NOT just praise a single headline stat (like top speed) and do NOT use motivational filler or exclamations. Use ONLY the numbers given; never invent data or mention metrics that are not present. ' + aiLangLine() + '1–2 plain sentences, max 40 words. No headings, no preamble.' },
     { role: 'user', content: 'This is the "' + label + '" page. On-screen content (headings, stats and chart data):\n"""\n' + combined + '\n"""\nGive one analytical insight connecting these numbers.' },
   ];
   render('<span class="ai-dots"><span></span><span></span><span></span></span>');
@@ -724,7 +732,7 @@ async function aiLoadHighlight() {
   const key = ((document.getElementById('aiKey') || {}).value || localStorage.getItem('ai_key') || '').trim() || undefined;
   const summary = aiSummaryCache || (aiSummaryCache = aiBuildSummary());
   const messages = [
-    { role: 'system', content: AI_SYS + '\n\nAthlete data (JSON):\n' + JSON.stringify(summary) },
+    { role: 'system', content: AI_SYS + ' ' + aiLangLine() + '\n\nAthlete data (JSON):\n' + JSON.stringify(summary) },
     { role: 'user', content: 'In ONE short sentence (max 25 words), give the single most noteworthy highlight about my recent training. No preamble, no headings, no markdown.' },
   ];
   show('<span class="ai-dots"><span></span><span></span><span></span></span>');
@@ -975,7 +983,7 @@ async function aiSend(userText) {
   if (typeof sleepAiEnsure === 'function') { try { await sleepAiEnsure(); } catch {} }
 
   const summary = aiSummaryCache || (aiSummaryCache = aiBuildSummary());
-  const sys = { role: 'system', content: AI_SYS + '\n\nAthlete data (JSON):\n' + JSON.stringify(summary) };
+  const sys = { role: 'system', content: AI_SYS + ' ' + aiLangLine() + '\n\nAthlete data (JSON):\n' + JSON.stringify(summary) };
   const messages = [sys, ...aiMessages.slice(-16)]; // keep ~8 exchanges of memory
 
   const provider = (document.getElementById('aiProvider') || {}).value || 'deepseek';
