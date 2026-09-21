@@ -171,15 +171,15 @@ async function upgradeOverviewZonesReal(set) {
     if (token !== _hrzRealToken) return;
     const sum = totals.reduce((s, v) => s + v, 0);
     if (sum <= 0) return;                              // keep the estimate if nothing real yet
-    drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(sum), small: 'tracked' });
+    drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(sum), small: tr('tracked') });
     document.getElementById('hrzLegend').innerHTML = zoneLegendHTML(totals);
     if (note) note.textContent = msg;
   };
-  redraw(`Real time in each zone, from Strava · ${hrActs.length} of ${set.length} activities recorded HR`);
+  redraw(trf('Real time in each zone, from Strava · {0} of {1} activities recorded HR', hrActs.length, set.length));
 
   let stoppedRate = false, done = withData;
   if (pending.length) {
-    if (note) note.textContent = `Loading real time-in-zone from Strava… (${done}/${hrActs.length})`;
+    if (note) note.textContent = trf('Loading real time-in-zone from Strava… ({0}/{1})', done, hrActs.length);
     let idx = 0;
     const worker = async () => {
       while (idx < pending.length) {
@@ -194,22 +194,22 @@ async function upgradeOverviewZonesReal(set) {
           done++;                                      // other error: skip this one
         }
         if (done % 5 === 0 && note && token === _hrzRealToken)
-          note.textContent = `Loading real time-in-zone from Strava… (${done}/${hrActs.length})`;
+          note.textContent = trf('Loading real time-in-zone from Strava… ({0}/{1})', done, hrActs.length);
       }
     };
     await Promise.all(Array.from({ length: Math.min(4, pending.length) }, worker));
   }
   if (token !== _hrzRealToken) return;
   if (totals.reduce((s, v) => s + v, 0) > 0) {        // draw real data when we got some
-    drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(totals.reduce((s, v) => s + v, 0)), small: 'tracked' });
+    drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(totals.reduce((s, v) => s + v, 0)), small: tr('tracked') });
     document.getElementById('hrzLegend').innerHTML = zoneLegendHTML(totals);
   }
   // Land on a clear final status. Denominator is the FULL mode set so it's
   // obvious why the count is what it is (most activities have no HR recorded).
-  const base = `Real time in each zone, from Strava · ${hrActs.length} of ${set.length} activities recorded HR`;
+  const base = trf('Real time in each zone, from Strava · {0} of {1} activities recorded HR', hrActs.length, set.length);
   if (note) note.textContent = stoppedRate
-    ? base + ' · rate-limited, refresh later for the rest'
-    : (withData < hrActs.length ? base + ` (${withData} with zone data)` : base);
+    ? base + ' · ' + tr('rate-limited, refresh later for the rest')
+    : (withData < hrActs.length ? base + trf(' ({0} with zone data)', withData) : base);
 }
 
 // Compact duration for the ring centre: "1h23m" / "47h" / "12m".
@@ -295,11 +295,11 @@ function renderOverviewZones() {
   const sum = totals.reduce((s, v) => s + v, 0);
   if (sum <= 0) { card.style.display = 'none'; _hrzRealToken++; return; }
   card.style.display = '';
-  drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(sum), small: 'tracked' });
+  drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(sum), small: tr('tracked') });
   document.getElementById('hrzLegend').innerHTML = zoneLegendHTML(totals);
-  const basis = athleteHrZones ? 'your Strava zones' : 'estimated max HR';
+  const basis = athleteHrZones ? tr('your Strava zones') : tr('estimated max HR');
   document.getElementById('hrzNote').textContent =
-    `Estimated from each activity's average HR · ${basis} · ${tracked} of ${tracked + untracked} activities have HR`;
+    trf('Estimated from each activity’s average HR · {0} · {1} of {2} activities have HR', basis, tracked, tracked + untracked);
   // Owner: upgrade the estimate to real per-activity time-in-zone from Strava.
   if (_isHrzOwner()) upgradeOverviewZonesReal(set); else _hrzRealToken++;
 }
@@ -309,9 +309,9 @@ async function renderActivityHrZones(a) {
   const box = document.getElementById('actHrz');
   if (!box || !a || !a.average_heartrate) { if (box) box.style.display = 'none'; return; }
   box.innerHTML =
-    `<div class="hrz-title">Heart Rate Zones</div>
+    `<div class="hrz-title">${tr('Heart Rate Zones')}</div>
      <div class="hrz-body"><canvas class="hrz-ring" id="actHrzRing"></canvas><div class="hrz-legend" id="actHrzLegend"></div></div>
-     <div class="hrz-note" id="actHrzNote">Loading zones…</div>`;
+     <div class="hrz-note" id="actHrzNote">${tr('Loading zones…')}</div>`;
   let totals = null, exact = false;
   if (a.id) { try { totals = await getActivityZones(a); exact = !!totals; } catch { totals = null; } }
   if (!totals) {                                                    // fallback: avg-HR bucket
@@ -323,10 +323,10 @@ async function renderActivityHrZones(a) {
   const ring = document.getElementById('actHrzRing');
   if (!ring) return;
   const sum = totals.reduce((s, v) => s + v, 0);
-  drawZoneRing(ring, totals, { big: fmtTc(sum), small: 'moving' }, 168);
+  drawZoneRing(ring, totals, { big: fmtTc(sum), small: tr('moving') }, 168);
   document.getElementById('actHrzLegend').innerHTML = zoneLegendHTML(totals);
   document.getElementById('actHrzNote').textContent =
-    exact ? 'Exact time in each zone, from Strava' : 'Estimated from average HR (no zone data for this activity)';
+    exact ? tr('Exact time in each zone, from Strava') : tr('Estimated from average HR (no zone data for this activity)');
 }
 
 /* ── FTP ESTIMATION ──
@@ -478,10 +478,10 @@ function renderOverviewSpeedZones() {
   card.style.display = '';
   drawZoneRing(
     document.getElementById('spdzRing'), totals,
-    { big: fmtTc(sum), small: 'moving' }, 220,
+    { big: fmtTc(sum), small: tr('moving') }, 220,
     SPEED_ZONES.map(z => z.color)
   );
   document.getElementById('spdzLegend').innerHTML = speedLegendHTML(totals);
   document.getElementById('spdzNote').textContent =
-    `Each activity's moving time counted at its average speed · ${tracked} of ${tracked + untracked} activities have speed data`;
+    trf('Each activity’s moving time counted at its average speed · {0} of {1} activities have speed data', tracked, tracked + untracked);
 }

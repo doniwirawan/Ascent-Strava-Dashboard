@@ -444,6 +444,18 @@ const TR_ID = {
   'No rides with power data.': 'Tak ada gowes dengan data power.',
   'Rate-limited — reopen later to resume; fetched rides are cached.': 'Kena batas laju — buka lagi nanti untuk lanjut; gowes yang diambil tersimpan.',
   // HR decoupling
+  // HR / speed zones (fitness.js). Zone + band names stay English on purpose.
+  'Heart Rate Zones': 'Zona Detak Jantung', 'Loading zones…': 'Memuat zona…',
+  'Exact time in each zone, from Strava': 'Waktu persis di tiap zona, dari Strava',
+  'Estimated from average HR (no zone data for this activity)': 'Diperkirakan dari HR rata-rata (tidak ada data zona untuk aktivitas ini)',
+  'your Strava zones': 'zona Strava Anda', 'estimated max HR': 'perkiraan HR maks',
+  'tracked': 'terlacak',
+  'Estimated from each activity’s average HR · {0} · {1} of {2} activities have HR': 'Diperkirakan dari HR rata-rata tiap aktivitas · {0} · {1} dari {2} aktivitas punya HR',
+  'Each activity’s moving time counted at its average speed · {0} of {1} activities have speed data': 'Waktu bergerak tiap aktivitas dihitung pada kecepatan rata-ratanya · {0} dari {1} aktivitas punya data kecepatan',
+  'Real time in each zone, from Strava · {0} of {1} activities recorded HR': 'Waktu nyata di tiap zona, dari Strava · {0} dari {1} aktivitas merekam HR',
+  'Loading real time-in-zone from Strava… ({0}/{1})': 'Memuat waktu-di-zona nyata dari Strava… ({0}/{1})',
+  'rate-limited, refresh later for the rest': 'kena batas laju, muat ulang nanti untuk sisanya',
+  ' ({0} with zone data)': ' ({0} dengan data zona)',
   'Heart Rate Decoupling': 'Decoupling Detak Jantung',
   'aerobic drift, first vs second half': 'aerobic drift, paruh pertama vs kedua',
   // AI panel labels (the generated text itself follows the language too)
