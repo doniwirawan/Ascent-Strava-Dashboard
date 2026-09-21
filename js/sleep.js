@@ -2196,10 +2196,41 @@ function sleepAiSummary() {
    "night after" is D+1 (recovery). Answers "how did I sleep prev vs after this
    training" at a glance, with a delta on total sleep.
    ────────────────────────────────────────────────────────────────────────── */
+/* A 0–100 score for a SINGLE night, using the same duration / efficiency /
+   stage-balance bands as the whole-history sleep score (regularity needs many
+   nights, so it is dropped and the others re-weighted). */
+function _slpNightScore(n) {
+  if (!n || n.asleep < 60) return null;
+  const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+  const band = (v, zero, full) => clamp(100 * (v - zero) / (full - zero), 0, 100);
+  const dur = band(n.asleep, 300, 420);                       // 5h → 0, 7h → 100
+  const eff = (n.eff == null || isNaN(n.eff)) ? null : band(n.eff, 70, 90);
+  const tot = (n.deep || 0) + (n.rem || 0) + (n.light || 0);
+  const deepPct = tot ? 100 * (n.deep || 0) / tot : 0, remPct = tot ? 100 * (n.rem || 0) / tot : 0;
+  const stages = clamp(100 - 4 * (Math.abs(deepPct - 20) + Math.abs(remPct - 20)), 0, 100);
+  const parts = [[dur, 0.5]]; if (eff != null) parts.push([eff, 0.25]); parts.push([stages, 0.25]);
+  const wsum = parts.reduce((s, p) => s + p[1], 0);
+  return Math.round(parts.reduce((s, p) => s + p[0] * p[1], 0) / wsum);
+}
+
+/* The day's own metrics (stress / calories / steps), from the row dated D — the
+   same calendar day the session happened on. */
+function _slpDayMetricsHTML(n) {
+  const T = (typeof tr === 'function') ? tr : (x => x);
+  if (!n) return '';
+  const items = [];
+  if (n.cal != null)    items.push('🔥 ' + Math.round(n.cal).toLocaleString() + ' ' + T('kcal'));
+  if (n.steps != null)  items.push('👟 ' + Math.round(n.steps).toLocaleString() + ' ' + T('steps'));
+  if (n.stress != null) items.push('🫀 ' + T('Stress') + ' ' + Math.round(n.stress));
+  if (!items.length) return '';
+  return '<div class="slp-ba-day"><span class="slp-ba-day-h">' + T('That training day') + '</span>'
+    + items.map(i => '<span class="slp-ba-day-i">' + i + '</span>').join('') + '</div>';
+}
+
 function _slpBaCard(n, lbl) {
   const T = (typeof tr === 'function') ? tr : (x => x);
   if (!n || n.asleep < 60) {
-    return '<div class="slp-ba-card empty"><div class="slp-ba-lbl">' + T(lbl) + '</div>'
+    return '<div class="slp-ba-card empty"><div class="slp-ba-lbl-row"><span class="slp-ba-lbl">' + T(lbl) + '</span></div>'
       + '<div class="slp-ba-val">—</div><div class="slp-ba-sub">' + T('no sleep recorded') + '</div></div>';
   }
   const st = [['deep', n.deep], ['rem', n.rem], ['light', n.light], ['wake', n.wake]];
@@ -2213,7 +2244,11 @@ function _slpBaCard(n, lbl) {
     n.rhr != null ? 'RHR ' + n.rhr : '',
     n.hrv != null ? 'HRV ' + n.hrv : '',
   ].filter(Boolean).join(' · ');
-  return '<div class="slp-ba-card"><div class="slp-ba-lbl">' + T(lbl) + '</div>'
+  const sc = _slpNightScore(n);
+  const scBadge = sc != null
+    ? '<span class="slp-ba-score" style="color:' + _slpScoreC(sc) + ';background:' + _slpScoreC(sc) + '22">' + T('Score') + ' ' + sc + '</span>'
+    : '';
+  return '<div class="slp-ba-card"><div class="slp-ba-lbl-row"><span class="slp-ba-lbl">' + T(lbl) + '</span>' + scBadge + '</div>'
     + '<div class="slp-ba-val">' + _slpHM(n.asleep) + '</div>'
     + '<div class="slp-ba-bar">' + bar + '</div>'
     + '<div class="slp-ba-sub">' + sub + '</div></div>';
@@ -2236,10 +2271,11 @@ async function renderActivitySleep(a) {
   const byDate = new Map(nights.map(n => [n.date, n]));
   const before = byDate.get(D), after = byDate.get(_slpNext(D));
   const bOk = before && before.asleep >= 60, aOk = after && after.asleep >= 60;
-  if (!bOk && !aOk) {
-    // Owner opened an activity with no sleep on either side (common for rides
-    // newer than the last export). Show a quiet note so it's clear the feature
-    // is here, not broken — rather than a silent gap.
+  // The day's own metrics (stress/calories/steps) live in the row dated D.
+  const dayHTML = _slpDayMetricsHTML(before);
+  if (!bOk && !aOk && !dayHTML) {
+    // Owner opened an activity with no sleep on either side and no day metrics
+    // (common for sessions newer than the last export). Show a quiet note.
     const last = nights.length ? nights[nights.length - 1].date : '';
     host.innerHTML = '<div class="slp-ba-h">🌙 ' + T('Sleep around this session') + '</div>'
       + '<div class="slp-ba-none">' + T('No sleep data for this date')
@@ -2257,7 +2293,10 @@ async function renderActivitySleep(a) {
       + '</span><span class="slp-ba-dl">' + T('after') + '</span></div>';
   }
 
+  const cards = (bOk || aOk)
+    ? '<div class="slp-ba">' + _slpBaCard(before, 'Night before') + delta + _slpBaCard(after, 'Night after') + '</div>'
+    : '';
   host.innerHTML =
     '<div class="slp-ba-h">🌙 ' + T('Sleep around this session') + '</div>'
-    + '<div class="slp-ba">' + _slpBaCard(before, 'Night before') + delta + _slpBaCard(after, 'Night after') + '</div>';
+    + cards + dayHTML;
 }
