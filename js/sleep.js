@@ -1765,7 +1765,7 @@ function _slpDraw(nights, body) {
   charts['slpStageChart'] = new Chart(document.getElementById('slpStageChart').getContext('2d'), {
     type: 'bar',
     data: {
-      labels: last60.map(n => fmtDt(n.date)),
+      labels: last60.map(n => fmtDtShort(n.date)),
       datasets: [
         { label: tr('Deep'), data: last60.map(n => n.deep), backgroundColor: SLP_C.deep, stack: 's' },
         { label: tr('REM'), data: last60.map(n => n.rem), backgroundColor: SLP_C.rem, stack: 's' },

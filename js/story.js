@@ -198,7 +198,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
     if (!hideDate) {
       ctx.fillStyle = sc.muted; ctx.font = F(26, 400); ctx.letterSpacing = '0';
       const dateY = hideTitle ? y : y + Math.round(40 * S);
-      ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), x, dateY);
+      ctx.fillText((act.start_date ? fmtDtShort(act.start_date) : '') + ' · ' + (act.type || ''), x, dateY);
     }
     return fs;
   }
@@ -256,7 +256,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
     ctx.fillText(nm, P, Math.round(96 * S));
     if (!hideDate) {
       ctx.fillStyle = o.headMuted || sc.muted; ctx.font = F(22, 400); ctx.letterSpacing = '0';
-      ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), P, Math.round(130 * S));
+      ctx.fillText((act.start_date ? fmtDtShort(act.start_date) : '') + ' · ' + (act.type || ''), P, Math.round(130 * S));
     }
     // spatial layout: route fills everything except tiles
     const COLS = 6, gap = Math.round(10 * S), ROWS = Math.ceil(selected.length / COLS);
@@ -390,7 +390,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
         drawRoute(ctx, polyline, Math.round(20 * S), Math.round(H * 0.28), sX - Math.round(40 * S), Math.round(H * 0.4), 'rgba(255,255,255,0.7)', Math.round(4 * S));
       }
       ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = F(25, 500); ctx.textAlign = 'center'; ctx.letterSpacing = '0';
-      ctx.fillText(act.start_date ? fmtDt(act.start_date) : '', sX / 2, Math.round(H * 0.88));
+      ctx.fillText(act.start_date ? fmtDtShort(act.start_date) : '', sX / 2, Math.round(H * 0.88));
       const rx = sX + Math.round(50 * S), rw = W - rx - Math.round(36 * S);
       let nm = act.name || 'Activity';
       const nfs = fitText(nm, rw, 40, 700);
@@ -451,7 +451,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const nfs2 = fitText(nm2, W - P * 2, 48, 700);
       ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.textAlign = 'left'; ctx.letterSpacing = '-0.5px'; ctx.fillText(nm2, P, Math.round(96 * S));
       ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = F(28, 400); ctx.letterSpacing = '0';
-      ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), P, Math.round(138 * S));
+      ctx.fillText((act.start_date ? fmtDtShort(act.start_date) : '') + ' · ' + (act.type || ''), P, Math.round(138 * S));
       let statsY = Math.round(185 * S);
       if (polyline && polyline.length > 1) {
         ctx.shadowColor = sc.accent; ctx.shadowBlur = Math.round(14 * S);
@@ -496,7 +496,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const nfs3 = fitText(nm3, rw, 42, 700);
       ctx.fillStyle = sc.text; ctx.textAlign = 'left'; ctx.letterSpacing = '-0.5px'; ctx.fillText(nm3, rx, Math.round(106 * S));
       ctx.fillStyle = sc.muted; ctx.font = F(24, 400); ctx.letterSpacing = '0';
-      ctx.fillText(act.start_date ? fmtDt(act.start_date) : '', rx, Math.round(142 * S));
+      ctx.fillText(act.start_date ? fmtDtShort(act.start_date) : '', rx, Math.round(142 * S));
       rows(selected, rx, Math.round(165 * S), rw, H - Math.round(180 * S));
       break;
     }
@@ -627,7 +627,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const nfs = fitText(nm, W - P * 2, 80, 900); ctx.fillText(nm, P, Math.round(120 * S));
       if (!hideDate) {
         ctx.fillStyle = mg; ctx.font = F(26, 400); ctx.letterSpacing = '2px';
-        ctx.fillText((act.start_date ? fmtDt(act.start_date) : '').toUpperCase(), P, Math.round(162 * S));
+        ctx.fillText((act.start_date ? fmtDtShort(act.start_date) : '').toUpperCase(), P, Math.round(162 * S));
       }
       // thick divider line
       ctx.fillStyle = sc.accent; ctx.fillRect(P, Math.round(182 * S), Math.round(88 * S), Math.round(5 * S));
@@ -737,7 +737,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       if (!hideDate) {
         const loc2 = [act.location_city, act.location_state, act.location_country].filter(Boolean).join(', ')
           || (act.start_latlng && act.start_latlng.length ? `${act.start_latlng[0].toFixed(2)}, ${act.start_latlng[1].toFixed(2)}` : '');
-        const locStr = loc2 || (act.start_date ? fmtDt(act.start_date) : '');
+        const locStr = loc2 || (act.start_date ? fmtDtShort(act.start_date) : '');
         if (locStr) {
           ctx.fillStyle = 'rgba(180,185,255,0.55)'; ctx.font = `400 ${Math.round(20 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0'; ctx.textAlign = 'left';
           ctx.fillText(locStr, cx, cy3 + Math.round(22 * S));
@@ -868,7 +868,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
 
       if (!hideDate) {
         ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = `400 ${Math.round(20 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0';
-        ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), Math.round(52 * S), bandY + Math.round(90 * S));
+        ctx.fillText((act.start_date ? fmtDtShort(act.start_date) : '') + ' · ' + (act.type || ''), Math.round(52 * S), bandY + Math.round(90 * S));
       }
 
       // Strava logo mark bottom-right
@@ -955,7 +955,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       }
       if (!hideDate) {
         ctx.fillStyle = 'rgba(160,255,200,0.45)'; ctx.font = `400 ${Math.round(22 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0'; ctx.textAlign = 'left';
-        ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), P, Math.round(H * 0.56) + Math.round(36 * S));
+        ctx.fillText((act.start_date ? fmtDtShort(act.start_date) : '') + ' · ' + (act.type || ''), P, Math.round(H * 0.56) + Math.round(36 * S));
       }
 
       // stat tiles — dark glass style
@@ -1039,7 +1039,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       }
       if (!hideDate) {
         ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = `400 ${Math.round(20 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0'; ctx.textAlign = 'center';
-        ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), W / 2, gContentY + Math.round(22 * S));
+        ctx.fillText((act.start_date ? fmtDtShort(act.start_date) : '') + ' · ' + (act.type || ''), W / 2, gContentY + Math.round(22 * S));
         gContentY += Math.round(44 * S);
       }
       gContentY += Math.round(16 * S);
@@ -1169,7 +1169,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       }
       if (!hideDate) {
         ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = `400 ${Math.round(20 * S)}px -apple-system,sans-serif`; ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = Math.round(6 * S); ctx.letterSpacing = '0'; ctx.textAlign = 'left';
-        ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), P, H - Math.round(48 * S)); ctx.shadowBlur = 0;
+        ctx.fillText((act.start_date ? fmtDtShort(act.start_date) : '') + ' · ' + (act.type || ''), P, H - Math.round(48 * S)); ctx.shadowBlur = 0;
       }
       if (!hideLogo) {
         ctx.fillStyle = 'rgba(252,76,2,0.7)'; ctx.font = `900 ${Math.round(22 * S)}px -apple-system,sans-serif`; ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = Math.round(6 * S); ctx.letterSpacing = '0.08em'; ctx.textAlign = 'right';

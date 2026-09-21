@@ -63,7 +63,7 @@ function renderCycling() {
   destroyChart('cSpeedChart');
   charts['cSpeedChart'] = new Chart(document.getElementById('cSpeedChart').getContext('2d'),{
     type:'line',
-    data:{ labels:last20.map(r=>fmtDt(r.start_date)),
+    data:{ labels:last20.map(r=>fmtDtShort(r.start_date)),
       datasets:[
         { label:t('chMax'),  data:last20.map(r=>{const m=cleanMax(r); return m?kmh(m):null;}), spanGaps:true,
           borderColor:'#FC4C02', backgroundColor:'rgba(252,76,2,.07)', tension:.35, fill:true, pointRadius:3, pointBackgroundColor:'#FC4C02' },
@@ -151,7 +151,7 @@ function renderRunning() {
   destroyChart('rPaceChart');
   charts['rPaceChart'] = new Chart(document.getElementById('rPaceChart').getContext('2d'), {
     type: 'line',
-    data: { labels: last20.map(r => fmtDt(r.start_date)),
+    data: { labels: last20.map(r => fmtDtShort(r.start_date)),
       datasets: [{ data: last20.map(paceMin), borderColor: '#FC4C02', backgroundColor: 'rgba(252,76,2,.07)', tension: .35, fill: true, pointRadius: 3, pointBackgroundColor: '#FC4C02', spanGaps: true }] },
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a1a', borderColor: '#2a2a2a', borderWidth: 1, titleColor: '#fff', bodyColor: '#aaa', callbacks: { label: ctx => ' ' + fmtP(ctx.parsed.y) + ' /' + distUnit() } } },
@@ -204,7 +204,7 @@ function renderTrends() {
   destroyChart('weeklyChart');
   charts['weeklyChart']=new Chart(document.getElementById('weeklyChart').getContext('2d'),{
     type:'bar',
-    data:{ labels:wkeys.map(k=>fmtDt(k)),
+    data:{ labels:wkeys.map(k=>fmtDtShort(k)),
       datasets:[{ data:wkeys.map(k=>+weeks[k].toFixed(1)),
         backgroundColor:'rgba(252,76,2,.65)', borderRadius:4, hoverBackgroundColor:'#FC4C02' }]
     },
@@ -351,7 +351,7 @@ function _renderActList(q){
       <div style="flex:1;min-width:0">
         <div class="act-name">${a.name}</div>
         <div class="act-meta">
-          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDtDow(a.start_date_local||a.start_date)}
+          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDt(a.start_date_local||a.start_date)}
         </div>
       </div>
       <div class="act-right">
@@ -397,7 +397,7 @@ function openActivityModal(ref){
   // start_date_local is the activity's local wall-clock time but carries a 'Z',
   // so format it in UTC to show it as-is (otherwise it re-shifts to the viewer's TZ)
   const when=a.start_date_local||a.start_date;
-  const dateStr=new Date(when).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
+  const dateStr=new Date(when).toLocaleDateString(window.LANG==='id'?'id-ID':'en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
   const timeStr=new Date(when).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'});
 
   // moving-time avg speed where elapsed includes stops

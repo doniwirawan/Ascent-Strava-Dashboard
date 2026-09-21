@@ -657,7 +657,7 @@ function renderMilestones(){
   // start_date_local is wall-clock with a fake 'Z' — take the date part as-is and
   // parse it at local noon so the day can't shift with the browser's timezone.
   const firstDay=(first.start_date_local||first.start_date||'').slice(0,10);
-  const firstLbl=firstDay?new Date(firstDay+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):null;
+  const firstLbl=firstDay?new Date(firstDay+'T12:00:00').toLocaleDateString(window.LANG==='id'?'id-ID':'en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):null;
   // biggest calendar month by distance
   const byMonth={};
   set.forEach(a=>{const k=(a.start_date||'').slice(0,7); if(k)byMonth[k]=(byMonth[k]||0)+(a.distance||0);});
