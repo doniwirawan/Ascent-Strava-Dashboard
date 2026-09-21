@@ -1490,12 +1490,14 @@ function _slpDraw(nights, body) {
       <div class="slp-chart-title">${tr('Dose–response: how hard you rode vs how you slept that night')}</div>
       <div class="slp-chart-sub">${tr('Training days split into quartiles by Strava relative effort')}</div>
       <div class="slp-chart-wrap"><canvas id="slpDoseChart"></canvas></div>
+      <div class="slp-note">${tr('Read it left to right: rest days, then your easiest quarter of training days through to your hardest. If the bars climb, harder days are buying you more — and deeper — sleep that night. A flat or falling shape means the extra load is not turning into extra recovery.')}</div>
     </div>
 
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('Sleep by day of week')}</div>
       <div class="slp-chart-sub">${tr('Bars are sleep; the line is how many times you trained on that day')}</div>
       <div class="slp-chart-wrap"><canvas id="slpDowChart"></canvas></div>
+      <div class="slp-note">${tr('Look for the weekdays where a tall training line sits over a short sleep bar — those are the days your recovery is most squeezed, and the easiest place to win back an hour.')}</div>
     </div>
 
     <div class="slp-chart-card card">
@@ -1509,11 +1511,14 @@ function _slpDraw(nights, body) {
       <div class="slp-chart-title">${trf('The recovery arc around a big day ({0} days over 2h)', bigDays.length)}</div>
       <div class="slp-chart-sub">${tr('The night before, the night of, and the two nights after')}</div>
       <div class="slp-chart-wrap"><canvas id="slpArcChart"></canvas></div>
+      <div class="slp-note">${tr('A healthy pattern dips the night of the effort, then rebounds — with extra deep and REM — over the one or two nights after. A flat arc means you are not banking the recovery sleep a big day calls for.')}</div>
     </div>
 
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('How your nights are distributed')}</div>
+      <div class="slp-chart-sub">${tr('Every night sorted into hour buckets')}</div>
       <div class="slp-chart-wrap"><canvas id="slpHistChart"></canvas></div>
+      <div class="slp-note">${tr('A tall, narrow peak means your sleep is consistent; a long tail on the left is where the short nights pile up. Where the bulk of your nights sit tells you more than any single good or bad night.')}</div>
     </div>
 
     <div class="slp-chart-card card">
@@ -1546,6 +1551,7 @@ function _slpDraw(nights, body) {
       <div class="slp-chart-title">${tr('How regular your bedtime is')}</div>
       <div class="slp-chart-sub">${tr('Bars show the typical bedtime each quarter; the line is how much it swings night to night (lower = steadier)')}</div>
       <div class="slp-chart-wrap"><canvas id="slpConsistChart"></canvas></div>
+      <div class="slp-note">${tr('A steady sleep-and-wake time is one of the strongest levers on sleep quality — often more than total hours. Keeping the swing low, even when training load changes, is what a regular body clock looks like.')}</div>
     </div>
 
     <div class="slp-chart-card card">
@@ -1557,6 +1563,7 @@ function _slpDraw(nights, body) {
       <div class="slp-chart-title">${tr('Same hours, different sleep: stage mix by year')}</div>
       <div class="slp-chart-sub">${tr('Share of each night spent in each stage')}</div>
       <div class="slp-chart-wrap"><canvas id="slpYearChart"></canvas></div>
+      <div class="slp-note">${tr('Two nights of identical length can rebuild you very differently. Watch the deep and REM share year to year: if the hours hold but those stages shrink, the quality of your sleep is drifting even though the total looks the same.')}</div>
     </div>
 
     <div class="slp-chart-card card">
