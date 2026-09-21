@@ -980,7 +980,8 @@ function _trRingSVG(pct, color, size, stroke) {
 }
 
 /* The Recovery + Strain pair. `compact` is the Overview variant. */
-function whoopRowHTML(compact) {
+function whoopRowHTML(compact, opts) {
+  opts = opts || {};
   const d = _trBuildSeries();
   const r = _trRecovery(d);
   if (!r) return '';
@@ -989,7 +990,10 @@ function whoopRowHTML(compact) {
   const size = compact ? 132 : 168;
   const stroke = compact ? 12 : 15;
 
-  return `<div class="wh-row${compact ? ' wh-compact' : ''}">
+  // On the Overview the Readiness card already covers recovery (and folds this
+  // same training freshness in), so drop the Recovery ring there to avoid a
+  // redundant, sometimes-contradicting second gauge — keep only Day Strain.
+  const recoveryCard = opts.strainOnly ? '' : `
     <div class="wh-card" style="--wh-accent:${r.band.color}">
       <div class="wh-ring">
         ${_trRingSVG(r.recovery / 100, r.band.color, size, stroke)}
@@ -1002,8 +1006,10 @@ function whoopRowHTML(compact) {
         <div class="wh-title">${tr('Recovery')}</div>
         <div class="wh-sub">${band.advice}</div>
       </div>
-    </div>
+    </div>`;
 
+  return `<div class="wh-row${compact ? ' wh-compact' : ''}${opts.strainOnly ? ' wh-one' : ''}">
+    ${recoveryCard}
     <div class="wh-card" style="--wh-accent:#0093e7">
       <div class="wh-ring">
         ${_trRingSVG(r.strain / 21, '#0093e7', size, stroke)}
@@ -1027,7 +1033,9 @@ function renderWhoopOverview() {
   const grid = document.getElementById('statRow');
   if (!grid) return;
   grid.querySelectorAll('.wh-slot').forEach(n => n.remove());
-  const html = whoopRowHTML(true);
+  // Owner has the Readiness card (which supersedes Recovery) — show only Strain here.
+  const owner = (typeof _slpIsOwner === 'function') && _slpIsOwner();
+  const html = whoopRowHTML(true, { strainOnly: owner });
   if (!html) return;
   const slot = document.createElement('div');
   slot.className = 'wh-slot';

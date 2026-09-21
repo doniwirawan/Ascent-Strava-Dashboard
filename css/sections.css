@@ -1144,6 +1144,7 @@ body.dev .dev-tag { display: inline-block; }
    .wh-slot, which spans every column of that grid. */
 .wh-slot { grid-column: 1 / -1; }
 .wh-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 4px; }
+.wh-row.wh-one { grid-template-columns: 1fr; max-width: 520px; }
 .wh-row:not(.wh-compact) { margin-bottom: 16px; }
 
 .wh-card {
