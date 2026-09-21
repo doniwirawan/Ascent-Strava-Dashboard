@@ -173,3 +173,20 @@
 
 .hero-box.hi .hero-value { color: var(--orange); }
 .hero-unit { font-size: 12px; font-weight: 600; opacity: .55; }
+
+/* ── By-sport breakdown (Overview) ── */
+.sb-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px; margin-bottom: 8px;
+}
+.sb-card { padding: 14px 16px; cursor: pointer; transition: border-color .15s, background .15s; }
+.sb-card:hover { border-color: var(--orange); background: var(--surface2); }
+.sb-head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.sb-ico { width: 20px; height: 20px; color: var(--orange); flex: 0 0 auto; }
+.sb-ico svg { width: 20px; height: 20px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sb-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.sb-count { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--text-2); }
+.sb-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; }
+.sb-stats > div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.sb-stats b { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-stats small { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }

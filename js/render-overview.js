@@ -7,7 +7,7 @@ function renderAll() {
 
   // Render each section in isolation so one failing section can never blank
   // out the others (or abort navScrollTo at the end).
-  [renderStats, renderWhoopOverview, renderOverviewInsights, renderOverviewZones, renderOverviewSpeedZones, renderCycling, renderRunning, renderTrends, renderActivities,
+  [renderStats, renderWhoopOverview, renderOverviewInsights, renderSportBreakdown, renderOverviewZones, renderOverviewSpeedZones, renderCycling, renderRunning, renderTrends, renderActivities,
    renderCalendar, renderEddington, renderTraining, renderSleep, renderMonthly, renderBestEfforts,
    renderMilestones, renderRewind, renderPhotos].forEach(fn => {
     try { fn(); } catch (e) { console.error('render failed:', fn.name, e); }
@@ -237,6 +237,63 @@ function renderOverviewInsights(){
           <div class="s-value">${c.val}</div>
           <div class="s-sub">${c.sub}</div>
         </div>`).join(''));
+}
+
+/* ── BY-SPORT BREAKDOWN ──
+   A cross-sport snapshot on the Overview: one card per sport the athlete does
+   (Ride / Run / Walk / Swim), each with count, distance, time, elevation and an
+   avg speed/pace. Independent of the current sport filter — this is where the
+   walk/swim data becomes visible at a glance. Tap a card to filter to it.
+   Only shown for multi-sport athletes (≥2 sports present). ── */
+function renderSportBreakdown(){
+  const el=document.getElementById('sportBreakdown');
+  if(!el) return;
+  const T=(typeof tr==='function')?tr:(x=>x);
+  if(typeof acts==='undefined' || !acts.length){ el.style.display='none'; el.innerHTML=''; return; }
+  const cats=[
+    {key:'ride', pred:isRide, pace:false},
+    {key:'run',  pred:isRun,  pace:true},
+    {key:'walk', pred:(typeof isWalk==='function')?isWalk:()=>false, pace:true},
+    {key:'swim', pred:(typeof isSwim==='function')?isSwim:()=>false, pace:true},
+  ];
+  const rows=[];
+  cats.forEach(c=>{
+    const set=acts.filter(c.pred);
+    if(!set.length) return;
+    const dist=set.reduce((s,a)=>s+(a.distance||0),0);
+    const time=set.reduce((s,a)=>s+(a.moving_time||0),0);
+    const elev=set.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
+    const paced=set.filter(a=>a.average_speed>0);
+    const totD=set.reduce((s,a)=>s+(a.distance||0),0), totT=set.reduce((s,a)=>s+(a.moving_time||0),0);
+    let avg='—';
+    if(paced.length){
+      if(c.key==='swim') avg=(totT&&totD?_swimPace(totD/totT):'—')+' /100m';
+      else if(c.pace)    avg=(totT&&totD?_pace(totD/totT):'—')+' /'+distUnit();
+      else               avg=kmh(paced.reduce((s,a)=>s+a.average_speed,0)/paced.length).toFixed(1)+' '+speedUnit();
+    }
+    rows.push({key:c.key, count:set.length, dist, time, elev, avg, ride:!c.pace});
+  });
+  if(rows.length<2){ el.style.display='none'; el.innerHTML=''; return; }   // single-sport → skip
+
+  const icon=k=>(typeof SPORT_ICONS!=='undefined' && SPORT_ICONS[k])?SPORT_ICONS[k]:'';
+  const title=k=>T((typeof SPORTS!=='undefined' && SPORTS[k])?SPORTS[k].title:k);
+  el.style.display='';
+  el.innerHTML=`
+    <div class="section-title" style="margin-top:6px">${T('By sport')}</div>
+    <div class="sb-grid">
+      ${rows.map(r=>`
+        <div class="sb-card card" role="button" tabindex="0"
+             onclick="setSportMode('${r.key}')"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSportMode('${r.key}');}">
+          <div class="sb-head"><span class="sb-ico">${icon(r.key)}</span><span class="sb-name">${title(r.key)}</span><span class="sb-count">${r.count.toLocaleString()}</span></div>
+          <div class="sb-stats">
+            <div><b>${fmtD(r.dist)}</b><small>${T('distance')}</small></div>
+            <div><b>${Math.round(r.time/3600).toLocaleString()}h</b><small>${T('time')}</small></div>
+            <div><b>${r.elev?Math.round(elevVal(r.elev)).toLocaleString()+' '+elevUnit():'—'}</b><small>${T('elevation')}</small></div>
+            <div><b>${r.avg}</b><small>${r.ride?T('avg speed'):T('avg pace')}</small></div>
+          </div>
+        </div>`).join('')}
+    </div>`;
 }
 
 /* ── EDDINGTON ── */

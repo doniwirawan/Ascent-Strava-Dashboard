@@ -444,6 +444,9 @@ const TR_ID = {
   'No rides with power data.': 'Tak ada gowes dengan data power.',
   'Rate-limited — reopen later to resume; fetched rides are cached.': 'Kena batas laju — buka lagi nanti untuk lanjut; gowes yang diambil tersimpan.',
   // HR decoupling
+  // By-sport breakdown (render-overview.js)
+  'By sport': 'Per olahraga', 'distance': 'jarak', 'time': 'waktu', 'elevation': 'elevasi',
+  'avg speed': 'kecepatan rata-rata', 'avg pace': 'pace rata-rata',
   // Story-card stat-toggle labels (the control; the shared card stays English)
   'Distance': 'Jarak', 'Moving Time': 'Waktu Bergerak', 'Pace': 'Pace',
   'Avg Speed': 'Kecepatan Rata-rata', 'Max Speed': 'Kecepatan Maks',
