@@ -499,11 +499,12 @@ async function rbNameRoute(route, opts) {
 
   const place = document.getElementById('rb-start')?.selectedOptions?.[0]?.textContent || 'the start';
   const ascDisp = Math.round(elevVal(route.ascent || 0)) + ' ' + elevUnit();
+  const langLine = (typeof aiLangLine === 'function') ? aiLangLine() : '';
   const prompt = `Name a ${rbSportLabel(opts.sport)} route loop and describe it in one short sentence. ` +
     `It is ${fmtKm(route.distance)} ${distUnit()} long with ${ascDisp} of climbing, starting near "${place}". ` +
-    `Elevation preference: ${opts.elev}. Reply EXACTLY as two lines:\nName: <max 4 words>\nDesc: <one sentence>`;
+    `Elevation preference: ${opts.elev}. ${langLine}Reply EXACTLY as two lines:\nName: <max 4 words>\nDesc: <one sentence>`;
 
-  aiBox.innerHTML = '<span class="rb-spin"></span> Naming your route…';
+  aiBox.innerHTML = '<span class="rb-spin"></span> ' + ((typeof tr==='function')?tr('Naming your route…'):'Naming your route…') + '';
   try {
     const token = await rbToken();
     const r = await fetch('/api/ai', {

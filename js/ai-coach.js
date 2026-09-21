@@ -234,7 +234,7 @@ async function aiCaptionActivity(id) {
   if (!token) { panel.innerHTML = '<div class="ai-cap-status err">Connect to Strava first.</div>'; return; }
 
   const roast = document.getElementById('aiCapRoast') ? document.getElementById('aiCapRoast').checked : true;
-  panel.innerHTML = '<div class="ai-cap-loading"><span class="ai-dots"><span></span><span></span><span></span></span> Writing your caption…</div>';
+  panel.innerHTML = '<div class="ai-cap-loading"><span class="ai-dots"><span></span><span></span><span></span></span> ' + tr('Writing your caption…') + '</div>';
   const { provider, model, key } = aiProviderModel();
   const messages = [
     { role: 'system', content:
@@ -282,8 +282,8 @@ function _showAnalysis(id, text) {
   const panel = document.getElementById('actAnalysisPanel');
   if (!panel) return;
   panel.innerHTML =
-    '<div class="ai-analysis-head"><span class="ai-ins-icon">' + AI_ICON + '</span>Performance analysis'
-    + '<button class="btn ai-analysis-regen" type="button" onclick="aiAnalyzeActivity(\'' + id + '\',true)">Re-analyze</button></div>'
+    '<div class="ai-analysis-head"><span class="ai-ins-icon">' + AI_ICON + '</span>' + tr('Performance analysis')
+    + '<button class="btn ai-analysis-regen" type="button" onclick="aiAnalyzeActivity(\'' + id + '\',true)">' + tr('Re-analyze') + '</button></div>'
     + '<div class="ai-analysis-body">' + aiMd(text) + '</div>';
 }
 
@@ -295,7 +295,7 @@ async function aiAnalyzeActivity(id, force) {
   const token = localStorage.getItem('strava_access_token');
   if (!token) { panel.innerHTML = '<div class="ai-cap-status err">Connect to Strava first.</div>'; return; }
 
-  panel.innerHTML = '<div class="ai-cap-loading"><span class="ai-dots"><span></span><span></span><span></span></span> Analyzing your performance…</div>';
+  panel.innerHTML = '<div class="ai-cap-loading"><span class="ai-dots"><span></span><span></span><span></span></span> ' + tr('Analyzing your performance…') + '</div>';
   const { provider, model, key } = aiProviderModel();
   const messages = [
     { role: 'system', content:
@@ -722,7 +722,7 @@ async function aiLoadHighlight() {
   if (!el) return;
   if (typeof acts === 'undefined' || !acts.length) { el.style.display = 'none'; return; }
   const sig = aiDataSig();
-  const show = inner => { el.style.display = ''; el.innerHTML = '<div class="ai-hl-label">' + AI_ICON + ' Highlight</div><div class="ai-hl-body">' + inner + '</div>'; };
+  const show = inner => { el.style.display = ''; el.innerHTML = '<div class="ai-hl-label">' + AI_ICON + ' ' + tr('Highlight') + '</div><div class="ai-hl-body">' + inner + '</div>'; };
 
   // serve cached highlight unless new data has arrived
   if (localStorage.getItem('ai_highlight_sig') === sig) {

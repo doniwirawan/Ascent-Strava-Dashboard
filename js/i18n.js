@@ -446,6 +446,10 @@ const TR_ID = {
   // HR decoupling
   'Heart Rate Decoupling': 'Decoupling Detak Jantung',
   'aerobic drift, first vs second half': 'aerobic drift, paruh pertama vs kedua',
+  // AI panel labels (the generated text itself follows the language too)
+  'Highlight': 'Sorotan', 'Performance analysis': 'Analisis performa', 'Re-analyze': 'Analisis ulang',
+  'Writing your caption…': 'Menulis caption Anda…', 'Analyzing your performance…': 'Menganalisis performa Anda…',
+  'Naming your route…': 'Menamai rute Anda…',
   'What is heart-rate decoupling?': 'Apa itu decoupling detak jantung?',
   'It compares your efficiency (output ÷ heart rate) in the first half of a long effort against the second half. If your heart rate keeps climbing while your pace or power holds steady, the second half has "decoupled" — a sign of aerobic fatigue, under-fuelling, heat, or starting too hard. Lower is better; elite aerobic endurance holds close to 0%.': 'Ini membandingkan efisiensi Anda (output ÷ detak jantung) pada paruh pertama upaya panjang dengan paruh kedua. Jika detak jantung terus naik sementara pace atau daya tetap stabil, paruh kedua "terlepas" (decoupled) — tanda kelelahan aerobik, kurang nutrisi, panas, atau start terlalu kencang. Makin rendah makin baik; ketahanan aerobik elite mendekati 0%.',
   'Well-coupled — strong aerobic endurance for this effort.': 'Tergandeng baik — ketahanan aerobik kuat untuk upaya ini.',
