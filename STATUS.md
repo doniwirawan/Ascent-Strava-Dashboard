@@ -9,16 +9,18 @@ Read this first; update it when the state changes.
 
 ## TL;DR
 
-The API is **built, committed, and deployed**, but **not yet returning data** —
-blocked on a Supabase project that is offline. Nothing is broken in the code.
-
-Live check:
+**RESOLVED 2026-09-21.** The Supabase project was resumed, `SUPABASE_SERVICE_ROLE_KEY`
+added to Vercel production, and the API now returns live data. The `sleep_data`
+table was also created (for the in-dashboard Huawei import → `/api/sleep`).
 
 ```bash
 curl https://ascent-analytics.vercel.app/api/stats
-# now:    {"error":"not_configured","need":[...]}
-# target: {"athlete_id":124436743,"totals":{...},...}
+# now returns: {"athlete_id":124436743,"synced_at":...,"totals":{...},...}
 ```
+
+**Watch item:** free-tier projects auto-pause after 7 days idle, and the org allows
+only 2 active projects — see "Known risk" below. If `/api/stats` 500s again with a
+521 from Supabase, the project paused; resume it in the dashboard.
 
 ---
 
