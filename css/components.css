@@ -495,3 +495,10 @@
 }
 .slp-ba-day-h { width: 100%; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); margin-bottom: 2px; }
 .slp-ba-day-i { white-space: nowrap; }
+
+/* Sleep before/after: per-session insight line (sleep ↔ stress ↔ training) */
+.slp-ba-insight {
+  margin-top: 11px; padding: 9px 12px; border-radius: 9px;
+  background: var(--orange-dim); border: 1px solid var(--orange-mid);
+  font-size: 12.5px; line-height: 1.5; color: var(--text);
+}

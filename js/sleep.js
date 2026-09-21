@@ -2225,18 +2225,49 @@ function _slpNightScore(n) {
   return Math.round(parts.reduce((s, p) => s + p[0] * p[1], 0) / wsum);
 }
 
-/* The day's own metrics (stress / calories / steps), from the row dated D — the
-   same calendar day the session happened on. */
+/* The day's own body + activity metrics, from the row dated D — the same
+   calendar day the session happened on. */
 function _slpDayMetricsHTML(n) {
   const T = (typeof tr === 'function') ? tr : (x => x);
   if (!n) return '';
   const items = [];
+  if (n.stress != null) items.push('🫀 ' + T('Stress') + ' ' + Math.round(n.stress));
+  if (n.rhr != null)    items.push('❤️ ' + T('Resting HR') + ' ' + n.rhr + ' bpm');
+  if (n.hrv != null)    items.push('📈 HRV ' + n.hrv + ' ms');
+  if (n.spo2 != null)   items.push('🫁 SpO₂ ' + (+n.spo2).toFixed(0) + '%');
   if (n.cal != null)    items.push('🔥 ' + Math.round(n.cal).toLocaleString() + ' ' + T('kcal'));
   if (n.steps != null)  items.push('👟 ' + Math.round(n.steps).toLocaleString() + ' ' + T('steps'));
-  if (n.stress != null) items.push('🫀 ' + T('Stress') + ' ' + Math.round(n.stress));
+  if (n.active != null && n.active > 0) items.push('🏃 ' + Math.round(n.active) + ' ' + T('active min'));
+  if (n.floors != null && n.floors > 0) items.push('🧗 ' + Math.round(n.floors) + ' ' + T('floors'));
   if (!items.length) return '';
   return '<div class="slp-ba-day"><span class="slp-ba-day-h">' + T('That training day') + '</span>'
     + items.map(i => '<span class="slp-ba-day-i">' + i + '</span>').join('') + '</div>';
+}
+
+/* A rule-based read of how the session sits against the athlete's own usual:
+   how rested they went in, how their stress compared, and how the night after
+   recovered — the sleep ↔ stress ↔ training link for this one activity. */
+function _slpSessionInsight(before, after, base) {
+  const T = (typeof tr === 'function') ? tr : (x => x);
+  const parts = [];
+  const bs = (before && before.asleep >= 60) ? _slpNightScore(before) : null;
+  if (bs != null && base.score) {
+    const lab = bs >= base.score + 6 ? T('above your usual') : bs <= base.score - 6 ? T('below your usual') : T('about usual');
+    parts.push(trf('you rode on a {0}/100 night ({1})', bs, lab));
+  }
+  if (before && before.stress != null && base.stress) {
+    const s = Math.round(before.stress);
+    const lab = s >= base.stress + 6 ? T('higher than usual') : s <= base.stress - 6 ? T('lower than usual') : T('typical for you');
+    parts.push(trf('stress {0} was {1}', s, lab));
+  }
+  if (before && before.asleep >= 60 && after && after.asleep >= 60) {
+    const d = Math.round(after.asleep - before.asleep);
+    parts.push(d >= 0 ? trf('and you banked {0} more sleep to recover', _slpHM(Math.abs(d)).trim())
+                      : trf('and you slept {0} less the night after', _slpHM(Math.abs(d)).trim()));
+  }
+  if (!parts.length) return '';
+  const s = parts.join(' · ');
+  return '<div class="slp-ba-insight">💡 ' + s.charAt(0).toUpperCase() + s.slice(1) + '.</div>';
 }
 
 function _slpBaCard(n, lbl) {
@@ -2253,8 +2284,8 @@ function _slpBaCard(n, lbl) {
     n.eff != null ? T('Eff') + ' ' + Math.round(n.eff) + '%' : '',
     n.deep ? T('Deep') + ' ' + Math.round(n.deep) + 'm' : '',
     n.rem ? 'REM ' + Math.round(n.rem) + 'm' : '',
-    n.rhr != null ? 'RHR ' + n.rhr : '',
-    n.hrv != null ? 'HRV ' + n.hrv : '',
+    (n.bed != null && n.up != null) ? _slpClock(n.bed) + '→' + _slpClock(n.up) : '',
+    n.wakeups != null ? n.wakeups + ' ' + T('wake-ups') : '',
   ].filter(Boolean).join(' · ');
   const sc = _slpNightScore(n);
   const scBadge = sc != null
@@ -2308,7 +2339,18 @@ async function renderActivitySleep(a) {
   const cards = (bOk || aOk)
     ? '<div class="slp-ba">' + _slpBaCard(before, 'Night before') + delta + _slpBaCard(after, 'Night after') + '</div>'
     : '';
+
+  // Baselines from all real nights, so the insight can say "vs your usual".
+  const realN = nights.filter(n => n.asleep >= 60);
+  const scores = realN.map(_slpNightScore).filter(x => x != null);
+  const stresses = realN.map(n => n.stress).filter(x => x != null);
+  const base = {
+    score: scores.length ? Math.round(scores.reduce((s, x) => s + x, 0) / scores.length) : 0,
+    stress: stresses.length ? Math.round(stresses.reduce((s, x) => s + x, 0) / stresses.length) : 0,
+  };
+  const insight = _slpSessionInsight(before, after, base);
+
   host.innerHTML =
     '<div class="slp-ba-h">🌙 ' + T('Sleep around this session') + '</div>'
-    + cards + dayHTML;
+    + cards + insight + dayHTML;
 }
