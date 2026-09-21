@@ -76,6 +76,10 @@ const fmtDt = d   => new Date(d).toLocaleDateString(
 // Compact, weekday-less form ("20 Sep") for dense chart axes and the story card,
 // where a weekday on every label would clutter or overflow.
 const fmtDtShort = d => new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+// Local calendar-date key "YYYY-MM-DD" for a Date, matching the wall-clock date
+// in start_date_local (never UTC, so early-morning activities key to the right
+// day). Used for streak/active-day maths so day-sets and back-counting agree.
+const localDayStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const isRide= a   => ['Ride','VirtualRide','EBikeRide','GravelRide','MountainBikeRide'].includes(a.type);
 // NOTE: isRun() is defined in render-sections.js (loaded after this file)
 

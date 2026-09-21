@@ -568,7 +568,7 @@ const AI_SECTION_EXTRA = {
     const now = Date.now(), DAY = 86400000, days = new Set();
     let d30 = 0, d90 = 0;
     acts.forEach(a => {
-      if (a.start_date) days.add(a.start_date.slice(0, 10));
+      if (a.start_date) days.add((a.start_date_local||a.start_date).slice(0, 10));
       const age = (now - new Date(a.start_date).getTime()) / DAY;
       if (age <= 30) d30++; if (age <= 90) d90++;
     });

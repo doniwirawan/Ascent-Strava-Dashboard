@@ -672,7 +672,7 @@ function _drawStreamOverlay(wrap,head,s,cfg,xs,xMax){
 /* ── CALENDAR — contribution graph (last 12 months) ── */
 function renderCalendar() {
   const day={}; // 'YYYY-MM-DD' -> {n, dist}
-  modeActs().forEach(a=>{ if(!a.start_date) return; const k=new Date(a.start_date).toISOString().slice(0,10); (day[k]||(day[k]={n:0,dist:0})); day[k].n++; day[k].dist+=a.distance||0; });
+  modeActs().forEach(a=>{ if(!a.start_date) return; const k=(a.start_date_local||a.start_date).slice(0,10); (day[k]||(day[k]={n:0,dist:0})); day[k].n++; day[k].dist+=a.distance||0; });
 
   const fmtKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const lvl=n=>n===0?'':n===1?'l1':n===2?'l2':n<=4?'l3':'l4';

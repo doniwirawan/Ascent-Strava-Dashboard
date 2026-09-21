@@ -90,7 +90,7 @@ function renderStats() {
   const avgHR  = hrActs.length ? Math.round(hrActs.reduce((s,a)=>s+a.average_heartrate,0)/hrActs.length) : 0;
 
   // best consecutive day streak
-  const daySet = new Set(set.map(a=>a.start_date.slice(0,10)));
+  const daySet = new Set(set.map(a=>(a.start_date_local||a.start_date).slice(0,10)));
   const days   = [...daySet].sort();
   let bestStreak=days.length?1:0, curStreak=days.length?1:0;
   for(let i=1;i<days.length;i++){
@@ -174,14 +174,14 @@ function renderOverviewInsights(){
 
   // favourite time of day
   const buckets={Morning:0,Afternoon:0,Evening:0,Night:0};
-  set.forEach(a=>{const h=new Date(a.start_date).getHours();
+  set.forEach(a=>{const h=parseInt((a.start_date_local||a.start_date||'').slice(11,13),10)||0;
     if(h>=5&&h<12)buckets.Morning++;else if(h<17)buckets.Afternoon++;else if(h<21)buckets.Evening++;else buckets.Night++;});
   const favTime=Object.entries(buckets).sort((a,b)=>b[1]-a[1])[0];
   const favTimePct=Math.round(favTime[1]/set.length*100);
 
   // busiest weekday
   const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], dow=Array(7).fill(0);
-  set.forEach(a=>dow[new Date(a.start_date).getDay()]++);
+  set.forEach(a=>dow[new Date((a.start_date_local||a.start_date||'').slice(0,10)+'T00:00:00Z').getUTCDay()]++);
   const busyIdx=dow.indexOf(Math.max(...dow));
 
   // biggest single week (rolling 7-day distance window)
@@ -199,7 +199,7 @@ function renderOverviewInsights(){
   // active-days ratio over the span
   const dates=set.map(a=>new Date(a.start_date)).sort((a,b)=>a-b);
   const spanDays=Math.max(1,Math.round((dates[dates.length-1]-dates[0])/864e5)+1);
-  const activeDays=new Set(set.map(a=>a.start_date.slice(0,10))).size;
+  const activeDays=new Set(set.map(a=>(a.start_date_local||a.start_date).slice(0,10))).size;
   const perWeek=(set.length/spanDays*7).toFixed(1);
 
   // Same shape as the stat cards above (label → icon → value → sub) so the two

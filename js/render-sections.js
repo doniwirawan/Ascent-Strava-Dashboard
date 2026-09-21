@@ -630,9 +630,9 @@ function renderMilestones(){
   const W = cap(sportWord()), Wp = cap(sportWord(true));   // "Ride"/"Rides", "Run"/"Runs", …
 
   // longest activity streak (all activities)
-  const days=new Set(acts.map(a=>a.start_date?a.start_date.slice(0,10):null).filter(Boolean));
+  const days=new Set(acts.map(a=>a.start_date?(a.start_date_local||a.start_date).slice(0,10):null).filter(Boolean));
   let best=0,cur=0,d=new Date();
-  for(let i=0;i<730;i++){ const k=d.toISOString().slice(0,10); if(days.has(k)){cur++;best=Math.max(best,cur);}else cur=0; d.setDate(d.getDate()-1); }
+  for(let i=0;i<730;i++){ const k=localDayStr(d); if(days.has(k)){cur++;best=Math.max(best,cur);}else cur=0; d.setDate(d.getDate()-1); }
   const streak=best;
 
   // totals for the selected mode
@@ -998,9 +998,9 @@ async function renderChallenges(){
   const earlyCount=acts.filter(a=>{const h=hourOf(a);return h>=3&&h<6;}).length;
   const nightCount=acts.filter(a=>{const h=hourOf(a);return h>=21||h<3;}).length;
   // longest consecutive-day streak (same walk as the Milestones section)
-  const dayset=new Set(acts.map(a=>a.start_date?a.start_date.slice(0,10):null).filter(Boolean));
+  const dayset=new Set(acts.map(a=>a.start_date?(a.start_date_local||a.start_date).slice(0,10):null).filter(Boolean));
   let streak=0,srun=0; const sd=new Date();
-  for(let i=0;i<730;i++){const k=sd.toISOString().slice(0,10); if(dayset.has(k)){srun++;streak=Math.max(streak,srun);}else srun=0; sd.setDate(sd.getDate()-1);}
+  for(let i=0;i<730;i++){const k=localDayStr(sd); if(dayset.has(k)){srun++;streak=Math.max(streak,srun);}else srun=0; sd.setDate(sd.getDate()-1);}
 
   const badges=[
     {icon:'crown',   name:'KOM / QOM',       val:komList.length,        unit:'segments',  color:'#ffd700', unlocked:komList.length>0},
