@@ -913,11 +913,17 @@ const _slpScoreC = s => s >= 80 ? SLP_C.good : s >= 65 ? '#84cc16' : s >= 50 ? '
 
 function _slpRecordsHTML(R) {
   if (!R) return '';
+  // Single-night records carry a date string; streak records carry a
+  // "from → to" range — format each end so a range never hits fmtDt whole
+  // (which would render "Invalid Date").
+  const recDate = d => (typeof d === 'string' && d.indexOf('→') !== -1)
+    ? d.split('→').map(x => fmtDtShort(x.trim())).join(' → ')
+    : fmtDt(d);
   const tile = r => `
     <div class="slp-rec">
       <div class="slp-rec-lbl">${r.lbl}</div>
       <div class="slp-rec-val" style="color:${r.c}">${r.value}</div>
-      <div class="slp-rec-date">${fmtDt(r.date)}</div>
+      <div class="slp-rec-date">${recDate(r.date)}</div>
       <div class="slp-rec-ctx">${r.ctx}</div>
     </div>`;
 
