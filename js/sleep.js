@@ -2176,3 +2176,65 @@ function sleepAiSummary() {
     recent_rides_with_sleep: perRide,
   };
 }
+
+/* ── SLEEP AROUND A TRAINING SESSION ─────────────────────────────────────────
+   Shown inside the activity detail modal (owner only). For a session on day D,
+   "night before" is the night labelled D (you woke up on D, then trained) and
+   "night after" is D+1 (recovery). Answers "how did I sleep prev vs after this
+   training" at a glance, with a delta on total sleep.
+   ────────────────────────────────────────────────────────────────────────── */
+function _slpBaCard(n, lbl) {
+  const T = (typeof tr === 'function') ? tr : (x => x);
+  if (!n || n.asleep < 60) {
+    return '<div class="slp-ba-card empty"><div class="slp-ba-lbl">' + T(lbl) + '</div>'
+      + '<div class="slp-ba-val">—</div><div class="slp-ba-sub">' + T('no sleep recorded') + '</div></div>';
+  }
+  const st = [['deep', n.deep], ['rem', n.rem], ['light', n.light], ['wake', n.wake]];
+  const tot = st.reduce((s, x) => s + (x[1] || 0), 0) || 1;
+  const bar = st.map(([k, v]) => v > 0
+    ? '<i style="width:' + (100 * v / tot).toFixed(1) + '%;background:' + SLP_C[k] + '"></i>' : '').join('');
+  const sub = [
+    n.eff != null ? T('Eff') + ' ' + Math.round(n.eff) + '%' : '',
+    n.deep ? T('Deep') + ' ' + Math.round(n.deep) + 'm' : '',
+    n.rem ? 'REM ' + Math.round(n.rem) + 'm' : '',
+    n.rhr != null ? 'RHR ' + n.rhr : '',
+    n.hrv != null ? 'HRV ' + n.hrv : '',
+  ].filter(Boolean).join(' · ');
+  return '<div class="slp-ba-card"><div class="slp-ba-lbl">' + T(lbl) + '</div>'
+    + '<div class="slp-ba-val">' + _slpHM(n.asleep) + '</div>'
+    + '<div class="slp-ba-bar">' + bar + '</div>'
+    + '<div class="slp-ba-sub">' + sub + '</div></div>';
+}
+
+async function renderActivitySleep(a) {
+  const host = document.getElementById('actSleep');
+  if (!host) return;
+  if (typeof _slpIsOwner === 'function' && !_slpIsOwner()) { host.innerHTML = ''; return; }
+  const T = (typeof tr === 'function') ? tr : (x => x);
+  host.innerHTML = '<div class="slp-ba-load">' + T('Loading sleep…') + '</div>';
+
+  let nights;
+  try { nights = await _slpLoad(); } catch { host.innerHTML = ''; return; }
+
+  const when = a.start_date_local || a.start_date || '';
+  const D = when.slice(0, 10);                        // activity's local calendar date
+  if (!D) { host.innerHTML = ''; return; }
+
+  const byDate = new Map(nights.map(n => [n.date, n]));
+  const before = byDate.get(D), after = byDate.get(_slpNext(D));
+  const bOk = before && before.asleep >= 60, aOk = after && after.asleep >= 60;
+  if (!bOk && !aOk) { host.innerHTML = ''; return; }   // no sleep around this session — show nothing
+
+  let delta = '';
+  if (bOk && aOk) {
+    const d = Math.round(after.asleep - before.asleep);
+    const good = d >= 0;
+    delta = '<div class="slp-ba-delta"><span class="slp-ba-d" style="color:'
+      + (good ? SLP_C.good : '#f59e0b') + '">' + (d >= 0 ? '+' : '−') + _slpHM(Math.abs(d)).trim()
+      + '</span><span class="slp-ba-dl">' + T('after') + '</span></div>';
+  }
+
+  host.innerHTML =
+    '<div class="slp-ba-h">🌙 ' + T('Sleep around this session') + '</div>'
+    + '<div class="slp-ba">' + _slpBaCard(before, 'Night before') + delta + _slpBaCard(after, 'Night after') + '</div>';
+}

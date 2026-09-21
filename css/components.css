@@ -446,3 +446,39 @@
 .heat-mode button + button { border-left: 1px solid var(--border); }
 .heat-mode button:hover { color: var(--text); }
 .heat-mode button.on { background: var(--orange); color: #fff; }
+
+/* ── Sleep before/after a training session (activity detail modal) ── */
+.actd-sleep:empty { display: none; }
+.slp-ba-h {
+  margin: 16px 0 8px; font-size: 12px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--text-2);
+}
+.slp-ba { display: flex; align-items: stretch; gap: 10px; }
+.slp-ba-card {
+  flex: 1; min-width: 0; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+}
+.slp-ba-card.empty { color: var(--text-3); }
+.slp-ba-lbl {
+  font-size: 11px; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--text-2); margin-bottom: 4px;
+}
+.slp-ba-val { font-size: 22px; font-weight: 800; letter-spacing: -.5px; color: var(--text); }
+.slp-ba-card.empty .slp-ba-val { color: var(--text-3); font-weight: 700; }
+.slp-ba-bar {
+  display: flex; height: 6px; border-radius: 3px; overflow: hidden;
+  background: var(--surface3); margin: 8px 0 7px;
+}
+.slp-ba-bar i { display: block; height: 100%; }
+.slp-ba-sub { font-size: 11.5px; line-height: 1.5; color: var(--text-2); }
+.slp-ba-delta {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 52px; padding: 0 2px;
+}
+.slp-ba-d { font-size: 15px; font-weight: 800; }
+.slp-ba-dl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }
+.slp-ba-load { font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
+@media (max-width: 520px) {
+  .slp-ba { flex-wrap: wrap; }
+  .slp-ba-delta { order: 3; flex-direction: row; gap: 6px; min-width: 100%; }
+}

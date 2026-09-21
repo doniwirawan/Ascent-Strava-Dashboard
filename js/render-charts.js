@@ -451,6 +451,7 @@ function openActivityModal(ref){
     </div>
     ${loc?`<div class="actd-loc">📍 ${loc}</div>`:''}
     <div class="actd-grid">${stats}</div>
+    <div class="actd-sleep" id="actSleep"></div>
     ${a.id ? '<div class="actd-streams" id="actStreams"></div>' : ''}
     ${a.average_heartrate ? '<div class="actd-hrz" id="actHrz"></div>' : ''}
     ${a.id ? `<div class="actd-actions">
@@ -468,6 +469,7 @@ function openActivityModal(ref){
   if(a.average_heartrate) renderActivityHrZones(a);
   if(a.id) renderActivityStreams(a);
   if(a.id && typeof renderActivityAnalysis==='function') renderActivityAnalysis(a);
+  if(typeof renderActivitySleep==='function') renderActivitySleep(a);
 }
 
 function closeActivityModal(){

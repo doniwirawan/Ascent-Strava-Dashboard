@@ -234,8 +234,11 @@ async function slpImportParse(file, password, onProgress) {
     try { text = await e.getData(new zip.TextWriter()); }
     catch (err) {
       await reader.close();
-      throw new Error(/password/i.test(String(err && err.message)) || /invalid|Crypt/i.test(String(err && err.message))
-        ? 'Wrong password for this export.' : 'Failed to read a file in the zip.');
+      const m = String(err && err.message);
+      throw new Error(
+        (/password|invalid|Crypt/i.test(m))
+          ? (password ? 'Wrong password for this export.' : 'This export is encrypted — enter the password and try again.')
+          : 'Failed to read a file in the zip.');
     }
     _impCollectSleep(text, segMap);
     text = null;
@@ -298,7 +301,7 @@ function slpImportPanelHTML() {
     +       '<div><b id="slpDropName">' + T('Drop the export .zip here') + '</b><div style="color:var(--muted);font-size:13px">' + T('or click to choose the HUAWEI_HEALTH_*.zip file') + '</div></div>'
     +       '<input type="file" id="slpFile" accept=".zip" style="display:none">'
     +     '</div>'
-    +     '<label class="slp-pw"><span>' + T('Export password') + '</span>'
+    +     '<label class="slp-pw"><span>' + T('Export password') + ' · ' + T('leave blank if not encrypted') + '</span>'
     +       '<input type="password" id="slpPw" autocomplete="off" placeholder="' + T('the password you set in Huawei Health') + '"></label>'
     +     '<div class="slp-import-actions">'
     +       '<button class="btn btn-primary" id="slpRun" disabled>' + T('Import & update') + '</button>'
@@ -327,7 +330,12 @@ function wireSleepImport() {
   let file = null, parsed = null;
 
   const setMsg = (t, cls) => { msg.textContent = t || ''; msg.className = 'slp-msg' + (cls ? ' ' + cls : ''); };
-  const refreshRun = () => { runBtn.disabled = !(file && pw.value.trim()); };
+  // Password is optional (some exports aren't encrypted) — only a file is required.
+  const refreshRun = () => { runBtn.disabled = !file; };
+
+  // Prefill the last-used password so a refresh doesn't need retyping (this
+  // browser only). It stays in localStorage on the owner's own device.
+  try { pw.value = localStorage.getItem('slp_import_pw') || ''; } catch {}
 
   const pick = f => {
     if (!f) return;
@@ -358,6 +366,8 @@ function wireSleepImport() {
       });
       parsed = data;
       dlBtn.style.display = '';
+      // Parse succeeded → remember this password for next time (this browser only).
+      try { localStorage.setItem('slp_import_pw', pw.value.trim()); } catch {}
       setMsg(T('Parsed') + ' ' + stats.days + ' ' + T('days') + ' (' + stats.first + ' → ' + stats.last + '). ' + T('Saving…'));
       try {
         await slpImportUpload(data);
