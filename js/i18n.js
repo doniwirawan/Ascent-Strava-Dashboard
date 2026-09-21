@@ -587,6 +587,12 @@ const TR_ID = {
   'Night after': 'Malam setelahnya', 'after': 'setelah', 'no sleep recorded': 'tidak ada data tidur',
   'Loading sleep…': 'Memuat tidur…', 'No sleep data for this date': 'Belum ada data tidur untuk tanggal ini',
   'Score': 'Skor', 'That training day': 'Hari latihan itu', 'kcal': 'kkal', 'steps': 'langkah', 'Stress': 'Stres',
+  // Daily readiness (sleep.js renderReadiness)
+  'Readiness': 'Kesiapan', 'Ready': 'Siap', 'Take it easy': 'Santai dulu', 'Freshness': 'Kesegaran',
+  'A good day for a quality session.': 'Hari yang bagus untuk sesi kualitas.',
+  'Keep it steady — your body is only part-recovered.': 'Jaga tetap ringan — tubuh Anda baru pulih sebagian.',
+  'Prioritise recovery today; the signals are low.': 'Utamakan pemulihan hari ini; sinyalnya rendah.',
+  'Based on your last recorded night': 'Berdasarkan malam terakhir yang tercatat', 'Sleep': 'Tidur',
   'Resting HR': 'HR Istirahat', 'active min': 'menit aktif', 'floors': 'lantai', 'wake-ups': 'kali terbangun',
   'above your usual': 'di atas biasanya', 'below your usual': 'di bawah biasanya', 'about usual': 'sekitar biasanya',
   'higher than usual': 'lebih tinggi dari biasanya', 'lower than usual': 'lebih rendah dari biasanya', 'typical for you': 'biasa untuk Anda',

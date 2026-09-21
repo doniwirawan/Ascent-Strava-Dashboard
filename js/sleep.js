@@ -2354,3 +2354,66 @@ async function renderActivitySleep(a) {
     '<div class="slp-ba-h">🌙 ' + T('Sleep around this session') + '</div>'
     + cards + insight + dayHTML;
 }
+
+/* ── DAILY READINESS ─────────────────────────────────────────────────────────
+   Owner-only Whoop/Oura-style readiness on the Overview: blends last recorded
+   night's sleep score, HRV and RHR vs your own baseline, and current training
+   freshness (reusing the Training load model). Honest about staleness — it is
+   anchored to the last night on file. ── */
+async function renderReadiness() {
+  const el = document.getElementById('readinessCard');
+  if (!el) return;
+  if (typeof _slpIsOwner === 'function' && !_slpIsOwner()) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const T = (typeof tr === 'function') ? tr : (x => x);
+  let nights;
+  try { nights = await _slpLoad(); } catch { el.style.display = 'none'; return; }
+  const real = nights.filter(n => n.asleep >= 60);
+  if (!real.length) { el.style.display = 'none'; return; }
+
+  const last = real[real.length - 1];
+  const sleepScore = _slpNightScore(last);
+  const recent = real.slice(-30);
+  const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+  const hrvBase = mean(recent.map(n => n.hrv).filter(x => x != null));
+  const rhrBase = mean(recent.map(n => n.rhr).filter(x => x != null));
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+  const comps = [['sleep', sleepScore, 0.40]];
+  let trainRec = null;
+  try { const d = (typeof _trBuildSeries === 'function') ? _trBuildSeries() : null; const r = d ? _trRecovery(d) : null; if (r) trainRec = r.recovery; } catch {}
+  if (trainRec != null) comps.push(['load', trainRec, 0.25]);
+  let hrvComp = null, rhrComp = null;
+  if (last.hrv != null && hrvBase) { hrvComp = Math.round(clamp(50 + (last.hrv - hrvBase) * 2.5, 0, 100)); comps.push(['hrv', hrvComp, 0.20]); }
+  if (last.rhr != null && rhrBase) { rhrComp = Math.round(clamp(50 + (rhrBase - last.rhr) * 8, 0, 100)); comps.push(['rhr', rhrComp, 0.15]); }
+  const wsum = comps.reduce((s, c) => s + c[2], 0);
+  const readiness = Math.round(comps.reduce((s, c) => s + c[1] * c[2], 0) / wsum);
+
+  const band = readiness >= 67 ? { c: '#16ec8b', l: T('Ready'), advice: T('A good day for a quality session.') }
+             : readiness >= 34 ? { c: '#ffde00', l: T('Take it easy'), advice: T('Keep it steady — your body is only part-recovered.') }
+                               : { c: '#ff0026', l: T('Rest'), advice: T('Prioritise recovery today; the signals are low.') };
+
+  const chip = (ico, label, val, extra) => '<span class="rdy-chip"><b>' + ico + ' ' + val + '</b>' + (extra ? '<small>' + extra + '</small>' : '') + '<small>' + label + '</small></span>';
+  const hrvTrend = (last.hrv != null && hrvBase) ? (last.hrv >= hrvBase ? '↑' : '↓') : '';
+  const chips = [
+    chip('🌙', T('Sleep'), sleepScore, _slpHM(last.asleep)),
+    (last.hrv != null) ? chip('📈', 'HRV', last.hrv + hrvTrend, 'ms') : '',
+    (last.rhr != null) ? chip('❤️', T('Resting HR'), last.rhr, 'bpm') : '',
+    (trainRec != null) ? chip('🚴', T('Freshness'), trainRec, '') : '',
+  ].filter(Boolean).join('');
+
+  const ring = (typeof _trRingSVG === 'function')
+    ? _trRingSVG(readiness / 100, band.c, 116, 12)
+    : '<div class="rdy-num-fallback">' + readiness + '</div>';
+
+  el.style.display = '';
+  el.innerHTML =
+    '<div class="rdy-card card" style="--rdy:' + band.c + '">'
+    + '<div class="rdy-ring">' + ring + '<div class="rdy-ring-mid"><div class="rdy-ring-val" style="color:' + band.c + '">' + readiness + '</div><div class="rdy-ring-cap">' + T('Readiness') + '</div></div></div>'
+    + '<div class="rdy-body">'
+    +   '<div class="rdy-h">' + T('Readiness') + ' · <span style="color:' + band.c + '">' + band.l + '</span></div>'
+    +   '<div class="rdy-chips">' + chips + '</div>'
+    +   '<div class="rdy-note">' + band.advice + '</div>'
+    +   '<div class="rdy-asof">' + T('Based on your last recorded night') + ' · ' + fmtDt(last.date) + '</div>'
+    + '</div>'
+    + '</div>';
+}
