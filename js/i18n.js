@@ -841,6 +841,8 @@ const TR_ID = {
   'Eff.': 'Efisiensi',
   'Under 6h': 'Di bawah 6j',
   'Best night': 'Malam terbaik',
+  'Your nights run from {0} to {1}. You slept 8h or more on {2} of them ({3}%) — the average is a mean across every night, pulled down by the short ones, not a ceiling. It counts time actually asleep, so it sits below your time in bed.': 'Malam Anda berkisar dari {0} sampai {1}. Anda tidur 8 jam atau lebih pada {2} di antaranya ({3}%) — rata-rata adalah nilai tengah dari semua malam, ditarik turun oleh malam-malam pendek, bukan batas atas. Ini menghitung waktu benar-benar tidur, jadi lebih rendah dari waktu Anda di tempat tidur.',
+  '{0}% of nights 8h+': '{0}% malam 8j+',
   'Your best full month was {0} at {1} a night; your worst was {2} at {3}. That is a swing of {4} a night between two months of your own life — bigger than the gap between your training days and your rest days.': 'Bulan penuh terbaik Anda adalah {0} dengan {1} semalam; terburuk {2} dengan {3}. Itu ayunan {4} semalam antara dua bulan dalam hidup Anda sendiri — lebih besar daripada jarak antara hari latihan dan hari istirahat Anda.',
   'What this means for your long-term health': 'Apa artinya ini bagi kesehatan jangka panjang Anda',
   'Your numbers against ordinary adult sleep guidance, and what the research associates with each pattern': 'Angka Anda dibandingkan anjuran tidur orang dewasa pada umumnya, dan apa yang dikaitkan riset dengan tiap pola',

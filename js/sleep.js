@@ -1417,6 +1417,16 @@ function _slpDraw(nights, body) {
           debtNights, sig, yearRows } = A;
   const stageTotal = all.deep + all.light + all.rem;
 
+  // Context for the average: the range and how often 8h+ actually happens, so
+  // the headline mean isn't read as a ceiling.
+  const _slpBest = (() => {
+    const as = real.map(n => n.asleep);
+    const best = real.reduce((m, n) => n.asleep > (m.asleep || 0) ? n : m, real[0] || {});
+    const over8 = real.filter(n => n.asleep >= 480).length;
+    return { min: as.length ? Math.min(...as) : 0, max: best.asleep || 0, date: best.date || '',
+             over8, over8pct: real.length ? Math.round(100 * over8 / real.length) : 0 };
+  })();
+
   /* ── tiles ── */
   const tile = (val, unit, lbl, color, sub) => `
     <div class="slp-tile card">
@@ -1445,10 +1455,12 @@ function _slpDraw(nights, body) {
     <div class="slp-intro card">
       <div class="slp-intro-h">${trf('{0} nights of sleep, {1}', real.length, span)}</div>
       <div class="slp-intro-b">${tr('Sleep stages come from a one-off Huawei Health (TruSleep) export. Training is joined live from Strava, so every comparison below updates as you ride. A night is labelled by the morning you woke up.')}</div>
+      <div class="slp-intro-note">${trf('Your nights run from {0} to {1}. You slept 8h or more on {2} of them ({3}%) — the average is a mean across every night, pulled down by the short ones, not a ceiling. It counts time actually asleep, so it sits below your time in bed.', _slpHM(_slpBest.min), _slpHM(_slpBest.max), _slpBest.over8, _slpBest.over8pct)}</div>
     </div>
 
     <div class="slp-tiles">
       ${tile(_slpHM(all.asleep), '', tr('Average night'), 'var(--orange)', trf('{0} in bed', _slpHM(_slpMean(real.filter(x => x.tib != null).map(x => x.tib)))))}
+      ${tile(_slpHM(_slpBest.max), '', tr('Best night'), SLP_C.good, _slpBest.date ? fmtDt(_slpBest.date) : trf('{0}% of nights 8h+', _slpBest.over8pct))}
       ${tile(Math.round(all.deep), 'm', tr('Deep sleep'), SLP_C.deep, trf('{0}% of sleep', Math.round(100 * all.deep / stageTotal)))}
       ${tile(Math.round(all.rem), 'm', tr('REM sleep'), SLP_C.rem, trf('{0}% of sleep', Math.round(100 * all.rem / stageTotal)))}
       ${tile(all.eff.toFixed(1), '%', tr('Efficiency'), all.eff >= 90 ? SLP_C.good : '#f59e0b', trf('{0} awake per night', _slpHM(all.wake)))}
