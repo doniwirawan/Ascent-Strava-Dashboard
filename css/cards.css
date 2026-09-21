@@ -209,3 +209,7 @@
 .rdy-note { font-size: 12.5px; line-height: 1.5; color: var(--text-2); }
 .rdy-asof { font-size: 11px; color: var(--text-3); margin-top: 4px; }
 @media (max-width: 560px) { .rdy-card { flex-direction: column; text-align: center; } .rdy-chips { justify-content: center; } }
+
+.rdy-spark-wrap { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+.rdy-spark { width: 200px; max-width: 55%; height: 34px; display: block; opacity: .92; }
+.rdy-spark-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); white-space: nowrap; }

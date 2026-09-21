@@ -2405,6 +2405,34 @@ async function renderReadiness() {
     ? _trRingSVG(readiness / 100, band.c, 116, 12)
     : '<div class="rdy-num-fallback">' + readiness + '</div>';
 
+  // 14-night readiness sparkline (recovery signals per night: sleep + HRV + RHR).
+  const sparkVals = real.slice(-14).map(n => {
+    const p = [[_slpNightScore(n), 0.55]];
+    if (n.hrv != null && hrvBase) p.push([clamp(50 + (n.hrv - hrvBase) * 2.5, 0, 100), 0.25]);
+    if (n.rhr != null && rhrBase) p.push([clamp(50 + (rhrBase - n.rhr) * 8, 0, 100), 0.20]);
+    const w = p.reduce((s, x) => s + x[1], 0);
+    return Math.round(p.reduce((s, x) => s + x[0] * x[1], 0) / w);
+  });
+  const spark = _rdySpark(sparkVals, band.c);
+
+  // Smarter suggestion: fold in how long since your last hard effort.
+  let daysHard = null;
+  try {
+    const hard = (typeof acts !== 'undefined' ? acts : []).filter(a => (a.suffer_score || 0) >= 100);
+    if (hard.length) {
+      const lh = hard.reduce((m, a) => ((a.start_date_local || a.start_date || '') > (m.start_date_local || m.start_date || '')) ? a : m);
+      daysHard = Math.max(0, Math.floor((Date.now() - new Date(lh.start_date_local || lh.start_date).getTime()) / 864e5));
+    }
+  } catch {}
+  let note = band.advice;
+  if (daysHard != null) {
+    if (readiness >= 67) note = daysHard >= 2
+      ? trf('Rested — {0} days since your last hard effort. A good day for intervals or a long push.', daysHard)
+      : T('Recovered, but you trained hard recently — keep today controlled.');
+    else if (readiness >= 34) note = T('Part-recovered — an easy spin or skills day beats intervals today.');
+    else note = T('Low signals — a rest or very easy day will pay off more than pushing through.');
+  }
+
   el.style.display = '';
   el.innerHTML =
     '<div class="rdy-card card" style="--rdy:' + band.c + '">'
@@ -2412,8 +2440,23 @@ async function renderReadiness() {
     + '<div class="rdy-body">'
     +   '<div class="rdy-h">' + T('Readiness') + ' · <span style="color:' + band.c + '">' + band.l + '</span></div>'
     +   '<div class="rdy-chips">' + chips + '</div>'
-    +   '<div class="rdy-note">' + band.advice + '</div>'
+    +   (spark ? '<div class="rdy-spark-wrap">' + spark + '<span class="rdy-spark-lbl">' + T('last 14 nights') + '</span></div>' : '')
+    +   '<div class="rdy-note">' + note + '</div>'
     +   '<div class="rdy-asof">' + T('Based on your last recorded night') + ' · ' + fmtDt(last.date) + '</div>'
     + '</div>'
     + '</div>';
+}
+
+/* Mini readiness sparkline (0–100 per night). preserveAspectRatio none so it
+   stretches to its box; last point marked. */
+function _rdySpark(vals, color) {
+  if (!vals || vals.length < 2) return '';
+  const W = 200, H = 34, pad = 3;
+  const x = i => pad + i * (W - 2 * pad) / (vals.length - 1);
+  const y = v => pad + (1 - v / 100) * (H - 2 * pad);
+  const pts = vals.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+  return '<svg class="rdy-spark" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" preserveAspectRatio="none" aria-hidden="true">'
+    + '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    + '<circle cx="' + x(vals.length - 1).toFixed(1) + '" cy="' + y(vals[vals.length - 1]).toFixed(1) + '" r="2.6" fill="' + color + '"/>'
+    + '</svg>';
 }
