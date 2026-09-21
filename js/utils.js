@@ -132,6 +132,11 @@ function navScrollTo(id, btn) {
   const ovi=document.getElementById('ovInsights'); if(ovi) ovi.style.display = id==='statRow' ? '' : 'none';
   const ovHrz=document.getElementById('ovHrz'); if(ovHrz) ovHrz.style.display = id==='statRow' ? '' : 'none';
   const ovSpdz=document.getElementById('ovSpdz'); if(ovSpdz) ovSpdz.style.display = id==='statRow' ? '' : 'none';
+  // By-sport breakdown + Readiness card also belong to the Overview only — show
+  // them there when they have content, hide everywhere else (not on every page).
+  const ovSport=document.getElementById('sportBreakdown'); if(ovSport) ovSport.style.display = (id==='statRow' && ovSport.innerHTML.trim()) ? '' : 'none';
+  const ovRdy=document.getElementById('readinessCard'); if(ovRdy) ovRdy.style.display = (id==='statRow' && ovRdy.innerHTML.trim()) ? '' : 'none';
+  const ovAi=document.getElementById('ovAiInsight'); if(ovAi) ovAi.style.display = (id==='statRow' && ovAi.innerHTML.trim()) ? '' : 'none';
   const ovInst=document.getElementById('ovInstall');
   if(ovInst) ovInst.style.display = (id==='statRow' && window._pwaInstallReady) ? '' : 'none';
   try{ localStorage.setItem('lastSection', id); }catch{}

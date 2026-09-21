@@ -651,13 +651,23 @@ async function aiSectionInsight(sectionId, tries = 0) {
   const sec = document.getElementById(sectionId);
   if (!sec) return;
 
-  let el = sec.querySelector(':scope > .ai-insight');
-  if (!el) {
-    el = document.createElement('div');
-    el.className = 'ai-insight';
-    const title = sec.querySelector(':scope > .section-title');
-    if (title) title.insertAdjacentElement('afterend', el); else sec.insertBefore(el, sec.firstChild);
+  // The Overview insight lives in its own container pinned above everything
+  // (Readiness, stat cards); every other section carries it just under its title.
+  let el;
+  if (sectionId === 'statRow') {
+    el = document.getElementById('ovAiInsight');
+    if (el) el.classList.add('ai-insight');
+  } else {
+    el = sec.querySelector(':scope > .ai-insight');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'ai-insight';
+      const title = sec.querySelector(':scope > .section-title');
+      if (title) title.insertAdjacentElement('afterend', el); else sec.insertBefore(el, sec.firstChild);
+    }
   }
+  if (!el) return;
+  const drop = () => { if (el.id === 'ovAiInsight') el.style.display = 'none'; else el.remove(); };
   const render = txt => { el.style.display = ''; el.innerHTML = '<span class="ai-ins-icon">' + AI_ICON + '</span><div class="ai-ins-text">' + txt + '</div>'; };
 
   // Build context from what's on the page: visible text + chart data + any
@@ -679,7 +689,7 @@ async function aiSectionInsight(sectionId, tries = 0) {
     || [...sec.querySelectorAll('.ai-dots, .spin')].some(n => !n.closest('.ai-insight'));
   if (combined.length < 30 || stillLoading) {
     if (tries < 8) { render('<span class="ai-dots"><span></span><span></span><span></span></span>'); setTimeout(() => aiSectionInsight(sectionId, tries + 1), 500); }
-    else el.remove();
+    else drop();
     return;
   }
   // Cache per language: the displayed numbers are identical in EN and ID, so
@@ -689,7 +699,7 @@ async function aiSectionInsight(sectionId, tries = 0) {
   try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.sig === sig && c.text) { render(aiMd(c.text)); return; } } catch {}
 
   const token = localStorage.getItem('strava_access_token');
-  if (!token) { el.remove(); return; }
+  if (!token) { drop(); return; }
   const { provider, model, key: apiKey } = aiProviderModel();
   const messages = [
     { role: 'system', content:
@@ -702,8 +712,8 @@ async function aiSectionInsight(sectionId, tries = 0) {
     const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key: apiKey }) });
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.text) { localStorage.setItem(key, JSON.stringify({ sig, text: data.text })); render(aiMd(data.text)); }
-    else { if (data.error === 'provider_not_configured' || data.error === 'not_authorized') aiInsightOff = true; el.remove(); }
-  } catch { el.remove(); }
+    else { if (data.error === 'provider_not_configured' || data.error === 'not_authorized') aiInsightOff = true; drop(); }
+  } catch { drop(); }
 }
 
 /* A signature of the current activity data — changes when a new activity
