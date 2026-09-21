@@ -2,7 +2,7 @@
 const STAT_DEFS = [
   { key: 'distance', label: 'Distance', fmt: a => fmtD(a.distance || 0), unit: '' },
   { key: 'moving_time', label: 'Moving Time', fmt: a => fmtT(a.moving_time || 0), unit: '' },
-  { key: 'pace', label: 'Pace', fmt: a => fmtPace(a.average_speed || 0), unit: '', runOnly: true },
+  { key: 'pace', label: 'Pace', fmt: a => (typeof isSwim==='function' && isSwim(a)) ? _swimPace(a.average_speed || 0) + ' /100m' : fmtPace(a.average_speed || 0), unit: '', runOnly: true },
   { key: 'average_speed', label: 'Avg Speed', fmt: a => kmh(a.average_speed || 0) + ' ' + speedUnit(), unit: '' },
   { key: 'max_speed', label: 'Max Speed', fmt: a => cleanMax(a) ? kmh(cleanMax(a)) + ' ' + speedUnit() : '—', unit: '' },
   { key: 'average_heartrate', label: 'Avg Heart Rate', fmt: a => a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '—', unit: '' },
@@ -90,7 +90,11 @@ function statVal(s, act) { const v = String(s.fmt(act)); const p = v.split(' ');
 
 /* whether a stat is relevant to this activity — e.g. Pace only makes sense for
    runs, so it's hidden (and never rendered) on rides/other activities */
-function statApplies(s, act) { return !s.runOnly || (act && isRun(act)); }
+// The pace stat suits any pace sport (run / walk / swim), not just runs.
+function statApplies(s, act) {
+  if (!s.runOnly) return true;
+  return !!act && (isRun(act) || (typeof isWalk==='function' && isWalk(act)) || (typeof isSwim==='function' && isSwim(act)));
+}
 
 /* ── adapt the shown stats to the activity type (runs → pace/cadence,
    rides → speed/power). Only re-picks when the sport category changes, so
@@ -99,11 +103,17 @@ function statApplies(s, act) { return !s.runOnly || (act && isRun(act)); }
 let _lastStatType = null;
 function adaptStatsToActivity(act) {
   if (!act) return false;
-  const t = isRun(act) ? 'run' : isRide(act) ? 'ride' : 'other';
+  const t = isRun(act) ? 'run'
+    : isRide(act) ? 'ride'
+    : (typeof isSwim==='function' && isSwim(act)) ? 'swim'
+    : (typeof isWalk==='function' && isWalk(act)) ? 'walk'
+    : 'other';
   if (t === _lastStatType) return false;
   _lastStatType = t;
   if (t === 'run')       checkedStats = new Set(['distance', 'moving_time', 'pace', 'total_elevation_gain', 'average_heartrate', 'average_cadence']);
   else if (t === 'ride') checkedStats = new Set(['distance', 'moving_time', 'average_speed', 'total_elevation_gain', 'average_heartrate', 'average_watts']);
+  else if (t === 'swim') checkedStats = new Set(['distance', 'moving_time', 'pace', 'average_heartrate', 'calories']);
+  else if (t === 'walk') checkedStats = new Set(['distance', 'moving_time', 'pace', 'total_elevation_gain', 'average_heartrate', 'calories']);
   else                   checkedStats = new Set(['distance', 'moving_time', 'average_speed', 'total_elevation_gain', 'average_heartrate', 'calories']);
   return true;
 }
