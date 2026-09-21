@@ -444,6 +444,10 @@ const TR_ID = {
   'No rides with power data.': 'Tak ada gowes dengan data power.',
   'Rate-limited — reopen later to resume; fetched rides are cached.': 'Kena batas laju — buka lagi nanti untuk lanjut; gowes yang diambil tersimpan.',
   // HR decoupling
+  // Image export (export-image.js)
+  'Rendering…': 'Merender…',
+  'Image export unavailable — refresh and try again.': 'Ekspor gambar tidak tersedia — muat ulang dan coba lagi.',
+  'Could not render image — try again.': 'Tidak dapat merender gambar — coba lagi.',
   // Status bar + auth (auth.js / app.js). 'Refresh' already exists above.
   'Loading…': 'Memuat…', 'Reconnect': 'Sambungkan ulang', 'Connect': 'Sambungkan', 'Retry': 'Coba lagi',
   'Session expired': 'Sesi berakhir', 'Reconnect with Strava →': 'Sambungkan ulang dengan Strava →',
