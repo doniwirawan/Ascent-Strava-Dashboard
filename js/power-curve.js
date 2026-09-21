@@ -84,7 +84,10 @@ function pcRenderCurve(agg, body, opts) { if (body) body.innerHTML = pcCurveMark
 
 // Card HTML for the Training section. Hidden when the athlete has no power data.
 function _trPowerCurveHTML() {
-  if (typeof acts === 'undefined' || !acts.some(a => isRide(a) && a.average_watts > 0)) return '';
+  // Only for riders with a real power meter — device_watts is true only when
+  // Strava's watts come from a meter, not its speed/weight estimate. Hidden
+  // entirely otherwise (an estimated "power curve" would be misleading).
+  if (typeof acts === 'undefined' || !acts.some(a => isRide(a) && a.device_watts === true && a.average_watts > 0)) return '';
   const owner = (typeof _isHrzOwner === 'function') && _isHrzOwner();
   const agg = pcLoadAgg();
   let inner;

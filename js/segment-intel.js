@@ -5,7 +5,7 @@
    next-PR probability. On-demand + owner-gated: per-segment effort fetches spend
    the app-shared Strava rate limit, same policy as Power Curve. Results cached. */
 
-const SI_KEY = 'seg_intel_v1';
+const SI_KEY = 'seg_intel_v2';   // v2: real per-attempt PR probability + outlier filtering
 const SI_MAX = 15;   // cap segments fetched per run
 
 function _segFmtGap(g) {
@@ -13,15 +13,32 @@ function _segFmtGap(g) {
   return g < 60 ? g + 's' : Math.floor(g / 60) + 'm' + String(g % 60).padStart(2, '0') + 's';
 }
 
+// Standard normal CDF Φ(z) (Abramowitz–Stegun 26.2.17) — for the PR probability.
+function _segNormCdf(z) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z * z / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? 1 - p : p;
+}
+
 // Pure: effort list [{t,date}] → PR/recent/gap/improve/next-PR%. null if thin.
+// The next-PR chance is a genuine per-attempt probability: model your recent
+// efforts as ~normal(mean, sd) and take P(next time < PR). It varies with how
+// consistently close to your PR you actually run — no flat 90%.
 function _segMetrics(efforts) {
-  if (!efforts || efforts.length < 3) return null;
-  const sorted = efforts.filter(e => e.t > 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  if (sorted.length < 3) return null;
+  let all = (efforts || []).filter(e => e.t > 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (all.length < 4) return null;
+  // Drop glitched efforts: partial/stopped runs (way slow) or GPS shortcuts (way
+  // fast) that otherwise fake huge "improvements" and wrong PRs.
+  const srt = all.map(e => e.t).slice().sort((a, b) => a - b);
+  const med = srt[Math.floor(srt.length / 2)];
+  const sorted = all.filter(e => e.t >= med * 0.5 && e.t <= med * 2.2);
+  if (sorted.length < 4) return null;
+
   const times = sorted.map(e => e.t);
   const pr = Math.min(...times);
   const n = sorted.length;
-  const k = Math.max(1, Math.floor(n / 3));
+  const k = Math.max(3, Math.floor(n / 3));
   const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
   const recent = sorted.slice(-k).map(e => e.t);
   const older = sorted.slice(0, k).map(e => e.t);
@@ -29,9 +46,13 @@ function _segMetrics(efforts) {
   const recentBest = Math.min(...recent);
   const gap = Math.max(0, recentBest - pr);
   const improvePct = olderMean > 0 ? (olderMean - recentMean) / olderMean * 100 : 0;
-  let prob;
-  if (gap <= 0) prob = 0.9;
-  else { const gf = gap / pr; prob = Math.max(0.05, Math.min(0.9, (1 - gf * 30) * 0.7 + (improvePct > 0 ? 0.15 : 0))); }
+
+  const variance = mean(recent.map(t => (t - recentMean) ** 2));
+  const sd = Math.max(Math.sqrt(variance), pr * 0.004);           // floor sd at 0.4% of PR
+  let prob = _segNormCdf((pr - recentMean) / sd);                 // P(next effort < PR)
+  if (improvePct > 1) prob += Math.min(0.12, improvePct / 100);   // a clear upward trend helps
+  prob = Math.max(0.02, Math.min(0.8, prob));
+
   return { pr, recentBest, gap, improvePct: +improvePct.toFixed(1), prob: Math.round(prob * 100), count: n };
 }
 
@@ -40,7 +61,9 @@ function _segIntelSig(starred) { return (starred || []).length + ':' + ((starred
 function _segIntelMarkup(data, stopped) {
   const segs = data.segs || [];
   if (!segs.length) return '<div class="tr-basis-note">' + tr('No starred segments with enough effort history yet.') + '</div>';
-  const closest = segs.slice().sort((a, b) => a.gap - b.gap).slice(0, 5);
+  // Rank by the real next-PR probability (most likely first), not just raw gap —
+  // so the list is meaningfully ordered instead of a wall of identical numbers.
+  const closest = segs.slice().filter(s => s.count >= 4).sort((a, b) => b.prob - a.prob || a.gap - b.gap).slice(0, 5);
   const improving = segs.filter(s => s.improvePct > 2).sort((a, b) => b.improvePct - a.improvePct).slice(0, 5);
   const stagnating = segs.filter(s => Math.abs(s.improvePct) <= 2 && s.count >= 5).slice(0, 5);
   const group = (title, items, fmt) => items.length ? `<div class="si-group"><div class="si-title">${title}</div>${items.map(fmt).join('')}</div>` : '';
