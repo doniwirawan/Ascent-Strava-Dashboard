@@ -36,6 +36,9 @@ const _IMP_NOTE = 'One row per night. A night is labelled with the date you WOKE
   + 'Minutes are integers; bed/up are local hours (bed is negative before midnight). '
   + 'Naps are counted separately and excluded from asleep.';
 
+// tr() with a safe fallback (sleep-import.js loads before i18n.js; tr resolves at call time).
+const _impT = s => (typeof tr === 'function') ? tr(s) : s;
+
 let _impLibsLoading = null;
 
 function _impLoadScript(src, globalName) {
@@ -243,18 +246,18 @@ async function slpImportParse(file, password, onProgress) {
     _impCollectSleep(text, segMap);
     text = null;
     done++;
-    if (onProgress) onProgress('Reading sleep data… ' + done + '/' + detail.length, done / (detail.length + 2));
+    if (onProgress) onProgress(_impT('Reading sleep data…') + ' ' + done + '/' + detail.length, done / (detail.length + 2));
   }
 
   let daily = new Map();
   if (xls) {
-    if (onProgress) onProgress('Reading daily metrics…', (detail.length + 1) / (detail.length + 2));
+    if (onProgress) onProgress(_impT('Reading daily metrics…'), (detail.length + 1) / (detail.length + 2));
     const u8 = await xls.getData(new zip.Uint8ArrayWriter());
     daily = _impBuildDaily(u8);
   }
   await reader.close();
 
-  if (onProgress) onProgress('Building table…', 1);
+  if (onProgress) onProgress(_impT('Building table…'), 1);
   const nights = _impBuildNights(segMap);
   if (!nights.size) throw new Error('No TruSleep records found in this export.');
   const data = _impAssemble(nights, daily);
@@ -388,7 +391,7 @@ function wireSleepImport() {
       } catch (e) { console.error('sleep refresh after import failed', e); }
     } catch (e) {
       console.error('sleep import failed', e);
-      setMsg('❌ ' + (e.message || T('Import failed.')), 'err');
+      setMsg('❌ ' + (e.message ? T(e.message) : T('Import failed.')), 'err');
     } finally {
       pw.disabled = false; drop.style.pointerEvents = ''; refreshRun();
       setTimeout(() => { prog.style.display = 'none'; }, 1200);
