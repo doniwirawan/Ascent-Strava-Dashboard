@@ -103,3 +103,40 @@ async function analyzeHrDecoupling() {
   body.innerHTML = d ? _hrdMarkup(a, d) : '<div class="tr-basis-note">' + tr('Not enough continuous HR/output data in this ride to measure drift.') + '</div>';
   _hrdRunning = false;
 }
+
+/* Per-activity HR decoupling in the activity modal. Same half-vs-half efficiency
+   drift as the Training-section card, but for whichever activity is open — a
+   heart-rate read on the ride itself, next to the sleep/recovery block. Reuses
+   the compact stream cache and the shared .hrd-* styles. */
+async function renderActivityDecoupling(a) {
+  const host = document.getElementById('actHrd');
+  if (!host) return;
+  const T = (typeof tr === 'function') ? tr : (x => x);
+  // Needs HR and a long enough effort (≥40 min) for drift to mean anything.
+  if (!a || !a.id || !(a.average_heartrate > 0) || (a.moving_time || 0) < 2400) { host.innerHTML = ''; return; }
+  host.innerHTML = '<div class="actd-hrd"><div class="actd-hrd-h">' + T('Heart Rate Decoupling')
+    + '</div><span class="ai-dots"><span></span><span></span><span></span></span></div>';
+
+  let streams = null;
+  try { streams = (typeof _getActivityStreams === 'function') ? await _getActivityStreams(a.id) : null; } catch {}
+  const d = streams ? _hrdCompute(streams) : null;
+  if (!d) { host.innerHTML = ''; return; }   // no usable continuous HR/output stream
+
+  const band = _hrdBand(d.decoupling);
+  const dcStr = (d.decoupling >= 0 ? '+' : '') + d.decoupling.toFixed(1) + '%';
+  const outVal = v => d.usePower ? Math.round(v) + ' W' : kmh(v) + ' ' + speedUnit();
+  const half = (lbl, hr, o) => '<div class="hrd-half"><div class="hrd-half-lbl">' + T(lbl)
+    + '</div><div class="hrd-half-row"><span>' + Math.round(hr) + ' bpm</span><span>' + outVal(o) + '</span></div></div>';
+  host.innerHTML =
+    '<div class="actd-hrd">'
+    + '<div class="actd-hrd-h">💓 ' + T('Heart Rate Decoupling')
+    +   ' <span class="actd-hrd-sub">' + T('aerobic drift, first vs second half') + '</span></div>'
+    + '<div class="hrd-grid">'
+    +   half('First', d.hr1, d.o1)
+    +   '<div class="hrd-dc"><div class="hrd-dc-val" style="color:' + band.color + '">' + dcStr + '</div>'
+    +     '<div class="hrd-dc-lbl">' + T('decoupling') + '</div></div>'
+    +   half('Second', d.hr2, d.o2)
+    + '</div>'
+    + '<div class="tr-basis-note">' + band.text + '</div>'
+    + '</div>';
+}

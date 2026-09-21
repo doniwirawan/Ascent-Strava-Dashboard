@@ -502,3 +502,8 @@
   background: var(--orange-dim); border: 1px solid var(--orange-mid);
   font-size: 12.5px; line-height: 1.5; color: var(--text);
 }
+
+/* Per-activity HR decoupling block in the activity modal (reuses .hrd-* grid) */
+.actd-hrd { margin-top: 18px; }
+.actd-hrd-h { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.actd-hrd-sub { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-3); }
