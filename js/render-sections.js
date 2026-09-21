@@ -59,7 +59,7 @@ function ic(n){
 
 /* ── MONTHLY STATS ── */
 function renderMonthly(filterYear) {
-  const years = [...new Set(acts.map(a=>new Date(a.start_date).getFullYear()))].sort((a,b)=>b-a);
+  const years = [...new Set(acts.map(a=>actLocalDate(a).getUTCFullYear()))].sort((a,b)=>b-a);
   const yr = filterYear || years[0];
 
   // year buttons
@@ -69,8 +69,8 @@ function renderMonthly(filterYear) {
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const cntLbl = sportMode()==='all' ? 'Activities' : sportDef().title;
   const rows = {};
-  modeActs().filter(a=>new Date(a.start_date).getFullYear()===yr).forEach(a=>{
-    const m = new Date(a.start_date).getMonth();
+  modeActs().filter(a=>actLocalDate(a).getUTCFullYear()===yr).forEach(a=>{
+    const m = actLocalDate(a).getUTCMonth();
     if(!rows[m]) rows[m]={rides:0,dist:0,elev:0,time:0,cal:0,speed:[],hr:[]};
     rows[m].rides++;
     rows[m].dist += a.distance||0;
@@ -726,12 +726,12 @@ function renderMilestones(){
 /* ── REWIND ── */
 function renderRewind(filterYear){
   const el=document.getElementById('rewindContent');
-  const years=[...new Set(acts.map(a=>new Date(a.start_date).getFullYear()))].sort((a,b)=>b-a);
+  const years=[...new Set(acts.map(a=>actLocalDate(a).getUTCFullYear()))].sort((a,b)=>b-a);
   if(!years.length){el.innerHTML='<p style="color:var(--muted)">No data.</p>';return;}
   const yr=filterYear||years[0];
   const yb=document.getElementById('rewindYearBtns');
   yb.innerHTML=years.map(y=>`<button class="year-btn${y===yr?' active':''}" onclick="renderRewind(${y})">${y}</button>`).join('');
-  const ya=modeActs().filter(a=>new Date(a.start_date).getFullYear()===yr);
+  const ya=modeActs().filter(a=>actLocalDate(a).getUTCFullYear()===yr);
   if(!ya.length){el.innerHTML='<p style="color:var(--muted)">No '+sportWord(true)+' in '+yr+'.</p>';return;}
 
   const types={};
@@ -754,24 +754,24 @@ function renderRewind(filterYear){
   const totalKudos=ya.reduce((s,a)=>s+(a.kudos_count||0),0);
   const totalPRs=ya.reduce((s,a)=>s+(a.pr_count||0),0);
   const totalAchv=ya.reduce((s,a)=>s+(a.achievement_count||0),0);
-  const activeDays=new Set(ya.map(a=>new Date(a.start_date).toDateString())).size;
+  const activeDays=new Set(ya.map(a=>(a.start_date_local||a.start_date||"").slice(0,10))).size;
 
   // monthly breakdown for chart
   const monthly=Array(12).fill(null).map(()=>({dist:0,count:0}));
-  ya.forEach(a=>{const m=new Date(a.start_date).getMonth();monthly[m].dist+=a.distance||0;monthly[m].count++;});
+  ya.forEach(a=>{const m=actLocalDate(a).getUTCMonth();monthly[m].dist+=a.distance||0;monthly[m].count++;});
   const peakMonth=monthly.reduce((mi,m,i)=>m.dist>monthly[mi].dist?i:mi,0);
   const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   // day-of-week distribution
   const dow=Array(7).fill(0);
-  ya.forEach(a=>{dow[new Date(a.start_date).getDay()]++;});
+  ya.forEach(a=>{dow[actLocalDate(a).getUTCDay()]++;});
   const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const busyDay=DAYS[dow.indexOf(Math.max(...dow))];
 
   // ── side-by-side comparison: selected year vs the year before ──
   const prevYr=yr-1;
   const _ms=modeActs();
-  const ys=y=>{const a=_ms.filter(x=>new Date(x.start_date).getFullYear()===y);return{n:a.length,dist:a.reduce((s,x)=>s+(x.distance||0),0),elev:a.reduce((s,x)=>s+(x.total_elevation_gain||0),0),time:a.reduce((s,x)=>s+(x.moving_time||0),0)};};
+  const ys=y=>{const a=_ms.filter(x=>actLocalDate(x).getUTCFullYear()===y);return{n:a.length,dist:a.reduce((s,x)=>s+(x.distance||0),0),elev:a.reduce((s,x)=>s+(x.total_elevation_gain||0),0),time:a.reduce((s,x)=>s+(x.moving_time||0),0)};};
   const A=ys(yr), B=ys(prevYr), hasB=B.n>0;
   const dlt=(da,db)=>{ if(!hasB||db===0) return '<span class="ryc-d">—</span>'; const pct=(da-db)/db*100, up=pct>=0; return `<span class="ryc-d ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(pct).toFixed(0)}%</span>`; };
   const cmpRows=[

@@ -80,6 +80,9 @@ const fmtDtShort = d => new Date(d).toLocaleDateString('en-GB',{day:'numeric',mo
 // in start_date_local (never UTC, so early-morning activities key to the right
 // day). Used for streak/active-day maths so day-sets and back-counting agree.
 const localDayStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+// An activity's LOCAL calendar date as a Date at UTC-midnight, so getUTC* reads
+// the wall-clock year/month/weekday regardless of the viewer's timezone.
+const actLocalDate = a => new Date((((a&&(a.start_date_local||a.start_date))||'').slice(0,10)||'1970-01-01')+'T00:00:00Z');
 const isRide= a   => ['Ride','VirtualRide','EBikeRide','GravelRide','MountainBikeRide'].includes(a.type);
 // NOTE: isRun() is defined in render-sections.js (loaded after this file)
 

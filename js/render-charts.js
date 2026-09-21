@@ -178,7 +178,7 @@ function renderTrends() {
   // Weekly
   const weeks = {};
   ma.forEach(a=>{
-    const d=new Date(a.start_date); d.setDate(d.getDate()-d.getDay());
+    const d=actLocalDate(a); d.setUTCDate(d.getUTCDate()-d.getUTCDay());   // back to the local week's Sunday
     const k=d.toISOString().slice(0,10);
     weeks[k]=(weeks[k]||0)+kmVal(a.distance||0);
   });

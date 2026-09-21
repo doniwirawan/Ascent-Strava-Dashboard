@@ -490,7 +490,7 @@ async function _buildFixedGpx(a){
  <metadata><time>${new Date(start).toISOString()}</time></metadata>
  <trk><name>${_gfXmlEsc(a.name||'Activity')}</name><trkseg>${trkpts}</trkseg></trk>
 </gpx>`;
-  const stamp = new Date(a.start_date).toISOString().slice(0,10);
+  const stamp = (a.start_date_local||a.start_date||"").slice(0,10);
   const safe = (a.name||'activity').replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,40) || 'activity';
   return { text, name:`${safe}-${stamp}-fixed.gpx` };
 }
