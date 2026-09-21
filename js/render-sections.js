@@ -67,7 +67,7 @@ function renderMonthly(filterYear) {
   yb.innerHTML = years.map(y=>`<button class="year-btn${y===yr?' active':''}" onclick="renderMonthly(${y})">${y}</button>`).join('');
 
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const cntLbl = sportMode()==='run' ? 'Runs' : 'Rides';
+  const cntLbl = sportMode()==='all' ? 'Activities' : sportDef().title;
   const rows = {};
   modeActs().filter(a=>new Date(a.start_date).getFullYear()===yr).forEach(a=>{
     const m = new Date(a.start_date).getMonth();
@@ -555,18 +555,56 @@ function renderHeatmap(preserveView){
   else leafletMapInst.setView([-8.34,115.09],12);
 }
 
-/* ── MILESTONES ── */
-let milestoneMode=null; // 'ride' | 'run' — global sport mode (navbar toggle)
+/* ── SPORT MODE ──
+   The navbar toggle: All · Ride · Run · Walk · Swim. Only sports the athlete
+   actually has are shown. Ride/run behaviour is preserved exactly —
+   sportUsesPace() returns the same as the old `mode==='run'` for ride/run, so
+   every pace-vs-speed branch keeps working, and walk/swim read in pace, 'all'
+   in speed. */
+let milestoneMode=null; // 'all' | 'ride' | 'run' | 'walk' | 'swim'
 function isRun(a){ return a.type==='Run'||a.type==='VirtualRun'||a.type==='TrailRun'; }
+function isWalk(a){ return a.type==='Walk'||a.type==='Hike'; }
+function isSwim(a){ return a.type==='Swim'||a.type==='OpenWaterSwim'; }
+const SPORTS = {
+  all:  { pred:()=>true, word:'activity', words:'activities', title:'All',   pace:false },
+  ride: { pred:isRide,   word:'ride',     words:'rides',      title:'Rides', pace:false },
+  run:  { pred:isRun,    word:'run',      words:'runs',       title:'Runs',  pace:true  },
+  walk: { pred:isWalk,   word:'walk',     words:'walks',      title:'Walks', pace:true  },
+  swim: { pred:isSwim,   word:'swim',     words:'swims',      title:'Swims', pace:true  },
+};
+const SPORT_ORDER=['all','ride','run','walk','swim'];
+function sportDef(m){ return SPORTS[m||sportMode()] || SPORTS.ride; }
+function sportHas(m){ return m==='all' ? !!(acts&&acts.length) : (acts||[]).some(SPORTS[m].pred); }
 function sportMode(){
   if(milestoneMode===null){
-    const r=acts.filter(isRide).length, ru=acts.filter(isRun).length;
+    // default to whichever of ride/run the athlete does most (unchanged)
+    const r=(acts||[]).filter(isRide).length, ru=(acts||[]).filter(isRun).length;
     milestoneMode = ru>r ? 'run' : 'ride';
   }
   return milestoneMode;
 }
+function sportWord(pl){ const d=sportDef(); return pl ? d.words : d.word; }
+function sportUsesPace(){ return sportMode()==='all' ? false : sportDef().pace; }
 // activities for the current sport mode — used by the mode-aware pages
-function modeActs(){ return sportMode()==='run' ? acts.filter(isRun) : acts.filter(isRide); }
+function modeActs(){ return (acts||[]).filter(sportDef().pred); }
+
+const SPORT_ICONS = {
+  all:  '<svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
+  ride: '<svg viewBox="0 0 24 24"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>',
+  run:  '<svg viewBox="0 0 24 24"><circle cx="17" cy="5" r="1"/><path d="M7 21l3-4"/><path d="M16 21l-2-4-3-3 1-6"/><path d="M6 12l2-3 4-1 3 3 3 1"/></svg>',
+  walk: '<svg viewBox="0 0 24 24"><circle cx="13" cy="4" r="1.2"/><path d="M11 21l1-7"/><path d="M15 21l-2-5-1.5-2 .5-4.5"/><path d="M9 9l3.5-1 2 2.5 2.5 1"/></svg>',
+  swim: '<svg viewBox="0 0 24 24"><circle cx="16" cy="7" r="1.3"/><path d="M4 16c1.3 1.2 2.7 1.2 4 0s2.7-1.2 4 0 2.7 1.2 4 0 2.7-1.2 4 0"/><path d="M6 13l4.5-2.5 3 1.5"/><path d="M10.5 10.5l2.5-3 2.5 1"/></svg>',
+};
+// Build the top-bar toggle from the sports the athlete actually has.
+function renderSportToggle(){
+  const mt=document.getElementById('modeToggle'); if(!mt) return;
+  const avail=SPORT_ORDER.filter(sportHas);
+  if(!avail.length) return;
+  if(!avail.includes(sportMode())) milestoneMode = avail.find(m=>m!=='all') || avail[0];
+  mt.innerHTML = avail.map(m=>
+    `<button data-mode="${m}" title="${SPORTS[m].title}" onclick="setSportMode('${m}')"${m===sportMode()?' class="active"':''}>${SPORT_ICONS[m]}</button>`
+  ).join('');
+}
 function setMilestoneMode(m){ setSportMode(m); }
 function setSportMode(m){
   milestoneMode=m;
@@ -585,9 +623,11 @@ function renderMilestones(){
   const rides=acts.filter(isRide);
   const runs=acts.filter(a=>a.type==='Run'||a.type==='VirtualRun');
   let mode=sportMode();
-  if(mode==='run' && !runs.length && rides.length){ milestoneMode='ride'; mode='ride'; }
-  if(mode==='ride' && !rides.length && runs.length){ milestoneMode='run'; mode='run'; }
-  const set = mode==='run' ? runs : rides;
+  let set = modeActs();
+  if(!set.length){ mode='all'; milestoneMode='all'; set=acts.slice(); }   // never show an empty page
+  const pace = sportUsesPace();
+  const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+  const W = cap(sportWord()), Wp = cap(sportWord(true));   // "Ride"/"Rides", "Run"/"Runs", …
 
   // longest activity streak (all activities)
   const days=new Set(acts.map(a=>a.start_date?a.start_date.slice(0,10):null).filter(Boolean));
@@ -600,7 +640,7 @@ function renderMilestones(){
   const tElev=Math.round(elevVal(set.reduce((s,a)=>s+(a.total_elevation_gain||0),0)));
   const tTime=set.reduce((s,a)=>s+(a.moving_time||0),0);
   const totals=[
-    {v:set.length.toLocaleString(), l:mode==='run'?'Runs':'Rides'},
+    {v:set.length.toLocaleString(), l:mode==='all'?'Activities':Wp},
     {v:Number(tDist).toLocaleString(), l:'Distance ('+distUnit()+')'},
     {v:tElev.toLocaleString(), l:'Elevation ('+elevUnit()+')'},
     {v:fmtT(tTime), l:'Moving Time', sub:'≈ '+fmtDays(tTime)},
@@ -625,35 +665,46 @@ function renderMilestones(){
   set.forEach(a=>{const k=(a.start_date||'').slice(0,7); if(k)byMonth[k]=(byMonth[k]||0)+(a.distance||0);});
   const bestMonth=Object.entries(byMonth).sort((a,b)=>b[1]-a[1])[0];
   const bestMonthLbl=bestMonth?new Date(bestMonth[0]+'-01T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'}):null;
-  // signature long distances: centuries for rides, half marathon+ for runs
+  // signature long distances per sport: centuries (ride/all), half-mara (run),
+  // 10 km walks, 3 km swims.
   const centuryM=distUnit()==='mi'?160934:100000;
-  const centuries=rides.filter(a=>(a.distance||0)>=centuryM).length;
-  const longRuns=runs.filter(a=>(a.distance||0)>=21097).length;
+  const sigThresh = mode==='run'?21097 : mode==='walk'?10000 : mode==='swim'?3000 : centuryM;
+  const sigCount = set.filter(a=>(a.distance||0)>=sigThresh).length;
+  const sigLabel = mode==='run'?'Half Mara or More'
+    : mode==='walk'?(distUnit()==='mi'?'6 mi+ Walks':'10 km+ Walks')
+    : mode==='swim'?(distUnit()==='mi'?'2 mi+ Swims':'3 km+ Swims')
+    : 'Centuries';
+  const sigDesc = mode==='run'?(distUnit()==='mi'?'Runs of 13.1+ mi':'Runs of 21.1+ km')
+    : mode==='walk'?(distUnit()==='mi'?'Walks of 6+ mi':'Walks of 10+ km')
+    : mode==='swim'?(distUnit()==='mi'?'Swims of 2+ mi':'Swims of 3+ km')
+    : (distUnit()==='mi'?'Rides of 100+ mi':'Rides of 100+ km');
+  const paceIcon = pace ? 'run' : 'bike';
+  const prsLabel = mode==='all' ? 'Most PRs' : 'Most PRs in a '+W;
 
-  const records = mode==='run' ? [
-    {icon:'run',c:'#fc4c02',label:'Longest Run',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
+  const records = pace ? [
+    {icon:'run',c:'#fc4c02',label:'Longest '+W,val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
     {icon:'bolt',c:'#4da8ff',label:'Best Pace',val:fastest.average_speed?_pace(fastest.average_speed):'—',unit:'/'+distUnit(),desc:fastest.name},
     {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
     {icon:'clock',c:'#00cc88',label:'Longest Duration',val:longDur.moving_time?fmtT(longDur.moving_time):'—',unit:'',desc:longDur.name},
     {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
     {icon:'flame',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
-    {icon:'run',c:'#38bdf8',label:'Half Mara or More',val:longRuns||'—',unit:'runs',desc:distUnit()==='mi'?'Runs of 13.1+ mi':'Runs of 21.1+ km'},
+    {icon:'run',c:'#38bdf8',label:sigLabel,val:sigCount||'—',unit:sportWord(true),desc:sigDesc},
     {icon:'calendar',c:'#e879f9',label:'Biggest Month',val:bestMonth?fmtKm(bestMonth[1]):'—',unit:distUnit(),desc:bestMonthLbl},
     {icon:'kudos',c:'#4ade80',label:'Most Kudos',val:mostKudos.kudos_count||'—',unit:'kudos',desc:mostKudos.name},
-    {icon:'medal',c:'#22d3ee',label:'Most PRs in a Run',val:mostPRs.pr_count||'—',unit:'PRs',desc:mostPRs.name},
-    {icon:'calendar',c:'#94a3b8',label:'First Run',val:firstLbl||'—',unit:'',desc:first.name},
+    {icon:'medal',c:'#22d3ee',label:prsLabel,val:mostPRs.pr_count||'—',unit:'PRs',desc:mostPRs.name},
+    {icon:'calendar',c:'#94a3b8',label:'First '+W,val:firstLbl||'—',unit:'',desc:first.name},
   ] : [
-    {icon:'bike',c:'#fc4c02',label:'Longest Ride',val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
+    {icon:'bike',c:'#fc4c02',label:'Longest '+W,val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
     {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
     {icon:'gauge',c:'#4da8ff',label:'Fastest Avg',val:fastest.average_speed?kmh(fastest.average_speed).toFixed(1):'—',unit:speedUnit(),desc:fastest.name},
     {icon:'bolt',c:'#facc15',label:'Top Speed',val:topSpd.max_speed?kmh(topSpd.max_speed).toFixed(1):'—',unit:speedUnit(),desc:topSpd.name},
     {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
     {icon:'flame',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
-    {icon:'bike',c:'#38bdf8',label:'Centuries',val:centuries||'—',unit:'rides',desc:distUnit()==='mi'?'Rides of 100+ mi':'Rides of 100+ km'},
+    {icon:'bike',c:'#38bdf8',label:sigLabel,val:sigCount||'—',unit:sportWord(true),desc:sigDesc},
     {icon:'calendar',c:'#e879f9',label:'Biggest Month',val:bestMonth?fmtKm(bestMonth[1]):'—',unit:distUnit(),desc:bestMonthLbl},
     {icon:'kudos',c:'#4ade80',label:'Most Kudos',val:mostKudos.kudos_count||'—',unit:'kudos',desc:mostKudos.name},
-    {icon:'medal',c:'#22d3ee',label:'Most PRs in a Ride',val:mostPRs.pr_count||'—',unit:'PRs',desc:mostPRs.name},
-    {icon:'calendar',c:'#94a3b8',label:'First Ride',val:firstLbl||'—',unit:'',desc:first.name},
+    {icon:'medal',c:'#22d3ee',label:prsLabel,val:mostPRs.pr_count||'—',unit:'PRs',desc:mostPRs.name},
+    {icon:'calendar',c:'#94a3b8',label:'First '+W,val:firstLbl||'—',unit:'',desc:first.name},
   ];
 
   el.innerHTML=`
@@ -682,7 +733,7 @@ function renderRewind(filterYear){
   const yb=document.getElementById('rewindYearBtns');
   yb.innerHTML=years.map(y=>`<button class="year-btn${y===yr?' active':''}" onclick="renderRewind(${y})">${y}</button>`).join('');
   const ya=modeActs().filter(a=>new Date(a.start_date).getFullYear()===yr);
-  if(!ya.length){el.innerHTML='<p style="color:var(--muted)">No '+(sportMode()==='run'?'runs':'rides')+' in '+yr+'.</p>';return;}
+  if(!ya.length){el.innerHTML='<p style="color:var(--muted)">No '+sportWord(true)+' in '+yr+'.</p>';return;}
 
   const types={};
   ya.forEach(a=>{types[a.type]=(types[a.type]||0)+1;});

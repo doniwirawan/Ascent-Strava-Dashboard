@@ -213,6 +213,11 @@ const APP_ID = {
   // stat-card labels (static)
   'Distance': 'Jarak', 'Moving Time': 'Waktu Bergerak', 'Elevation': 'Elevasi',
   'Rides': 'Gowes', 'Runs': 'Lari', 'Kudos': 'Kudos', 'PRs': 'PR', 'Achievements': 'Pencapaian',
+  // extra sport modes (walk / swim / all)
+  'Walks': 'Jalan', 'Swims': 'Renang', 'Activities': 'Aktivitas', 'All': 'Semua',
+  'Longest Walk': 'Jalan Terjauh', 'Longest Swim': 'Renang Terjauh', 'Longest Activity': 'Aktivitas Terjauh',
+  'First Walk': 'Jalan Pertama', 'First Swim': 'Renang Pertama', 'First Activity': 'Aktivitas Pertama',
+  'Most PRs': 'PR Terbanyak', '10 km+ Walks': 'Jalan 10 km+', '3 km+ Swims': 'Renang 3 km+',
   'Avg Heart Rate': 'Detak Jantung Rata-rata', 'Best Streak': 'Rentetan Terbaik',
   'Consistency': 'Konsistensi', 'Calories': 'Kalori',
   // stat-card subs (static)

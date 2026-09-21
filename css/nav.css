@@ -8,7 +8,10 @@
 .unit-toggle button.active { background: var(--orange); color: #fff; }
 .unit-toggle button:not(.active):hover { color: var(--text); }
 .mode-toggle button { padding: 6px 11px; display: flex; align-items: center; }
-.mode-toggle button svg { width: 16px; height: 16px; display: block; }
+.mode-toggle button svg {
+  width: 16px; height: 16px; display: block;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
 
 /* language toggle (EN / ID) on the landing page */
 .lang-toggle { display: inline-flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }

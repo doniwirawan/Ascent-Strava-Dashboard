@@ -420,8 +420,8 @@ const SPEED_BAND_EDGES = {
 };
 
 function _spdEdges() {
-  const running = (typeof sportMode === 'function') && sportMode() === 'run';
-  return SPEED_BAND_EDGES[running ? 'run' : 'ride'];
+  const usePace = (typeof sportUsesPace === 'function') && sportUsesPace();
+  return SPEED_BAND_EDGES[usePace ? 'run' : 'ride'];
 }
 
 function speedZoneFor(ms) {

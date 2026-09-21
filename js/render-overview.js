@@ -29,7 +29,7 @@ function renderAll() {
   const ut=document.getElementById('unitToggle');
   if(ut){ ut.style.display=''; ut.querySelectorAll('[data-unit]').forEach(b=>b.classList.toggle('active',(b.dataset.unit==='mi')===useImperial)); }
   const mt=document.getElementById('modeToggle');
-  if(mt){ mt.style.display=''; mt.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===milestoneMode)); }
+  if(mt){ mt.style.display=''; if(typeof renderSportToggle==='function') renderSportToggle(); }
   const nl = document.getElementById('navLinks');
   nl.style.opacity = '1';
   nl.style.pointerEvents = '';
@@ -66,7 +66,7 @@ function renderStats() {
   const E     = eddington(set);
   const longest = set.reduce((m,a)=>(a.distance||0)>m?(a.distance||0):m,0);
   let longLbl, avgLbl, avgVal, avgSub, maxLbl, maxVal, maxSub;
-  if (mode==='run') {
+  if (sportUsesPace()) {
     longLbl=t('longRun');
     const totD=set.reduce((s,a)=>s+(a.distance||0),0), totT=set.reduce((s,a)=>s+(a.moving_time||0),0);
     avgLbl=t('avgPace'); avgVal=totT&&totD?_pace(totD/totT):'—'; avgSub='/'+distUnit();
@@ -125,7 +125,7 @@ function renderStats() {
   const elevDisp = elevVal(elev);
   document.getElementById('sv-elev').textContent    = elevDisp < 1000 ? Math.round(elevDisp)+' '+elevUnit() : Math.round(elevDisp/1000)+'k '+elevUnit();
   document.getElementById('sv-eddy').textContent    = E;
-  document.getElementById('sv-eddy-sub').textContent= (mode==='run'?t('running'):t('cycling'))+' '+distUnit();
+  document.getElementById('sv-eddy-sub').textContent= (sportUsesPace()?t('running'):t('cycling'))+' '+distUnit();
   document.getElementById('sv-rides').textContent   = rides.length;
   document.getElementById('sv-runs').textContent    = runs.length;
   document.getElementById('sv-kudos').textContent   = kudos.toLocaleString();
@@ -254,7 +254,8 @@ function _eddyGoalHTML(rides, E, mode, id) {
   const qualifying = dated.filter(r => r.km >= GOAL);
   const have = qualifying.length;
   const need = Math.max(0, GOAL - have);
-  const rideW = mode === 'run' ? (id ? 'lari' : 'runs') : (id ? 'gowes' : 'rides');
+  const ID_W = { ride:'gowes', run:'lari', walk:'jalan', swim:'renang', activity:'aktivitas' };
+  const rideW = id ? (ID_W[sportWord()]||'aktivitas') : sportWord(true);
   const head = `<div class="eddy-goal-head">🎯 ${id ? 'Target' : 'Goal'} E=${GOAL}</div>`;
 
   if (E >= GOAL) {
@@ -306,8 +307,9 @@ function _eddyDur(weeks, id) {
 
 function renderEddington() {
   const mode = sportMode();
-  const rides = mode==='run' ? acts.filter(a=>a.type==='Run'||a.type==='VirtualRun') : acts.filter(isRide);
-  const word = mode==='run' ? 'run' : 'ride';
+  const rides = modeActs();
+  const word = sportWord();
+  const ID_WORD = { ride:'gowes', run:'lari', walk:'jalan', swim:'renang', activity:'aktivitas' };
   const E = eddington(rides);
   document.getElementById('eddyNum').textContent = E;
 
@@ -318,7 +320,7 @@ function renderEddington() {
   for (let t=next; t<=E+3; t++) {
     const have = rides.filter(r=>kmVal(r.distance||0)>=t).length;
     const need = Math.max(0, t - have);
-    const w = id ? (mode==='run'?'lari':'gowes') : `${word}${need!==1?'s':''}`;
+    const w = id ? (ID_WORD[word]||'aktivitas') : `${word}${need!==1?'s':''}`;
     rows.push(id
       ? `<div class="eddy-step"><strong>E=${t}</strong> — butuh <strong>${need} ${w} lagi</strong> sejauh ≥${t} ${distUnit()} <span class="eddy-have">(punya ${have}/${t})</span></div>`
       : `<div class="eddy-step"><strong>E=${t}</strong> — need <strong>${need} more ${w}</strong> of ≥${t} ${distUnit()} <span class="eddy-have">(have ${have}/${t})</span></div>`);
