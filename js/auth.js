@@ -9,9 +9,9 @@ function showReconnect() {
   const SCOPE    = 'read,activity:read_all,profile:read_all,activity:write';
   const REDIRECT = encodeURIComponent(window.location.origin + '/callback');
   const authUrl  = `https://www.strava.com/oauth/authorize?client_id=${CONFIG.clientId}&response_type=code&redirect_uri=${REDIRECT}&approval_prompt=force&scope=${SCOPE}`;
-  setStatus('Session expired — <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">Reconnect with Strava →</a>');
+  setStatus(tr('Session expired') + ' — <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">' + tr('Reconnect with Strava →') + '</a>');
   const btn = document.getElementById('mainBtn');
-  btn.textContent = 'Reconnect';
+  btn.textContent = tr('Reconnect');
   btn.disabled = false;
   btn.onclick = () => { window.location.href = authUrl; };
 }
@@ -67,7 +67,7 @@ async function apiPut(ep, body, retry = false) {
 /* ── LOAD ── */
 async function loadData(forceRefresh = false) {
   const btn = document.getElementById('mainBtn');
-  btn.disabled = true; btn.textContent = 'Loading…';
+  btn.disabled = true; btn.textContent = tr('Loading…');
   if (forceRefresh) { _segsData = null; _photosLoaded = false; _chalCache = null; _gearCache = null; if (typeof clearStreamCache==='function') clearStreamCache(); } // refetch lazy sections on explicit refresh
   try {
     const cachedAthleteId = localStorage.getItem('strava_athlete_id');
@@ -78,8 +78,8 @@ async function loadData(forceRefresh = false) {
       if (local && local.length) {
         acts = local;
         renderAll();
-        setStatus(`✓ ${acts.length} activities (cached) — <a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">Refresh from Strava</a>`, 'success');
-        btn.textContent = 'Refresh'; btn.disabled = false;
+        setStatus('✓ ' + trf('{0} activities (cached)', acts.length) + ' — <a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">' + tr('Refresh from Strava') + '</a>', 'success');
+        btn.textContent = tr('Refresh'); btn.disabled = false;
         // Silently refresh athlete profile; ignore token errors against cached data
         try {
           if (isTokenExpired()) await doRefresh();
@@ -91,9 +91,9 @@ async function loadData(forceRefresh = false) {
       }
     }
 
-    setStatus('Refreshing token…', 'loading');
+    setStatus(tr('Refreshing token…'), 'loading');
     if (isTokenExpired()) await doRefresh();
-    setStatus('Loading profile…', 'loading');
+    setStatus(tr('Loading profile…'), 'loading');
     const athlete = await api('/athlete');
     renderAthlete(athlete);
     await loadHrZones();
@@ -101,19 +101,19 @@ async function loadData(forceRefresh = false) {
     // 2) Remote cache (e.g. first visit on a new device), now that the token
     //    is valid so the Edge Function can identify this athlete.
     if (!forceRefresh) {
-      setStatus('Checking cache…', 'loading');
+      setStatus(tr('Checking cache…'), 'loading');
       const remote = await cacheLoadRemote(athlete.id);
       if (remote && remote.length) {
         acts = remote;
         renderAll();
         renderGear();
-        setStatus(`✓ ${acts.length} activities (cached) — <a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">Refresh from Strava</a>`, 'success');
-        btn.textContent = 'Refresh'; btn.disabled = false;
+        setStatus('✓ ' + trf('{0} activities (cached)', acts.length) + ' — <a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">' + tr('Refresh from Strava') + '</a>', 'success');
+        btn.textContent = tr('Refresh'); btn.disabled = false;
         return;
       }
     }
 
-    setStatus('Fetching activities…', 'loading');
+    setStatus(tr('Fetching activities…'), 'loading');
     // Page through the athlete's full history (newest first) until the last
     // partial page. MAX_PAGES is only a runaway safety bound (~40k activities).
     const PER = 200, MAX_PAGES = 200;
@@ -122,17 +122,17 @@ async function loadData(forceRefresh = false) {
       const batch = await api(`/athlete/activities?per_page=${PER}&page=${page}`);
       if (!batch || !batch.length) break;
       acts = acts.concat(batch);
-      setStatus(`Fetching activities… (${acts.length})`, 'loading');
+      setStatus(trf('Fetching activities… ({0})', acts.length), 'loading');
       if (batch.length < PER) break; // last page reached
     }
     renderAll();
     cacheSave(acts, athlete.id);
-    setStatus(`✓ ${acts.length} activities loaded`, 'success');
-    btn.textContent = 'Refresh'; btn.disabled = false;
+    setStatus('✓ ' + trf('{0} activities loaded', acts.length), 'success');
+    btn.textContent = tr('Refresh'); btn.disabled = false;
   } catch (e) {
     if (e.sessionExpired) { showReconnect(); return; }
-    setStatus('Error: ' + e.message, 'error');
-    btn.textContent = 'Retry'; btn.disabled = false;
+    setStatus(tr('Error:') + ' ' + e.message, 'error');
+    btn.textContent = tr('Retry'); btn.disabled = false;
   }
 }
 
@@ -211,7 +211,7 @@ function loadDemo() {
     profile_medium:'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=160&h=160&fit=crop&crop=faces',
     profile:'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=320&h=320&fit=crop&crop=faces'});
   renderAll();
-  setStatus(`Demo mode — ${acts.length} sample activities`,'success');
+  setStatus(trf('Demo mode — {0} sample activities', acts.length),'success');
   const btn=document.getElementById('mainBtn');
-  btn.textContent='Refresh'; btn.disabled=false;
+  btn.textContent=tr('Refresh'); btn.disabled=false;
 }

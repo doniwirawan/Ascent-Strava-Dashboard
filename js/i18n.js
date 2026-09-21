@@ -444,6 +444,15 @@ const TR_ID = {
   'No rides with power data.': 'Tak ada gowes dengan data power.',
   'Rate-limited — reopen later to resume; fetched rides are cached.': 'Kena batas laju — buka lagi nanti untuk lanjut; gowes yang diambil tersimpan.',
   // HR decoupling
+  // Status bar + auth (auth.js / app.js). 'Refresh' already exists above.
+  'Loading…': 'Memuat…', 'Reconnect': 'Sambungkan ulang', 'Connect': 'Sambungkan', 'Retry': 'Coba lagi',
+  'Session expired': 'Sesi berakhir', 'Reconnect with Strava →': 'Sambungkan ulang dengan Strava →',
+  'Not connected': 'Belum tersambung', 'Connect with Strava →': 'Sambungkan dengan Strava →',
+  'Refresh from Strava': 'Muat ulang dari Strava', 'Refreshing token…': 'Menyegarkan token…',
+  'Loading profile…': 'Memuat profil…', 'Checking cache…': 'Memeriksa cache…',
+  'Fetching activities…': 'Mengambil aktivitas…', 'Fetching activities… ({0})': 'Mengambil aktivitas… ({0})',
+  '{0} activities (cached)': '{0} aktivitas (tersimpan)', '{0} activities loaded': '{0} aktivitas dimuat',
+  'Demo mode — {0} sample activities': 'Mode demo — {0} aktivitas contoh', 'Error:': 'Kesalahan:',
   // Sleep import panel (sleep-import.js)
   'Update sleep data': 'Perbarui data tidur',
   'Drop a new Huawei Health export': 'Jatuhkan ekspor Huawei Health baru',
