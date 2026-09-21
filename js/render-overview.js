@@ -52,7 +52,7 @@ function renderAll() {
 /* ── STATS ── */
 function renderStats() {
   const rides = acts.filter(isRide);
-  const runs  = acts.filter(a=>a.type==='Run'||a.type==='VirtualRun');
+  const runs  = acts.filter(a=>typeof isRun==='function'?isRun(a):(a.type==='Run'||a.type==='VirtualRun'||a.type==='TrailRun'));
 
   // ── everything below follows the navbar Cyclist/Runner mode ──
   const mode = sportMode();

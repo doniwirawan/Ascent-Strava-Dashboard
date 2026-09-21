@@ -868,7 +868,7 @@ async function renderChallenges(){
   const totalPR  =acts.reduce((s,a)=>s+(a.pr_count||0),0);
   const totalKudos=acts.reduce((s,a)=>s+(a.kudos_count||0),0);
   const rides    =acts.filter(isRide);
-  const runs     =acts.filter(a=>a.type==='Run'||a.type==='VirtualRun');
+  const runs     =acts.filter(a=>typeof isRun==='function'?isRun(a):(a.type==='Run'||a.type==='VirtualRun'||a.type==='TrailRun'));
   const longestRide=rides.reduce((m,a)=>a.distance>m?a.distance:m,0)/1000;
   const longestRun =runs.reduce((m,a)=>a.distance>m?a.distance:m,0)/1000;
 
