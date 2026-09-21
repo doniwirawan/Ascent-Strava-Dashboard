@@ -241,7 +241,10 @@ const APP_ID = {
   // activity detail modal stat labels
   'Elapsed': 'Waktu Berlalu', 'Avg Speed': 'Kecepatan Rata-rata', 'Avg Pace': 'Pace Rata-rata',
   'Max Speed': 'Kecepatan Maks', 'Max Pace': 'Pace Maks', 'Highest Pt': 'Titik Tertinggi',
-  'Avg Cadence': 'Kadens Rata-rata', 'Avg HR': 'HR Rata-rata', 'Max HR': 'HR Maks',
+  'Avg Cadence': 'Cadence Rata-rata', 'Avg HR': 'HR Rata-rata', 'Max HR': 'HR Maks',
+  // activity modal action buttons (kept out of the caption generators, which post to Strava)
+  'Analyze performance': 'Analisis performa', 'AI title & description': 'Judul & deskripsi AI',
+  'Stats title & description': 'Judul & deskripsi statistik',
   'Avg Power': 'Daya Rata-rata', 'Norm Power': 'Daya Normal', 'Max Power': 'Daya Maks',
   'Energy': 'Energi', 'Relative Effort': 'Upaya Relatif', 'Avg Temp': 'Suhu Rata-rata',
   'Comments': 'Komentar',
@@ -500,6 +503,11 @@ const TR_ID = {
 
   /* ── Sleep & Recovery section, and the remaining Training strings ── */
   'Loading sleep data…': 'Memuat data tidur…',
+  // sleep before/after an activity (technical terms like Deep/REM/Eff stay English)
+  'Sleep around this session': 'Tidur di sekitar sesi ini', 'Night before': 'Malam sebelumnya',
+  'Night after': 'Malam setelahnya', 'after': 'setelah', 'no sleep recorded': 'tidak ada data tidur',
+  'Loading sleep…': 'Memuat tidur…', 'No sleep data for this date': 'Belum ada data tidur untuk tanggal ini',
+  'sleep data currently runs to {0}. Re-upload a newer Huawei export to extend it.': 'data tidur saat ini sampai {0}. Unggah ulang ekspor Huawei terbaru untuk memperpanjangnya.',
   'Could not render sleep data.': 'Tidak bisa menampilkan data tidur.',
   'Sleep data could not be loaded.': 'Data tidur gagal dimuat.',
   'before 06:00': 'sebelum 06:00',
@@ -856,6 +864,7 @@ window.trf = function (s, ...args) {
   const DYN_SEL = '.hero-label,.ctop-title,.best-card-title,.best-more,.gear-stat-lbl,.gear-primary,' +
     '.mst-lbl,.mst-cl,.mst-sub,.seg-m-lbl,.actd-stat-lbl,.actd-badge,.actd-strava,' +
     '.seg-chip-btn,.seg-pr-empty,.seg-link,.seg-sum-top,.ryc-l,.gr-to,.gr-title,' +
+    '.actd-ai-btn,.actd-stats-btn,' +
     '.month-table th,.cal2-stats div,.cal2-legend,.ach-badge-name,.ach-badge-unit,' +
     '#rewindContent .card div,#challengesGrid div,#challengesGrid span';
   function translateDynamic() {

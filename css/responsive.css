@@ -10,6 +10,14 @@
   .eddy-wrap { flex-wrap: wrap; }
 }
 
+/* Eddington: the number · info · chart row stacks vertically on phones so the
+   text and chart each get the full width instead of being squeezed side by side. */
+@media (max-width: 680px) {
+  .eddy-wrap { flex-direction: column; align-items: stretch; gap: 16px; }
+  .eddy-wrap > div { width: 100%; min-width: 0; }
+  .eddy-num { font-size: 60px; line-height: 1; }
+}
+
 @media (max-width: 768px) {
   :root { --nav-h: 52px; }
 

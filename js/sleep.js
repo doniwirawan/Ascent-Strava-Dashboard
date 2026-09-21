@@ -2223,7 +2223,17 @@ async function renderActivitySleep(a) {
   const byDate = new Map(nights.map(n => [n.date, n]));
   const before = byDate.get(D), after = byDate.get(_slpNext(D));
   const bOk = before && before.asleep >= 60, aOk = after && after.asleep >= 60;
-  if (!bOk && !aOk) { host.innerHTML = ''; return; }   // no sleep around this session — show nothing
+  if (!bOk && !aOk) {
+    // Owner opened an activity with no sleep on either side (common for rides
+    // newer than the last export). Show a quiet note so it's clear the feature
+    // is here, not broken — rather than a silent gap.
+    const last = nights.length ? nights[nights.length - 1].date : '';
+    host.innerHTML = '<div class="slp-ba-h">🌙 ' + T('Sleep around this session') + '</div>'
+      + '<div class="slp-ba-none">' + T('No sleep data for this date')
+      + (D > last && last ? ' — ' + trf('sleep data currently runs to {0}. Re-upload a newer Huawei export to extend it.', last) : '.')
+      + '</div>';
+    return;
+  }
 
   let delta = '';
   if (bOk && aOk) {

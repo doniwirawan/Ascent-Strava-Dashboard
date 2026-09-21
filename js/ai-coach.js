@@ -243,7 +243,7 @@ async function aiCaptionActivity(id) {
       + (roast ? 'Be fun and witty with a light, good-natured ROAST of the effort. ' : 'Keep an upbeat, motivating tone. ')
       + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. '
       + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
-      + 'If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind, etc.). '
+      + 'If a "weather" field is present it is a rough estimate that may be inaccurate — reference conditions only lightly, never as a hard fact, and if it seems inconsistent with the effort just leave weather out. '
       + 'Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
   ];
@@ -302,7 +302,7 @@ async function aiAnalyzeActivity(id, force) {
       'You are an expert cycling and running coach. Analyse ONE activity using ONLY the numbers provided — never invent data. '
       + 'Address the athlete directly as "you". ' + aiLangLine()
       + 'Structure the reply as short markdown: a one-line **verdict**, then a "Strengths" list (2–3 bullets), '
-      + 'a "Work on" list (2–3 bullets), and one concrete "Next time" tip. Reference the real stats (speed, HR, power, elevation, weather). '
+      + 'a "Work on" list (2–3 bullets), and one concrete "Next time" tip. Reference the real stats (speed, HR, power, elevation). Weather, if present, is an approximate estimate — treat it as uncertain, do not build the analysis around it, and skip it if it looks off. '
       + 'Keep it under ~160 words. No preamble, no headings other than those named.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nAnalyse my performance.' },
   ];
@@ -443,7 +443,7 @@ async function bulkRun(p, mode) {
         const t = aiStatsTemplate(a, wx); name = t.title; desc = t.desc;
       } else {
         const messages = [
-          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If a "weather" field is present, weave the conditions in naturally. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
+          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
           { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
         ];
         const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });

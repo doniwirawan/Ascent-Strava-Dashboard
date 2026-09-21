@@ -478,6 +478,7 @@
 .slp-ba-d { font-size: 15px; font-weight: 800; }
 .slp-ba-dl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }
 .slp-ba-load { font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
+.slp-ba-none { font-size: 12.5px; color: var(--text-3); line-height: 1.5; }
 @media (max-width: 520px) {
   .slp-ba { flex-wrap: wrap; }
   .slp-ba-delta { order: 3; flex-direction: row; gap: 6px; min-width: 100%; }
