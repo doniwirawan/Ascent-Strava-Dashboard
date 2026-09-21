@@ -216,7 +216,7 @@ const BASEMAP = (typeof CONFIG !== 'undefined' && CONFIG.cartoKey)
       opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' },
       invert: true,
       // keep in sync with .leaflet-dark-tiles in css/components.css
-      filter: 'invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.82) contrast(1.05)' };
+      filter: 'invert(1) hue-rotate(180deg) saturate(0.28) brightness(0.72) contrast(1.12)' };
 
 /* Alternate views offered by the map switcher. Esri's tiles are key-free and
    global; `invert` marks the one view that needs the dark CSS filter. */

@@ -364,6 +364,19 @@ const HEAT_BANDS = [                   // ascending; `min` = rides through the c
   { min: 8, color: '#FFD98A', weight: 3.6, opacity: 0.95 },
 ];
 
+// Two ways to read the map. 'freq' = the colour ramp above (hot roads = ridden
+// more often). 'uniform' = one flat orange for every road, so the map reads
+// purely as "everywhere I've been" — easier to take in at a glance. The choice
+// is remembered across visits.
+const HEAT_UNIFORM = { color: '#FC4C02', weight: 2.2, opacity: 0.8 };
+let heatMode = 'freq';
+try { const m = localStorage.getItem('heat_mode'); if (m === 'freq' || m === 'uniform') heatMode = m; } catch {}
+
+// A dark casing drawn under every line lifts the routes off busy basemaps
+// (satellite especially) without changing their colour. Round joins/caps keep
+// the traces smooth where segments meet.
+const HEAT_CASING = { color: '#0a0a0a', opacity: 0.35, lineJoin: 'round', lineCap: 'round', interactive: false };
+
 // Cells are keyed by a packed integer rather than a "lat:lng" string — with
 // ~300k samples across a full history, numeric Map keys avoid a lot of
 // string allocation. Offsets keep both indices positive; the product stays
@@ -421,18 +434,24 @@ function heatBandLines(tracks, counts) {
 }
 
 // Small key so the colour ramp reads as "how often", not "which activity".
+// In uniform mode the ramp collapses to a single swatch.
 function heatLegend(map){
   const T=(typeof tr==='function')?tr:(x=>x);
   const c=L.control({position:'bottomleft'});
   c.onAdd=()=>{
     const d=L.DomUtil.create('div','heat-legend');
-    d.innerHTML='<span class="hl-t">'+T('Rides here')+'</span>'+
-      HEAT_BANDS.map((b,i)=>{
-        const next=HEAT_BANDS[i+1];
-        const label=next ? (next.min-b.min===1 ? b.min : b.min+'–'+(next.min-1)) : b.min+'+';
-        return '<span class="hl-i"><i style="background:'+b.color+
-               ';height:'+b.weight+'px;opacity:'+b.opacity+'"></i>'+label+'</span>';
-      }).join('');
+    if(heatMode==='uniform'){
+      d.innerHTML='<span class="hl-i"><i style="background:'+HEAT_UNIFORM.color+
+        ';height:'+HEAT_UNIFORM.weight+'px;opacity:'+HEAT_UNIFORM.opacity+'"></i>'+T('Where you ride')+'</span>';
+    }else{
+      d.innerHTML='<span class="hl-t">'+T('Rides here')+'</span>'+
+        HEAT_BANDS.map((b,i)=>{
+          const next=HEAT_BANDS[i+1];
+          const label=next ? (next.min-b.min===1 ? b.min : b.min+'–'+(next.min-1)) : b.min+'+';
+          return '<span class="hl-i"><i style="background:'+b.color+
+                 ';height:'+b.weight+'px;opacity:'+b.opacity+'"></i>'+label+'</span>';
+        }).join('');
+    }
     L.DomEvent.disableClickPropagation(d);
     return d;
   };
@@ -440,10 +459,38 @@ function heatLegend(map){
   return c;
 }
 
-function renderHeatmap(){
+// Segmented Frequency / Uniform switch, styled to match the basemap control.
+function heatModeControl(map){
+  const T=(typeof tr==='function')?tr:(x=>x);
+  const c=L.control({position:'topleft'});
+  c.onAdd=()=>{
+    const d=L.DomUtil.create('div','heat-mode leaflet-bar');
+    const mk=(id,label)=>'<button type="button" data-hm="'+id+'"'+
+      (heatMode===id?' class="on"':'')+'>'+T(label)+'</button>';
+    d.innerHTML=mk('freq','Frequency')+mk('uniform','Uniform');
+    L.DomEvent.disableClickPropagation(d);
+    d.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+      const m=b.getAttribute('data-hm');
+      if(m===heatMode) return;
+      heatMode=m;
+      try{ localStorage.setItem('heat_mode',m); }catch{}
+      renderHeatmap(true);                 // keep the current pan/zoom
+    }));
+    return d;
+  };
+  c.addTo(map);
+  return c;
+}
+
+function renderHeatmap(preserveView){
   if(!window.L){setTimeout(renderHeatmap,300);return;}
   const el=document.getElementById('leafletMap');
-  if(leafletMapInst){leafletMapInst.remove();leafletMapInst=null;}
+  // Remember where the user was looking so a mode toggle doesn't reset the view.
+  let keep=null;
+  if(leafletMapInst){
+    if(preserveView){ try{ keep={center:leafletMapInst.getCenter(),zoom:leafletMapInst.getZoom()}; }catch{} }
+    leafletMapInst.remove();leafletMapInst=null;
+  }
 
   leafletMapInst=L.map(el,{zoomControl:true,scrollWheelZoom:true,center:[-8.34,115.09],zoom:12});
   addBasemap(leafletMapInst,{switcher:true});
@@ -461,16 +508,28 @@ function renderHeatmap(){
     }catch{}
   });
 
-  // Heat bands first (cold underneath, hot on top) — display only.
-  const counts=heatCounts(tracks);
-  heatBandLines(tracks,counts).forEach((segs,i)=>{
-    if(!segs.length) return;
-    const b=HEAT_BANDS[i];
-    L.polyline(segs,{color:b.color,weight:b.weight,opacity:b.opacity,interactive:false})
-      .addTo(leafletMapInst);
-  });
+  // Dark casing under everything so the routes read clearly on any basemap.
+  if(tracks.length){
+    const cw=(heatMode==='uniform'?HEAT_UNIFORM.weight:HEAT_BANDS[HEAT_BANDS.length-1].weight)+1.6;
+    L.polyline(tracks,Object.assign({weight:cw},HEAT_CASING)).addTo(leafletMapInst);
+  }
 
-  if(tracks.length) heatLegend(leafletMapInst);
+  if(heatMode==='uniform'){
+    // One flat colour: the map reads as "everywhere I've been", not "how often".
+    L.polyline(tracks,{color:HEAT_UNIFORM.color,weight:HEAT_UNIFORM.weight,opacity:HEAT_UNIFORM.opacity,
+      lineJoin:'round',lineCap:'round',interactive:false}).addTo(leafletMapInst);
+  }else{
+    // Heat bands (cold underneath, hot on top) — display only.
+    const counts=heatCounts(tracks);
+    heatBandLines(tracks,counts).forEach((segs,i)=>{
+      if(!segs.length) return;
+      const b=HEAT_BANDS[i];
+      L.polyline(segs,{color:b.color,weight:b.weight,opacity:b.opacity,
+        lineJoin:'round',lineCap:'round',interactive:false}).addTo(leafletMapInst);
+    });
+  }
+
+  if(tracks.length){ heatLegend(leafletMapInst); heatModeControl(leafletMapInst); }
 
   // Invisible per-activity lines on top keep the tooltip / hover / click that
   // the merged bands can't carry.
@@ -483,7 +542,8 @@ function renderHeatmap(){
     hit.on('click',()=>{ try{ openActivityModal(String(a.id)); }catch{} });
   });
 
-  if(bounds.length){
+  if(keep){ leafletMapInst.setView(keep.center,keep.zoom); }
+  else if(bounds.length){
     // Fit to the dense core of activities (5th–95th percentile) so a few
     // far-away rides don't force the map to zoom way out. Works for any user.
     const lats=bounds.map(b=>b[0]).sort((a,b)=>a-b);

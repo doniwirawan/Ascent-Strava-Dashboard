@@ -1184,3 +1184,30 @@ body.dev .dev-tag { display: inline-block; }
 @media (max-width: 780px) {
   .wh-row { grid-template-columns: 1fr; }
 }
+
+/* ── Sleep import panel (owner-only: drop a new Huawei export) ── */
+.slp-import summary::-webkit-details-marker { display: none; }
+.slp-import[open] > summary { margin-bottom: 4px; }
+.slp-drop {
+  display: flex; align-items: center; gap: 14px;
+  border: 1.5px dashed var(--border-hover); border-radius: 12px;
+  padding: 16px 18px; cursor: pointer; transition: border-color .15s, background .15s;
+  background: var(--surface2);
+}
+.slp-drop:hover, .slp-drop.over { border-color: var(--orange); background: var(--orange-dim); }
+.slp-drop-ico { font-size: 26px; line-height: 1; }
+.slp-pw { display: flex; flex-direction: column; gap: 5px; margin: 14px 0 4px; }
+.slp-pw span { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); }
+.slp-pw input {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 9px;
+  padding: 10px 12px; color: var(--text); font-size: 14px; font-family: inherit;
+}
+.slp-pw input:focus { outline: none; border-color: var(--orange); }
+.slp-import-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.slp-prog { height: 6px; background: var(--surface3); border-radius: 4px; overflow: hidden; margin-top: 12px; }
+.slp-prog-bar { height: 100%; width: 5%; background: var(--orange); border-radius: 4px; transition: width .3s ease; }
+.slp-msg { margin-top: 10px; font-size: 13px; line-height: 1.5; color: var(--text-2); min-height: 1em; }
+.slp-msg.ok   { color: #22c55e; }
+.slp-msg.warn { color: #f59e0b; }
+.slp-msg.err  { color: #ef4444; }
+@media (max-width: 560px) { .slp-drop { flex-wrap: wrap; } }

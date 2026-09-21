@@ -1434,7 +1434,8 @@ function _slpDraw(nights, body) {
     </tr>`;
   };
 
-  body.innerHTML = `
+  body.innerHTML =
+    (typeof slpImportPanelHTML === 'function' ? slpImportPanelHTML() : '') + `
     <div class="slp-intro card">
       <div class="slp-intro-h">${trf('{0} nights of sleep, {1}', real.length, span)}</div>
       <div class="slp-intro-b">${tr('Sleep stages come from a one-off Huawei Health (TruSleep) export. Training is joined live from Strava, so every comparison below updates as you ride. A night is labelled by the morning you woke up.')}</div>
@@ -1569,6 +1570,8 @@ function _slpDraw(nights, body) {
     ${_slpBikeHTML(bike)}
     ${_slpExportHTML(A)}
   `;
+
+  try { if (typeof wireSleepImport === 'function') wireSleepImport(); } catch (e) { console.error('sleep import wiring failed', e); }
 
   /* ── charts ── */
   const B = [
