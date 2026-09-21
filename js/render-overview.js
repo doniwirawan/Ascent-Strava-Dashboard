@@ -67,12 +67,15 @@ function renderStats() {
   const longest = set.reduce((m,a)=>(a.distance||0)>m?(a.distance||0):m,0);
   let longLbl, avgLbl, avgVal, avgSub, maxLbl, maxVal, maxSub;
   if (sportUsesPace()) {
+    const swim = (typeof sportMode==='function') && sportMode()==='swim';
+    const pace = s => swim ? _swimPace(s) : _pace(s);
+    const paceSub = swim ? '/100m' : '/'+distUnit();
     longLbl=t('longRun');
     const totD=set.reduce((s,a)=>s+(a.distance||0),0), totT=set.reduce((s,a)=>s+(a.moving_time||0),0);
-    avgLbl=t('avgPace'); avgVal=totT&&totD?_pace(totD/totT):'—'; avgSub='/'+distUnit();
+    avgLbl=t('avgPace'); avgVal=totT&&totD?pace(totD/totT):'—'; avgSub=paceSub;
     const paced=set.filter(a=>a.average_speed>0);
     const best=paced.length?paced.reduce((m,a)=>a.average_speed>m.average_speed?a:m):null;
-    maxLbl=t('bestPace'); maxVal=best?_pace(best.average_speed):'—'; maxSub='/'+distUnit();
+    maxLbl=t('bestPace'); maxVal=best?pace(best.average_speed):'—'; maxSub=paceSub;
   } else {
     longLbl=t('longRide');
     const riding=set.filter(a=>a.average_speed>0);

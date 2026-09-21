@@ -617,6 +617,8 @@ function setSportMode(m){
   if (window.applyI18n) window.applyI18n();
 }
 function _pace(speed){ if(!speed) return '—'; const sec=Math.round((useImperial?1609.34:1000)/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
+// Swimming reads in time per 100 m, not km/h or min/km.
+function _swimPace(speed){ if(!speed) return '—'; const sec=Math.round(100/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
 function renderMilestones(){
   const el=document.getElementById('milestonesGrid');
   if(!acts.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No data.</p>';return;}
@@ -680,7 +682,7 @@ function renderMilestones(){
 
   const records = pace ? [
     {icon:'run',c:'#fc4c02',label:'Longest '+W,val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
-    {icon:'bolt',c:'#4da8ff',label:'Best Pace',val:fastest.average_speed?_pace(fastest.average_speed):'—',unit:'/'+distUnit(),desc:fastest.name},
+    {icon:'bolt',c:'#4da8ff',label:'Best Pace',val:fastest.average_speed?(mode==='swim'?_swimPace(fastest.average_speed):_pace(fastest.average_speed)):'—',unit:mode==='swim'?'/100m':'/'+distUnit(),desc:fastest.name},
     {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
     {icon:'clock',c:'#00cc88',label:'Longest Duration',val:longDur.moving_time?fmtT(longDur.moving_time):'—',unit:'',desc:longDur.name},
     {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},

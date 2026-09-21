@@ -406,9 +406,13 @@ function openActivityModal(ref){
     _actStat('Moving Time', fmtT(a.moving_time)),
     a.elapsed_time && a.elapsed_time!==a.moving_time ? _actStat('Elapsed', fmtT(a.elapsed_time)) : '',
     ride ? _actStat('Avg Speed', a.average_speed?fmtSpeed(a.average_speed):'—')
-         : _actStat('Avg Pace', a.average_speed?_pace(a.average_speed)+' /'+distUnit():'—'),
+         : (typeof isSwim==='function' && isSwim(a))
+           ? _actStat('Avg Pace', a.average_speed?_swimPace(a.average_speed)+' /100m':'—')
+           : _actStat('Avg Pace', a.average_speed?_pace(a.average_speed)+' /'+distUnit():'—'),
     ride ? _actStat('Max Speed', cleanMax(a)?fmtSpeed(a.max_speed):'—')
-         : _actStat('Max Pace', a.max_speed?_pace(a.max_speed)+' /'+distUnit():'—'),
+         : (typeof isSwim==='function' && isSwim(a))
+           ? _actStat('Max Pace', a.max_speed?_swimPace(a.max_speed)+' /100m':'—')
+           : _actStat('Max Pace', a.max_speed?_pace(a.max_speed)+' /'+distUnit():'—'),
     _actStat('Elevation', a.total_elevation_gain?fmtElev(a.total_elevation_gain):''),
     _actStat('Highest Pt', a.elev_high!=null?fmtElev(a.elev_high):''),
     _actStat('Avg Cadence', a.average_cadence?(ride?Math.round(a.average_cadence)+' rpm':Math.round(a.average_cadence*2)+' spm'):''),
