@@ -444,6 +444,14 @@ const TR_ID = {
   'No rides with power data.': 'Tak ada gowes dengan data power.',
   'Rate-limited — reopen later to resume; fetched rides are cached.': 'Kena batas laju — buka lagi nanti untuk lanjut; gowes yang diambil tersimpan.',
   // HR decoupling
+  // Gear — bike usage + maintenance (gear-maint.js)
+  'Bike': 'Sepeda', 'Bike Usage': 'Penggunaan Sepeda', 'Maintenance': 'Perawatan',
+  'Hours': 'Jam', 'Avg speed': 'Kecepatan rata-rata', 'total': 'total',
+  'Chain': 'Rantai', 'Tires': 'Ban', 'Brake pads': 'Kampas rem', 'Wax / Lube': 'Wax / Pelumas',
+  'Not tracked': 'Tidak dilacak', 'not tracked': 'tidak dilacak', 'Overdue': 'Terlambat',
+  'Due soon': 'Segera', 'OK': 'OK', 'Set up': 'Atur', 'every': 'setiap',
+  'Log again': 'Catat lagi', 'Log service': 'Catat servis', 'Stop tracking': 'Berhenti melacak',
+  'Strava has no service data — log a service to start tracking. Saved on this device.': 'Strava tidak punya data servis — catat servis untuk mulai melacak. Disimpan di perangkat ini.',
   // HR / speed zones (fitness.js). Zone + band names stay English on purpose.
   'Heart Rate Zones': 'Zona Detak Jantung', 'Loading zones…': 'Memuat zona…',
   'Exact time in each zone, from Strava': 'Waktu persis di tiap zona, dari Strava',

@@ -74,17 +74,17 @@ function renderGearMaint(bikes) {
     const avg = s.time > 0 ? s.dist / s.time : 0;
     const w = gmWorst(b.id, dm, state);
     return `<tr>
-      <td class="gm-td-name">${b.nickname || b.name || 'Bike'}${b.primary ? ' <span class="gear-primary">Primary</span>' : ''}</td>
+      <td class="gm-td-name">${b.nickname || b.name || tr('Bike')}${b.primary ? ' <span class="gear-primary">' + tr('Primary') + '</span>' : ''}</td>
       <td>${kmVal(dm).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${distUnit()}</td>
       <td>${s.elev ? Math.round(elevVal(s.elev)).toLocaleString() + ' ' + elevUnit() : '—'}</td>
       <td>${s.time ? Math.round(s.time / 3600).toLocaleString() + ' h' : '—'}</td>
       <td>${avg ? kmh(avg).toFixed(1) + ' ' + speedUnit() : '—'}</td>
-      <td><span class="gm-pill gm-${w.cls}">${w.label}</span></td>
+      <td><span class="gm-pill gm-${w.cls}">${tr(w.label)}</span></td>
     </tr>`;
   }).join('');
 
   const table = `<div class="gm-table-wrap"><table class="gm-table">
-    <thead><tr><th>Bike</th><th>Distance</th><th>Elevation</th><th>Hours</th><th>Avg speed</th><th>Maintenance</th></tr></thead>
+    <thead><tr><th>${tr('Bike')}</th><th>${tr('Distance')}</th><th>${tr('Elevation')}</th><th>${tr('Hours')}</th><th>${tr('Avg speed')}</th><th>${tr('Maintenance')}</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 
   const cards = bikes.map(b => {
@@ -98,28 +98,28 @@ function renderGearMaint(bikes) {
       const thrDisp = kmVal(thr).toFixed(0);
       const sinceDisp = since != null ? kmVal(since).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
       return `<div class="gm-comp gm-${st.cls}">
-        <div class="gm-comp-top"><span class="gm-comp-name">${c.name}</span><span class="gm-comp-status">${st.label}</span></div>
+        <div class="gm-comp-top"><span class="gm-comp-name">${tr(c.name)}</span><span class="gm-comp-status">${tr(st.label)}</span></div>
         <div class="gm-bar"><span style="width:${Math.min(100, Math.round(st.pct * 100))}%"></span></div>
         <div class="gm-comp-bot">
-          <span class="gm-since">${tracked ? `${sinceDisp} / ${thrDisp} ${distUnit()}` : 'not tracked'}</span>
+          <span class="gm-since">${tracked ? `${sinceDisp} / ${thrDisp} ${distUnit()}` : tr('not tracked')}</span>
           <span class="gm-actions">
-            <label class="gm-thr-l">every <input class="gm-thr" type="number" min="1" value="${thrDisp}" data-bike="${b.id}" data-comp="${c.key}"> ${distUnit()}</label>
-            <button class="gm-log" data-bike="${b.id}" data-comp="${c.key}">${tracked ? 'Log again' : 'Log service'}</button>
-            ${tracked ? `<button class="gm-clear" data-bike="${b.id}" data-comp="${c.key}" title="Stop tracking">✕</button>` : ''}
+            <label class="gm-thr-l">${tr('every')} <input class="gm-thr" type="number" min="1" value="${thrDisp}" data-bike="${b.id}" data-comp="${c.key}"> ${distUnit()}</label>
+            <button class="gm-log" data-bike="${b.id}" data-comp="${c.key}">${tracked ? tr('Log again') : tr('Log service')}</button>
+            ${tracked ? `<button class="gm-clear" data-bike="${b.id}" data-comp="${c.key}" title="${tr('Stop tracking')}">✕</button>` : ''}
           </span>
         </div>
       </div>`;
     }).join('');
     return `<div class="gm-bike">
-      <div class="gm-bike-head">${b.nickname || b.name || 'Bike'} <span class="gm-bike-km">${kmVal(dm).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${distUnit()} total</span></div>
+      <div class="gm-bike-head">${b.nickname || b.name || tr('Bike')} <span class="gm-bike-km">${kmVal(dm).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${distUnit()} ${tr('total')}</span></div>
       <div class="gm-comps">${comps}</div>
     </div>`;
   }).join('');
 
   el.innerHTML = `
-    <div class="gm-section-title">Bike Usage</div>
+    <div class="gm-section-title">${tr('Bike Usage')}</div>
     ${table}
-    <div class="gm-section-title">Maintenance <span class="gm-hint">Strava has no service data — log a service to start tracking. Saved on this device.</span></div>
+    <div class="gm-section-title">${tr('Maintenance')} <span class="gm-hint">${tr('Strava has no service data — log a service to start tracking. Saved on this device.')}</span></div>
     ${cards}`;
 
   el.querySelectorAll('.gm-log').forEach(btn => btn.onclick = () => gmLog(btn.dataset.bike, btn.dataset.comp, bikes));
