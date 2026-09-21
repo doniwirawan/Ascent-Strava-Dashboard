@@ -620,8 +620,6 @@ function _pace(speed){ if(!speed) return '—'; const sec=Math.round((useImperia
 function renderMilestones(){
   const el=document.getElementById('milestonesGrid');
   if(!acts.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No data.</p>';return;}
-  const rides=acts.filter(isRide);
-  const runs=acts.filter(a=>a.type==='Run'||a.type==='VirtualRun');
   let mode=sportMode();
   let set = modeActs();
   if(!set.length){ mode='all'; milestoneMode='all'; set=acts.slice(); }   // never show an empty page
@@ -678,7 +676,6 @@ function renderMilestones(){
     : mode==='walk'?(distUnit()==='mi'?'Walks of 6+ mi':'Walks of 10+ km')
     : mode==='swim'?(distUnit()==='mi'?'Swims of 2+ mi':'Swims of 3+ km')
     : (distUnit()==='mi'?'Rides of 100+ mi':'Rides of 100+ km');
-  const paceIcon = pace ? 'run' : 'bike';
   const prsLabel = mode==='all' ? 'Most PRs' : 'Most PRs in a '+W;
 
   const records = pace ? [
