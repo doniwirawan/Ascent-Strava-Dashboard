@@ -441,6 +441,12 @@ const TR_ID = {
   // HR decoupling
   'Heart Rate Decoupling': 'Decoupling Detak Jantung',
   'aerobic drift, first vs second half': 'aerobic drift, paruh pertama vs kedua',
+  'What is heart-rate decoupling?': 'Apa itu decoupling detak jantung?',
+  'It compares your efficiency (output ÷ heart rate) in the first half of a long effort against the second half. If your heart rate keeps climbing while your pace or power holds steady, the second half has "decoupled" — a sign of aerobic fatigue, under-fuelling, heat, or starting too hard. Lower is better; elite aerobic endurance holds close to 0%.': 'Ini membandingkan efisiensi Anda (output ÷ detak jantung) pada paruh pertama upaya panjang dengan paruh kedua. Jika detak jantung terus naik sementara pace atau daya tetap stabil, paruh kedua "terlepas" (decoupled) — tanda kelelahan aerobik, kurang nutrisi, panas, atau start terlalu kencang. Makin rendah makin baik; ketahanan aerobik elite mendekati 0%.',
+  'Well-coupled — strong aerobic endurance for this effort.': 'Tergandeng baik — ketahanan aerobik kuat untuk upaya ini.',
+  'Moderate drift — normal on a long or hard ride; watch fuelling and pacing.': 'Drift sedang — normal pada gowes panjang atau berat; perhatikan nutrisi dan pacing.',
+  'High drift — endurance, pacing, heat or fuelling to build.': 'Drift tinggi — ketahanan, pacing, panas atau nutrisi yang perlu dibangun.',
+  'Measured on your latest ride of 40 min+ with heart-rate data, split into halves.': 'Diukur dari gowes terakhir Anda yang 40 menit+ dengan data detak jantung, dibagi dua paruh.',
   'Negative drift — you held or raised output as HR settled (negative split or long warm-up). Strong aerobic control.': 'Drift negatif — Anda mempertahankan atau menaikkan output saat HR menurun (negative split atau pemanasan panjang). Kontrol aerobik yang kuat.',
   'Well-coupled (<5%). Strong aerobic endurance for this effort — HR stayed steady against your output.': 'Tergandeng baik (<5%). Ketahanan aerobik kuat untuk upaya ini — HR stabil terhadap output Anda.',
   'Moderate drift (5–10%). Normal for a hard or long ride; watch fuelling and pacing on the back half.': 'Drift sedang (5–10%). Normal untuk gowes berat atau panjang; perhatikan nutrisi dan pacing di paruh akhir.',

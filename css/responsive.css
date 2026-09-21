@@ -16,6 +16,8 @@
   .eddy-wrap { flex-direction: column; align-items: stretch; gap: 16px; }
   .eddy-wrap > div { width: 100%; min-width: 0; }
   .eddy-num { font-size: 60px; line-height: 1; }
+  /* chart on top, the number + explanation below it (not squeezed beside) */
+  .eddy-wrap > div:last-child { order: -1; }
 }
 
 @media (max-width: 768px) {

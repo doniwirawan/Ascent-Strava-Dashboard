@@ -38,6 +38,24 @@ function _hrdBand(dc) {
   return { color: '#ef4444', text: tr('High decoupling (>10%). Aerobic endurance, pacing, heat or fuelling limited the second half — a target to build.') };
 }
 
+/* What decoupling is and how to read the number — shown so the section explains
+   itself rather than just printing a percentage. */
+function _hrdExplainHTML() {
+  const band = (c, r, t) => `<div class="hrd-leg-row"><span class="hrd-leg-dot" style="background:${c}"></span><b>${r}</b> ${tr(t)}</div>`;
+  return `<details class="hrd-explain">
+    <summary>${tr('What is heart-rate decoupling?')}</summary>
+    <div class="hrd-explain-body">
+      <p>${tr('It compares your efficiency (output ÷ heart rate) in the first half of a long effort against the second half. If your heart rate keeps climbing while your pace or power holds steady, the second half has "decoupled" — a sign of aerobic fatigue, under-fuelling, heat, or starting too hard. Lower is better; elite aerobic endurance holds close to 0%.')}</p>
+      <div class="hrd-legend">
+        ${band('#22c55e', '< 5%', 'Well-coupled — strong aerobic endurance for this effort.')}
+        ${band('#fb923c', '5–10%', 'Moderate drift — normal on a long or hard ride; watch fuelling and pacing.')}
+        ${band('#ef4444', '> 10%', 'High drift — endurance, pacing, heat or fuelling to build.')}
+      </div>
+      <p class="hrd-explain-fine">${tr('Measured on your latest ride of 40 min+ with heart-rate data, split into halves.')}</p>
+    </div>
+  </details>`;
+}
+
 function _hrdMarkup(a, d) {
   const outVal = v => d.usePower ? Math.round(v) + ' W' : kmh(v) + ' ' + speedUnit();
   const dcStr = (d.decoupling >= 0 ? '+' : '') + d.decoupling.toFixed(1) + '%';
@@ -53,7 +71,8 @@ function _hrdMarkup(a, d) {
       ${half(tr('Second'), d.hr2, d.o2)}
     </div>
     <div class="tr-basis-note">${band.text}</div>
-    <div class="tr-basis-note">${trf('Latest ride: {0} · {1} vs HR.', a.name || 'Ride', tr(d.usePower ? 'power' : 'speed'))}</div>`;
+    <div class="tr-basis-note">${trf('Latest ride: {0} · {1} vs HR.', a.name || 'Ride', tr(d.usePower ? 'power' : 'speed'))}</div>
+    ${_hrdExplainHTML()}`;
 }
 
 function _trHrDecouplingHTML() {
@@ -63,6 +82,7 @@ function _trHrDecouplingHTML() {
     <div class="tr-chart-title">${tr('Heart Rate Decoupling')} <span class="gm-hint">${tr('aerobic drift, first vs second half')}</span></div>
     <div id="hrdBody">
       <div class="tr-basis-note">${tr('See how much your heart rate drifts up relative to your pace/power over a long ride.')}</div>
+      ${_hrdExplainHTML()}
       <button class="tr-ai-btn" style="margin-top:10px" onclick="analyzeHrDecoupling()">${trf('Analyse {0}', a.name || tr('latest ride'))}</button>
     </div>
   </div>`;
