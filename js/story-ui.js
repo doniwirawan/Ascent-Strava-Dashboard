@@ -311,7 +311,7 @@ function _buildStatToggles(act){
   const tw=document.getElementById('statToggles'); if(!tw) return;
   tw.innerHTML=STAT_DEFS.filter(s=>statApplies(s,act)).map(s=>`
     <label id="lbl-${s.key}" style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:5px 8px;background:var(--surface2);border-radius:5px;border:1px solid ${checkedStats.has(s.key)?'var(--orange)':'var(--border)'};">
-      <input type="checkbox" ${checkedStats.has(s.key)?'checked':''} data-key="${s.key}" style="accent-color:var(--orange);">${s.label}
+      <input type="checkbox" ${checkedStats.has(s.key)?'checked':''} data-key="${s.key}" style="accent-color:var(--orange);">${(typeof tr==='function'?tr(s.label):s.label)}
     </label>`).join('');
   tw.querySelectorAll('input').forEach(cb=>{
     cb.addEventListener('change',()=>{
