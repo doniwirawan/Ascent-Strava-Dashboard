@@ -1246,6 +1246,40 @@ function toggleSegMine(id, btn){
   if(grid && typeof grid._applySeg==='function') grid._applySeg();
 }
 
+// Bulk-star every arrow-named segment. Goes by the name alone (not _isMineSeg)
+// so the manual flag overrides don't pull in segments you didn't draw. Needs
+// the profile:write scope — a 403 means the token predates it, so reconnect.
+let _segStarring = false;
+async function starAllArrowSegs(btn){
+  if(_segStarring) return;
+  const todo=(_allSegs||[]).filter(s=>s.id && _segMineAuto(s) && !s._starred);
+  if(!todo.length) return;
+  _segStarring=true;
+  let done=0, failed=0, limited=false;
+  for(const s of todo){
+    if(btn) btn.innerHTML=`${ic('star')} Starring… ${done+1}/${todo.length}`;
+    try{
+      await apiPut(`/segments/${s.id}/starred?starred=true`, {starred:true});
+      s._starred=true; done++;
+    }catch(e){
+      const m=' '+e.message+' ';
+      if(/ 403 /.test(m)){ if(btn){ btn.innerHTML=`${ic('star')} Needs permission`; btn.disabled=true; }
+        setStatus('Starring needs the <b>profile:write</b> permission — hit Disconnect, then reconnect with Strava to grant it.');
+        _segStarring=false; return; }
+      if(/ 429 /.test(m)){ limited=true; break; }   // rate limit — keep what we got
+      failed++;
+    }
+  }
+  // keep the starred cache in step so a re-render doesn't re-offer them
+  if(!Array.isArray(_segScanStore.starred)) _segScanStore.starred=[];
+  const known=new Set(_segScanStore.starred.map(x=>String(x.id)));
+  todo.filter(s=>s._starred&&!known.has(String(s.id))).forEach(s=>_segScanStore.starred.push(s));
+  _segStoreSave();
+  _segStarring=false;
+  if(limited) setStatus(`Starred ${done} — Strava's rate limit kicked in, try the rest in 15 minutes.`);
+  if(btn){ btn.innerHTML=`${ic('star')} Starred ${done}${failed?` · ${failed} failed`:''}`; btn.disabled=true; }
+}
+
 // Normalise a segment effort (from an activity detail) into the card shape.
 // _srcAct = the activity it was ridden in, so we can carve its route shape out
 // of that ride's GPS track (no extra Strava call needed).
@@ -1446,6 +1480,7 @@ function _renderSegGrid(el, segs){
       mine:segs.filter(_isMineSeg).length,
     };
     const _chip=(f,lbl)=>`<button class="seg-chip-btn${f==='all'?' active':''}" data-filter="${f}">${lbl} <span class="seg-chip-n">${_cnt[f]}</span></button>`;
+    const _unstarredArrow=segs.filter(s=>s.id&&_segMineAuto(s)&&!s._starred).length;
     const controlsHtml=`<div class="seg-controls">
       <div class="seg-chips">
         ${_chip('all','All')}${_chip('ride','Rides')}${_chip('run','Runs')}${_chip('climb','Climbs')}${_chip('kom','KOMs')}${_chip('pr','With PR')}${_chip('mine','Created by me')}
@@ -1460,6 +1495,7 @@ function _renderSegGrid(el, segs){
           <option value="name">Name A–Z</option>
         </select>
         <button class="seg-scan seg-refresh-btn" id="segRefresh" title="Refetch starred segments and scan more of your rides for new segments">${ic('repeat')} Refresh</button>
+        ${_unstarredArrow?`<button class="seg-scan" id="segStarAll" title="Star every segment named &quot;A -&gt; B&quot; on Strava">${ic('star')} Star all mine (${_unstarredArrow})</button>`:''}
       </div>
     </div>`;
 
@@ -1585,6 +1621,9 @@ function _renderSegGrid(el, segs){
     </div>`;
 
     document.querySelectorAll('.seg-refresh-btn').forEach(b=>b.onclick=_doRefresh);
+
+    const starAllBtn=document.getElementById('segStarAll');
+    if(starAllBtn) starAllBtn.onclick=()=>starAllArrowSegs(starAllBtn);
 }
 
 /* ── SEGMENT MAP MODAL — full details on a big, interactive map ── */

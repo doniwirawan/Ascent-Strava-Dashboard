@@ -6,7 +6,7 @@ function isTokenExpired() {
 }
 
 function showReconnect() {
-  const SCOPE    = 'read,activity:read_all,profile:read_all,activity:write';
+  const SCOPE    = 'read,activity:read_all,profile:read_all,activity:write,profile:write';
   const REDIRECT = encodeURIComponent(window.location.origin + '/callback');
   const authUrl  = `https://www.strava.com/oauth/authorize?client_id=${CONFIG.clientId}&response_type=code&redirect_uri=${REDIRECT}&approval_prompt=force&scope=${SCOPE}`;
   setStatus(tr('Session expired') + ' — <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">' + tr('Reconnect with Strava →') + '</a>');

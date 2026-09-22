@@ -80,7 +80,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 /* ── INIT ── */
 if (!CONFIG.refreshToken) {
   // first-time / logged-out visitor → show the landing page, hide the app
-  const SCOPE    = 'read,activity:read_all,profile:read_all,activity:write';
+  const SCOPE    = 'read,activity:read_all,profile:read_all,activity:write,profile:write';
   const REDIRECT = encodeURIComponent(window.location.origin + '/callback');
   const authUrl  = `https://www.strava.com/oauth/authorize?client_id=${CONFIG.clientId}&response_type=code&redirect_uri=${REDIRECT}&approval_prompt=force&scope=${SCOPE}`;
   document.body.classList.add('logged-out');
