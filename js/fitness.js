@@ -594,3 +594,106 @@ function renderOverviewSpeedZones() {
     renderOverviewSpeedZones();
   };
 }
+
+/* ── WHERE THE TOP SPEED HAPPENED ────────────────────────────────────────────
+   A top-speed row only says how fast. This finds the moment: the point on the
+   ride where that peak occurred, how far in it was, the clock time, and which
+   of your segments (if any) it falls on.
+
+   Only the resolved point is cached, not the latlng stream it came from — one
+   small record per activity instead of a second copy of the whole track. */
+const _spotKey = id => 'strava_spot_' + id;
+
+async function _speedSpot(a) {
+  try { const c = JSON.parse(localStorage.getItem(_spotKey(a.id)) || 'null'); if (c && c.v === 1) return c; } catch {}
+  let raw;
+  try { raw = await api(`/activities/${a.id}/streams?keys=velocity_smooth,latlng,distance,time&key_by_type=true`); }
+  catch { return null; }
+  const v = raw.velocity_smooth && raw.velocity_smooth.data;
+  const ll = raw.latlng && raw.latlng.data;
+  if (!v || !ll || !v.length) return null;
+  // Locate the RAW peak, so the panel agrees with the figure on the row. The
+  // spike-fixed series is only consulted to judge whether that peak is real —
+  // a glitch still has a location, and saying so beats quietly moving the pin.
+  let bi = -1, bv = -1;
+  for (let i = 0; i < v.length; i++) if (v[i] != null && v[i] > bv && ll[i]) { bv = v[i]; bi = i; }
+  if (bi < 0) return null;
+  let suspect = false;
+  if (typeof fixSpeedSpikes === 'function') {
+    const isOwner = localStorage.getItem('strava_athlete_id') === OWNER_ATHLETE_ID;
+    const clean = fixSpeedSpikes(v, isOwner ? { ceiling: MAX_SPEED_CEILING } : { k: 6 }).data;
+    suspect = clean[bi] != null && clean[bi] < bv * 0.9;
+  }
+  const dist = raw.distance && raw.distance.data;
+  const time = raw.time && raw.time.data;
+  const spot = {
+    v: 1, speed: bv, lat: ll[bi][0], lng: ll[bi][1], suspect,
+    at: dist && dist[bi] != null ? dist[bi] : null,
+    t: time && time[bi] != null ? time[bi] : null,
+  };
+  try { localStorage.setItem(_spotKey(a.id), JSON.stringify(spot)); } catch {}
+  return spot;
+}
+
+// Nearest segment of yours to a point, if it passes close enough to count.
+function _spotSegment(lat, lng) {
+  if (typeof _allSegs === 'undefined' || !_allSegs || !_allSegs.length) return null;
+  if (typeof _gapSegCoords !== 'function' || typeof _gapHav !== 'function') return null;
+  let best = null, bd = 60; // m — close enough to say you were on it
+  for (const s of _allSegs) {
+    const c = _gapSegCoords(s);
+    for (let i = 0; i < c.length; i++) {
+      const d = _gapHav(c[i], [lat, lng]);
+      if (d < bd) { bd = d; best = s; }
+    }
+  }
+  return best ? { name: best.name, id: best.id, dist: Math.round(bd) } : null;
+}
+
+let _spotMaps = {};
+async function showSpeedSpot(actId, btn) {
+  const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(actId));
+  const panel = document.getElementById('spot-' + actId);
+  if (!a || !panel) return;
+  if (panel.classList.contains('open')) { panel.classList.remove('open'); panel.innerHTML = ''; return; }
+
+  panel.classList.add('open');
+  panel.innerHTML = '<div class="spot-loading">' + tr('Finding the spot…') + '</div>';
+  const spot = await _speedSpot(a);
+  if (!spot) { panel.innerHTML = '<div class="spot-loading">' + tr('No GPS data for this ride.') + '</div>'; return; }
+
+  const seg = _spotSegment(spot.lat, spot.lng);
+  const clock = spot.t != null && a.start_date_local
+    ? new Date(new Date(a.start_date_local).getTime() + spot.t * 1000).toISOString().slice(11, 16)
+    : null;
+  const gm = `https://www.google.com/maps?q=${spot.lat.toFixed(5)},${spot.lng.toFixed(5)}`;
+
+  panel.innerHTML = `
+    <div class="spot-map" id="spotmap-${actId}"></div>
+    <div class="spot-facts">
+      <div class="spot-big">${kmh(spot.speed)}<i>${speedUnit()}</i></div>
+      ${spot.suspect ? `<div class="spot-warn">${tr('Looks like a GPS spike — the pin is where Strava recorded it')}</div>` : ''}
+      <div class="spot-rows">
+        ${spot.at != null ? `<div><span>${tr('Into the ride')}</span><b>${fmtD(spot.at)}</b></div>` : ''}
+        ${clock ? `<div><span>${tr('Clock time')}</span><b>${clock}</b></div>` : ''}
+        <div><span>${tr('Segment')}</span><b>${seg
+          ? `<a href="https://www.strava.com/segments/${seg.id}" target="_blank" rel="noopener">${seg.name}</a>`
+          : (typeof _allSegs !== 'undefined' && _allSegs && _allSegs.length ? tr('not on one of yours') : tr('open Segments first'))}</b></div>
+        <div><span>${tr('Coordinates')}</span><b><code>${spot.lat.toFixed(5)}, ${spot.lng.toFixed(5)}</code></b></div>
+      </div>
+      <a class="seg-link" href="${gm}" target="_blank" rel="noopener">${tr('Google Maps')} →</a>
+    </div>`;
+
+  if (!window.L) return;
+  try {
+    const m = L.map('spotmap-' + actId, { zoomControl: false, attributionControl: false, scrollWheelZoom: false });
+    addBasemap(m);
+    m.setView([spot.lat, spot.lng], 16);
+    if (a.map && a.map.summary_polyline) {
+      try { L.polyline(decodePolyline(a.map.summary_polyline), { color: '#666', weight: 3, opacity: .8 }).addTo(m); } catch {}
+    }
+    L.circleMarker([spot.lat, spot.lng], { radius: 8, color: '#FC4C02', fillColor: '#FC4C02', fillOpacity: 1, weight: 2 }).addTo(m);
+    _spotMaps[actId] = m;
+    setTimeout(() => { try { m.invalidateSize(); m.setView([spot.lat, spot.lng], 16); } catch {} }, 250);
+  } catch {}
+}

@@ -200,6 +200,29 @@ const APP_ID = {
   'Trophies': 'Trofi', 'Help & Data': 'Bantuan & Data', 'Training': 'Latihan',
   'Performance': 'Performa', 'Explore': 'Jelajahi', 'History': 'Riwayat', 'About': 'Tentang',
   'Share Story': 'Bagikan Cerita', 'Refresh': 'Segarkan', 'Disconnect': 'Putuskan',
+
+  // Speed zones (real time-in-zone) + "where was this top speed" panel
+  'Real time at speed, second by second · {0} of {1} activities analysed':
+    'Waktu nyata pada kecepatan, detik demi detik · {0} dari {1} aktivitas dianalisis',
+  'Estimated — each activity’s moving time counted at its average speed, so surges inside a ride don’t show':
+    'Perkiraan — waktu bergerak tiap aktivitas dihitung pada kecepatan rata-ratanya, jadi lonjakan di dalam satu perjalanan tidak terlihat',
+  'Analyse {0} more': 'Analisis {0} lagi',
+  'Analyse {0} activities': 'Analisis {0} aktivitas',
+  'Analysing… {0}/{1}': 'Menganalisis… {0}/{1}',
+  'Strava rate limit reached — analyse the rest in 15 minutes.':
+    'Batas permintaan Strava tercapai — analisis sisanya dalam 15 menit.',
+  'Where did this happen?': 'Di mana ini terjadi?',
+  'Finding the spot…': 'Mencari lokasinya…',
+  'No GPS data for this ride.': 'Tidak ada data GPS untuk perjalanan ini.',
+  'Into the ride': 'Masuk perjalanan',
+  'Clock time': 'Waktu',
+  'Segment': 'Segmen',
+  'Coordinates': 'Koordinat',
+  'not on one of yours': 'bukan di segmen Anda',
+  'open Segments first': 'buka Segmen dulu',
+  'Google Maps': 'Google Maps',
+  'Looks like a GPS spike — the pin is where Strava recorded it':
+    'Sepertinya lonjakan GPS — penanda ada di tempat Strava mencatatnya',
   'Save Image': 'Simpan Gambar', 'Athlete': 'Atlet',
   // section titles
   'Cycling Performance': 'Performa Bersepeda', 'Running Performance': 'Performa Lari',
