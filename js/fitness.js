@@ -428,28 +428,14 @@ const SPEED_BAND_EDGES = {
   run:  [0,  8 / 3.6, 10 / 3.6, 12 / 3.6, 14 / 3.6],
 };
 
-// Data-driven band edges: the 20/40/60/80th percentiles of YOUR own average
-// speeds for the active sport, so "Easy … Flying" mean fast/slow for you rather
-// than fixed absolutes. Falls back to the generic bands under ~20 activities.
-// Memoised per sport+distribution so per-activity lookups stay cheap.
-let _spdEdgesMemo = { sig: '', edges: null };
+// Fixed band edges per sport. These used to be the 20/40/60/80th percentiles of
+// your own average speeds, which is self-defeating: bucketing the same numbers
+// the percentiles came from always yields five ~20% slices, so the chart read
+// the same however you rode. Absolute edges make the split mean something and
+// make a target ("30+") an actual goal you can watch grow.
 function _spdEdges() {
   const usePace = (typeof sportUsesPace === 'function') && sportUsesPace();
-  const set = (typeof modeActs === 'function') ? modeActs() : [];
-  const speeds = set.map(a => a.average_speed).filter(v => v > 0).sort((a, b) => a - b);
-  const sig = (usePace ? 'p' : 's') + ':' + speeds.length + ':' + (speeds[0] || 0).toFixed(2) + ':' + (speeds[speeds.length - 1] || 0).toFixed(2);
-  if (_spdEdgesMemo.sig === sig && _spdEdgesMemo.edges) return _spdEdgesMemo.edges;
-
-  let edges;
-  if (speeds.length >= 20) {
-    const pct = p => speeds[Math.min(speeds.length - 1, Math.floor(speeds.length * p))];
-    edges = [0, pct(0.20), pct(0.40), pct(0.60), pct(0.80)];
-    for (let i = 1; i < edges.length; i++) if (edges[i] <= edges[i - 1]) edges[i] = edges[i - 1] + 0.1; // keep strictly increasing
-  } else {
-    edges = SPEED_BAND_EDGES[usePace ? 'run' : 'ride'];
-  }
-  _spdEdgesMemo = { sig, edges };
-  return edges;
+  return SPEED_BAND_EDGES[usePace ? 'run' : 'ride'];
 }
 
 function speedZoneFor(ms) {
@@ -465,6 +451,79 @@ function speedZoneRange(i) {
   const lo = kmh(edges[i]);
   if (i === edges.length - 1) return `${lo}+`;
   return `${lo}–${kmh(edges[i + 1])}`;
+}
+
+/* ── real time-in-zone, from each ride's speed stream ──
+   Counting a whole activity at its average speed hides every surge inside it:
+   a ride averaging 22 never registers the minutes actually spent above 30. So
+   each ride's velocity_smooth stream is bucketed into the bands once and the
+   per-zone seconds are cached; the streams themselves come from the shared
+   _getActivityStreams cache, so a ride already opened costs no extra call. */
+const _SPDZ_V = 1;
+const _spdzKey = () => 'strava_spdz_' + (localStorage.getItem('strava_athlete_id') || 'x');
+let _spdzStore = null;
+
+function _spdzLoad() {
+  if (_spdzStore) return _spdzStore;
+  try {
+    const o = JSON.parse(localStorage.getItem(_spdzKey()) || 'null');
+    if (o && o.v === _SPDZ_V && o.acts) _spdzStore = o;
+  } catch {}
+  if (!_spdzStore) _spdzStore = { v: _SPDZ_V, acts: {} };
+  return _spdzStore;
+}
+function _spdzSave() { try { localStorage.setItem(_spdzKey(), JSON.stringify(_spdzLoad())); } catch {} }
+
+/* One ride's stream → seconds per zone. The cached stream is downsampled to a
+   fixed number of evenly spaced points, so each surviving sample stands for the
+   same slice of time; stopped samples are dropped and the rest are scaled to
+   the ride's moving time, matching what the card has always counted. */
+function _spdzHist(streams, movingTime) {
+  const s = streams && streams.series && streams.series.speed && streams.series.speed.data;
+  if (!s || !s.length || !movingTime) return null;
+  const moving = s.filter(v => v != null && !isNaN(v) && v >= 0.5); // 1.8 km/h — rolling, not stopped
+  if (!moving.length) return null;
+  const per = movingTime / moving.length;
+  const h = [0, 0, 0, 0, 0];
+  for (const v of moving) h[speedZoneFor(v)] += per;
+  return h.map(v => Math.round(v));
+}
+
+// Sum the cached histograms over the active set, and say what's still missing.
+function speedZoneTotalsStreams(set) {
+  const store = _spdzLoad();
+  const totals = [0, 0, 0, 0, 0];
+  const missing = [];
+  let have = 0;
+  set.forEach(a => {
+    const h = store.acts[a.id];
+    if (h) { for (let i = 0; i < 5; i++) totals[i] += h[i] || 0; have++; }
+    else if (a.moving_time > 0) missing.push(a);
+  });
+  return { totals, have, missing };
+}
+
+/* Fill in the rides that have no histogram yet. One API call each the first
+   time (cached forever after), so it runs in explicit batches with progress
+   rather than silently on load, and stops clean on a rate limit. */
+let _spdzFetching = false;
+async function fetchSpeedZoneStreams(list, onProgress) {
+  if (_spdzFetching) return { done: 0, limited: false };
+  _spdzFetching = true;
+  const store = _spdzLoad();
+  let done = 0, limited = false;
+  try {
+    for (const a of list) {
+      if (onProgress) onProgress(done, list.length);
+      let st;
+      try { st = await _getActivityStreams(a.id); }
+      catch (e) { if (/ 429 /.test(' ' + ((e && e.message) || '') + ' ')) { limited = true; break; } continue; }
+      const h = st && _spdzHist(st, a.moving_time);
+      if (h) { store.acts[a.id] = h; done++; }
+      if (done % 10 === 0) _spdzSave();
+    }
+  } finally { _spdzSave(); _spdzFetching = false; }
+  return { done, limited };
 }
 
 // Moving time per band across the active sport set.
@@ -500,7 +559,13 @@ function renderOverviewSpeedZones() {
   const card = document.getElementById('spdzCard');
   if (!card) return;
   const set = (typeof modeActs === 'function') ? modeActs() : (typeof acts !== 'undefined' ? acts : []);
-  const { totals, tracked, untracked } = speedZoneTotals(set);
+
+  // Prefer real time-in-zone; fall back to the average-speed estimate until at
+  // least some rides have been analysed, so the card is never blank.
+  const st = speedZoneTotalsStreams(set);
+  const streamed = st.have > 0;
+  const totals = streamed ? st.totals : speedZoneTotals(set).totals;
+
   const sum = totals.reduce((s, v) => s + v, 0);
   if (sum <= 0) { card.style.display = 'none'; return; }
   card.style.display = '';
@@ -510,6 +575,22 @@ function renderOverviewSpeedZones() {
     SPEED_ZONES.map(z => z.color)
   );
   document.getElementById('spdzLegend').innerHTML = speedLegendHTML(totals);
-  document.getElementById('spdzNote').textContent =
-    trf('Each activity’s moving time counted at its average speed · {0} of {1} activities have speed data', tracked, tracked + untracked);
+
+  const note = document.getElementById('spdzNote');
+  const left = st.missing.length;
+  const basis = streamed
+    ? trf('Real time at speed, second by second · {0} of {1} activities analysed', st.have, st.have + left)
+    : tr('Estimated — each activity’s moving time counted at its average speed, so surges inside a ride don’t show');
+  note.innerHTML = basis + (left
+    ? ` <button class="seg-scan spdz-btn" id="spdzFetch">${streamed ? trf('Analyse {0} more', left) : trf('Analyse {0} activities', left)}</button>`
+    : '');
+
+  const btn = document.getElementById('spdzFetch');
+  if (btn) btn.onclick = async () => {
+    btn.disabled = true;
+    const batch = st.missing.slice(0, 100);   // one rate-limit window's worth
+    const r = await fetchSpeedZoneStreams(batch, (n, t) => { btn.textContent = trf('Analysing… {0}/{1}', n, t); });
+    if (r.limited) setStatus(tr('Strava rate limit reached — analyse the rest in 15 minutes.'));
+    renderOverviewSpeedZones();
+  };
 }

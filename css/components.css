@@ -507,3 +507,6 @@
 .actd-hrd { margin-top: 18px; }
 .actd-hrd-h { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .actd-hrd-sub { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-3); }
+
+/* "Analyse N more" action inside the speed-zone note line */
+.spdz-btn{margin-left:8px;padding:3px 9px;font-size:.74rem;vertical-align:baseline}
