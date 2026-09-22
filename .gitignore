@@ -19,3 +19,4 @@ HUAWEI_HEALTH_*.zip
 
 # Vendored agent skills — restore with `npx skills add` (pinned by skills-lock.json)
 .agents/
+HARDCODE_TODO.md
