@@ -1199,28 +1199,46 @@ function _segStoreSave(){ try{ localStorage.setItem(_segStoreKey(), JSON.stringi
 
 const _isKomSeg = s => !!((s.athlete_segment_stats && s.athlete_segment_stats.pr_rank===1) || s._hasKom);
 
-// ── "Created by me" ──────────────────────────────────────────────────────────
+// ── "Created by me" ─────────────────────────────────────────────────────
 // Strava's API exposes no creator on a segment (and has no "segments I made"
-// endpoint), so this set is curated by hand: the flag button on each card marks
-// one, and the list is kept in localStorage per athlete like the segment cache.
-let _segMine = null;
+// endpoint), so authorship comes from your own naming habit: the segments you
+// draw are named "A -> B". The flag button on each card overrides that guess in
+// either direction, and only those overrides are stored (per athlete, next to
+// the segment cache) so a rename keeps working.
+const _SEG_MINE_RE = /→|->|⇒|=>/;
+let _segMine = null;   // {on:Set, off:Set} — manual overrides only
 function _segMineKey(){ return 'strava_segmine_' + (localStorage.getItem('strava_athlete_id') || 'x'); }
-function _segMineSet(){
-  if(!_segMine){ try{ const a=JSON.parse(localStorage.getItem(_segMineKey())||'[]');
-      _segMine=new Set(Array.isArray(a)?a.map(String):[]); }catch{ _segMine=new Set(); } }
+function _segMineOv(){
+  if(!_segMine){
+    let on=[], off=[];
+    try{ const raw=JSON.parse(localStorage.getItem(_segMineKey())||'null');
+      if(Array.isArray(raw)) on=raw;                       // pre-heuristic format
+      else if(raw){ on=raw.on||[]; off=raw.off||[]; } }catch{}
+    _segMine={ on:new Set(on.map(String)), off:new Set(off.map(String)) };
+  }
   return _segMine;
 }
-const _isMineSeg = s => _segMineSet().has(String(s.id));
+const _segMineAuto = s => _SEG_MINE_RE.test(s.name||'');
+function _isMineSeg(s){
+  const ov=_segMineOv(), id=String(s.id);
+  if(ov.off.has(id)) return false;
+  if(ov.on.has(id))  return true;
+  return _segMineAuto(s);
+}
 
 // Flag / unflag a segment as one you created, straight from its card.
 function toggleSegMine(id, btn){
-  const set=_segMineSet(), key=String(id), on=!set.has(key);
-  if(on) set.add(key); else set.delete(key);
-  try{ localStorage.setItem(_segMineKey(), JSON.stringify([...set])); }catch{ /* quota — non-fatal */ }
+  const ov=_segMineOv(), key=String(id);
+  const card=btn?btn.closest('.seg-card'):null;
+  const auto=card?card.dataset.mineauto==='1':false;
+  const on=!(card?card.dataset.mine==='1':ov.on.has(key));
+  ov.on.delete(key); ov.off.delete(key);
+  if(on!==auto) (on?ov.on:ov.off).add(key);
+  try{ localStorage.setItem(_segMineKey(), JSON.stringify({on:[...ov.on],off:[...ov.off]})); }catch{ /* quota — non-fatal */ }
   if(btn){
     btn.classList.toggle('on', on);
     btn.setAttribute('aria-pressed', on?'true':'false');
-    const card=btn.closest('.seg-card'); if(card) card.dataset.mine=on?'1':'0';
+    if(card) card.dataset.mine=on?'1':'0';
   }
   const n=document.querySelector('.seg-chip-btn[data-filter="mine"] .seg-chip-n');
   if(n) n.textContent=document.querySelectorAll('.seg-card[data-mine="1"]').length;
@@ -1470,7 +1488,8 @@ function _renderSegGrid(el, segs){
 
       return `<article class="seg-card${isKom?' is-kom':''}"
         data-sport="${(s.activity_type||'').toLowerCase()}" data-climb="${(s.climb_category||0)>0?1:0}"
-        data-kom="${isKom?1:0}" data-pr="${pr?1:0}" data-mine="${isMine?1:0}" data-speed="${prSpeedNum||0}"
+        data-kom="${isKom?1:0}" data-pr="${pr?1:0}" data-mine="${isMine?1:0}"
+        data-mineauto="${_segMineAuto(s)?1:0}" data-speed="${prSpeedNum||0}"
         data-dist="${s.distance||0}" data-grade="${gradeNum!=null?gradeNum:-99}"
         data-efforts="${s.effort_count||0}" data-segname="${(s.name||'').toLowerCase().replace(/"/g,'')}">
         <div class="seg-map-wrap">
