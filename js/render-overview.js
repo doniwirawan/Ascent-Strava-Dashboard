@@ -279,7 +279,7 @@ function renderSportBreakdown(){
   const title=k=>T((typeof SPORTS!=='undefined' && SPORTS[k])?SPORTS[k].title:k);
   el.style.display='';
   el.innerHTML=`
-    <div class="section-title" style="margin-top:6px">${T('By sport')}</div>
+    <div class="section-title">${T('By sport')}</div>
     <div class="sb-grid">
       ${rows.map(r=>`
         <div class="sb-card card" role="button" tabindex="0"
@@ -307,8 +307,27 @@ function eddington(rides) {
 // Projection block for reaching a fixed Eddington goal (E=50). Estimates the
 // date from how often the athlete has ridden ≥50 units recently. All distances
 // are in the current display unit, matching the rest of the Eddington card.
+// The goal is per sport (50 rides of 50 km means nothing for swims), stored per
+// athlete. Unset → the next round ten above your current E.
+function _eddyGoalKey(mode){ return 'eddy_goal_' + (mode||'ride') + '_' + (localStorage.getItem('strava_athlete_id')||'x'); }
+function _eddyGoalDefault(E){ return Math.max(10, Math.ceil((E+1)/10)*10); }
+function _eddyGoal(mode, E){
+  let v = null;
+  try{ v = parseInt(localStorage.getItem(_eddyGoalKey(mode)),10); }catch{}
+  return (v>0 && v<=1000) ? v : _eddyGoalDefault(E);
+}
+function setEddyGoal(v){
+  const n = Math.max(1, Math.min(1000, parseInt(v,10)||0));
+  try{ localStorage.setItem(_eddyGoalKey(sportMode()), String(n)); }catch{}
+  renderEddington();
+}
+function resetEddyGoal(){
+  try{ localStorage.removeItem(_eddyGoalKey(sportMode())); }catch{}
+  renderEddington();
+}
+
 function _eddyGoalHTML(rides, E, mode, id) {
-  const GOAL = 50, unit = distUnit(), DAY = 86400000, now = Date.now();
+  const GOAL = _eddyGoal(mode, E), unit = distUnit(), DAY = 86400000, now = Date.now();
   const dated = rides.map(r => ({ km: kmVal(r.distance || 0), t: new Date(r.start_date_local || r.start_date || 0).getTime() }))
     .filter(r => r.t);
   const qualifying = dated.filter(r => r.km >= GOAL);
@@ -316,7 +335,15 @@ function _eddyGoalHTML(rides, E, mode, id) {
   const need = Math.max(0, GOAL - have);
   const ID_W = { ride:'gowes', run:'lari', walk:'jalan', swim:'renang', activity:'aktivitas' };
   const rideW = id ? (ID_W[sportWord()]||'aktivitas') : sportWord(true);
-  const head = `<div class="eddy-goal-head">🎯 ${id ? 'Target' : 'Goal'} E=${GOAL}</div>`;
+  // The goal number itself is the control — type a new one (or nudge it) and the
+  // whole projection re-renders against it.
+  const isCustom = String(GOAL) !== String(_eddyGoalDefault(E));
+  const head = `<div class="eddy-goal-head">🎯 ${id ? 'Target' : 'Goal'} E=`
+    + `<input type="number" class="eddy-goal-input" id="eddyGoalInput" value="${GOAL}" min="1" max="1000" step="1"`
+    + ` aria-label="${id ? 'Target Eddington' : 'Eddington goal'}"`
+    + ` onchange="setEddyGoal(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();setEddyGoal(this.value);}">`
+    + (isCustom ? `<button type="button" class="eddy-goal-reset" onclick="resetEddyGoal()">${id ? 'atur ulang' : 'reset'}</button>` : '')
+    + `</div>`;
 
   if (E >= GOAL) {
     return `<div class="eddy-goal eddy-goal-done">${head}<div class="eddy-goal-body">${

@@ -151,7 +151,20 @@
   background: var(--orange-dim);
   border-radius: 10px; padding: 10px 12px;
 }
-.eddy-goal-head { font-size: 12px; font-weight: 800; color: var(--orange); margin-bottom: 4px; letter-spacing: .2px; }
+.eddy-goal-head { font-size: 12px; font-weight: 800; color: var(--orange); margin-bottom: 4px; letter-spacing: .2px; display: flex; align-items: center; gap: 2px; }
+/* The goal is editable in place — the input is styled to read as the number. */
+.eddy-goal-input {
+  width: 3.6em; font: inherit; color: inherit; letter-spacing: inherit;
+  background: transparent; border: 1px dashed var(--orange-mid); border-radius: 6px;
+  padding: 1px 4px; margin-left: 1px;
+}
+.eddy-goal-input:hover { border-style: solid; background: rgba(252,76,2,.08); }
+.eddy-goal-input:focus { outline: none; border-style: solid; background: rgba(252,76,2,.12); }
+.eddy-goal-reset {
+  font: inherit; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); background: none; border: 0; padding: 2px 4px; margin-left: 4px; cursor: pointer;
+}
+.eddy-goal-reset:hover { color: var(--orange); }
 .eddy-goal-body { font-size: 12px; color: var(--muted); line-height: 1.55; }
 .eddy-goal-body strong { color: var(--text); }
 .eddy-goal-eta { margin-top: 3px; }

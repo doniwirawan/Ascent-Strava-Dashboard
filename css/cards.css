@@ -175,9 +175,12 @@
 .hero-unit { font-size: 12px; font-weight: 600; opacity: .55; }
 
 /* ── By-sport breakdown (Overview) ── */
+/* Its heading is a :first-child, so .section-title's own margin-top is zeroed —
+   the block carries the gap from the stat cards above instead. */
+#sportBreakdown { margin-top: 26px; }
 .sb-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px; margin-bottom: 8px;
+  gap: 10px; margin-bottom: 18px;   /* same gap as the stat grid above it */
 }
 .sb-card { padding: 14px 16px; cursor: pointer; transition: border-color .15s, background .15s; }
 .sb-card:hover { border-color: var(--orange); background: var(--surface2); }
