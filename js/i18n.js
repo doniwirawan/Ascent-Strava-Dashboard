@@ -290,7 +290,7 @@ const APP_ID = {
   '1,000 km Club': 'Klub 1.000 km', '5,000 km Club': 'Klub 5.000 km', '10,000 km Club': 'Klub 10.000 km',
   '100 Rides': '100 Gowes', '500 Rides': '500 Gowes',
   // segments
-  'All': 'Semua', 'Climbs': 'Tanjakan', 'With PR': 'Ada PR',
+  'All': 'Semua', 'Climbs': 'Tanjakan', 'With PR': 'Ada PR', 'Created by me': 'Buatan Saya',
   'No personal record yet': 'Belum ada rekor pribadi', 'View on Strava →': 'Lihat di Strava →',
   'Fastest PR': 'PR Tercepat', 'Steepest': 'Tercuram', 'Most Ridden': 'Paling Sering',
   'Start': 'Mulai', 'Finish': 'Selesai', 'Avg Grade': 'Gradien Rata-rata', 'Max Grade': 'Gradien Maks',

@@ -446,6 +446,20 @@
 .seg-card.is-kom .seg-expand { top: 46px; }
 .seg-expand:hover { background: var(--orange); border-color: var(--orange); }
 
+/* "I created this segment" flag — sits beside the expand button */
+.seg-mine {
+  position: absolute; top: 10px; right: 46px; z-index: 600;
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.55); color: rgba(255,255,255,.7);
+  line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.seg-card.is-kom .seg-mine { top: 46px; }
+.seg-mine:hover { border-color: var(--orange); color: var(--orange); }
+.seg-mine.on { background: var(--orange); border-color: var(--orange); color: #fff; }
+
 /* Body */
 .seg-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 13px; flex: 1; }
 .seg-pr { display: flex; align-items: baseline; gap: 9px; }

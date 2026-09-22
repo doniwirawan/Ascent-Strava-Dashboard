@@ -53,6 +53,7 @@ function ic(n){
     stack:'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/>',
     pin:'<path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
     clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    flag:'<path d="M4 21V4a6 6 0 0 1 8 0 6 6 0 0 0 8 0v9a6 6 0 0 1-8 0 6 6 0 0 0-8 0"/>',
   };
   return `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p[n]||''}</svg>`;
 }
@@ -1198,6 +1199,35 @@ function _segStoreSave(){ try{ localStorage.setItem(_segStoreKey(), JSON.stringi
 
 const _isKomSeg = s => !!((s.athlete_segment_stats && s.athlete_segment_stats.pr_rank===1) || s._hasKom);
 
+// ── "Created by me" ──────────────────────────────────────────────────────────
+// Strava's API exposes no creator on a segment (and has no "segments I made"
+// endpoint), so this set is curated by hand: the flag button on each card marks
+// one, and the list is kept in localStorage per athlete like the segment cache.
+let _segMine = null;
+function _segMineKey(){ return 'strava_segmine_' + (localStorage.getItem('strava_athlete_id') || 'x'); }
+function _segMineSet(){
+  if(!_segMine){ try{ const a=JSON.parse(localStorage.getItem(_segMineKey())||'[]');
+      _segMine=new Set(Array.isArray(a)?a.map(String):[]); }catch{ _segMine=new Set(); } }
+  return _segMine;
+}
+const _isMineSeg = s => _segMineSet().has(String(s.id));
+
+// Flag / unflag a segment as one you created, straight from its card.
+function toggleSegMine(id, btn){
+  const set=_segMineSet(), key=String(id), on=!set.has(key);
+  if(on) set.add(key); else set.delete(key);
+  try{ localStorage.setItem(_segMineKey(), JSON.stringify([...set])); }catch{ /* quota — non-fatal */ }
+  if(btn){
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on?'true':'false');
+    const card=btn.closest('.seg-card'); if(card) card.dataset.mine=on?'1':'0';
+  }
+  const n=document.querySelector('.seg-chip-btn[data-filter="mine"] .seg-chip-n');
+  if(n) n.textContent=document.querySelectorAll('.seg-card[data-mine="1"]').length;
+  const grid=document.getElementById('segGrid');
+  if(grid && typeof grid._applySeg==='function') grid._applySeg();
+}
+
 // Normalise a segment effort (from an activity detail) into the card shape.
 // _srcAct = the activity it was ridden in, so we can carve its route shape out
 // of that ride's GPS track (no extra Strava call needed).
@@ -1395,11 +1425,12 @@ function _renderSegGrid(el, segs){
       climb:segs.filter(s=>(s.climb_category||0)>0).length,
       kom:segs.filter(_isKomSeg).length,
       pr:segs.filter(s=>s.athlete_pr_effort).length,
+      mine:segs.filter(_isMineSeg).length,
     };
     const _chip=(f,lbl)=>`<button class="seg-chip-btn${f==='all'?' active':''}" data-filter="${f}">${lbl} <span class="seg-chip-n">${_cnt[f]}</span></button>`;
     const controlsHtml=`<div class="seg-controls">
       <div class="seg-chips">
-        ${_chip('all','All')}${_chip('ride','Rides')}${_chip('run','Runs')}${_chip('climb','Climbs')}${_chip('kom','KOMs')}${_chip('pr','With PR')}
+        ${_chip('all','All')}${_chip('ride','Rides')}${_chip('run','Runs')}${_chip('climb','Climbs')}${_chip('kom','KOMs')}${_chip('pr','With PR')}${_chip('mine','Created by me')}
       </div>
       <div class="seg-tools">
         <select class="seg-sort" id="segSort">
@@ -1429,6 +1460,7 @@ function _renderSegGrid(el, segs){
       const efforts =s.effort_count?s.effort_count.toLocaleString():null;
       const location=[s.city,s.state,s.country].filter(Boolean).join(', ');
       const isKom   =_isKomSeg(s);
+      const isMine  =_isMineSeg(s);
 
       const gc=gradeNum==null?'#666'
         :gradeNum<2?'#4ade80'
@@ -1438,7 +1470,7 @@ function _renderSegGrid(el, segs){
 
       return `<article class="seg-card${isKom?' is-kom':''}"
         data-sport="${(s.activity_type||'').toLowerCase()}" data-climb="${(s.climb_category||0)>0?1:0}"
-        data-kom="${isKom?1:0}" data-pr="${pr?1:0}" data-speed="${prSpeedNum||0}"
+        data-kom="${isKom?1:0}" data-pr="${pr?1:0}" data-mine="${isMine?1:0}" data-speed="${prSpeedNum||0}"
         data-dist="${s.distance||0}" data-grade="${gradeNum!=null?gradeNum:-99}"
         data-efforts="${s.effort_count||0}" data-segname="${(s.name||'').toLowerCase().replace(/"/g,'')}">
         <div class="seg-map-wrap">
@@ -1452,6 +1484,7 @@ function _renderSegGrid(el, segs){
             ${location?`<div class="seg-loc">${location}</div>`:''}
           </div>
           <button class="seg-expand" onclick="openSegMap('${s.id}')" title="View larger map" aria-label="View larger map">${ic('expand')}</button>
+          <button class="seg-mine${isMine?' on':''}" onclick="toggleSegMine('${s.id}',this)" title="Mark as a segment you created" aria-label="Mark as a segment you created" aria-pressed="${isMine?'true':'false'}">${ic('flag')}</button>
         </div>
         <div class="seg-body">
           ${prTime?`<div class="seg-pr">
@@ -1501,6 +1534,7 @@ function _renderSegGrid(el, segs){
         else if(filter==='climb') show=d.climb==='1';
         else if(filter==='kom') show=d.kom==='1';
         else if(filter==='pr') show=d.pr==='1';
+        else if(filter==='mine') show=d.mine==='1';
         c.style.display=show?'':'none';
       });
       if(sort!=='default'){
@@ -1512,6 +1546,7 @@ function _renderSegGrid(el, segs){
         setTimeout(()=>segMaps.forEach(({m,line})=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}}),60);
       }
     }
+    if(grid) grid._applySeg=applySeg;   // so the flag button can re-filter live
     el.querySelectorAll('.seg-chip-btn').forEach(b=>b.onclick=()=>{
       el.querySelectorAll('.seg-chip-btn').forEach(x=>x.classList.remove('active'));
       b.classList.add('active'); if(grid) grid._filter=b.dataset.filter; applySeg();
