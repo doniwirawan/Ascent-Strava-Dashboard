@@ -51,7 +51,13 @@ function _trBuildSeries() {
   const ftpEst = (typeof estimateFtp === 'function' && estimateFtp()) || null;
   const ftp = ftpEst ? ftpEst.value : 0;
   const hrMax = (typeof observedMaxHr === 'function' && observedMaxHr()) || 0;
-  const hrRest = 60; // no resting-HR in the API; a common recreational default
+  // Prefer the owner's real resting HR (from the Huawei sleep export, cached by
+  // _slpLoad); fall back to a common recreational default when unavailable.
+  let hrRest = 60;
+  try {
+    const rh = window._ownerRestHr || parseInt(localStorage.getItem('owner_rest_hr') || '0', 10);
+    if (rh > 25 && rh < 110) hrRest = rh;
+  } catch {}
 
   // Sum load per calendar day + tally which basis was used (for transparency).
   const byDay = new Map();

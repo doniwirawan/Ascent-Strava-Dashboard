@@ -56,6 +56,19 @@ async function _slpLoad() {
   // The AI summary is cached on first build. If it was built before this fetch
   // landed it has no `sleep` block, so drop it and let it rebuild with one.
   if (typeof clearAISummary === 'function') clearAISummary();
+
+  // Cache the owner's real resting HR (median of the last ~30 nights) so the
+  // training-load model uses it instead of a hardcoded 60. Persisted so later
+  // sessions pick it up immediately, before the sleep fetch resolves.
+  try {
+    const rhrs = _slpNights.slice(-45).map(n => n.rhr).filter(v => v != null && v > 25 && v < 110);
+    if (rhrs.length >= 5) {
+      rhrs.sort((a, b) => a - b);
+      const med = rhrs[Math.floor(rhrs.length / 2)];
+      window._ownerRestHr = med;
+      localStorage.setItem('owner_rest_hr', String(med));
+    }
+  } catch {}
   return _slpNights;
 }
 
@@ -2418,7 +2431,12 @@ async function renderReadiness() {
   // Smarter suggestion: fold in how long since your last hard effort.
   let daysHard = null;
   try {
-    const hard = (typeof acts !== 'undefined' ? acts : []).filter(a => (a.suffer_score || 0) >= 100);
+    // "Hard" is relative to you: the top quartile of your own relative-effort
+    // scores (floored at 50), not a fixed 100 that means different things to
+    // different athletes.
+    const res = (typeof acts !== 'undefined' ? acts : []).map(a => a.suffer_score || 0).filter(x => x > 0).sort((a, b) => a - b);
+    const hardThr = res.length >= 8 ? Math.max(50, res[Math.floor(res.length * 0.75)]) : 100;
+    const hard = (typeof acts !== 'undefined' ? acts : []).filter(a => (a.suffer_score || 0) >= hardThr);
     if (hard.length) {
       const lh = hard.reduce((m, a) => ((a.start_date_local || a.start_date || '') > (m.start_date_local || m.start_date || '')) ? a : m);
       daysHard = Math.max(0, Math.floor((Date.now() - new Date(lh.start_date_local || lh.start_date).getTime()) / 864e5));
