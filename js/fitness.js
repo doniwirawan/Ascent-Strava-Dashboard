@@ -17,9 +17,18 @@ const HR_ZONES = [
 ];
 
 // Highest max HR observed across all loaded activities (fallback zone basis).
+// Floored at your configured Strava top-zone HR: if you've set Z5 to start at,
+// say, 190, your true max is at least there even if no single ride recorded it —
+// so training load / VO2 don't underestimate off a low observed peak.
 function observedMaxHr() {
   if (typeof acts === 'undefined' || !acts.length) return 0;
-  return acts.reduce((m, a) => Math.max(m, a.max_heartrate || 0), 0);
+  let m = acts.reduce((mx, a) => Math.max(mx, a.max_heartrate || 0), 0);
+  if (typeof athleteHrZones !== 'undefined' && Array.isArray(athleteHrZones) && athleteHrZones.length) {
+    const top = athleteHrZones[athleteHrZones.length - 1];
+    const floor = (top && top.max > 0) ? top.max : (top && top.min) || 0;
+    if (floor > m) m = floor;
+  }
+  return m;
 }
 
 // Fetch the athlete's configured HR zones once (needs profile:read_all, already granted).
@@ -413,15 +422,34 @@ const SPEED_ZONES = [
   { name: 'Flying',  color: '#ef4444' },
 ];
 
-// Lower edge of each band, in m/s. Runners move slower, so they get their own.
+// Fallback lower edges (m/s) when there isn't enough history to personalise.
 const SPEED_BAND_EDGES = {
   ride: [0, 15 / 3.6, 20 / 3.6, 25 / 3.6, 30 / 3.6],
   run:  [0,  8 / 3.6, 10 / 3.6, 12 / 3.6, 14 / 3.6],
 };
 
+// Data-driven band edges: the 20/40/60/80th percentiles of YOUR own average
+// speeds for the active sport, so "Easy … Flying" mean fast/slow for you rather
+// than fixed absolutes. Falls back to the generic bands under ~20 activities.
+// Memoised per sport+distribution so per-activity lookups stay cheap.
+let _spdEdgesMemo = { sig: '', edges: null };
 function _spdEdges() {
   const usePace = (typeof sportUsesPace === 'function') && sportUsesPace();
-  return SPEED_BAND_EDGES[usePace ? 'run' : 'ride'];
+  const set = (typeof modeActs === 'function') ? modeActs() : [];
+  const speeds = set.map(a => a.average_speed).filter(v => v > 0).sort((a, b) => a - b);
+  const sig = (usePace ? 'p' : 's') + ':' + speeds.length + ':' + (speeds[0] || 0).toFixed(2) + ':' + (speeds[speeds.length - 1] || 0).toFixed(2);
+  if (_spdEdgesMemo.sig === sig && _spdEdgesMemo.edges) return _spdEdgesMemo.edges;
+
+  let edges;
+  if (speeds.length >= 20) {
+    const pct = p => speeds[Math.min(speeds.length - 1, Math.floor(speeds.length * p))];
+    edges = [0, pct(0.20), pct(0.40), pct(0.60), pct(0.80)];
+    for (let i = 1; i < edges.length; i++) if (edges[i] <= edges[i - 1]) edges[i] = edges[i - 1] + 0.1; // keep strictly increasing
+  } else {
+    edges = SPEED_BAND_EDGES[usePace ? 'run' : 'ride'];
+  }
+  _spdEdgesMemo = { sig, edges };
+  return edges;
 }
 
 function speedZoneFor(ms) {
