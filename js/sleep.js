@@ -2465,6 +2465,8 @@ async function renderReadiness() {
     +   '<div class="rdy-asof">' + T('Based on your last recorded night') + ' · ' + fmtDt(last.date) + '</div>'
     + '</div>'
     + '</div>';
+  // Day Strain shares this row — re-run it now that the markup above exists.
+  if (typeof renderWhoopOverview === 'function') { try { renderWhoopOverview(); } catch {} }
 }
 
 /* Mini readiness sparkline (0–100 per night). preserveAspectRatio none so it

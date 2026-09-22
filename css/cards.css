@@ -192,8 +192,20 @@
 .sb-stats small { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 
 /* ── Daily readiness card (Overview, owner-only) ── */
+/* The container is the row: Readiness on the left, the Day Strain ring
+   (.wh-slot-beside, injected by renderWhoopOverview) on the right. */
+#readinessCard { display: flex; align-items: stretch; gap: 14px; margin-bottom: 14px; }
+#readinessCard > .wh-slot-beside { flex: 0 0 clamp(270px, 30%, 390px); min-width: 0; }
+#readinessCard > .wh-slot-beside .wh-row { height: 100%; margin-bottom: 0; max-width: none; }
+#readinessCard > .wh-slot-beside .wh-card { height: 100%; }
+@media (max-width: 900px) {
+  #readinessCard { flex-wrap: wrap; }
+  #readinessCard > .wh-slot-beside { flex: 1 1 100%; }
+  #readinessCard > .wh-slot-beside .wh-row { max-width: 520px; }   /* stacked: back to its own width */
+}
 .rdy-card {
-  display: flex; align-items: center; gap: 18px; padding: 16px 20px; margin-bottom: 14px;
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: 18px; padding: 16px 20px;
   border-left: 3px solid var(--rdy, var(--orange));
 }
 .rdy-ring { position: relative; width: 116px; height: 116px; flex: 0 0 auto; }

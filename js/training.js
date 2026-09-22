@@ -1034,17 +1034,22 @@ function whoopRowHTML(compact, opts) {
   </div>`;
 }
 
-/* Overview placement: a full-width band pinned above the stat cards. */
+/* Overview placement: a full-width band pinned above the stat cards — except
+   for the owner, whose lone Strain ring sits beside the Readiness card instead
+   of on a row of its own. renderReadiness() calls this again once its own
+   markup is in, since that innerHTML would otherwise wipe the slot. */
 function renderWhoopOverview() {
   const grid = document.getElementById('statRow');
   if (!grid) return;
-  grid.querySelectorAll('.wh-slot').forEach(n => n.remove());
+  document.querySelectorAll('.wh-slot').forEach(n => n.remove());
   // Owner has the Readiness card (which supersedes Recovery) — show only Strain here.
   const owner = (typeof _slpIsOwner === 'function') && _slpIsOwner();
+  const rdy = document.getElementById('readinessCard');
+  const beside = owner && rdy && rdy.querySelector('.rdy-card');
   const html = whoopRowHTML(true, { strainOnly: owner });
   if (!html) return;
   const slot = document.createElement('div');
-  slot.className = 'wh-slot';
+  slot.className = 'wh-slot' + (beside ? ' wh-slot-beside' : '');
   slot.innerHTML = html;
-  grid.prepend(slot);
+  if (beside) rdy.appendChild(slot); else grid.prepend(slot);
 }
