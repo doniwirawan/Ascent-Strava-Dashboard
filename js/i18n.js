@@ -728,6 +728,8 @@ const TR_ID = {
   'Nap days follow a short night: {0} of night sleep against {1} on days you do not nap. The nap is compensation, not a bonus.': 'Hari dengan tidur siang selalu didahului malam yang pendek: {0} tidur malam berbanding {1} di hari tanpa tidur siang. Tidur siang itu kompensasi, bukan bonus.',
   'Same hours, slightly thinner sleep than two years ago': 'Durasi sama, kualitas sedikit menipis dibanding dua tahun lalu',
   'Your nightly total has not moved — {0} in {1}, {2} in {3}. The mix has: deep {4} → {5} min and REM {6} → {7} min, with light sleep taking up the slack. A mild drift rather than a cliff, and the year-to-year correlation is weak, so watch it rather than worry about it.': 'Total tidur semalam Anda tidak berubah — {0} di {1}, {2} di {3}. Yang berubah komposisinya: tidur dalam {4} → {5} mnt dan REM {6} → {7} mnt, dengan tidur ringan mengisi selisihnya. Ini pergeseran halus, bukan penurunan tajam, dan korelasi antar tahunnya lemah — jadi pantau saja, tak perlu cemas.',
+  'Pan left': 'Geser kiri',
+  'Pan right': 'Geser kanan',
   'Zoom in': 'Perbesar',
   'Zoom out': 'Perkecil',
   'Reset zoom': 'Atur ulang zoom',

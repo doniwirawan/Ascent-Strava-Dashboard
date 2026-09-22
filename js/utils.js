@@ -221,6 +221,12 @@ function addChartZoomControls(root) {
       bar.appendChild(b);
     };
     const T = (typeof tr === 'function') ? tr : (x => x);
+    // Slide the window along the x axis — a quarter of the visible span per tap,
+    // for anyone not dragging the chart itself (and for touch, where a drag
+    // scrolls the page). ch.pan takes pixels: +x reveals earlier data.
+    const step = () => ((ch.chartArea && ch.chartArea.width) || 200) * 0.25;
+    mk('‹', T('Pan left'),  () => { try { ch.pan({ x:  step() }, undefined, 'default'); } catch {} });
+    mk('›', T('Pan right'), () => { try { ch.pan({ x: -step() }, undefined, 'default'); } catch {} });
     mk('+', T('Zoom in'),  () => { try { ch.zoom(1.25); } catch {} });
     mk('−', T('Zoom out'), () => { try { ch.zoom(0.8); } catch {} });
     mk('⟲', T('Reset zoom'), () => { try { ch.resetZoom(); } catch {} });
