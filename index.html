@@ -264,6 +264,7 @@
     <button class="nav-link" onclick="navScrollTo('gearSection',this)">Gear</button>
     <button class="nav-link" onclick="navScrollTo('heatSection',this)">Heatmap</button>
     <button class="nav-link" onclick="navScrollTo('segmentsSection',this)">Segments</button>
+    <button class="nav-link" onclick="navScrollTo('gapsSection',this)">Segment Gaps</button>
     <button class="nav-link" onclick="navScrollTo('milestonesSection',this)">Milestones</button>
     <button class="nav-link" onclick="navScrollTo('rewindSection',this)">Rewind</button>
     <button class="nav-link" onclick="navScrollTo('challengesSection',this)">Trophies</button>
@@ -762,6 +763,12 @@
   <div id="segmentsSection" style="display:none">
     <div class="section-title">Your Segments</div>
     <div id="segmentsGrid"></div>
+  </div>
+
+  <!-- SEGMENT GAPS -->
+  <div id="gapsSection" style="display:none">
+    <div class="section-title">Segment Gaps</div>
+    <div id="gapsGrid"></div>
   </div>
 
   <!-- MILESTONES -->
@@ -1272,6 +1279,7 @@
 <script src="js/time-lost.js"></script>
 <script src="js/wind-analysis.js"></script>
 <script src="js/segment-intel.js"></script>
+<script src="js/segment-gaps.js"></script>
 <script src="js/routes.js"></script>
 <script src="js/app.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>

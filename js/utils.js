@@ -129,7 +129,7 @@ function chartOpts(unit='', legend=false) {
 
 const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','trendsSection','actSection','calSection',
   'eddySection','trainingSection','sleepSection','monthlySection','bestSection','gearSection','heatSection',
-  'segmentsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','settingsSection','helpSection'];
+  'segmentsSection','gapsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','settingsSection','helpSection'];
 
 // True while the Overview (statRow) is the section on screen. Overview-only
 // cards that fill asynchronously must check this before unhiding themselves —
@@ -170,10 +170,14 @@ function navScrollTo(id, btn) {
     if(id==='gearSection' && _empty('gearGrid') && typeof renderGear==='function') renderGear();
     if(id==='challengesSection' && _empty('challengesGrid') && typeof renderChallenges==='function') renderChallenges();
     if(id==='fixSection' && typeof renderFixSection==='function') renderFixSection();
+    if(id==='gapsSection'){
+      if(_empty('gapsGrid') && typeof renderGaps==='function') renderGaps();
+      else if(typeof _gapMaps!=='undefined') setTimeout(()=>{_gapMaps.forEach(({m,line})=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}});},80);
+    }
     if(id==='segmentsSection'){
       if(_empty('segmentsGrid') && typeof renderSegments==='function') renderSegments();
       // Segment mini-maps build while hidden (0×0) — re-size and re-fit on show
-      else if(typeof segMaps!=='undefined') setTimeout(()=>{segMaps.forEach(({m,line})=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}});},80);
+      else if(typeof segMaps!=='undefined') setTimeout(()=>{segMaps.forEach(({m,line})=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),SEG_FIT);}catch{}});},80);
     }
   } catch(e){ console.error('lazy render failed:', id, e); }
   // Resize charts after section becomes visible

@@ -1395,6 +1395,11 @@ async function _segCoords(s){
 }
 
 // Lazily build a card's mini-map when it scrolls into view (the list can be long)
+// The bottom ~84px of a segment mini-map sits under .seg-overlay (name + place),
+// so a symmetric fit hides the end of the route behind the title. Bias the fit
+// upward by the overlay's height instead.
+const SEG_FIT = { paddingTopLeft:[16,16], paddingBottomRight:[16,84] };
+
 function _initSegMapEl(mapEl){
   const id=mapEl.id.replace('segmap-','');
   const s=(_allSegs||[]).find(x=>String(x.id)===String(id));
@@ -1408,9 +1413,9 @@ function _initSegMapEl(mapEl){
       const line=L.polyline(coords,{color:'#FC4C02',weight:3,opacity:.95}).addTo(m);
       L.circleMarker(coords[0],{radius:5,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m);
       L.circleMarker(coords[coords.length-1],{radius:5,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m);
-      m.fitBounds(line.getBounds(),{padding:[16,16]});
+      m.fitBounds(line.getBounds(),SEG_FIT);
       segMaps.push({m,line});
-      setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}},300);
+      setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),SEG_FIT);}catch{}},300);
     }catch{}
   })();
 }
@@ -1598,7 +1603,7 @@ function _renderSegGrid(el, segs){
           ? cards.sort((a,b)=>a.dataset.segname.localeCompare(b.dataset.segname))
           : cards.sort((a,b)=>parseFloat(b.dataset[key])-parseFloat(a.dataset[key]));
         ordered.forEach(c=>grid.appendChild(c));
-        setTimeout(()=>segMaps.forEach(({m,line})=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[16,16]});}catch{}}),60);
+        setTimeout(()=>segMaps.forEach(({m,line})=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),SEG_FIT);}catch{}}),60);
       }
     }
     if(grid) grid._applySeg=applySeg;   // so the flag button can re-filter live
