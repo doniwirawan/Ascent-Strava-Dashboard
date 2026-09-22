@@ -27,7 +27,7 @@ function renderAll() {
   const _fg=document.getElementById('fabGroup'); if(_fg) _fg.style.display='flex';
   const lt=document.getElementById('langToggleApp'); if(lt) lt.style.display='';
   const ut=document.getElementById('unitToggle');
-  if(ut){ ut.style.display=''; ut.querySelectorAll('[data-unit]').forEach(b=>b.classList.toggle('active',(b.dataset.unit==='mi')===useImperial)); }
+  if(ut){ ut.style.display=''; document.querySelectorAll('[data-unit]').forEach(b=>b.classList.toggle('active',(b.dataset.unit==='mi')===useImperial)); }
   const mt=document.getElementById('modeToggle');
   if(mt){ mt.style.display=''; if(typeof renderSportToggle==='function') renderSportToggle(); }
   const nl = document.getElementById('navLinks');

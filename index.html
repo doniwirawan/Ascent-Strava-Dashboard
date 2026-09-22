@@ -458,6 +458,14 @@
       Help &amp; Data
     </button>
 
+    <!-- Language + unit toggles live in the drawer on mobile, so the top bar
+         isn't crowded next to the sport toggle. Same classes/handlers, so they
+         stay in sync with the (hidden-on-mobile) top-bar ones. -->
+    <div class="sidebar-controls">
+      <div class="lang-toggle"><button data-lang="en">EN</button><button data-lang="id">ID</button></div>
+      <div class="unit-toggle"><button data-unit="km" onclick="setUnits(false)">km</button><button data-unit="mi" onclick="setUnits(true)">mi</button></div>
+    </div>
+
     <div class="sidebar-actions">
       <button class="sidebar-act" onclick="document.getElementById('mainBtn').click()">Refresh</button>
       <button class="sidebar-act danger" onclick="document.getElementById('logoutBtn').click()">Disconnect</button>

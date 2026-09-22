@@ -24,6 +24,9 @@
 
 /* mobile drawer action footer (hidden on desktop) */
 .sidebar-actions { display: none; flex-direction: column; gap: 8px; padding: 14px; margin-top: auto; border-top: 1px solid var(--border); }
+.sidebar-controls { display: none; gap: 8px; padding: 12px 14px 0; }
+.sidebar-controls .lang-toggle, .sidebar-controls .unit-toggle { flex: 1; }
+.sidebar-controls .lang-toggle button, .sidebar-controls .unit-toggle button { flex: 1; }
 .sidebar-act { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 600; padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; text-align: left; transition: background .15s, border-color .15s; }
 .sidebar-act:hover { border-color: var(--border-hover); background: var(--surface3); }
 .sidebar-act.danger { color: #f87171; }
