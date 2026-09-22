@@ -131,6 +131,14 @@ const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','trendsSection'
   'eddySection','trainingSection','sleepSection','monthlySection','bestSection','gearSection','heatSection',
   'segmentsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','settingsSection','helpSection'];
 
+// True while the Overview (statRow) is the section on screen. Overview-only
+// cards that fill asynchronously must check this before unhiding themselves —
+// otherwise a slow load pops the card onto whatever page the user is on.
+function isOverviewVisible(){
+  const el=document.getElementById('statRow');
+  return !!el && getComputedStyle(el).display!=='none';
+}
+
 function navScrollTo(id, btn) {
   _ALL_SECTIONS.forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
   const el=document.getElementById(id);

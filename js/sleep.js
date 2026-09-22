@@ -2451,7 +2451,9 @@ async function renderReadiness() {
     else note = T('Low signals — a rest or very easy day will pay off more than pushing through.');
   }
 
-  el.style.display = '';
+  // Only reveal it if the Overview is still the section on screen — this render
+  // is async, so the user may have navigated elsewhere while sleep data loaded.
+  el.style.display = (typeof isOverviewVisible === 'function' && !isOverviewVisible()) ? 'none' : '';
   el.innerHTML =
     '<div class="rdy-card card" style="--rdy:' + band.c + '">'
     + '<div class="rdy-ring">' + ring + '<div class="rdy-ring-mid"><div class="rdy-ring-val" style="color:' + band.c + '">' + readiness + '</div><div class="rdy-ring-cap">' + T('Readiness') + '</div></div></div>'

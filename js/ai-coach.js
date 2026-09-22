@@ -668,7 +668,9 @@ async function aiSectionInsight(sectionId, tries = 0) {
   }
   if (!el) return;
   const drop = () => { if (el.id === 'ovAiInsight') el.style.display = 'none'; else el.remove(); };
-  const render = txt => { el.style.display = ''; el.innerHTML = '<span class="ai-ins-icon">' + AI_ICON + '</span><div class="ai-ins-text">' + txt + '</div>'; };
+  // Same guard as the Readiness card: this runs async (retries + model call), so
+  // the Overview's own container must stay hidden if the user has moved on.
+  const render = txt => { el.style.display = (el.id === 'ovAiInsight' && typeof isOverviewVisible === 'function' && !isOverviewVisible()) ? 'none' : ''; el.innerHTML = '<span class="ai-ins-icon">' + AI_ICON + '</span><div class="ai-ins-text">' + txt + '</div>'; };
 
   // Build context from what's on the page: visible text + chart data + any
   // per-section computed extras (for map/calendar pages with no on-screen text).
