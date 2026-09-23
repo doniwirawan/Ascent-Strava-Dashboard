@@ -561,3 +561,10 @@
 .spot-rows code{font-size:.76rem}
 @media(max-width:640px){.spot-panel.open{grid-template-columns:1fr}}
 .spot-warn{font-size:.74rem;color:#fbbf24;line-height:1.4}
+/* same panel inside a narrow Best Efforts card: pin at the row end, map above facts */
+.best-where{flex:none;background:none;border:none;color:var(--text);opacity:.5;cursor:pointer;padding:4px;margin-left:4px;border-radius:6px;line-height:0}
+.best-where svg{width:15px;height:15px}
+.best-where:hover{color:var(--orange);opacity:1;background:rgba(252,76,2,.12)}
+.best-card .spot-panel.open{grid-template-columns:1fr;padding:10px;margin:6px 0}
+.best-card .spot-map{height:160px}
+.best-card:not(.show-all) .best-extra + .spot-panel{display:none}

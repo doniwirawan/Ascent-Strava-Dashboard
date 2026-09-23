@@ -681,31 +681,35 @@ function renderOverviewSpeedZones() {
   };
 }
 
-/* ── WHERE THE TOP SPEED HAPPENED ────────────────────────────────────────────
-   A top-speed row only says how fast. This finds the moment: the point on the
-   ride where that peak occurred, how far in it was, the clock time, and which
-   of your segments (if any) it falls on.
+/* ── WHERE A PEAK HAPPENED ───────────────────────────────────────────────────
+   A top-speed or highest-HR row only says how much. This finds the moment: the
+   point on the ride where that peak occurred, how far in it was, the clock
+   time, which of your segments (if any) it falls on, and the other metric at
+   that same moment (heart rate at the top speed, speed at the HR peak).
 
-   Only the resolved point is cached, not the latlng stream it came from — one
-   small record per activity instead of a second copy of the whole track. */
-const _spotKey = id => 'strava_spot_' + id;
+   Only the resolved point is cached, not the streams it came from — one small
+   record per activity instead of a second copy of the whole track. */
+const _spotKey = (id, kind) => 'strava_spot_' + (kind === 'hr' ? 'hr_' : '') + id;
 
-async function _speedSpot(a) {
-  try { const c = JSON.parse(localStorage.getItem(_spotKey(a.id)) || 'null'); if (c && c.v === 2) return c; } catch {}
+async function _peakSpot(a, kind) {
+  try { const c = JSON.parse(localStorage.getItem(_spotKey(a.id, kind)) || 'null'); if (c && c.v === 3) return c; } catch {}
   let raw;
-  try { raw = await api(`/activities/${a.id}/streams?keys=velocity_smooth,latlng,distance,time&key_by_type=true`); }
+  try { raw = await api(`/activities/${a.id}/streams?keys=velocity_smooth,heartrate,latlng,distance,time&key_by_type=true`); }
   catch { return null; }
-  const v = raw.velocity_smooth && raw.velocity_smooth.data;
+  const spd = raw.velocity_smooth && raw.velocity_smooth.data;
+  const hr = raw.heartrate && raw.heartrate.data;
+  const v = kind === 'hr' ? hr : spd, other = kind === 'hr' ? spd : hr;
   const ll = raw.latlng && raw.latlng.data;
   if (!v || !ll || !v.length) return null;
-  // Locate the RAW peak, so the panel agrees with the figure on the row. The
-  // spike-fixed series is only consulted to judge whether that peak is real —
-  // a glitch still has a location, and saying so beats quietly moving the pin.
+  // Locate the RAW peak, so the panel agrees with the figure on the row. For
+  // speed the spike-fixed series is only consulted to judge whether that peak
+  // is real — a glitch still has a location, and saying so beats quietly
+  // moving the pin.
   let bi = -1, bv = -1;
   for (let i = 0; i < v.length; i++) if (v[i] != null && v[i] > bv && ll[i]) { bv = v[i]; bi = i; }
   if (bi < 0) return null;
   let suspect = false;
-  if (typeof fixSpeedSpikes === 'function') {
+  if (kind !== 'hr' && typeof fixSpeedSpikes === 'function') {
     const isOwner = localStorage.getItem('strava_athlete_id') === OWNER_ATHLETE_ID;
     const clean = fixSpeedSpikes(v, isOwner ? { ceiling: MAX_SPEED_CEILING } : { k: 6 }).data;
     suspect = clean[bi] != null && clean[bi] < bv * 0.9;
@@ -714,15 +718,20 @@ async function _speedSpot(a) {
   const time = raw.time && raw.time.data;
   // Speed ~10 s before the peak: velocity_smooth ramps into a spike over a few
   // samples, so the sample right before it is already inflated.
-  let pi = Math.max(0, bi - 10);
-  if (time && time[bi] != null) { pi = bi; while (pi > 0 && time[bi] - time[pi] < 10) pi--; }
-  while (pi > 0 && v[pi] == null) pi--;
+  let before = null;
+  if (kind !== 'hr') {
+    let pi = Math.max(0, bi - 10);
+    if (time && time[bi] != null) { pi = bi; while (pi > 0 && time[bi] - time[pi] < 10) pi--; }
+    while (pi > 0 && v[pi] == null) pi--;
+    before = v[pi] != null && pi < bi ? v[pi] : null;
+  }
   const spot = {
-    v: 2, speed: bv, before: v[pi] != null && pi < bi ? v[pi] : null, lat: ll[bi][0], lng: ll[bi][1], suspect,
+    v: 3, val: bv, before, other: other && other[bi] != null ? other[bi] : null,
+    lat: ll[bi][0], lng: ll[bi][1], suspect,
     at: dist && dist[bi] != null ? dist[bi] : null,
     t: time && time[bi] != null ? time[bi] : null,
   };
-  try { localStorage.setItem(_spotKey(a.id), JSON.stringify(spot)); } catch {}
+  try { localStorage.setItem(_spotKey(a.id, kind), JSON.stringify(spot)); } catch {}
   return spot;
 }
 
@@ -742,15 +751,18 @@ function _spotSegment(lat, lng) {
 }
 
 let _spotMaps = {};
-async function showSpeedSpot(actId, btn) {
+// kind: 'speed' (default) or 'hr'. panelId lets the same activity have a panel
+// in more than one list (Cycling top 5 and the Best Efforts cards).
+async function showSpeedSpot(actId, btn, kind, panelId) {
   const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(actId));
-  const panel = document.getElementById('spot-' + actId);
+  const pid = panelId || ('spot-' + actId);
+  const panel = document.getElementById(pid);
   if (!a || !panel) return;
   if (panel.classList.contains('open')) { panel.classList.remove('open'); panel.innerHTML = ''; return; }
 
   panel.classList.add('open');
   panel.innerHTML = '<div class="spot-loading">' + tr('Finding the spot…') + '</div>';
-  const spot = await _speedSpot(a);
+  const spot = await _peakSpot(a, kind);
   if (!spot) { panel.innerHTML = '<div class="spot-loading">' + tr('No GPS data for this ride.') + '</div>'; return; }
 
   const seg = _spotSegment(spot.lat, spot.lng);
@@ -760,12 +772,15 @@ async function showSpeedSpot(actId, btn) {
   const gm = `https://www.google.com/maps?q=${spot.lat.toFixed(5)},${spot.lng.toFixed(5)}`;
 
   panel.innerHTML = `
-    <div class="spot-map" id="spotmap-${actId}"></div>
+    <div class="spot-map" id="map-${pid}"></div>
     <div class="spot-facts">
-      <div class="spot-big">${kmh(spot.speed)}<i>${speedUnit()}</i></div>
+      <div class="spot-big">${kind === 'hr' ? Math.round(spot.val) + '<i>bpm</i>' : kmh(spot.val) + `<i>${speedUnit()}</i>`}</div>
       ${spot.suspect ? `<div class="spot-warn">${tr('Looks like a GPS spike — the pin is where Strava recorded it')}</div>` : ''}
       <div class="spot-rows">
         ${spot.before != null ? `<div><span>${tr('10 s before')}</span><b>${kmh(spot.before)} ${speedUnit()}</b></div>` : ''}
+        ${spot.other != null ? (kind === 'hr'
+            ? `<div><span>${tr('Speed then')}</span><b>${kmh(spot.other)} ${speedUnit()}</b></div>`
+            : `<div><span>${tr('Heart rate then')}</span><b>${Math.round(spot.other)} bpm</b></div>`) : ''}
         ${spot.at != null ? `<div><span>${tr('Into the ride')}</span><b>${fmtD(spot.at)}</b></div>` : ''}
         ${clock ? `<div><span>${tr('Clock time')}</span><b>${clock}</b></div>` : ''}
         <div><span>${tr('Segment')}</span><b>${seg
@@ -778,14 +793,14 @@ async function showSpeedSpot(actId, btn) {
 
   if (!window.L) return;
   try {
-    const m = L.map('spotmap-' + actId, { zoomControl: false, attributionControl: false, scrollWheelZoom: false });
+    const m = L.map('map-' + pid, { zoomControl: false, attributionControl: false, scrollWheelZoom: false });
     addBasemap(m);
     m.setView([spot.lat, spot.lng], 16);
     if (a.map && a.map.summary_polyline) {
       try { L.polyline(decodePolyline(a.map.summary_polyline), { color: '#666', weight: 3, opacity: .8 }).addTo(m); } catch {}
     }
     L.circleMarker([spot.lat, spot.lng], { radius: 8, color: '#FC4C02', fillColor: '#FC4C02', fillOpacity: 1, weight: 2 }).addTo(m);
-    _spotMaps[actId] = m;
+    _spotMaps[pid] = m;
     setTimeout(() => { try { m.invalidateSize(); m.setView([spot.lat, spot.lng], 16); } catch {} }, 250);
   } catch {}
 }

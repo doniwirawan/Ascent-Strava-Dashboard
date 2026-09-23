@@ -144,13 +144,15 @@ function _bestToggle(btn){
   btn.textContent = open ? (id?'Tampilkan lebih sedikit':'Show less') : (id?'Tampilkan selengkapnya':'Show more');
 }
 // Render one ranking card. `list` is already sorted+sliced; `fmtRow(a)` → value string.
-function _bestCard(title, sub, list, fmtRow){
+// `spot` ('speed' | 'hr') adds a pin per row that opens where that peak happened.
+function _bestCard(title, sub, list, fmtRow, spot){
   const rows=list.map((a,i)=>`
       <div class="best-row${i>=BEST_SHOWN?' best-extra':''}">
         <div class="best-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
         <div class="best-name">${a.name||'Activity'} <span style="color:var(--muted);font-size:10px;">${fmtDt(a.start_date)}</span></div>
         <div class="best-val">${fmtRow(a)}</div>
-      </div>`).join('');
+        ${spot&&a.id?`<button class="best-where" onclick="showSpeedSpot('${a.id}',this,'${spot}','bspot-${spot}-${a.id}')" title="${tr('Where did this happen?')}" aria-label="${tr('Where did this happen?')}">${ic('pin')}</button>`:''}
+      </div>${spot&&a.id?`<div class="spot-panel" id="bspot-${spot}-${a.id}"></div>`:''}`).join('');
   const more=list.length>BEST_SHOWN?`<button class="best-more" onclick="_bestToggle(this)">Show more</button>`:'';
   const subHtml=sub?` <span style="color:var(--muted);font-weight:400;letter-spacing:0;text-transform:none;">· ${sub}</span>`:'';
   return `<div class="best-card"><div class="best-card-title">${title}${subHtml}</div>${rows}${more}</div>`;
@@ -160,8 +162,8 @@ function renderBestEfforts(){
     {title:'Longest Rides',key:'distance',fmt:a=>fmtKm(a)+' '+distUnit(),sort:(a,b)=>(b.distance||0)-(a.distance||0)},
     {title:'Most Elevation',key:'total_elevation_gain',fmt:a=>fmtElev(a),sort:(a,b)=>(b.total_elevation_gain||0)-(a.total_elevation_gain||0)},
     {title:'Fastest Avg Speed',key:'average_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.average_speed||0)-(a.average_speed||0)},
-    {title:'Highest Max Speed',key:'max_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.max_speed||0)-(a.max_speed||0),valid:a=>cleanMax(a)>0},
-    {title:'Highest Heart Rate',key:'max_heartrate',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.max_heartrate||0)-(a.max_heartrate||0)},
+    {title:'Highest Max Speed',key:'max_speed',spot:'speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.max_speed||0)-(a.max_speed||0),valid:a=>cleanMax(a)>0},
+    {title:'Highest Heart Rate',key:'max_heartrate',spot:'hr',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.max_heartrate||0)-(a.max_heartrate||0)},
     {title:'Highest Avg Heart Rate',key:'average_heartrate',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.average_heartrate||0)-(a.average_heartrate||0)},
     {title:'Highest Suffer Score',key:'suffer_score',fmt:a=>Math.round(a),sort:(a,b)=>(b.suffer_score||0)-(a.suffer_score||0)},
   ];
@@ -171,7 +173,7 @@ function renderBestEfforts(){
   const simple=CATS.map(cat=>{
     const sorted=src.filter(a=>a[cat.key]>0&&(!cat.valid||cat.valid(a))).sort(cat.sort).slice(0,BEST_TOP_N);
     if(!sorted.length) return '';
-    return _bestCard(cat.title,'',sorted,a=>cat.fmt(a[cat.key]));
+    return _bestCard(cat.title,'',sorted,a=>cat.fmt(a[cat.key]),cat.spot);
   }).join('');
 
   // Composite rankings — combine two metrics via min-max normalisation across the
