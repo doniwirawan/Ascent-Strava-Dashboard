@@ -392,6 +392,7 @@ function _actBuildMap(a){
     L.circleMarker(coords[0],{radius:6,color:'#22c55e',fillColor:'#22c55e',fillOpacity:1,weight:0}).addTo(m);
     L.circleMarker(coords[coords.length-1],{radius:6,color:'#ef4444',fillColor:'#ef4444',fillOpacity:1,weight:0}).addTo(m);
     _actBigMap=m;
+    _actFullscreenControl(m);
     if(a.id) _actMapModeControl(m,a,line);
     setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[24,24]});}catch{}},250);
   }catch{}
@@ -444,9 +445,60 @@ function _actSpeedLayer(trk){
   return g;
 }
 
+// Expand the activity map to the whole screen (Esc or the button again to leave).
+function _actFullscreenControl(m){
+  const el=m.getContainer();
+  if(!el.requestFullscreen) return;
+  const c=L.control({position:'topright'});
+  c.onAdd=()=>{
+    const b=L.DomUtil.create('button','map-fs leaflet-bar');
+    b.type='button'; b.title=(typeof tr==='function'?tr:(x=>x))('Full screen');
+    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+    L.DomEvent.disableClickPropagation(b);
+    b.onclick=()=>{ document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen().catch(()=>{}); };
+    return b;
+  };
+  c.addTo(m);
+  const onFs=()=>{
+    if(!document.body.contains(el)){ document.removeEventListener('fullscreenchange',onFs); return; }
+    setTimeout(()=>{ try{ m.invalidateSize(); }catch{} },100);
+  };
+  document.addEventListener('fullscreenchange',onFs);
+}
+
+// Hovering the speed-coloured track shows the speed at the nearest point.
+function _actSpeedHover(m,trk){
+  const tip=L.DomUtil.create('div','speed-hover',m.getContainer());
+  const dot=L.circleMarker([0,0],{radius:6,color:'#fff',weight:2,fillOpacity:1,interactive:false});
+  let raf=0, ev=null;
+  const hide=()=>{ tip.style.display='none'; dot.remove(); };
+  const find=()=>{
+    raf=0; if(!ev) return;
+    const p=ev.containerPoint, b=m.getBounds().pad(.05);
+    let best=-1, bd=14*14; // px² — must be this close to the line
+    for(let i=0;i<trk.pts.length;i++){
+      const q=trk.pts[i];
+      if(!b.contains([q[0],q[1]])) continue;
+      const c=m.latLngToContainerPoint([q[0],q[1]]), d=(c.x-p.x)**2+(c.y-p.y)**2;
+      if(d<bd){ bd=d; best=i; }
+    }
+    if(best<0){ hide(); return; }
+    const q=trk.pts[best], c=m.latLngToContainerPoint([q[0],q[1]]);
+    const col=_speedColor((q[2]-trk.lo)/(trk.hi-trk.lo));
+    tip.innerHTML=`<b style="color:${col}">${kmh(q[2])}</b> ${speedUnit()}`;
+    tip.style.display='block'; tip.style.left=c.x+'px'; tip.style.top=c.y+'px';
+    dot.setLatLng([q[0],q[1]]).setStyle({fillColor:col}).addTo(m);
+  };
+  const move=e=>{ ev=e; if(!raf) raf=requestAnimationFrame(find); };
+  return {
+    on(){ m.on('mousemove',move); m.on('mouseout',hide); },
+    off(){ m.off('mousemove',move); m.off('mouseout',hide); ev=null; hide(); }
+  };
+}
+
 function _actMapModeControl(m,a,line){
   const T=(typeof tr==='function')?tr:(x=>x);
-  let speedLayer=null, legend=null;
+  let speedLayer=null, legend=null, hover=null;
   const legendCtl=L.control({position:'bottomleft'});
   legendCtl.onAdd=()=>{ legend=L.DomUtil.create('div','speed-legend'); return legend; };
 
@@ -455,13 +507,14 @@ function _actMapModeControl(m,a,line){
       const trk = await _actSpeedTrack(a.id);
       if(_actBigMap!==m || _actMapMode!=='speed') return; // modal or mode changed while loading
       if(!trk){ _actMapMode='route'; sync(); return; }
-      if(!speedLayer) speedLayer=_actSpeedLayer(trk);
+      if(!speedLayer){ speedLayer=_actSpeedLayer(trk); hover=_actSpeedHover(m,trk); }
+      hover.on();
       line.setStyle({opacity:0});
       speedLayer.addTo(m);
       legendCtl.addTo(m);
       legend.innerHTML=`<span>${kmh(trk.lo)}</span><i></i><span>${kmh(trk.hi)} ${speedUnit()}</span>`;
     } else {
-      if(speedLayer) m.removeLayer(speedLayer);
+      if(speedLayer){ m.removeLayer(speedLayer); hover.off(); }
       legendCtl.remove();
       line.setStyle({opacity:.95});
     }
