@@ -279,12 +279,13 @@ function drawZoneRing(canvas, totals, centre, size = 220, colors) {
 }
 
 // Legend rows shared by the Overview card and the activity modal.
-function zoneLegendHTML(totals) {
+// `ranges` (optional) overrides the bpm label per zone, e.g. for age-based zones.
+function zoneLegendHTML(totals, ranges) {
   const sum = totals.reduce((s, v) => s + v, 0) || 1;
   const peak = Math.max(...totals) || 1;
   return totals.map((v, i) => {
     const z = HR_ZONES[Math.min(i, 4)];
-    const range = hrZoneRange(i);
+    const range = ranges ? ranges[i] : hrZoneRange(i);
     return `<div class="hrz-row">
       <span class="hrz-dot" style="background:${z.color}"></span>
       <span class="hrz-name">Z${i + 1} · ${z.name}${range ? ` <span class="hrz-range">${range} bpm</span>` : ''}</span>
@@ -313,14 +314,99 @@ function renderOverviewZones() {
   if (_isHrzOwner()) upgradeOverviewZonesReal(set); else _hrzRealToken++;
 }
 
-// Single-activity "Heart Rate Zones" ring — exact from Strava, else approximated.
+/* Two zone bases for the activity modal:
+   • Strava — your Strava zones, exact time-in-zone from /activities/{id}/zones.
+   • Age    — 220 − age max HR, zones at 60/70/80/90 %. Strava's API doesn't
+     expose birth date, so it's asked for once and kept in this browser only
+     (the repo is public). Time-in-zone comes from the HR stream, counting only
+     moving samples; the per-bpm histogram is cached so a new age needs no refetch. */
+let _hrzMode = localStorage.getItem('hrzMode') === 'age' ? 'age' : 'strava';
+
+function _hrzAge() {
+  const dob = localStorage.getItem('hrzBirthDate');
+  if (!dob) return null;
+  const b = new Date(dob + 'T00:00:00'), n = new Date();
+  if (isNaN(b)) return null;
+  let age = n.getFullYear() - b.getFullYear();
+  if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) age--;
+  return age > 5 && age < 110 ? age : null;
+}
+
+// Zone lower bounds in bpm for Z2..Z5 (Z1 is everything under Z2).
+const _ageZoneBounds = max => [0.6, 0.7, 0.8, 0.9].map(f => Math.round(f * max));
+
+// Seconds spent at each whole bpm while moving → {bpm: s}. Cached per activity.
+async function _hrHistogram(id) {
+  const key = 'hrhist_' + id;
+  try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c) return c; } catch {}
+  const raw = await api(`/activities/${id}/streams?keys=heartrate,time,moving&key_by_type=true`);
+  const hr = raw.heartrate && raw.heartrate.data, t = raw.time && raw.time.data;
+  const mv = raw.moving && raw.moving.data;
+  if (!hr || !t) return null;
+  const h = {};
+  for (let i = 1; i < hr.length; i++) {
+    if (mv && !mv[i]) continue;
+    const dt = t[i] - t[i - 1];
+    if (!(dt > 0) || dt > 30 || !hr[i]) continue; // a long gap is a pause, not zone time
+    const k = Math.round(hr[i]); h[k] = (h[k] || 0) + dt;
+  }
+  try { localStorage.setItem(key, JSON.stringify(h)); } catch {}
+  return h;
+}
+
+function setHrzMode(m, id) {
+  _hrzMode = m; try { localStorage.setItem('hrzMode', m); } catch {}
+  const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
+  if (a) renderActivityHrZones(a);
+}
+function setHrzBirthDate(v, id) {
+  if (!v) return;
+  try { localStorage.setItem('hrzBirthDate', v); } catch {}
+  setHrzMode('age', id);
+}
+function clearHrzBirthDate(id) {
+  try { localStorage.removeItem('hrzBirthDate'); } catch {}
+  setHrzMode('age', id);
+}
+
+// Single-activity "Heart Rate Zones" ring — Strava zones or age-based, see above.
 async function renderActivityHrZones(a) {
   const box = document.getElementById('actHrz');
   if (!box || !a || !a.average_heartrate) { if (box) box.style.display = 'none'; return; }
+  const age = _hrzAge();
+  const btn = (m, label) => `<button type="button" class="${_hrzMode === m ? 'on' : ''}" onclick="setHrzMode('${m}','${a.id}')">${label}</button>`;
+  box.style.display = '';
   box.innerHTML =
-    `<div class="hrz-title">${tr('Heart Rate Zones')}</div>
+    `<div class="hrz-title">${tr('Heart Rate Zones')}
+       ${a.id ? `<span class="actd-stream-modes">${btn('strava', 'Strava')}${btn('age', tr('Age') + (age ? ' ' + age : ''))}</span>` : ''}</div>
      <div class="hrz-body"><canvas class="hrz-ring" id="actHrzRing"></canvas><div class="hrz-legend" id="actHrzLegend"></div></div>
      <div class="hrz-note" id="actHrzNote">${tr('Loading zones…')}</div>`;
+
+  if (_hrzMode === 'age' && a.id) {
+    const note = document.getElementById('actHrzNote');
+    if (!age) {
+      document.getElementById('actHrzRing').style.display = 'none';
+      note.innerHTML = `${tr('Your birth date (Strava doesn’t share it) — saved in this browser only:')}
+        <input type="date" class="hrz-dob" onchange="setHrzBirthDate(this.value,'${a.id}')">`;
+      return;
+    }
+    let h = null;
+    try { h = await _hrHistogram(a.id); } catch {}
+    const ring = document.getElementById('actHrzRing');
+    if (!ring) return;
+    if (!h || !Object.keys(h).length) { note.textContent = tr('No heart-rate stream for this activity.'); return; }
+    const max = 220 - age, lb = _ageZoneBounds(max);
+    const totals = [0, 0, 0, 0, 0];
+    for (const k in h) { let z = 0; while (z < 4 && +k >= lb[z]) z++; totals[z] += h[k]; }
+    const ranges = [`<${lb[0]}`, `${lb[0]}–${lb[1]}`, `${lb[1]}–${lb[2]}`, `${lb[2]}–${lb[3]}`, `${lb[3]}+`];
+    const sum = totals.reduce((s, v) => s + v, 0);
+    drawZoneRing(ring, totals, { big: fmtTc(sum), small: tr('moving') }, 168);
+    document.getElementById('actHrzLegend').innerHTML = zoneLegendHTML(totals, ranges);
+    note.innerHTML = trf('Max HR {0} bpm (220 − age {1}) · zones at 60/70/80/90 % · from the HR stream', max, age)
+      + ` · <a href="#" onclick="clearHrzBirthDate('${a.id}');return false">${tr('change birth date')}</a>`;
+    return;
+  }
+
   let totals = null, exact = false;
   if (a.id) { try { totals = await getActivityZones(a); exact = !!totals; } catch { totals = null; } }
   if (!totals) {                                                    // fallback: avg-HR bucket

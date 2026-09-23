@@ -346,6 +346,9 @@
 .hrz-note { margin-top: 18px; font-size: 11px; color: var(--muted); }
 .actd-hrz { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
 .actd-hrz .hrz-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+.actd-hrz .hrz-title { display: flex; align-items: center; gap: 8px; }
+.hrz-note a { color: var(--orange); }
+.hrz-dob { margin-left: 6px; padding: 4px 8px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font: inherit; color-scheme: dark; }
 @media (max-width: 560px) {
   .hrz-body { flex-direction: column; align-items: stretch; gap: 18px; }
   .hrz-legend { max-width: none; }
