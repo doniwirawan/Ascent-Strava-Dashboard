@@ -392,6 +392,50 @@ function _eddyDur(weeks, id) {
   const y = (weeks / 52.14).toFixed(1); return id ? `${y} tahun` : `${y} yr`;
 }
 
+// Distance table under the Eddington card, in 10 km (or mi) bands: how many
+// activities fell in each band and their total distance, plus how many reached
+// at least that distance — which is exactly what E=that-number needs.
+function _eddyTable(rides, word, ID_WORD, id) {
+  const el = document.getElementById('eddyTable');
+  if (!el) return;
+  const u = distUnit(), STEP = 10;
+  const ds = rides.map(r => kmVal(r.distance || 0)).filter(d => d > 0);
+  const w = id ? (ID_WORD[word] || 'aktivitas') : word + 's';
+  document.getElementById('eddyTableTitle').textContent =
+    id ? `Jumlah ${w} per jarak` : `${w[0].toUpperCase() + w.slice(1)} by distance`;
+  if (!ds.length) { el.innerHTML = ''; return; }
+  const top = Math.floor(Math.max(...ds) / STEP) * STEP;
+  const peak = Math.max(...Array.from({ length: top / STEP + 1 }, (_, i) =>
+    ds.filter(d => d >= i * STEP && d < (i + 1) * STEP).length));
+  let body = '';
+  for (let lo = 0; lo <= top; lo += STEP) {
+    const band = ds.filter(d => d >= lo && d < lo + STEP);
+    const sum = band.reduce((s, d) => s + d, 0);
+    const atLeast = ds.filter(d => d >= lo).length;
+    const E = lo || 1, need = Math.max(0, E - ds.filter(d => d >= E).length);
+    const status = need === 0
+      ? `<span class="eddy-ok">✓ E=${E}</span>`
+      : `<span class="dim">${id ? `E=${E}: butuh ${need} lagi` : `E=${E}: ${need} more`}</span>`;
+    body += `<tr>
+      <td>${lo}–${lo + STEP} ${u}</td>
+      <td class="num">${band.length || '<span class="dim">0</span>'}
+        <span class="eddy-bar"><i style="width:${Math.round(band.length / peak * 100)}%"></i></span></td>
+      <td class="num">${sum ? sum.toFixed(1) + ' <span class="dim">' + u + '</span>' : '<span class="dim">—</span>'}</td>
+      <td class="num">${atLeast}</td>
+      <td>${status}</td>
+    </tr>`;
+  }
+  el.innerHTML = `<table class="month-table eddy-tbl"><thead><tr>
+      <th>${id ? 'Jarak' : 'Distance'}</th>
+      <th>${id ? `Jumlah ${w}` : `${w[0].toUpperCase() + w.slice(1)}`}</th>
+      <th>${id ? 'Total jarak' : 'Total distance'}</th>
+      <th>${id ? `${w[0].toUpperCase() + w.slice(1)} ≥ jarak ini` : `${w[0].toUpperCase() + w.slice(1)} ≥ this`}</th>
+      <th>Eddington</th>
+    </tr></thead><tbody>${body}</tbody>
+    <tfoot><tr><td>${id ? 'Total' : 'Total'}</td><td class="num">${ds.length}</td>
+      <td class="num">${ds.reduce((s, d) => s + d, 0).toFixed(1)} <span class="dim">${u}</span></td><td></td><td></td></tr></tfoot></table>`;
+}
+
 function renderEddington() {
   const mode = sportMode();
   const rides = modeActs();
@@ -415,6 +459,7 @@ function renderEddington() {
   // ── Goal projection: how long to reach a fixed E=50 at the recent ride rate ──
   const goalHTML = _eddyGoalHTML(rides, E, mode, id);
   document.getElementById('eddyNext').innerHTML = goalHTML + rows.join('');
+  _eddyTable(rides, word, ID_WORD, id);
 
   // bar chart: last 15 E-values cumulative
   const kms = rides.map(r=>kmVal(r.distance||0)).sort((a,b)=>b-a).slice(0,next+5);

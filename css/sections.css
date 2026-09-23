@@ -145,6 +145,14 @@
 .eddy-step { padding: 5px 0; border-top: 1px solid var(--border); }
 .eddy-step:first-child { border-top: 0; }
 .eddy-have { color: var(--muted); opacity: .8; }
+/* distance-band table under the Eddington card */
+.eddy-tbl-card { margin-top: 14px; }
+.eddy-tbl-wrap { overflow-x: auto; }
+.eddy-tbl td:nth-child(2) { white-space: nowrap; }
+.eddy-bar { display: inline-block; vertical-align: middle; width: 80px; height: 6px; margin-left: 10px; border-radius: 3px; background: var(--surface2); overflow: hidden; }
+.eddy-bar i { display: block; height: 100%; background: var(--orange); border-radius: 3px; }
+.eddy-ok { color: #22c55e; font-weight: 700; }
+.eddy-tbl tfoot td { font-weight: 800; border-top: 1px solid var(--border); border-bottom: 0; }
 .eddy-goal { margin-bottom: 12px; }
 .eddy-goal-inner, .eddy-goal-done {
   border: 1px solid var(--orange-mid);
