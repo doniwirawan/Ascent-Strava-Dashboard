@@ -215,6 +215,7 @@ const APP_ID = {
   'Finding the spot…': 'Mencari lokasinya…',
   'No GPS data for this ride.': 'Tidak ada data GPS untuk perjalanan ini.',
   'Into the ride': 'Masuk perjalanan',
+  'Route': 'Rute', 'Speed': 'Kecepatan',
   '10 s before': '10 dtk sebelumnya',
   'Clock time': 'Waktu',
   'Segment': 'Segmen',

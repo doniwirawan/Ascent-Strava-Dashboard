@@ -392,8 +392,100 @@ function _actBuildMap(a){
     L.circleMarker(coords[0],{radius:6,color:'#22c55e',fillColor:'#22c55e',fillOpacity:1,weight:0}).addTo(m);
     L.circleMarker(coords[coords.length-1],{radius:6,color:'#ef4444',fillColor:'#ef4444',fillOpacity:1,weight:0}).addTo(m);
     _actBigMap=m;
+    if(a.id) _actMapModeControl(m,a,line);
     setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[24,24]});}catch{}},250);
   }catch{}
+}
+
+/* Route / Speed switch on the activity map. Speed mode recolours the track
+   green (slow) → red (fast) from the full latlng + speed streams. The ends of
+   the scale are the 5th/95th percentile of moving speed, so stops and a single
+   top-speed moment don't flatten everything else into one colour. */
+let _actMapMode = localStorage.getItem('actMapMode')==='speed' ? 'speed' : 'route';
+const _actSpeedTracks = {}; // id → {pts:[[lat,lng,v]], lo, hi} — in memory only, streams are large
+
+async function _actSpeedTrack(id){
+  if(_actSpeedTracks[id]) return _actSpeedTracks[id];
+  let raw;
+  try { raw = await api(`/activities/${id}/streams?keys=latlng,velocity_smooth&key_by_type=true`); }
+  catch { return null; }
+  const ll = raw.latlng && raw.latlng.data;
+  let v = raw.velocity_smooth && raw.velocity_smooth.data;
+  if(!ll || !v || ll.length<2) return null;
+  if(typeof fixSpeedSpikes==='function'){
+    const isOwner = localStorage.getItem('strava_athlete_id')===OWNER_ATHLETE_ID;
+    v = fixSpeedSpikes(v, isOwner?{ceiling:MAX_SPEED_CEILING}:{k:6}).data;
+  }
+  const pts=[];
+  for(let i=0;i<ll.length;i++) if(ll[i] && v[i]!=null) pts.push([ll[i][0],ll[i][1],v[i]]);
+  if(pts.length<2) return null;
+  const mv = pts.map(p=>p[2]).filter(x=>x>1).sort((x,y)=>x-y);
+  const q = f => mv.length ? mv[Math.min(mv.length-1, Math.floor(f*mv.length))] : 0;
+  let lo=q(.05), hi=q(.95); if(hi-lo<0.5) hi=lo+0.5;
+  return (_actSpeedTracks[id] = {pts, lo, hi});
+}
+
+// 0 → green, 1 → red, through yellow
+const _speedColor = t => `hsl(${Math.round(120*(1-Math.max(0,Math.min(1,t))))},90%,50%)`;
+
+function _actSpeedLayer(trk){
+  // bucket into 12 colour steps and merge runs, so thousands of points become a
+  // handful of polylines instead of one per sample
+  const N=12, g=L.layerGroup(), rend=L.canvas();
+  const bin = v => Math.round(Math.max(0,Math.min(1,(v-trk.lo)/(trk.hi-trk.lo)))*(N-1));
+  let run=[[trk.pts[0][0],trk.pts[0][1]]], cur=bin(trk.pts[0][2]);
+  const flush = () => { if(run.length>1) L.polyline(run,{color:_speedColor(cur/(N-1)),weight:5,opacity:1,renderer:rend}).addTo(g); };
+  for(let i=1;i<trk.pts.length;i++){
+    const p=trk.pts[i], b=bin(p[2]);
+    run.push([p[0],p[1]]);
+    if(b!==cur){ flush(); run=[[p[0],p[1]]]; cur=b; }
+  }
+  flush();
+  return g;
+}
+
+function _actMapModeControl(m,a,line){
+  const T=(typeof tr==='function')?tr:(x=>x);
+  let speedLayer=null, legend=null;
+  const legendCtl=L.control({position:'bottomleft'});
+  legendCtl.onAdd=()=>{ legend=L.DomUtil.create('div','speed-legend'); return legend; };
+
+  const apply = async () => {
+    if(_actMapMode==='speed'){
+      const trk = await _actSpeedTrack(a.id);
+      if(_actBigMap!==m || _actMapMode!=='speed') return; // modal or mode changed while loading
+      if(!trk){ _actMapMode='route'; sync(); return; }
+      if(!speedLayer) speedLayer=_actSpeedLayer(trk);
+      line.setStyle({opacity:0});
+      speedLayer.addTo(m);
+      legendCtl.addTo(m);
+      legend.innerHTML=`<span>${kmh(trk.lo)}</span><i></i><span>${kmh(trk.hi)} ${speedUnit()}</span>`;
+    } else {
+      if(speedLayer) m.removeLayer(speedLayer);
+      legendCtl.remove();
+      line.setStyle({opacity:.95});
+    }
+  };
+  let box;
+  const sync = () => {
+    box.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===_actMapMode));
+    apply();
+  };
+  const c=L.control({position:'topleft'});
+  c.onAdd=()=>{
+    box=L.DomUtil.create('div','heat-mode leaflet-bar');
+    box.innerHTML=`<button type="button" data-m="route">${T('Route')}</button><button type="button" data-m="speed">${T('Speed')}</button>`;
+    L.DomEvent.disableClickPropagation(box);
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      if(b.dataset.m===_actMapMode) return;
+      _actMapMode=b.dataset.m;
+      try{ localStorage.setItem('actMapMode',_actMapMode); }catch{}
+      sync();
+    });
+    return box;
+  };
+  c.addTo(m);
+  sync();
 }
 
 function openActivityModal(ref){
