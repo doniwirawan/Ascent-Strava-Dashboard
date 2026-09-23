@@ -744,6 +744,16 @@ function _drawStreams(){
 
   if(_streamMode==='overlay') _drawStreamOverlay(wrap,head,s,cfg,xs,xMax);
   else _drawStreamSeparate(wrap,head,s,cfg,xs,xMax);
+  if(typeof addChartZoomControls==='function') addChartZoomControls(wrap);
+}
+
+// Drag to pan, Ctrl+wheel / pinch / the +− buttons to zoom — same gestures as
+// every other chart — but clamped to the ride and allowed to zoom far closer
+// than the app default, since the x axis here is km, not days.
+function _streamZoom(){
+  const z=chartZoomOpts();
+  if(z) z.limits={ x:{ min:'original', max:'original', minRange:0.3 } };
+  return z;
 }
 
 function _drawStreamSeparate(wrap,head,s,cfg,xs,xMax){
@@ -767,7 +777,7 @@ function _drawStreamSeparate(wrap,head,s,cfg,xs,xMax){
         fill:true, backgroundColor:c.color+'22', spanGaps:true
       }]},
       options:{ responsive:true, maintainAspectRatio:false, animation:false,
-        plugins:{ legend:{display:false},
+        plugins:{ legend:{display:false}, zoom:_streamZoom(),
           tooltip:{ backgroundColor:'#1a1a1a', borderColor:'#2a2a2a', borderWidth:1,
             titleColor:'#fff', bodyColor:'#aaa',
             callbacks:{ title:items=> s.x?(items[0].parsed.x.toFixed(1)+' '+distUnit()):'',
@@ -811,6 +821,7 @@ function _drawStreamOverlay(wrap,head,s,cfg,xs,xMax){
       interaction:{ mode:'index', intersect:false },
       plugins:{
         legend:{ display:true, position:'top', labels:{ color:'#aaa', font:{size:11}, boxWidth:12, usePointStyle:true } },
+        zoom:_streamZoom(),
         tooltip:{ backgroundColor:'#1a1a1a', borderColor:'#2a2a2a', borderWidth:1,
           titleColor:'#fff', bodyColor:'#aaa',
           callbacks:{ title:items=> s.x&&items.length?(items[0].parsed.x.toFixed(1)+' '+distUnit()):'',
