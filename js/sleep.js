@@ -921,6 +921,12 @@ function _slpSignalNote(sig) {
    ────────────────────────────────────────────────────────────────────────── */
 
 const _slpNum = n => Math.round(n).toLocaleString();
+// Sleep history spans years, so every date shown here carries its year
+// ("Sab, 23 Mei 2026"); the app-wide fmtDt/fmtDtShort omit it.
+const _slpDt = d => new Date(d).toLocaleDateString(window.LANG === 'id' ? 'id-ID' : 'en-GB',
+  { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+const _slpDtShort = d => new Date(d).toLocaleDateString(window.LANG === 'id' ? 'id-ID' : 'en-GB',
+  { day: 'numeric', month: 'short', year: 'numeric' });
 /* score → colour, shared by the risk bars and the year ranking */
 const _slpScoreC = s => s >= 80 ? SLP_C.good : s >= 65 ? '#84cc16' : s >= 50 ? '#f59e0b' : SLP_C.bad;
 
@@ -930,8 +936,8 @@ function _slpRecordsHTML(R) {
   // "from → to" range — format each end so a range never hits fmtDt whole
   // (which would render "Invalid Date").
   const recDate = d => (typeof d === 'string' && d.indexOf('→') !== -1)
-    ? d.split('→').map(x => fmtDtShort(x.trim())).join(' → ')
-    : fmtDt(d);
+    ? d.split('→').map(x => _slpDtShort(x.trim())).join(' → ')
+    : _slpDt(d);
   const tile = r => `
     <div class="slp-rec">
       <div class="slp-rec-lbl">${r.lbl}</div>
@@ -1013,7 +1019,7 @@ function _slpMonthHTML(R) {
       <td class="slp-num">${Math.round(m.rem)}m</td>
       <td class="slp-num">${isNaN(m.eff) ? '—' : m.eff.toFixed(1) + '%'}</td>
       <td class="slp-num">${Math.round(100 * m.under6 / m.nights)}%</td>
-      <td class="slp-num">${_slpHM(m.best.asleep)}<span class="slp-cell-sub">${fmtDt(m.best.date)}</span></td>
+      <td class="slp-num">${_slpHM(m.best.asleep)}<span class="slp-cell-sub">${_slpDt(m.best.date)}</span></td>
     </tr>`;
   }).join('');
 
@@ -1119,8 +1125,8 @@ function _slpStressHTML(S) {
       <div class="slp-tiles slp-tiles-in">
         ${['', ''].length ? '' : ''}
         <div class="slp-tile card"><div class="slp-tile-val" style="color:#fbbf24">${Math.round(S.mean)}</div><div class="slp-tile-lbl">${tr('Average day')}</div>${S.spread ? `<div class="slp-tile-sub">${trf('{0} low · {1} high', Math.round(S.spread.min), Math.round(S.spread.max))}</div>` : ''}</div>
-        <div class="slp-tile card"><div class="slp-tile-val" style="color:${SLP_C.good}">${Math.round(S.lo.stress)}</div><div class="slp-tile-lbl">${tr('Calmest day')}</div><div class="slp-tile-sub">${fmtDt(S.lo.date)}</div></div>
-        <div class="slp-tile card"><div class="slp-tile-val" style="color:${SLP_C.bad}">${Math.round(S.hi.stress)}</div><div class="slp-tile-lbl">${tr('Most stressed day')}</div><div class="slp-tile-sub">${fmtDt(S.hi.date)}</div></div>
+        <div class="slp-tile card"><div class="slp-tile-val" style="color:${SLP_C.good}">${Math.round(S.lo.stress)}</div><div class="slp-tile-lbl">${tr('Calmest day')}</div><div class="slp-tile-sub">${_slpDt(S.lo.date)}</div></div>
+        <div class="slp-tile card"><div class="slp-tile-val" style="color:${SLP_C.bad}">${Math.round(S.hi.stress)}</div><div class="slp-tile-lbl">${tr('Most stressed day')}</div><div class="slp-tile-sub">${_slpDt(S.hi.date)}</div></div>
         <div class="slp-tile card"><div class="slp-tile-val" style="color:${dRide < 0 ? SLP_C.good : '#f59e0b'}">${dRide >= 0 ? '+' : '−'}${Math.abs(dRide).toFixed(1)}</div><div class="slp-tile-lbl">${tr('Riding days vs rest')}</div><div class="slp-tile-sub">${trf('{0} vs {1}', S.onRide.stress.toFixed(1), S.onRest.stress.toFixed(1))}</div></div>
       </div>
 
@@ -1153,7 +1159,7 @@ function _slpEnergyHTML(E) {
         <div class="slp-tile card"><div class="slp-tile-val" style="color:var(--orange)">${_slpNum(E.cal)}</div><div class="slp-tile-lbl">${tr('Active kcal a day')}</div><div class="slp-tile-sub">${trf('{0} kcal in total', _slpNum(E.totalCal))}</div></div>
         <div class="slp-tile card"><div class="slp-tile-val" style="color:${SLP_C.light}">${_slpNum(E.steps)}</div><div class="slp-tile-lbl">${tr('Steps a day')}</div><div class="slp-tile-sub">${trf('{0} days over 10k', E.stepDays)}</div></div>
         <div class="slp-tile card"><div class="slp-tile-val" style="color:${SLP_C.good}">${Math.round(E.active)}<span class="slp-tile-unit">m</span></div><div class="slp-tile-lbl">${tr('Active minutes a day')}</div><div class="slp-tile-sub">${trf('{0} km walked a day', (E.dist / 1000).toFixed(1))}</div></div>
-        <div class="slp-tile card"><div class="slp-tile-val" style="color:${SLP_C.rem}">${_slpNum(E.topCal.cal)}</div><div class="slp-tile-lbl">${tr('Biggest burn')}</div><div class="slp-tile-sub">${fmtDt(E.topCal.date)}</div></div>
+        <div class="slp-tile card"><div class="slp-tile-val" style="color:${SLP_C.rem}">${_slpNum(E.topCal.cal)}</div><div class="slp-tile-lbl">${tr('Biggest burn')}</div><div class="slp-tile-sub">${_slpDt(E.topCal.date)}</div></div>
       </div>
 
       <div class="slp-chart-wrap"><canvas id="slpEnergyChart"></canvas></div>
@@ -1199,7 +1205,7 @@ function _slpStepsHTML(P) {
 
       <div class="slp-note">${trf('Corrected, only {0} of your {1} ten-thousand-step days were genuinely spent on your feet, and your real daily walking average is {2} rather than the {3} on the watch face. Your biggest phantom day was {4}: {5} steps recorded, an estimated {6} of them from the bike. This is the one number in the whole section the Huawei app can never get right, because the correction needs the ride data and the ride data is not in Huawei.',
         P.bigReal + P.bigWalk, P.big, _slpNum(P.realMean), _slpNum(P.rawMean),
-        fmtDt(P.worst.date), _slpNum(P.worst.raw), _slpNum(P.worst.ph))}</div>
+        _slpDt(P.worst.date), _slpNum(P.worst.raw), _slpNum(P.worst.ph))}</div>
     </div>`;
 }
 
@@ -1473,7 +1479,7 @@ function _slpDraw(nights, body) {
 
     <div class="slp-tiles">
       ${tile(_slpHM(all.asleep), '', tr('Average night'), 'var(--orange)', trf('{0} in bed', _slpHM(_slpMean(real.filter(x => x.tib != null).map(x => x.tib)))))}
-      ${tile(_slpHM(_slpBest.max), '', tr('Best night'), SLP_C.good, _slpBest.date ? fmtDt(_slpBest.date) : trf('{0}% of nights 8h+', _slpBest.over8pct))}
+      ${tile(_slpHM(_slpBest.max), '', tr('Best night'), SLP_C.good, _slpBest.date ? _slpDt(_slpBest.date) : trf('{0}% of nights 8h+', _slpBest.over8pct))}
       ${tile(Math.round(all.deep), 'm', tr('Deep sleep'), SLP_C.deep, trf('{0}% of sleep', Math.round(100 * all.deep / stageTotal)))}
       ${tile(Math.round(all.rem), 'm', tr('REM sleep'), SLP_C.rem, trf('{0}% of sleep', Math.round(100 * all.rem / stageTotal)))}
       ${tile(all.eff.toFixed(1), '%', tr('Efficiency'), all.eff >= 90 ? SLP_C.good : '#f59e0b', trf('{0} awake per night', _slpHM(all.wake)))}
@@ -2462,7 +2468,7 @@ async function renderReadiness() {
     +   '<div class="rdy-chips">' + chips + '</div>'
     +   (spark ? '<div class="rdy-spark-wrap">' + spark + '<span class="rdy-spark-lbl">' + T('last 14 nights') + '</span></div>' : '')
     +   '<div class="rdy-note">' + note + '</div>'
-    +   '<div class="rdy-asof">' + T('Based on your last recorded night') + ' · ' + fmtDt(last.date) + '</div>'
+    +   '<div class="rdy-asof">' + T('Based on your last recorded night') + ' · ' + _slpDt(last.date) + '</div>'
     + '</div>'
     + '</div>';
   // Day Strain shares this row — re-run it now that the markup above exists.
