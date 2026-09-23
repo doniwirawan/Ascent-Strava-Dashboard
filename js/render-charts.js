@@ -48,6 +48,7 @@ function renderCycling() {
     <div class="ctop-list">
       ${top5.map((r,i)=>`
         <div class="ctop-item">
+        <div class="ctop-head">
         <a class="ctop-row" href="https://www.strava.com/activities/${r.id}" onclick="openActivityModal('${r.id}');return false;" rel="noopener">
           <span class="ctop-rank">${i+1}</span>
           <span class="ctop-info">
@@ -58,6 +59,7 @@ function renderCycling() {
           <span class="ctop-val">${kmh(r.max_speed)}<i>${speedUnit()}</i></span>
         </a>
         <button class="ctop-where" onclick="showSpeedSpot('${r.id}',this)" title="${tr('Where did this happen?')}" aria-label="${tr('Where did this happen?')}">${ic('pin')}</button>
+        </div>
         <div class="spot-panel" id="spot-${r.id}"></div>
         </div>`).join('')}
     </div>` : '';

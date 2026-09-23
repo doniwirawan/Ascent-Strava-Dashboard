@@ -512,7 +512,7 @@
 .spdz-btn{margin-left:8px;padding:3px 9px;font-size:.74rem;vertical-align:baseline}
 
 /* "Where did this happen?" panel under a Top-5 speed row */
-.ctop-item{position:relative}
+.ctop-head{position:relative}
 .ctop-where{position:absolute;top:50%;right:4px;transform:translateY(-50%);z-index:2;
   background:none;border:none;color:var(--text);opacity:.55;cursor:pointer;padding:6px;border-radius:8px;line-height:0}
 .ctop-where svg{width:17px;height:17px}
