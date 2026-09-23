@@ -605,7 +605,7 @@ function renderOverviewSpeedZones() {
 const _spotKey = id => 'strava_spot_' + id;
 
 async function _speedSpot(a) {
-  try { const c = JSON.parse(localStorage.getItem(_spotKey(a.id)) || 'null'); if (c && c.v === 1) return c; } catch {}
+  try { const c = JSON.parse(localStorage.getItem(_spotKey(a.id)) || 'null'); if (c && c.v === 2) return c; } catch {}
   let raw;
   try { raw = await api(`/activities/${a.id}/streams?keys=velocity_smooth,latlng,distance,time&key_by_type=true`); }
   catch { return null; }
@@ -626,8 +626,13 @@ async function _speedSpot(a) {
   }
   const dist = raw.distance && raw.distance.data;
   const time = raw.time && raw.time.data;
+  // Speed ~10 s before the peak: velocity_smooth ramps into a spike over a few
+  // samples, so the sample right before it is already inflated.
+  let pi = Math.max(0, bi - 10);
+  if (time && time[bi] != null) { pi = bi; while (pi > 0 && time[bi] - time[pi] < 10) pi--; }
+  while (pi > 0 && v[pi] == null) pi--;
   const spot = {
-    v: 1, speed: bv, lat: ll[bi][0], lng: ll[bi][1], suspect,
+    v: 2, speed: bv, before: v[pi] != null && pi < bi ? v[pi] : null, lat: ll[bi][0], lng: ll[bi][1], suspect,
     at: dist && dist[bi] != null ? dist[bi] : null,
     t: time && time[bi] != null ? time[bi] : null,
   };
@@ -674,6 +679,7 @@ async function showSpeedSpot(actId, btn) {
       <div class="spot-big">${kmh(spot.speed)}<i>${speedUnit()}</i></div>
       ${spot.suspect ? `<div class="spot-warn">${tr('Looks like a GPS spike — the pin is where Strava recorded it')}</div>` : ''}
       <div class="spot-rows">
+        ${spot.before != null ? `<div><span>${tr('10 s before')}</span><b>${kmh(spot.before)} ${speedUnit()}</b></div>` : ''}
         ${spot.at != null ? `<div><span>${tr('Into the ride')}</span><b>${fmtD(spot.at)}</b></div>` : ''}
         ${clock ? `<div><span>${tr('Clock time')}</span><b>${clock}</b></div>` : ''}
         <div><span>${tr('Segment')}</span><b>${seg
