@@ -329,6 +329,7 @@ function renderActivities() {
   _actRows = src;
   _actListSrc = src;
   _renderActList(document.getElementById('actSearch') ? document.getElementById('actSearch').value : '');
+  if (typeof renderRegencyMap === 'function') renderRegencyMap();
 
   // Bubbles — sample 60 activities
   const sample = src.slice(0,60);
@@ -350,7 +351,8 @@ function _renderActList(q){
   const el=document.getElementById('actList');
   if(!el) return;
   q=(q||'').trim().toLowerCase();
-  const list = q ? _actListSrc.filter(a=>(a.name||'').toLowerCase().includes(q)||(a.type||'').toLowerCase().includes(q)) : _actListSrc;
+  const where = a => { const r=a.route_places; return r ? [r.furthest_place,r.furthest_kec,r.furthest_kab].filter(Boolean).join(' ').toLowerCase() : ''; };
+  const list = q ? _actListSrc.filter(a=>(a.name||'').toLowerCase().includes(q)||(a.type||'').toLowerCase().includes(q)||where(a).includes(q)) : _actListSrc;
   if(!list.length){ el.innerHTML=`<div class="act-empty">No activities match “${q}”.</div>`; return; }
   el.innerHTML = list.map(a=>`
     <div class="act-row" role="button" tabindex="0" onclick="openActivityModal('${a.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActivityModal('${a.id}');}">

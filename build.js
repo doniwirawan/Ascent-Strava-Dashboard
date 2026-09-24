@@ -64,7 +64,7 @@ function copyDir(src, dest) {
     }
   });
 }
-['css', 'js', 'images'].forEach(dir => {
+['css', 'js', 'images', 'data'].forEach(dir => {
   const src = path.join(__dirname, dir);
   if (fs.existsSync(src)) copyDir(src, path.join(__dirname, 'dist', dir));
 });

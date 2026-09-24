@@ -280,6 +280,8 @@ const APP_ID = {
   // activity modal action buttons (kept out of the caption generators, which post to Strava)
   'Analyze performance': 'Analisis performa', 'AI title & description': 'Judul & deskripsi AI',
   'Stats title & description': 'Judul & deskripsi statistik', 'Stats image': 'Gambar statistik',
+  'Ride destinations by regency': 'Tujuan ride per kabupaten',
+  "Where each ride turned around, on Bali's regencies. Loops count where they stayed. Hover or tap a regency for details.": 'Titik balik tiap ride, dipetakan per kabupaten di Bali. Ride keliling dihitung di tempatnya. Arahkan kursor atau ketuk kabupaten untuk detail.',
   'Avg Power': 'Daya Rata-rata', 'Norm Power': 'Daya Normal', 'Max Power': 'Daya Maks',
   'Energy': 'Energi', 'Relative Effort': 'Upaya Relatif', 'Avg Temp': 'Suhu Rata-rata',
   'Comments': 'Komentar',
@@ -975,6 +977,7 @@ const TR_ID = {
   'Download JSON': 'Unduh JSON',
   'Download SQL': 'Unduh SQL',
   // Stats image (activity modal)
+  '{0} rides': '{0} ride', 'Top destination: {0} ({1}×)': 'Tujuan teratas: {0} ({1}×)', 'mostly {0}': 'paling sering {0}', '{0} outside Bali': '{0} di luar Bali',
   'Map style': 'Gaya peta', 'Satellite': 'Satelit', 'Dark': 'Gelap', 'Relief': 'Relief', 'Plain': 'Polos',
   'Drawing your image…': 'Membuat gambar Anda…', 'Share': 'Bagikan', 'Download': 'Unduh', 'Close': 'Tutup',
   "Strava doesn't let apps attach photos, so share it to the Strava app or download it and add it to the activity there.": 'Strava tidak mengizinkan aplikasi menambahkan foto, jadi bagikan ke aplikasi Strava atau unduh lalu tambahkan ke aktivitas di sana.',

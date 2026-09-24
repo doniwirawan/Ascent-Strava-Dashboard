@@ -201,6 +201,8 @@ function navScrollTo(id, btn) {
   try { if (typeof aiSectionInsight === 'function') aiSectionInsight(id); } catch {}
   // Build the bulk caption tool lists when the Activities page opens
   try { if (id === 'actSection' && typeof bulkBuildList === 'function') { bulkBuildList('aiBulk'); bulkBuildList('stBulk'); } } catch {}
+  // the regency map is built while hidden (0×0) — re-render/fit once visible
+  if (id === 'actSection' && typeof renderRegencyMap === 'function') setTimeout(renderRegencyMap, 80);
   if (window.applyI18n) window.applyI18n();
 }
 

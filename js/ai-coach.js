@@ -316,6 +316,7 @@ function _placesRefreshUI(full) {
   const run = fn => { try { if (typeof fn === 'function') fn(); } catch (e) { console.error('places refresh', e); } };
   run(() => _renderActList((document.getElementById('actSearch') || {}).value || ''));
   run(typeof renderOverviewInsights === 'function' && renderOverviewInsights);
+  run(typeof renderRegencyMap === 'function' && renderRegencyMap);
   if (!full) return;
   [typeof renderCycling === 'function' && renderCycling, typeof renderRunning === 'function' && renderRunning,
    typeof renderBestEfforts === 'function' && renderBestEfforts, typeof renderTraining === 'function' && renderTraining].forEach(run);

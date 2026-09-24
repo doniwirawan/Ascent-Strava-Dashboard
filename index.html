@@ -632,7 +632,7 @@
     <div class="g2">
       <div class="card" style="display:flex;flex-direction:column;">
         <div class="card-title">Recent Activities</div>
-        <input type="search" id="actSearch" class="act-search" placeholder="Search by name or type…" oninput="_renderActList(this.value)" autocomplete="off">
+        <input type="search" id="actSearch" class="act-search" placeholder="Search by name, type or destination…" oninput="_renderActList(this.value)" autocomplete="off">
         <div class="act-list" id="actList"></div>
       </div>
       <div class="card">
@@ -687,6 +687,15 @@
         </div>
       </div>
     </details>
+
+    <div class="card regency-card" id="regencyCard" style="display:none">
+      <div class="card-title">Ride destinations by regency</div>
+      <div class="chart-note">Where each ride turned around, on Bali's regencies. Loops count where they stayed. Hover or tap a regency for details.</div>
+      <div class="regency-body">
+        <div class="regency-map" id="regencyMap"></div>
+        <div class="regency-list" id="regencyList"></div>
+      </div>
+    </div>
   </div>
 
   <!-- CALENDAR HEATMAP -->
@@ -1276,6 +1285,7 @@
 <script src="js/i18n.js"></script>
 <script src="js/ai-coach.js"></script>
 <script src="js/stats-image.js"></script>
+<script src="js/regency-map.js"></script>
 <script src="js/training.js"></script>
 <script src="js/sleep.js"></script>
 <script src="js/sleep-import.js"></script>
