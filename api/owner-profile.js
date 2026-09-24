@@ -6,7 +6,7 @@
 // Required env: OWNER_ATHLETE_ID, OWNER_BIRTHDATE (YYYY-MM-DD).
 // Optional: OWNER_GEAR_COSTS — JSON, Rupiah: bike prices keyed by a bike-name
 //   substring, plus shared tools/workshop gear, e.g.
-//   {"bikes":{"Mosso":23056292,"SR3D":9674168},"tools":2258216}
+//   {"bikes":{"Road":15000000,"Gravel":10000000},"tools":2000000}
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'method_not_allowed' }); return; }
 
