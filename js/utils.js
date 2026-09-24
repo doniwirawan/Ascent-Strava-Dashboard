@@ -152,6 +152,12 @@ function isOverviewVisible(){
   return !!el && getComputedStyle(el).display!=='none';
 }
 
+// Horizontal chip rows (regency tags, Data filters) on phones: let a mouse wheel scroll them sideways.
+document.addEventListener('wheel', e => {
+  const row = e.target.closest && e.target.closest('.act-reg-tags');
+  if (row && row.scrollWidth > row.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { row.scrollLeft += e.deltaY; e.preventDefault(); }
+}, { passive: false });
+
 function navScrollTo(id, btn) {
   _ALL_SECTIONS.forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
   const el=document.getElementById(id);

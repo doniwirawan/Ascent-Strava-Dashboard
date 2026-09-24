@@ -16,6 +16,8 @@
 }
 .act-reg-tags { display: flex; gap: 6px; overflow-x: auto; margin: -2px 0 10px; padding-bottom: 2px; scrollbar-width: none; }
 .act-reg-tags::-webkit-scrollbar { display: none; }
+/* desktop: wrap so every chip is reachable (a mouse wheel can't scroll a hidden-scrollbar row) */
+@media (min-width: 761px) { .act-reg-tags { flex-wrap: wrap; overflow: visible; } }
 .act-reg-tag { flex-shrink: 0; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-2); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .act-reg-tag b { color: var(--muted); font-weight: 700; margin-left: 2px; }
 .act-reg-tag.on { background: var(--orange); border-color: var(--orange); color: #fff; }
