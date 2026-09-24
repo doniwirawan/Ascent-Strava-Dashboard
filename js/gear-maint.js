@@ -119,12 +119,16 @@ function renderGearMaint(bikes) {
   el.innerHTML = `
     <div class="gm-section-title">${tr('Bike Usage')}</div>
     ${table}
+    ${renderGearCost(bikes, stats)}
     <div class="gm-section-title">${tr('Maintenance')} <span class="gm-hint">${tr('Strava has no service data — log a service to start tracking. Saved on this device.')}</span></div>
     ${cards}`;
 
   el.querySelectorAll('.gm-log').forEach(btn => btn.onclick = () => gmLog(btn.dataset.bike, btn.dataset.comp, bikes));
   el.querySelectorAll('.gm-clear').forEach(btn => btn.onclick = () => gmClear(btn.dataset.bike, btn.dataset.comp, bikes));
   el.querySelectorAll('.gm-thr').forEach(inp => inp.onchange = () => gmSetThr(inp.dataset.bike, inp.dataset.comp, inp.value, bikes));
+  gcWire(el, bikes);
+  // first visit on a device: pull the owner's bike prices, then redraw once
+  gcOwnerDefaults(bikes).then(changed => { if (changed) renderGearMaint(bikes); });
 }
 
 function gmLog(bikeId, comp, bikes) {
@@ -152,4 +156,100 @@ function gmSetThr(bikeId, comp, val, bikes) {
   s[bikeId][comp].thr = m;
   gmSave(s);
   renderGearMaint(bikes);
+}
+
+/* ── COST PER KM (owner only) ──
+   What each bike cost vs how far it has been ridden. Prices come from the
+   owner-gated /api/owner-profile (OWNER_GEAR_COSTS env — the repo is public)
+   and can be edited here (saved on this device). Shared tools/workshop gear is
+   split across the bikes in proportion to the distance each has done. */
+const GC_KEY = 'gear_cost_v1';
+let _gcTried = false;
+function gcLoad() { try { return JSON.parse(localStorage.getItem(GC_KEY)) || { bikes: {}, tools: null }; } catch { return { bikes: {}, tools: null }; } }
+function gcSave(s) { try { localStorage.setItem(GC_KEY, JSON.stringify(s)); } catch {} }
+function gcIsOwner() { try { return localStorage.getItem('strava_athlete_id') === OWNER_ATHLETE_ID && !!CONFIG.accessToken; } catch { return false; } }
+const gcRp = v => 'Rp' + Math.round(v).toLocaleString('id-ID');
+
+/* First visit on a device: fill in the owner's prices from the server. */
+async function gcOwnerDefaults(bikes) {
+  if (_gcTried || !gcIsOwner()) return false;
+  _gcTried = true;
+  const s = gcLoad();
+  const missing = bikes.some(b => s.bikes[b.id] == null) || s.tools == null;
+  if (!missing) return false;
+  try {
+    const r = await fetch('/api/owner-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: CONFIG.accessToken }) });
+    const d = r.ok ? await r.json() : null;
+    const gc = d && d.gear_costs;
+    if (!gc) return false;
+    bikes.forEach(b => {
+      if (s.bikes[b.id] != null) return;
+      const name = ((b.nickname || '') + ' ' + (b.name || '')).toLowerCase();
+      const k = Object.keys(gc.bikes || {}).find(k => name.includes(k.toLowerCase()));
+      if (k) s.bikes[b.id] = gc.bikes[k];
+    });
+    if (s.tools == null && gc.tools != null) s.tools = gc.tools;
+    gcSave(s);
+    return true;
+  } catch { return false; }
+}
+
+function renderGearCost(bikes, stats) {
+  if (!gcIsOwner()) return '';
+  const s = gcLoad();
+  const odo = b => gmOdo(b.id, bikes);
+  const priced = bikes.filter(b => s.bikes[b.id] > 0);
+  const kmAll = priced.reduce((t, b) => t + odo(b), 0);
+  const tools = s.tools > 0 ? s.tools : 0;
+  const U = distUnit(), per = m => kmVal(m) || 0;
+  const rides = id => acts.filter(a => String(a.gear_id) === String(id)).length;
+  const input = (key, val, lbl) => `<label class="gc-in"><span>${tr(lbl)}</span><span class="gc-rp">Rp<input type="text" inputmode="numeric" data-gc="${key}" value="${val ? Math.round(val).toLocaleString('id-ID') : ''}" placeholder="0"></span></label>`;
+  const stat = (lbl, val, sub) => `<div class="gc-stat"><div class="gc-v">${val}</div><div class="gc-l">${tr(lbl)}${sub ? '<br><i>' + sub + '</i>' : ''}</div></div>`;
+
+  const cards = bikes.map(b => {
+    const price = s.bikes[b.id] || 0, dm = odo(b), st = stats[b.id] || { time: 0 };
+    const share = price && kmAll ? dm / kmAll : 0, toolPart = tools * share, all = price + toolPart;
+    const km = per(dm), n = rides(b.id), h = st.time / 3600;
+    let body = `<div class="gc-empty">${tr('Enter what this bike cost to see its cost per km.')}</div>`;
+    if (price && km) {
+      const next = [1000, 2500, 5000, 10000, 20000, 30000, 50000].map(x => x * (U === 'mi' ? 1609.344 : 1000)).filter(m => m > dm * 1.15).slice(0, 3);
+      body = `<div class="gc-hero"><div class="gc-big">${gcRp(all / km)}<small>/${U}</small></div>
+          <div class="gc-hero-sub">${trf('{0} incl. {1} of shared tools', gcRp(all), gcRp(toolPart))} · ${trf('{0} ridden', km.toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' ' + U)}</div></div>
+        <div class="gc-stats">
+          ${stat('Bike only', gcRp(price / km) + '/' + U)}
+          ${stat('Per 100 ' + U, gcRp(all / km * 100))}
+          ${n ? stat('Per ride', gcRp(all / n), trf('{0} rides', n)) : ''}
+          ${h >= 1 ? stat('Per hour', gcRp(all / h), Math.round(h) + ' h') : ''}
+          ${tools ? stat('Tools share', Math.round(share * 100) + '%', gcRp(toolPart)) : ''}
+        </div>
+        ${next.length ? `<div class="gc-proj"><span>${tr('Keep riding:')}</span>${next.map(m => `<b>${per(m).toLocaleString()} ${U} → ${gcRp(all / per(m))}/${U}</b>`).join('')}</div>` : ''}`;
+    }
+    return `<div class="gc-bike"><div class="gc-head"><span class="gc-name">${b.nickname || b.name || tr('Bike')}</span>${input('bike:' + b.id, price, 'Bike + components')}</div>${body}</div>`;
+  }).join('');
+
+  const bikesOnly = priced.reduce((t, b) => t + s.bikes[b.id], 0), invested = bikesOnly + tools;
+  const allRides = priced.reduce((t, b) => t + rides(b.id), 0);
+  const allH = priced.reduce((t, b) => t + ((stats[b.id] || {}).time || 0), 0) / 3600;
+  const km0 = per(kmAll).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' ' + U;
+  // two headline numbers: everything (bikes + shared tools) and the bikes alone
+  const total = invested && kmAll ? `<div class="gc-total">
+      <div class="gc-l">${tr('All bikes + gear')} · ${trf('{0} ridden', km0)}</div>
+      <div class="gc-pair">
+        <div><div class="gc-big">${gcRp(invested / per(kmAll))}<small>/${U}</small></div><div class="gc-hero-sub">${trf('With tools · {0}', gcRp(invested))}</div></div>
+        ${tools ? `<div><div class="gc-big gc-big2">${gcRp(bikesOnly / per(kmAll))}<small>/${U}</small></div><div class="gc-hero-sub">${trf('Bikes only · {0}', gcRp(bikesOnly))}</div></div>` : ''}
+      </div>
+      <div class="gc-stats">${allRides ? stat('Per ride', gcRp(invested / allRides), trf('{0} rides', allRides)) : ''}${allH >= 1 ? stat('Per hour', gcRp(invested / allH), Math.round(allH) + ' h') : ''}${tools ? stat('Tools', gcRp(tools), trf('{0} of the total', Math.round(tools / invested * 100) + '%')) : ''}</div>
+    </div>` : '';
+
+  return `<div class="gm-section-title">${tr('Cost per km')} <span class="gm-hint">${tr('Only you can see this. Shared tools are split by how far each bike has been ridden.')}</span></div>
+    <div class="gc-wrap">${total}<div class="gc-tools">${input('tools', tools, 'Tools / workshop (shared)')}</div><div class="gc-grid">${cards}</div></div>`;
+}
+
+function gcWire(el, bikes) {
+  el.querySelectorAll('[data-gc]').forEach(inp => inp.onchange = () => {
+    const v = +String(inp.value).replace(/[^\d]/g, '') || 0;
+    const s = gcLoad(), k = inp.dataset.gc;
+    if (k === 'tools') s.tools = v; else s.bikes[k.slice(5)] = v;
+    gcSave(s); renderGearMaint(bikes);
+  });
 }
