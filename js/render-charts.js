@@ -382,6 +382,20 @@ function _actStat(label, val){
 
 let _actBigMap = null;
 // Build a real Leaflet map (tiles + route) in the activity popup
+// Turnaround pin (same as the stats image): the route point furthest from the
+// start, labelled with the destination village once route_places is known.
+function _actTurnaroundPin(m,a,coords){
+  if(typeof aiHaversine!=='function') return;
+  const home=a.start_latlng&&a.start_latlng.length===2?a.start_latlng:coords[0];
+  let far=coords[0],farKm=0;
+  coords.forEach(p=>{const d=aiHaversine(home[0],home[1],p[0],p[1]); if(d>farKm){farKm=d;far=p;}});
+  if(farKm<2) return; // a loop around the block has no real turnaround
+  const pin=L.marker(far,{keyboard:false,icon:L.divIcon({className:'act-turn-pin',iconSize:[28,38],iconAnchor:[14,36],
+    html:'<svg viewBox="0 0 28 38"><path d="M14 1C7 1 1.5 6.4 1.5 13.3 1.5 22.5 14 37 14 37s12.5-14.5 12.5-23.7C26.5 6.4 21 1 14 1z" fill="#fff" stroke="#fc4c02" stroke-width="2"/><circle cx="14" cy="13.5" r="4.6" fill="#fc4c02"/></svg>'})}).addTo(m);
+  const label=rp=>{ if(rp&&rp.furthest_place) pin.bindTooltip(rp.furthest_place+' · '+fmtD(rp.furthest_km_from_start*1000)+' out',{direction:'top',offset:[0,-34]}); };
+  if(a.route_places&&a.route_places.furthest_place) label(a.route_places);
+  else if(typeof aiRoutePlaces==='function') aiRoutePlaces(a).then(label).catch(()=>{});
+}
 function _actBuildMap(a){
   if(_actBigMap){try{_actBigMap.remove();}catch{} _actBigMap=null;}
   const el=document.getElementById('actMapBig');
@@ -397,6 +411,7 @@ function _actBuildMap(a){
     const line=L.polyline(coords,{color:'#FC4C02',weight:4,opacity:.95}).addTo(m);
     L.circleMarker(coords[0],{radius:6,color:'#22c55e',fillColor:'#22c55e',fillOpacity:1,weight:0}).addTo(m);
     L.circleMarker(coords[coords.length-1],{radius:6,color:'#ef4444',fillColor:'#ef4444',fillOpacity:1,weight:0}).addTo(m);
+    _actTurnaroundPin(m,a,coords);
     _actBigMap=m;
     _actFullscreenControl(m);
     if(a.id) _actMapModeControl(m,a,line);

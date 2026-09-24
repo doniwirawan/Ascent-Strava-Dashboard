@@ -61,6 +61,8 @@
 .act-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--text-2); margin-top: 5px; }
 .act-stats:empty { display: none; }
 .act-place { color: var(--text-2); }
+.act-turn-pin { background: none; border: 0; filter: drop-shadow(0 2px 3px rgba(0,0,0,.55)); }
+.act-turn-pin svg { display: block; width: 28px; height: 38px; }
 .act-right { text-align: right; flex-shrink: 0; }
 .act-dist { font-size: 13px; font-weight: 700; }
 .act-time { font-size: 11px; color: var(--muted); }
