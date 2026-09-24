@@ -1365,3 +1365,27 @@ body.dev .dev-tag { display: inline-block; }
 .dt-legend .dt-best { background: rgba(34,197,94,.16); color: #4ade80; }
 .dt-legend .dt-worst { background: rgba(239,68,68,.16); color: #f87171; }
 .dt-legend .dt-max, .dt-legend .dt-min { background: rgba(96,165,250,.14); color: #93c5fd; }
+
+/* ── Data page — sleep → ride insights ── */
+.di-wrap { margin-top: 16px; }
+.di-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-top: 12px; }
+.di-card { background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--border); border-radius: var(--radius-sm); padding: 14px; min-width: 0; }
+.di-card.di-strong { border-left-color: var(--orange); }
+.di-card.di-moderate { border-left-color: #f59e0b; }
+.di-card.di-weak { border-left-color: #64748b; }
+.di-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.di-title { font-size: 13px; font-weight: 800; }
+.di-badge { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--surface3); color: var(--text-2); white-space: nowrap; }
+.di-strong .di-badge { background: rgba(252,76,2,.18); color: var(--orange); }
+.di-moderate .di-badge { background: rgba(245,158,11,.16); color: #fbbf24; }
+.di-text { font-size: 12.5px; line-height: 1.5; color: var(--text); margin-bottom: 10px; }
+.di-table { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; }
+.di-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 44px; gap: 6px; align-items: baseline; }
+.di-row span { color: var(--muted); }
+.di-row b { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.di-row i { font-style: normal; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+.di-row.di-h b, .di-row.di-h i { font-size: 10px; color: var(--muted); font-weight: 700; white-space: normal; }
+.di-up { color: #4ade80; }
+.di-down { color: #f87171; }
+.di-foot { margin-top: 8px; font-size: 10.5px; color: var(--muted); }
+@media (max-width: 560px) { .di-grid { grid-template-columns: 1fr; } }

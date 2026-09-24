@@ -69,6 +69,7 @@ async function renderDataTable() {
   if (nights) nights.forEach(n => { if (n.date && !used.has(n.date) && n.asleep) rows.push({ date: n.date, a: null, s: n }); });
   _dtRows = rows; _dtCols = _dtColumns(!!nights);
   _dtRender();
+  renderDataInsights();
 }
 
 function _dtRender() {
@@ -127,4 +128,91 @@ function _dtRender() {
     _dtRender();
   });
   wrap.querySelectorAll('tr.dt-act').forEach(tr => tr.onclick = () => openActivityModal(tr.dataset.id));
+}
+
+/* ── Sleep → ride insights (under the table) ──
+   Outdoor rides of 30 min+ that have a sleep record from the night before,
+   split into a "worse night" and a "better night" group per factor (fixed
+   cut-offs where there is a common rule, otherwise your own lowest vs highest
+   third). Compared on avg speed, HR, power and efficiency (metres per
+   heartbeat — speed alone depends on the route). Shown only when both groups
+   have 5+ rides; sorted by the size of the efficiency / speed gap. */
+function renderDataInsights() {
+  const box = document.getElementById('dataInsights');
+  if (!box) return;
+  const T = typeof tr === 'function' ? tr : (x => x), TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
+  const rides = _dtRows.filter(r => r.a && r.s && r.s.asleep && isRide(r.a) && !r.a.trainer && r.a.sport_type !== 'VirtualRide'
+    && (r.a.moving_time || 0) >= 1800 && r.a.average_speed);
+  if (rides.length < 10) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  const mean = xs => xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : NaN;
+  const num = v => v != null && v !== '' && !isNaN(v);
+  const ef = a => a.average_heartrate ? a.average_speed * 60 / a.average_heartrate : null; // metres per heartbeat
+  const tert = vals => { const s = vals.slice().sort((x, y) => x - y); return [s[Math.floor(s.length / 3)], s[Math.floor(s.length * 2 / 3)]]; };
+  const hm = m => Math.floor(m / 60) + 'h' + String(Math.round(m % 60)).padStart(2, '0');
+  const F = [
+    { t: 'Sleep duration', v: s => s.asleep, fixed: [v => v < 360, v => v >= 420], lb: ['nights under 6 h', 'nights of 7 h+'] },
+    { t: 'HRV', nm: 'HRV', v: s => s.hrv, lowBad: true, u: ' ms' },
+    { t: 'Blood oxygen (SpO₂)', nm: 'SpO₂', v: s => s.spo2, lowBad: true, u: '%' },
+    { t: 'Deep sleep', nm: 'deep sleep', v: s => s.deep, lowBad: true, fmt: hm },
+    { t: 'Resting HR', nm: 'resting HR', v: s => s.rhr, lowBad: false, u: ' bpm' },
+    { t: 'Stress', nm: 'stress', v: s => s.stress, lowBad: false },
+    { t: 'Bedtime', v: s => s.bed, fixed: [v => v >= 0, v => v < -1], lb: ['bedtime after midnight', 'bedtime before 23:00'] },
+    { t: 'Wake-ups', v: s => s.wakeups, fixed: [v => v >= 4, v => v <= 1], lb: ['4+ wake-ups', '0–1 wake-ups'] },
+  ];
+  const cards = [];
+  F.forEach(f => {
+    const have = rides.filter(r => num(f.v(r.s)));
+    if (have.length < 10) return;
+    let bad, good, lb = f.lb;
+    if (f.fixed) { bad = have.filter(r => f.fixed[0](f.v(r.s))); good = have.filter(r => f.fixed[1](f.v(r.s))); lb = lb.map(T); }
+    else {
+      const [t1, t2] = tert(have.map(r => f.v(r.s))), fm = f.fmt || (x => Math.round(x * 10) / 10 + (f.u || ''));
+      const low = have.filter(r => f.v(r.s) <= t1), high = have.filter(r => f.v(r.s) >= t2);
+      [bad, good] = f.lowBad ? [low, high] : [high, low];
+      const nm = T(f.nm);
+      lb = f.lowBad ? [nm + ' ≤ ' + fm(t1), nm + ' ≥ ' + fm(t2)] : [nm + ' ≥ ' + fm(t2), nm + ' ≤ ' + fm(t1)];
+    }
+    if (bad.length < 5 || good.length < 5) return;
+    const m = g => ({ spd: mean(g.map(r => r.a.average_speed)), hr: mean(g.map(r => r.a.average_heartrate).filter(num)),
+      w: mean(g.map(r => r.a.average_watts).filter(num)), ef: mean(g.map(r => ef(r.a)).filter(num)) });
+    const B = m(bad), G = m(good);
+    const pct = (b, g) => num(b) && num(g) && g ? (b - g) / g * 100 : null;
+    const dSpd = pct(B.spd, G.spd), dEf = pct(B.ef, G.ef);
+    const pairs = have.filter(x => num(ef(x.a)));
+    const r = typeof _slpCorr === 'function' ? _slpCorr(pairs.map(x => f.v(x.s)), pairs.map(x => ef(x.a))) : null;
+    const key = num(dEf) ? dEf : dSpd, mag = Math.abs(key || 0);
+    const verdict = mag < 2 ? 'none' : mag < 4 ? 'weak' : mag < 7 ? 'moderate' : 'strong';
+    cards.push({ f, lb, bad, good, B, G, dSpd, dEf, r, n: pairs.length, mag, verdict, worse: (key || 0) < 0 });
+  });
+  cards.sort((x, y) => y.mag - x.mag);
+
+  const sgn = (v, d) => (v > 0 ? '+' : '') + v.toFixed(d);
+  const row = (lbl, b, g, fmt, better, d) => {
+    if (!num(b) || !num(g)) return '';
+    const diff = b - g, ok = better > 0 ? diff >= 0 : diff <= 0;
+    return '<div class="di-row"><span>' + T(lbl) + '</span><b>' + fmt(b) + '</b><b>' + fmt(g) + '</b><i class="' + (Math.abs(diff) < 1e-9 ? '' : ok ? 'di-up' : 'di-down') + '">' + sgn(diff, d) + '</i></div>';
+  };
+  const V = { none: 'No clear effect', weak: 'Weak effect', moderate: 'Moderate effect', strong: 'Strong effect' };
+  box.innerHTML = '<div class="card-title">' + T('Sleep → ride insights') + '</div>'
+    + '<div class="chart-note">' + TF('Outdoor rides of 30 min+ with sleep data from the night before ({0} rides). Each card compares rides after a worse night with rides after a better one. Speed depends on the route, so efficiency (metres per heartbeat) is the fairer number. The factors overlap (short nights usually mean less deep sleep and a late bedtime), so read them together, not as separate causes.', rides.length) + '</div>'
+    + (cards.length ? '<div class="di-grid">' + cards.map(c => {
+        const headline = c.verdict === 'none'
+          ? TF('No real difference: {0} vs {1} — efficiency {2}%, speed {3}%.', c.lb[0], c.lb[1], sgn(c.dEf || 0, 1), sgn(c.dSpd || 0, 1))
+          : TF('After {0} ({1} rides) you rode {2}% {3} efficiently and {4}% {5} than after {6} ({7} rides).',
+              c.lb[0], c.bad.length, Math.abs(c.dEf || 0).toFixed(1), T((c.dEf || 0) < 0 ? 'less' : 'more'),
+              Math.abs(c.dSpd || 0).toFixed(1), T((c.dSpd || 0) < 0 ? 'slower' : 'faster'), c.lb[1], c.good.length);
+        return '<div class="di-card di-' + c.verdict + (c.worse ? ' di-worse' : '') + '">'
+          + '<div class="di-head"><span class="di-title">' + T(c.f.t) + '</span><span class="di-badge">' + T(V[c.verdict]) + '</span></div>'
+          + '<div class="di-text">' + headline + '</div>'
+          + '<div class="di-table"><div class="di-row di-h"><span></span><b>' + c.lb[0] + '</b><b>' + c.lb[1] + '</b><i>Δ</i></div>'
+          + row('Avg speed', +kmh(c.B.spd), +kmh(c.G.spd), v => v.toFixed(1) + ' ' + speedUnit(), 1, 1)
+          + row('Avg HR', c.B.hr, c.G.hr, v => Math.round(v) + ' bpm', -1, 0)
+          + row('Avg power', c.B.w, c.G.w, v => Math.round(v) + ' W', 1, 0)
+          + row('Efficiency', c.B.ef, c.G.ef, v => v.toFixed(2) + ' m/beat', 1, 2)
+          + '</div>'
+          + (c.r != null ? '<div class="di-foot">' + TF('Correlation with efficiency over {0} rides: r = {1}', c.n, c.r.toFixed(2)) + '</div>' : '')
+          + '</div>';
+      }).join('') + '</div>'
+    : '<div class="chart-note">' + T('Not enough rides with sleep data yet to compare.') + '</div>');
 }
