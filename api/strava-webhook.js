@@ -72,7 +72,7 @@ function haversineKm(aLat, aLng, bLat, bLng) {
   return 2 * 6371 * Math.asin(Math.sqrt(s));
 }
 
-// Nominatim reverse geocode → "Village, Regency". Its usage policy requires a
+// Nominatim reverse geocode → "Desa, Kecamatan" (e.g. "Guwang, Sukawati"). Its usage policy requires a
 // real User-Agent from servers.
 async function placeName(lat, lng) {
   try {
@@ -80,9 +80,10 @@ async function placeName(lat, lng) {
       { headers: { Accept: 'application/json', 'User-Agent': 'ascent-analytics/1.0 (https://ascent-analytics.doniwirawan.xyz)' } });
     if (!r.ok) return '';
     const a = ((await r.json()) || {}).address || {};
-    const local = a.suburb || a.neighbourhood || a.city_district || a.village || a.town || a.municipality || a.city || a.county || a.state_district || '';
-    const region = a.city || a.county || a.state || a.country || '';
-    return [local, region && region !== local ? region : ''].filter(Boolean).join(', ');
+    const local = a.village || a.suburb || a.neighbourhood || a.hamlet || a.town || a.city || a.municipality || a.county || '';
+    let area = a.town || a.city || a.municipality || a.county || '';
+    if (!area || area === local) area = a.region || a.state_district || a.state || a.country || '';
+    return [local, area && area !== local ? area : ''].filter(Boolean).join(', ');
   } catch { return ''; }
 }
 

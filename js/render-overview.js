@@ -20,6 +20,8 @@ function renderAll() {
   ['gearGrid','segmentsGrid','challengesGrid'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='';});
   // AI Coach summary is derived from `acts` — drop it so a reload rebuilds it
   if(typeof clearAISummary==='function') clearAISummary();
+  // name the start + destination village of every activity (background, ~1 lookup/s)
+  if(typeof placesBackfill==='function') placesBackfill();
   // heatmap is also lazy-loaded when the user opens heatSection
 
   // Save Image + Share Story live in the floating FAB group, not the navbar

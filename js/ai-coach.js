@@ -219,10 +219,48 @@ async function aiWeather(a) {
   return wx;
 }
 
-/* Where the ride started and the point on the route furthest from that start
-   (the turnaround / destination — not the finish, which is usually back home).
-   Both reverse-geocoded to place names. null when there's no GPS route. */
+/* ── Route places: start village + destination village for every activity ────
+   The destination is the route point furthest from the start (the turnaround —
+   not the finish, which is usually back home). Stored on the activity as
+   a.route_places = { start_place, furthest_place?, furthest_km_from_start? }
+   and in a local id→places map so a full Strava refresh doesn't redo lookups. */
+const PLACES_LS = 'route_places_v1';
+function _placesMap() { try { return JSON.parse(localStorage.getItem(PLACES_LS) || '{}') || {}; } catch { return {}; } }
+function _placesSave(m) { try { localStorage.setItem(PLACES_LS, JSON.stringify(m)); } catch {} }
+
+/* Nominatim allows ~1 request/second — every lookup goes through this queue. */
+let _geoQueue = Promise.resolve();
+function _geoThrottled(fn) {
+  const run = _geoQueue.then(fn);
+  _geoQueue = run.catch(() => {}).then(() => new Promise(res => setTimeout(res, 1100)));
+  return run;
+}
+
+/* Village-level place name: "Desa, Kecamatan" (e.g. "Guwang, Sukawati"), or
+   "Desa, Kabupaten" when the two share a name. Cached; '' on failure (not cached). */
+async function placeVillage(lat, lng) {
+  const key = 'geo_v_' + lat.toFixed(3) + '_' + lng.toFixed(3);
+  const cached = localStorage.getItem(key);
+  if (cached !== null) return cached;
+  return _geoThrottled(async () => {
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=14&lat=' + lat + '&lon=' + lng, { headers: { Accept: 'application/json' } });
+      if (!r.ok) return '';
+      const a = ((await r.json()) || {}).address || {};
+      const local = a.village || a.suburb || a.neighbourhood || a.hamlet || a.town || a.city || a.municipality || a.county || '';
+      let area = a.town || a.city || a.municipality || a.county || '';
+      if (!area || area === local) area = a.region || a.state_district || a.state || a.country || '';
+      const place = [local, area && area !== local ? area : ''].filter(Boolean).join(', ');
+      try { localStorage.setItem(key, place); } catch {}
+      return place;
+    } catch { return ''; }
+  });
+}
+
 async function aiRoutePlaces(a) {
+  if (a.route_places) return a.route_places;
+  const saved = _placesMap()[a.id];
+  if (saved) return (a.route_places = saved);
   const pl = a.map && (a.map.summary_polyline || a.map.polyline);
   if (!pl) return null;
   const pts = decodePolyline(pl);
@@ -230,13 +268,41 @@ async function aiRoutePlaces(a) {
   const [sLat, sLng] = pts[0];
   let far = pts[0], farKm = 0;
   pts.forEach(p => { const d = aiHaversine(sLat, sLng, p[0], p[1]); if (d > farKm) { farKm = d; far = p; } });
-  const start = await aiReverseGeocode(sLat, sLng, 14);
-  const out = { start_place: start || null };
+  const start = await placeVillage(sLat, sLng);
+  if (!start) return null; // lookup failed — retry another time
+  const out = { start_place: start };
   if (farKm >= 2) { // a real out-and-back / A-to-B, not a loop around the block
-    const furthest = await aiReverseGeocode(far[0], far[1], 14);
-    if (furthest && furthest !== start) { out.furthest_place = furthest; out.furthest_km_from_start = Math.round(farKm); }
+    const furthest = await placeVillage(far[0], far[1]);
+    if (!furthest) return null;
+    if (furthest !== start) { out.furthest_place = furthest; out.furthest_km_from_start = Math.round(farKm); }
   }
+  a.route_places = out;
+  if (a.id) { const m = _placesMap(); m[a.id] = out; _placesSave(m); }
   return out;
+}
+
+/* Fill route_places for every activity in the background (newest first).
+   Re-attaches saved ones instantly; new lookups are rate-limited to ~1/s. */
+let _placesBusy = false;
+async function placesBackfill() {
+  if (_placesBusy || typeof acts === 'undefined' || !acts.length) return;
+  _placesBusy = true;
+  const m = _placesMap();
+  acts.forEach(a => { if (!a.route_places && m[a.id]) a.route_places = m[a.id]; });
+  const todo = acts.filter(a => !a.route_places && a.map && a.map.summary_polyline);
+  let done = 0;
+  for (const a of todo) {
+    try { await aiRoutePlaces(a); } catch {}
+    if (++done % 25 === 0) aiSyncCache();
+  }
+  if (done) aiSyncCache();
+  _placesBusy = false;
+}
+
+/* "Guwang, Sukawati → Kintamani, Bangli · 46 km out" (or just the start). */
+function routePlacesText(rp) {
+  if (!rp || !rp.start_place) return '';
+  return rp.furthest_place ? rp.start_place + ' → ' + rp.furthest_place + ' · ' + fmtD(rp.furthest_km_from_start * 1000) + ' out' : rp.start_place;
 }
 
 /* Activity data + weather + route places, for the caption prompt. */
@@ -587,6 +653,11 @@ const AI_SECTION_EXTRA = {
 
     let s = mapped.length + ' of ' + acts.length + ' activities have GPS routes. Most-ridden area: ' + (mainArea || 'home area') + ' — ' + top.n + ' rides start there.';
     if (far.length) s += ' Furthest rides from there: ' + far.join('; ') + '.';
+    // most-visited destinations (turnaround villages), from the stored route places
+    const dest = {};
+    acts.forEach(a => { const f = a.route_places && a.route_places.furthest_place; if (f) dest[f] = (dest[f] || 0) + 1; });
+    const topDest = Object.entries(dest).sort((x, y) => y[1] - x[1]).slice(0, 8);
+    if (topDest.length) s += ' Most-visited ride destinations (furthest point from start): ' + topDest.map(([p, n]) => p + ' ×' + n).join('; ') + '.';
     return s;
   },
   calSection() {
