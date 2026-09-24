@@ -240,12 +240,18 @@ async function drawStatsImage(canvas, a, wx, style) {
   let y = 190;
   lines.forEach(l => { ctx.fillText(l, P, y); y += 74; });
 
-  // destination (never the start)
+  // start → destination (the athlete is fine showing the start on the image;
+  // only AI text must never mention it). Font shrinks to fit one line.
   const rp = a.route_places;
-  if (rp && rp.furthest_place) {
+  const placeLine = !rp || !rp.start_place ? ''
+    : rp.furthest_place ? rp.start_place.split(',')[0] + '  →  ' + rp.furthest_place + '  ·  ' + fmtD(rp.furthest_km_from_start * 1000) + ' out'
+    : rp.start_place;
+  if (placeLine) {
     _siPin(ctx, P + 14, y - 20, 30, SI_ORANGE);
-    ctx.font = '600 34px ' + SI_FONT; ctx.fillStyle = '#e8e8e8';
-    ctx.fillText(rp.furthest_place + '  ·  ' + fmtD(rp.furthest_km_from_start * 1000) + ' out', P + 44, y);
+    let fs = 34;
+    do { ctx.font = '600 ' + fs + 'px ' + SI_FONT; } while (ctx.measureText(placeLine).width > SI_W - P * 2 - 44 && --fs > 22);
+    ctx.fillStyle = '#e8e8e8';
+    ctx.fillText(_siWrap(ctx, placeLine, SI_W - P * 2 - 44, 1)[0], P + 44, y);
     y += 30;
   }
 
@@ -265,11 +271,20 @@ async function drawStatsImage(canvas, a, wx, style) {
     const home = a.start_latlng && a.start_latlng.length === 2 ? a.start_latlng : all[0];
     const far = all.reduce((m, p) => _siKm(home, p) > _siKm(home, m) ? p : m, all[0]);
     if (rp && rp.furthest_place) _siPin(ctx, X(far), Y(far) - 34, 40, '#ffffff');
-    // start (green) + finish (red) dots, same as the activity map; finish on top
-    [[all[0], '#22c55e'], [all[all.length - 1], '#ef4444']].forEach(([p, col]) => {
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(X(p), Y(p), 15, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(p), Y(p), 11, 0, Math.PI * 2); ctx.fill();
-    });
+    // start (green) + finish (red) dots, same as the activity map. On a loop
+    // they overlap, so draw one split dot (green | red) to keep the start visible.
+    const s0 = all[0], f0 = all[all.length - 1];
+    const dot = (p, col, from, to) => {
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(X(p), Y(p), 20, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(X(p), Y(p)); ctx.arc(X(p), Y(p), 15, from, to); ctx.closePath(); ctx.fill();
+    };
+    if (Math.hypot(X(s0) - X(f0), Y(s0) - Y(f0)) < 30) {
+      dot(s0, '#22c55e', Math.PI / 2, Math.PI * 1.5);
+      ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(X(s0), Y(s0)); ctx.arc(X(s0), Y(s0), 15, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill();
+    } else {
+      dot(f0, '#ef4444', 0, Math.PI * 2);
+      dot(s0, '#22c55e', 0, Math.PI * 2);
+    }
   }
 
   // stats grid (3 columns)
