@@ -21,8 +21,8 @@ Weight: **11.11 kg**. All Shimano: groupset, brakes, pads and rotors.
 | Rotors | Shimano Ice Tech (centerlock) |
 | Brake pads | Shimano |
 | Stem | Mosso internal routing stem |
-| Seatpost | Toseek 3K carbon |
-| Saddle | Prologo EC90 |
+| Seatpost | Pro-Action 3K carbon |
+| Saddle | Toseek |
 | Handlebar | Mosso alloy dropbar |
 | Pedals | Racework Infinity (SPD / flat dual-side) |
 
