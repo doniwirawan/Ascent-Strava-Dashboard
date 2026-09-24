@@ -974,6 +974,12 @@ const TR_ID = {
   'Download CSV': 'Unduh CSV',
   'Download JSON': 'Unduh JSON',
   'Download SQL': 'Unduh SQL',
+  // Overview — where you ride (route places)
+  'Villages reached': 'Desa dijelajahi', 'across {0} kecamatan': 'di {0} kecamatan',
+  'Regencies': 'Kabupaten', 'Home base': 'Basis', '{0}% of starts': '{0}% titik mulai',
+  'Top destination': 'Tujuan favorit', '{0} trips': '{0} perjalanan',
+  'Furthest trip': 'Perjalanan terjauh', '{0} from start': '{0} dari titik mulai',
+  'Avg reach': 'Jangkauan rata-rata', 'start → turnaround': 'mulai → titik balik',
   'CSV opens straight in Excel, Sheets or pandas. JSON carries a column dictionary describing every field and its units. SQL drops and recreates a health_daily table, so it loads into SQLite or Postgres as-is. All three share the same columns and the same night-labelling rule: a night is dated by the morning you woke up, so sleep dated D is the sleep before you rode on D.': 'CSV langsung terbuka di Excel, Sheets, atau pandas. JSON membawa kamus kolom yang menjelaskan tiap field beserta satuannya. SQL menghapus lalu membuat ulang tabel health_daily, jadi bisa langsung dimuat ke SQLite atau Postgres. Ketiganya memakai kolom yang sama dan aturan penanggalan malam yang sama: satu malam diberi tanggal sesuai pagi saat Anda bangun, jadi tidur bertanggal D adalah tidur sebelum Anda gowes di hari D.',
 };
 window.tr = function (s) {

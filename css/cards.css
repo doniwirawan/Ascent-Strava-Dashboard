@@ -78,6 +78,8 @@
 }
 
 .stat-card.hi .s-value { color: var(--orange); }
+/* place names (Home base, Top destination…) are longer than numbers */
+.s-value.s-place { font-size: 20px; letter-spacing: -.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .s-sub {
   font-size: 11px;

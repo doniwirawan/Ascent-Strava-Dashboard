@@ -18,7 +18,7 @@ function renderCycling() {
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
         <a href="https://www.strava.com/activities/${fastMaxRide.id}" onclick="openActivityModal('${fastMaxRide.id}');return false;"
            style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);cursor:pointer;">
-          ${fastMaxRide.name}</a> &nbsp;·&nbsp; ${fmtDt(fastMaxRide.start_date)} &nbsp;·&nbsp; ${fmtD(fastMaxRide.distance)}
+          ${fastMaxRide.name}</a> &nbsp;·&nbsp; ${fmtDt(fastMaxRide.start_date)} &nbsp;·&nbsp; ${fmtD(fastMaxRide.distance)}${placeTag(fastMaxRide,' &nbsp;·&nbsp; ')}
       </div>
     </div>
     <div class="hero-box hi">
@@ -27,7 +27,7 @@ function renderCycling() {
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
         <a href="https://www.strava.com/activities/${fastAvgRide.id}" onclick="openActivityModal('${fastAvgRide.id}');return false;"
            style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);cursor:pointer;">
-          ${fastAvgRide.name}</a> &nbsp;·&nbsp; ${fmtDt(fastAvgRide.start_date)} &nbsp;·&nbsp; ${fmtD(fastAvgRide.distance)}
+          ${fastAvgRide.name}</a> &nbsp;·&nbsp; ${fmtDt(fastAvgRide.start_date)} &nbsp;·&nbsp; ${fmtD(fastAvgRide.distance)}${placeTag(fastAvgRide,' &nbsp;·&nbsp; ')}
       </div>
     </div>
     <div class="hero-box"><div class="hero-label">Longest Ride</div>
@@ -53,7 +53,7 @@ function renderCycling() {
           <span class="ctop-rank">${i+1}</span>
           <span class="ctop-info">
             <span class="ctop-name">${r.name}</span>
-            <span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)}</span>
+            <span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)} · avg ${fmtSpeed(r.average_speed)}${placeTag(r,' · ')}</span>
           </span>
           <span class="ctop-bar"><span class="ctop-bar-fill" style="width:${((r.max_speed/top5Max)*100).toFixed(0)}%"></span></span>
           <span class="ctop-val">${kmh(r.max_speed)}<i>${speedUnit()}</i></span>
@@ -116,7 +116,7 @@ function renderRunning() {
   const avgHR = hrRuns.length ? Math.round(hrRuns.reduce((s, r) => s + r.average_heartrate, 0) / hrRuns.length) : 0;
 
   const subline = (r, extra) => r ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
-      <a href="https://www.strava.com/activities/${r.id}" onclick="openActivityModal('${r.id}');return false;" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);cursor:pointer;">${r.name}</a> &nbsp;·&nbsp; ${fmtDt(r.start_date)} &nbsp;·&nbsp; ${extra}</div>` : '';
+      <a href="https://www.strava.com/activities/${r.id}" onclick="openActivityModal('${r.id}');return false;" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);cursor:pointer;">${r.name}</a> &nbsp;·&nbsp; ${fmtDt(r.start_date)} &nbsp;·&nbsp; ${extra}${placeTag(r,' &nbsp;·&nbsp; ')}</div>` : '';
 
   document.getElementById('runningHero').innerHTML = `
     <div class="hero-box hi">
@@ -144,7 +144,7 @@ function renderRunning() {
       ${top5.map((r, i) => `
         <a class="ctop-row" href="https://www.strava.com/activities/${r.id}" onclick="openActivityModal('${r.id}');return false;" rel="noopener">
           <span class="ctop-rank">${i+1}</span>
-          <span class="ctop-info"><span class="ctop-name">${r.name}</span><span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)}</span></span>
+          <span class="ctop-info"><span class="ctop-name">${r.name}</span><span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)}${placeTag(r,' · ')}</span></span>
           <span class="ctop-bar"><span class="ctop-bar-fill" style="width:${(r.average_speed/top5max*100).toFixed(0)}%"></span></span>
           <span class="ctop-val">${_pace(r.average_speed)}<i>/${distUnit()}</i></span>
         </a>`).join('')}
@@ -357,8 +357,14 @@ function _renderActList(q){
       <div style="flex:1;min-width:0">
         <div class="act-name">${a.name}</div>
         <div class="act-meta">
-          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDt(a.start_date_local||a.start_date)}
+          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDt(a.start_date_local||a.start_date)}${placeTag(a,' · ')}
         </div>
+        <div class="act-stats">${[
+          a.average_speed ? (isRide(a) ? fmtSpeed(a.average_speed) : fmtPace(a.average_speed)) : '',
+          a.total_elevation_gain ? '↑ '+fmtElev(a.total_elevation_gain) : '',
+          a.average_heartrate ? '♥ '+Math.round(a.average_heartrate)+' bpm' : '',
+          a.average_watts ? Math.round(a.average_watts)+' W' : ''
+        ].filter(Boolean).map(s=>`<span>${s}</span>`).join('')}</div>
       </div>
       <div class="act-right">
         <div class="act-dist">${fmtD(a.distance)}</div>

@@ -76,6 +76,16 @@ const fmtDt = d   => new Date(d).toLocaleDateString(
 // Compact, weekday-less form ("20 Sep") for dense chart axes and the story card,
 // where a weekday on every label would clutter or overflow.
 const fmtDtShort = d => new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+/* Where an activity went, for list rows: "📍 Guwang → Kintamani, Bangli" (start
+   desa → destination desa, kecamatan). Full names in the tooltip. `sep` is put
+   in front when there is a label. '' until the places backfill has reached it. */
+function placeTag(a, sep){
+  const rp=a&&a.route_places; if(!rp||!rp.start_place) return '';
+  const full=rp.furthest_place ? rp.start_place+' → '+rp.furthest_place+' ('+fmtD(rp.furthest_km_from_start*1000)+' out)' : rp.start_place;
+  // the start is home: wrapped in .no-ai so AI page insights never read it
+  const txt=rp.furthest_place ? '<span class="no-ai">'+rp.start_place.split(',')[0]+' → </span>'+rp.furthest_place : '<span class="no-ai">'+rp.start_place+'</span>';
+  return (sep||'')+'<span class="act-place" title="'+full.replace(/"/g,'&quot;')+'">📍 '+txt+'</span>';
+}
 // Local calendar-date key "YYYY-MM-DD" for a Date, matching the wall-clock date
 // in start_date_local (never UTC, so early-morning activities key to the right
 // day). Used for streak/active-day maths so day-sets and back-counting agree.

@@ -76,7 +76,7 @@ function haversineKm(aLat, aLng, bLat, bLng) {
 // real User-Agent from servers.
 async function placeName(lat, lng) {
   try {
-    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=14&lat=' + lat + '&lon=' + lng,
+    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&lat=' + lat + '&lon=' + lng,
       { headers: { Accept: 'application/json', 'User-Agent': 'ascent-analytics/1.0 (https://ascent-analytics.doniwirawan.xyz)' } });
     if (!r.ok) return '';
     const a = ((await r.json()) || {}).address || {};
@@ -94,7 +94,8 @@ async function routePlaces(a) {
   if (!pl) return null;
   const pts = decodePolyline(pl);
   if (pts.length < 2) return null;
-  const [sLat, sLng] = pts[0];
+  // Strava's start_latlng is full precision; the summary polyline is simplified
+  const [sLat, sLng] = a.start_latlng && a.start_latlng.length === 2 ? a.start_latlng : pts[0];
   let far = pts[0], farKm = 0;
   pts.forEach(p => { const d = haversineKm(sLat, sLng, p[0], p[1]); if (d > farKm) { farKm = d; far = p; } });
   const start = await placeName(sLat, sLng);
@@ -119,16 +120,16 @@ async function generateCaption(a) {
     max_kmh: a.max_speed ? +((a.max_speed * 3.6).toFixed(1)) : null,
     avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     avg_watts: a.average_watts ? Math.round(a.average_watts) : null,
-    location: [a.location_city, a.location_state, a.location_country].filter(Boolean).join(', ') || null,
     prs: a.pr_count || 0,
   };
   const wx = await fetchWeather(a);
   if (wx) data.weather = wx;
   const rp = await routePlaces(a).catch(() => null);
-  if (rp) Object.assign(data, rp);
+  // destination only — the start is the athlete's home and must never reach the AI
+  if (rp && rp.furthest_place) Object.assign(data, { furthest_place: rp.furthest_place, furthest_km_from_start: rp.furthest_km_from_start });
   const messages = [
     { role: 'system', content:
-      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If "furthest_place" is present it is the furthest point I reached from the start (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"); "start_place" is where I set off. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
+      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nWrite my new title and description.' },
   ];
   const r = await fetch('https://api.deepseek.com/chat/completions', {
@@ -138,9 +139,10 @@ async function generateCaption(a) {
   if (!r.ok) return null;
   const d = await r.json();
   const text = (d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || null;
-  // always state the place in the description: "📍 Guwang, Sukawati → Kintamani, Bangli (46 km out)"
-  if (text && rp && rp.start_place) {
-    return text.trim() + '\n\n📍 ' + rp.start_place + (rp.furthest_place ? ' → ' + rp.furthest_place + ' (' + rp.furthest_km_from_start + ' km out)' : '');
+  // always state the destination in the description: "📍 Kintamani, Bangli · 46 km out".
+  // Never the start — that's home.
+  if (text && rp && rp.furthest_place) {
+    return text.trim() + '\n\n📍 ' + rp.furthest_place + ' · ' + rp.furthest_km_from_start + ' km out';
   }
   return text;
 }

@@ -73,7 +73,6 @@
   .cycling-hero { grid-template-columns: 1fr 1fr; }
   .hero-value { font-size: 18px; }
   .cal-grid { grid-template-columns: repeat(3, 1fr); }
-  .act-name { max-width: 160px; }
   .eddy-num { font-size: 56px; }
   .chart-wrap { height: 180px; }
   .ach-grid { grid-template-columns: repeat(2, 1fr); }

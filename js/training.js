@@ -281,7 +281,7 @@ function _trRecoveryCardHTML(d) {
         <div class="tr-rv-block">
           ${lbl(id ? 'Latihan terakhir' : 'Last workout')}
           <div class="tr-rv-name">${a.name || (id ? 'Aktivitas' : 'Activity')}</div>
-          <div class="tr-rv-meta">${fmtDt(a.start_date_local || a.start_date)} · ${meta}</div>
+          <div class="tr-rv-meta">${fmtDt(a.start_date_local || a.start_date)} · ${meta}${placeTag(a, ' · ')}</div>
         </div>
         <div class="tr-rv-block">
           ${lbl(id ? 'Bisa gowes keras lagi' : 'Hard ride again')}

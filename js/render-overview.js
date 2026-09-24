@@ -217,6 +217,33 @@ function renderOverviewInsights(){
     {ic:'check',lbl:'Active days',val:activeDays,sub:Math.round(activeDays/spanDays*100)+'% of the span'},
   ];
 
+  // Where you ride — from each activity's reverse-geocoded start + turnaround
+  // village (route_places, filled in the background by placesBackfill).
+  const T=(typeof tr==='function')?tr:(x=>x), TF=(typeof trf==='function')?trf:((s,...a)=>s.replace(/\{(\d+)\}/g,(_,i)=>a[i]));
+  const placed=set.filter(a=>a.route_places&&a.route_places.start_place);
+  if(placed.length){
+    const desa=s=>s.split(',')[0], area=s=>s.split(', ')[1]||'';
+    const villages=new Set(), kecs=new Set(), kabs=new Set(), home={}, dest={};
+    placed.forEach(a=>{ const r=a.route_places;
+      villages.add(r.start_place); if(r.furthest_place) villages.add(r.furthest_place);
+      [r.start_kec,r.furthest_kec].forEach(k=>k&&kecs.add(k));
+      [r.start_kab,r.furthest_kab].forEach(k=>k&&kabs.add(k));
+      home[r.start_place]=(home[r.start_place]||0)+1;
+      if(r.furthest_place) dest[r.furthest_place]=(dest[r.furthest_place]||0)+1; });
+    const top=o=>Object.entries(o).sort((x,y)=>y[1]-x[1])[0];
+    const h=top(home), t=top(dest);
+    const outs=placed.filter(a=>a.route_places.furthest_km_from_start);
+    const far=outs.reduce((m,a)=>!m||a.route_places.furthest_km_from_start>m.route_places.furthest_km_from_start?a:m,null);
+    const reach=outs.length?outs.reduce((s,a)=>s+a.route_places.furthest_km_from_start,0)/outs.length:0;
+    cards.push(
+      {ic:'pin',lbl:T('Villages reached'),val:villages.size,sub:TF('across {0} kecamatan',kecs.size)},
+      {ic:'map',lbl:T('Regencies'),val:kabs.size,sub:[...kabs].slice(0,3).join(', ')+(kabs.size>3?'…':'')},
+      {ic:'home',lbl:T('Home base'),val:desa(h[0]),sub:TF('{0}% of starts',Math.round(h[1]/placed.length*100))+(area(h[0])?' · '+area(h[0]):''),place:true,cls:'no-ai'},
+      t&&{ic:'flag',lbl:T('Top destination'),val:desa(t[0]),sub:TF('{0} trips',t[1])+(area(t[0])?' · '+area(t[0]):''),place:true},
+      far&&{ic:'route',lbl:T('Furthest trip'),val:desa(far.route_places.furthest_place),sub:TF('{0} from start',fmtD(far.route_places.furthest_km_from_start*1000)),place:true,act:far.id},
+      outs.length&&{ic:'reach',lbl:T('Avg reach'),val:fmtD(reach*1000),sub:T('start → turnaround')});
+  }
+
   // outline icons in the same visual language as the .s-icon set (stroke, no fill)
   const svg=n=>({
     mountain:'<path d="m3 20 6-12 4 7 3-5 5 10z"/>',
@@ -227,16 +254,22 @@ function renderOverviewInsights(){
     trophy:'<path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4a2 2 0 0 0 3 3M17 6h3a2 2 0 0 1-3 3"/>',
     repeat:'<polyline points="17 2 21 6 17 10"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 22 3 18 7 14"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
     check:'<polyline points="20 6 9 17 4 12"/>',
+    pin:'<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    map:'<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><path d="M9 3v15M15 6v15"/>',
+    home:'<path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/>',
+    flag:'<path d="M5 21V4h11l-2 4 2 4H5"/>',
+    route:'<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8a3 3 0 0 0 0-6H8a3 3 0 0 1 0-6h8"/>',
+    reach:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1.5"/><path d="M12 12l6-6"/>',
   }[n]||'');
 
   clearOld();
   el.innerHTML=''; // insights now live inside the main stat grid
   if(!grid) return;
-  grid.insertAdjacentHTML('beforeend', cards.map(c=>`
-        <div class="stat-card ov-insight">
+  grid.insertAdjacentHTML('beforeend', cards.filter(Boolean).map(c=>`
+        <div class="stat-card ov-insight${c.cls?' '+c.cls:''}"${c.act?` role="button" tabindex="0" style="cursor:pointer" onclick="openActivityModal('${c.act}')"`:''}>
           <div class="s-label">${c.lbl}</div>
           <div class="s-icon"><svg viewBox="0 0 24 24">${svg(c.ic)}</svg></div>
-          <div class="s-value">${c.val}</div>
+          <div class="s-value${c.place?' s-place':''}">${c.val}</div>
           <div class="s-sub">${c.sub}</div>
         </div>`).join(''));
 }

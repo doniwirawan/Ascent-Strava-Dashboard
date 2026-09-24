@@ -173,7 +173,6 @@ function aiActivityData(a) {
     avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     avg_watts: a.average_watts ? Math.round(a.average_watts) : null,
     kj: a.kilojoules ? Math.round(a.kilojoules) : null,
-    location: [a.location_city, a.location_state, a.location_country].filter(Boolean).join(', ') || null,
     prs: a.pr_count || 0, kudos: a.kudos_count || 0, is_ride: ride,
   };
 }
@@ -224,7 +223,8 @@ async function aiWeather(a) {
    not the finish, which is usually back home). Stored on the activity as
    a.route_places = { start_place, furthest_place?, furthest_km_from_start? }
    and in a local id→places map so a full Strava refresh doesn't redo lookups. */
-const PLACES_LS = 'route_places_v1';
+const PLACES_V = 2; // bump to recompute every activity's places
+const PLACES_LS = 'route_places_v' + PLACES_V;
 function _placesMap() { try { return JSON.parse(localStorage.getItem(PLACES_LS) || '{}') || {}; } catch { return {}; } }
 function _placesSave(m) { try { localStorage.setItem(PLACES_LS, JSON.stringify(m)); } catch {} }
 
@@ -236,45 +236,53 @@ function _geoThrottled(fn) {
   return run;
 }
 
-/* Village-level place name: "Desa, Kecamatan" (e.g. "Guwang, Sukawati"), or
-   "Desa, Kabupaten" when the two share a name. Cached; '' on failure (not cached). */
+/* Village-level place for a point: { name: "Desa, Kecamatan", desa, kec, kab }.
+   zoom=18 snaps to the nearest road/building, so the desa comes from the OSM
+   admin boundary (admin_level 7) that actually contains the point — checked
+   against exact polygon containment for Bali. Cached; null on failure. */
 async function placeVillage(lat, lng) {
-  const key = 'geo_v_' + lat.toFixed(3) + '_' + lng.toFixed(3);
+  const key = 'geo_v2_' + lat.toFixed(4) + '_' + lng.toFixed(4);
   const cached = localStorage.getItem(key);
-  if (cached !== null) return cached;
+  if (cached !== null) { try { return JSON.parse(cached); } catch {} }
   return _geoThrottled(async () => {
     try {
-      const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=14&lat=' + lat + '&lon=' + lng, { headers: { Accept: 'application/json' } });
-      if (!r.ok) return '';
+      const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&lat=' + lat + '&lon=' + lng, { headers: { Accept: 'application/json' } });
+      if (!r.ok) return null;
       const a = ((await r.json()) || {}).address || {};
-      const local = a.village || a.suburb || a.neighbourhood || a.hamlet || a.town || a.city || a.municipality || a.county || '';
-      let area = a.town || a.city || a.municipality || a.county || '';
-      if (!area || area === local) area = a.region || a.state_district || a.state || a.country || '';
-      const place = [local, area && area !== local ? area : ''].filter(Boolean).join(', ');
-      try { localStorage.setItem(key, place); } catch {}
+      const desa = a.village || a.suburb || a.neighbourhood || a.hamlet || a.town || a.city || a.municipality || a.county || '';
+      const kec = a.town || a.city_district || a.municipality || a.city || '';
+      const kab = a.region || a.county || a.state_district || a.city || a.state || '';
+      let area = kec && kec !== desa ? kec : (kab !== desa ? kab : '');
+      const place = { name: [desa, area].filter(Boolean).join(', '), desa, kec, kab };
+      if (!place.name) return null;
+      try { localStorage.setItem(key, JSON.stringify(place)); } catch {}
       return place;
-    } catch { return ''; }
+    } catch { return null; }
   });
 }
 
 async function aiRoutePlaces(a) {
-  if (a.route_places) return a.route_places;
+  if (a.route_places && a.route_places.v === PLACES_V) return a.route_places;
   const saved = _placesMap()[a.id];
   if (saved) return (a.route_places = saved);
   const pl = a.map && (a.map.summary_polyline || a.map.polyline);
   if (!pl) return null;
   const pts = decodePolyline(pl);
   if (pts.length < 2) return null;
-  const [sLat, sLng] = pts[0];
+  // Strava's start_latlng is full precision; the summary polyline is simplified
+  const ll = a.start_latlng && a.start_latlng.length === 2 ? a.start_latlng : pts[0];
+  const [sLat, sLng] = ll;
   let far = pts[0], farKm = 0;
   pts.forEach(p => { const d = aiHaversine(sLat, sLng, p[0], p[1]); if (d > farKm) { farKm = d; far = p; } });
   const start = await placeVillage(sLat, sLng);
   if (!start) return null; // lookup failed — retry another time
-  const out = { start_place: start };
+  const out = { v: PLACES_V, start_place: start.name, start_kec: start.kec, start_kab: start.kab };
   if (farKm >= 2) { // a real out-and-back / A-to-B, not a loop around the block
     const furthest = await placeVillage(far[0], far[1]);
     if (!furthest) return null;
-    if (furthest !== start) { out.furthest_place = furthest; out.furthest_km_from_start = Math.round(farKm); }
+    if (furthest.name !== start.name) {
+      Object.assign(out, { furthest_place: furthest.name, furthest_kec: furthest.kec, furthest_kab: furthest.kab, furthest_km_from_start: Math.round(farKm) });
+    }
   }
   a.route_places = out;
   if (a.id) { const m = _placesMap(); m[a.id] = out; _placesSave(m); }
@@ -288,15 +296,29 @@ async function placesBackfill() {
   if (_placesBusy || typeof acts === 'undefined' || !acts.length) return;
   _placesBusy = true;
   const m = _placesMap();
-  acts.forEach(a => { if (!a.route_places && m[a.id]) a.route_places = m[a.id]; });
-  const todo = acts.filter(a => !a.route_places && a.map && a.map.summary_polyline);
+  const fresh = a => a.route_places && a.route_places.v === PLACES_V;
+  let reattached = 0;
+  acts.forEach(a => { if (!fresh(a) && m[a.id]) { a.route_places = m[a.id]; reattached++; } });
+  if (reattached) _placesRefreshUI(true);
+  const todo = acts.filter(a => !fresh(a) && a.map && a.map.summary_polyline);
   let done = 0;
   for (const a of todo) {
     try { await aiRoutePlaces(a); } catch {}
-    if (++done % 25 === 0) aiSyncCache();
+    if (++done % 25 === 0) { aiSyncCache(); _placesRefreshUI(false); }
   }
-  if (done) aiSyncCache();
+  if (done) { aiSyncCache(); _placesRefreshUI(true); }
   _placesBusy = false;
+}
+
+/* Re-draw the views that show places. Cheap ones on every batch; the rest
+   (which rebuild charts) only once the backfill is finished. */
+function _placesRefreshUI(full) {
+  const run = fn => { try { if (typeof fn === 'function') fn(); } catch (e) { console.error('places refresh', e); } };
+  run(() => _renderActList((document.getElementById('actSearch') || {}).value || ''));
+  run(typeof renderOverviewInsights === 'function' && renderOverviewInsights);
+  if (!full) return;
+  [typeof renderCycling === 'function' && renderCycling, typeof renderRunning === 'function' && renderRunning,
+   typeof renderBestEfforts === 'function' && renderBestEfforts, typeof renderTraining === 'function' && renderTraining].forEach(run);
 }
 
 /* "Guwang, Sukawati → Kintamani, Bangli · 46 km out" (or just the start). */
@@ -305,18 +327,21 @@ function routePlacesText(rp) {
   return rp.furthest_place ? rp.start_place + ' → ' + rp.furthest_place + ' · ' + fmtD(rp.furthest_km_from_start * 1000) + ' out' : rp.start_place;
 }
 
-/* Append a "📍 start → destination" line to an AI description (so the place
-   is always in it, whatever the model wrote). No-op without route places. */
+/* Append a "📍 destination · 46 km out" line to an AI description (so the place
+   is always in it, whatever the model wrote). Never the start — that's home.
+   No-op for loops / activities without a destination. */
 function aiWithLocation(desc, a) {
-  const t = routePlacesText(a && a.route_places);
-  return t ? (desc ? desc + '\n\n' : '') + '📍 ' + t : desc;
+  const rp = a && a.route_places;
+  if (!rp || !rp.furthest_place) return desc;
+  return (desc ? desc + '\n\n' : '') + '📍 ' + rp.furthest_place + ' · ' + fmtD(rp.furthest_km_from_start * 1000) + ' out';
 }
 
 /* Activity data + weather + route places, for the caption prompt. */
 async function aiWithWeather(a) {
   const data = aiActivityData(a);
   try { const wx = await aiWeather(a); if (wx) data.weather = wx; } catch {}
-  try { const rp = await aiRoutePlaces(a); if (rp) Object.assign(data, rp); } catch {}
+  // destination only — the start is the athlete's home and must never reach the AI
+  try { const rp = await aiRoutePlaces(a); if (rp && rp.furthest_place) Object.assign(data, { furthest_place: rp.furthest_place, furthest_kab: rp.furthest_kab, furthest_km_from_start: rp.furthest_km_from_start }); } catch {}
   return data;
 }
 
@@ -337,7 +362,7 @@ async function aiCaptionActivity(id) {
       + (roast ? 'Be fun and witty with a light, good-natured ROAST of the effort. ' : 'Keep an upbeat, motivating tone. ')
       + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. '
       + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
-      + 'If "furthest_place" is present it is the furthest point I reached from the start (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"); "start_place" is where I set off. '
+      + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). NEVER mention, guess or hint at where I started or where I live. '
       + 'If a "weather" field is present it is a rough estimate that may be inaccurate — reference conditions only lightly, never as a hard fact, and if it seems inconsistent with the effort just leave weather out. '
       + 'Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
@@ -440,7 +465,7 @@ function aiStatsTemplate(a, wx, rp) {
   const title = (tod + ' ' + typeLabel + ' · ' + fmtD(a.distance) + (a.total_elevation_gain > 100 ? ' · ' + fmtElev(a.total_elevation_gain) : '')).slice(0, 100);
 
   const L = ['Distance: ' + fmtD(a.distance)];
-  if (rp && rp.furthest_place) L.push('Route: ' + (rp.start_place ? rp.start_place + ' → ' : '') + rp.furthest_place + ' (furthest point)');
+  if (rp && rp.furthest_place) L.push('Destination: ' + rp.furthest_place + ' (' + fmtD(rp.furthest_km_from_start * 1000) + ' out)');
   if (a.moving_time) L.push('Time: ' + fmtT(a.moving_time));
   if (a.total_elevation_gain) L.push('Elevation: ' + fmtElev(a.total_elevation_gain));
   if (a.average_speed) L.push(ride ? 'Avg speed: ' + fmtSpeed(a.average_speed) : 'Avg pace: ' + fmtPace(a.average_speed));
@@ -541,7 +566,7 @@ async function bulkRun(p, mode) {
         const t = aiStatsTemplate(a, wx, rp); name = t.title; desc = t.desc;
       } else {
         const messages = [
-          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If "furthest_place" is present it is the furthest point I reached from the start (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"); "start_place" is where I set off. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
+          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
           { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
         ];
         const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
@@ -645,7 +670,7 @@ const AI_SECTION_EXTRA = {
     });
     const top = Object.values(cells).sort((x, y) => y.n - x.n)[0];
     const mainLat = top.lat / top.n, mainLng = top.lng / top.n;
-    const mainArea = await aiReverseGeocode(mainLat, mainLng, 14);
+    // the densest start cell is the athlete's home — never name it to the AI
 
     // rides furthest from that main area, with their location names
     const byDist = mapped.map(a => ({ a, d: aiHaversine(mainLat, mainLng, a.start_latlng[0], a.start_latlng[1]) }))
@@ -654,12 +679,12 @@ const AI_SECTION_EXTRA = {
     for (let i = 0; i < byDist.length && far.length < 2; i++) {
       if (byDist[i].d < 5) break; // not meaningfully far from home
       const w = byDist[i];
-      const loc = await aiReverseGeocode(w.a.start_latlng[0], w.a.start_latlng[1], 12);
-      far.push('"' + ((w.a.name || 'a ride').slice(0, 40)) + '"' + (loc ? ' in ' + loc : '') + ' (~' + Math.round(w.d) + ' km from home)');
+      const loc = w.a.route_places && w.a.route_places.furthest_place; // destination, never the start
+      far.push('"' + ((w.a.name || 'a ride').slice(0, 40)) + '"' + (loc ? ' to ' + loc : '') + ' (~' + Math.round(w.d) + ' km away)');
     }
 
-    let s = mapped.length + ' of ' + acts.length + ' activities have GPS routes. Most-ridden area: ' + (mainArea || 'home area') + ' — ' + top.n + ' rides start there.';
-    if (far.length) s += ' Furthest rides from there: ' + far.join('; ') + '.';
+    let s = mapped.length + ' of ' + acts.length + ' activities have GPS routes. ' + top.n + ' of them start from the same home area (never name or guess where it is).';
+    if (far.length) s += ' Rides that started furthest from home: ' + far.join('; ') + '.';
     // most-visited destinations (turnaround villages), from the stored route places
     const dest = {};
     acts.forEach(a => { const f = a.route_places && a.route_places.furthest_place; if (f) dest[f] = (dest[f] || 0) + 1; });
@@ -689,32 +714,17 @@ function aiHaversine(aLat, aLng, bLat, bLng) {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-/* Reverse-geocode to a place name (cached). zoom controls granularity:
-   ~14 → district/suburb, ~12 → town/city. Returns '' on failure (also cached). */
-async function aiReverseGeocode(lat, lng, zoom) {
-  zoom = zoom || 12;
-  const key = 'ai_geo_' + zoom + '_' + lat.toFixed(3) + '_' + lng.toFixed(3);
-  const cached = localStorage.getItem(key);
-  if (cached !== null) return cached;
-  try {
-    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=' + zoom + '&lat=' + lat + '&lon=' + lng, { headers: { Accept: 'application/json' } });
-    if (r.ok) {
-      const a = ((await r.json()) || {}).address || {};
-      const local = a.suburb || a.neighbourhood || a.city_district || a.village || a.town || a.municipality || a.city || a.county || a.state_district || '';
-      const region = a.city || a.county || a.state || a.country || '';
-      const place = [local, region && region !== local ? region : ''].filter(Boolean).join(', ');
-      localStorage.setItem(key, place);
-      return place;
-    }
-  } catch {}
-  return '';
-}
-
 /* Visible text of a section, excluding the insight banner itself. */
 function aiSectionText(sec) {
   const parts = [];
   sec.childNodes.forEach(n => {
-    if (n.nodeType === 1 && n.classList && n.classList.contains('ai-insight')) return;
+    if (n.nodeType === 1 && n.classList && (n.classList.contains('ai-insight') || n.classList.contains('no-ai'))) return;
+    // .no-ai = where the athlete starts (home) — read from a copy with it removed so it never reaches the AI
+    if (n.nodeType === 1 && n.querySelector('.no-ai')) {
+      const c = n.cloneNode(true);
+      c.querySelectorAll('.no-ai').forEach(e => e.remove());
+      n = c;
+    }
     const t = (n.innerText || n.textContent || '').trim();
     if (t) parts.push(t);
   });

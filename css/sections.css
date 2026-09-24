@@ -542,7 +542,7 @@
 .ctop-list { display: flex; flex-direction: column; gap: 6px; }
 .ctop-row {
   display: grid; grid-template-columns: 28px minmax(0,1fr) 90px auto; align-items: center; gap: 14px;
-  padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border);
+  padding: 14px 16px; background: var(--surface2); border: 1px solid var(--border);
   border-radius: var(--radius-sm); text-decoration: none;
   transition: border-color .15s, background .15s, transform .15s;
 }
@@ -551,7 +551,7 @@
 .ctop-row:first-child .ctop-rank { color: var(--orange); }
 .ctop-info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ctop-name { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ctop-meta { font-size: 10px; color: var(--muted); }
+.ctop-meta { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ctop-bar { height: 6px; background: var(--surface4); border-radius: 3px; overflow: hidden; }
 .ctop-bar-fill { display: block; height: 100%; background: var(--orange); border-radius: 3px; }
 .ctop-val { font-size: 17px; font-weight: 900; color: var(--text); letter-spacing: -.5px; white-space: nowrap; }

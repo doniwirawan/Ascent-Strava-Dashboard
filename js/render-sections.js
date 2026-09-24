@@ -149,7 +149,7 @@ function _bestCard(title, sub, list, fmtRow, spot){
   const rows=list.map((a,i)=>`
       <div class="best-row${i>=BEST_SHOWN?' best-extra':''}">
         <div class="best-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
-        <div class="best-name">${a.name||'Activity'} <span style="color:var(--muted);font-size:10px;">${fmtDt(a.start_date)}</span></div>
+        <div class="best-name">${a.name||'Activity'} <span style="color:var(--muted);font-size:10px;">${fmtDt(a.start_date)}${placeTag(a,' · ')}</span></div>
         <div class="best-val">${fmtRow(a)}</div>
         ${spot&&a.id?`<button class="best-where" onclick="showSpeedSpot('${a.id}',this,'${spot}','bspot-${spot}-${a.id}')" title="${tr('Where did this happen?')}" aria-label="${tr('Where did this happen?')}">${ic('pin')}</button>`:''}
       </div>${spot&&a.id?`<div class="spot-panel" id="bspot-${spot}-${a.id}"></div>`:''}`).join('');
