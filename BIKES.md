@@ -8,7 +8,7 @@ Last updated: 2026-09-24
 
 ## Mosso 735 GVL — gravel (Strava bike 17599912)
 
-Weight: **11.11 kg**
+Weight: **11.11 kg**. All Shimano: groupset, brakes, pads and rotors.
 
 | Part | Component |
 |---|---|
@@ -19,7 +19,7 @@ Weight: **11.11 kg**
 | Wheels | Hand-built: Strummer Super30 alloy rims, Strummer HR360 front hub (12x100, centerlock), Novatec Microspline rear hub, 24h |
 | Tyres | Maxxis Reaver 700x40c skinwall |
 | Rotors | Shimano Ice Tech (centerlock) |
-| Brake pads | Toopre Ice Tech TL-01S ceramic |
+| Brake pads | Shimano |
 | Stem | Mosso internal routing stem |
 | Seatpost | Toseek 3K carbon |
 | Saddle | Prologo EC90 |
@@ -36,6 +36,7 @@ Weight: **11.83 kg**
 | Groupset | Sensah Empire Pro 12-speed (rear derailleur, shift levers) |
 | Crankset | Senicx PR5 |
 | Wheels | Mavic Cosmic Elite 50mm alloy |
+| Brake pads | Toopre Ice Tech TL-01S ceramic |
 | Tyres | Maxxis Pursuer 700x28c skinwall |
 | Saddle | Kocevlo 143mm (S/M) |
 | Handlebar | Mosso alloy dropbar |
