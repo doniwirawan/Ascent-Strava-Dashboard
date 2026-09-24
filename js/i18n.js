@@ -1002,6 +1002,8 @@ const TR_ID = {
   'Sleep': 'Tidur', 'Deep': 'Dalam', 'Light': 'Ringan', 'REM': 'REM', 'Awake (min)': 'Terjaga (mnt)', 'Wake-ups': 'Terbangun',
   'Bedtime': 'Jam tidur', 'Woke up': 'Bangun', 'Efficiency (%)': 'Efisiensi (%)', 'Resting HR': 'HR istirahat', 'HRV (ms)': 'HRV (ms)',
   'Stress': 'Stres', 'Steps': 'Langkah', 'SpO₂ (%)': 'SpO₂ (%)',
+  '{0} out': '{0} jauhnya', 'Avg pace': 'Pace rata-rata', 'Weather': 'Cuaca', 'Calories': 'Kalori',
+  'Ride': 'Bersepeda', 'Run': 'Lari', 'Walk': 'Jalan', 'Hike': 'Mendaki', 'Swim': 'Renang', 'Gravel Ride': 'Gravel', 'Mountain Bike Ride': 'Sepeda gunung', 'E Bike Ride': 'Sepeda listrik', 'Virtual Ride': 'Sepeda virtual', 'Trail Run': 'Lari trail', 'Activity': 'Aktivitas',
   'Map style': 'Gaya peta', 'Satellite': 'Satelit', 'Dark': 'Gelap', 'Relief': 'Relief', 'Plain': 'Polos',
   'Drawing your image…': 'Membuat gambar Anda…', 'Share': 'Bagikan', 'Download': 'Unduh', 'Close': 'Tutup',
   "Strava doesn't let apps attach photos, so share it to the Strava app or download it and add it to the activity there.": 'Strava tidak mengizinkan aplikasi menambahkan foto, jadi bagikan ke aplikasi Strava atau unduh lalu tambahkan ke aktivitas di sana.',

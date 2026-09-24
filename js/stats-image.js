@@ -227,8 +227,8 @@ async function drawStatsImage(canvas, a, wx, style) {
 
   // header: sport + date (day only — never a clock time)
   const when = a.start_date_local || a.start_date;
-  const date = when ? new Date(when).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
-  const sport = String(a.sport_type || a.type || 'Activity').replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase();
+  const date = when ? new Date(when).toLocaleDateString(window.LANG === 'id' ? 'id-ID' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
+  const sport = tr(String(a.sport_type || a.type || 'Activity').replace(/([a-z])([A-Z])/g, '$1 $2')).toUpperCase();
   ctx.textBaseline = 'alphabetic';
   ctx.font = '700 30px ' + SI_FONT; ctx.fillStyle = SI_ORANGE; ctx.fillText(sport, P, 100);
   ctx.font = '500 30px ' + SI_FONT; ctx.fillStyle = '#9a9a9a';
@@ -243,7 +243,7 @@ async function drawStatsImage(canvas, a, wx, style) {
   // destination only — the start village (home) is never written on the image;
   // the route line/map still show the whole ride. Font shrinks to fit one line.
   const rp = a.route_places;
-  const placeLine = rp && rp.furthest_place ? destName(rp) + '  ·  ' + fmtD(rp.furthest_km_from_start * 1000) + ' out' : '';
+  const placeLine = rp && rp.furthest_place ? destName(rp) + '  ·  ' + kmOut(rp.furthest_km_from_start) : '';
   if (placeLine) {
     _siPin(ctx, P + 14, y - 20, 30, SI_ORANGE);
     let fs = 34;
@@ -276,7 +276,7 @@ async function drawStatsImage(canvas, a, wx, style) {
   ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(P, statsTop - 20, SI_W - P * 2, 2);
   stats.forEach(([lbl, val, icon], i) => {
     const cx = P + (i % cols) * cw, cy = statsTop + 30 + Math.floor(i / cols) * rh;
-    ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = '#8a8a8a'; ctx.fillText(lbl.toUpperCase(), cx, cy);
+    ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = '#8a8a8a'; ctx.fillText(tr(lbl).toUpperCase(), cx, cy);
     let tx = cx;
     if (icon) { _siWeatherIcon(ctx, icon, cx + 24, cy + 38, 50); tx = cx + 58; }
     ctx.font = '800 ' + (val.length > 12 ? 36 : 48) + 'px ' + SI_FONT; ctx.fillStyle = '#ffffff';

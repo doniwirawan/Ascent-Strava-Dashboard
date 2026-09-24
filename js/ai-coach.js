@@ -351,7 +351,7 @@ function _placesRefreshUI(full) {
 function routePlacesText(rp) {
   if (!rp || !rp.start_place) return '';
   const dest = rp.furthest_landmark ? rp.furthest_landmark + ' (' + rp.furthest_place + ')' : rp.furthest_place;
-  return rp.furthest_place ? rp.start_place + ' → ' + dest + ' · ' + fmtD(rp.furthest_km_from_start * 1000) + ' out' : rp.start_place;
+  return rp.furthest_place ? rp.start_place + ' → ' + dest + ' · ' + kmOut(rp.furthest_km_from_start) : rp.start_place;
 }
 
 /* Append a "📍 destination · 46 km out" line to an AI description (so the place

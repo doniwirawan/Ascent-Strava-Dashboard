@@ -79,10 +79,12 @@ const fmtDtShort = d => new Date(d).toLocaleDateString('en-GB',{day:'numeric',mo
 /* Where an activity went, for list rows: "📍 Guwang → Kintamani, Bangli" (start
    desa → destination desa, kecamatan). Full names in the tooltip. `sep` is put
    in front when there is a label. '' until the places backfill has reached it. */
+/* "46.0 km out" in the UI language (Strava captions keep English on purpose). */
+function kmOut(km){ return (typeof trf==='function'?trf:((s,v)=>s.replace('{0}',v)))('{0} out', fmtD(km*1000)); }
 function placeTag(a, sep){
   const rp=a&&a.route_places; if(!rp||!rp.start_place) return '';
   const dest=rp.furthest_landmark ? rp.furthest_landmark+' ('+rp.furthest_place+')' : rp.furthest_place;
-  const full=rp.furthest_place ? rp.start_place+' → '+dest+' ('+fmtD(rp.furthest_km_from_start*1000)+' out)' : rp.start_place;
+  const full=rp.furthest_place ? rp.start_place+' → '+dest+' ('+kmOut(rp.furthest_km_from_start)+')' : rp.start_place;
   // the start is home: wrapped in .no-ai so AI page insights never read it
   const txt=rp.furthest_place ? '<span class="no-ai">'+rp.start_place.split(',')[0]+' → </span>'+destName(rp) : '<span class="no-ai">'+rp.start_place+'</span>';
   return (sep||'')+'<span class="act-place'+(rp.furthest_place?'':' loop')+'" title="'+full.replace(/"/g,'&quot;')+'">📍 '+txt+'</span>';

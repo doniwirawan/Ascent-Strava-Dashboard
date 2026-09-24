@@ -397,7 +397,7 @@ function _actTurnaroundPin(m,a,coords){
   if(farKm<2) return; // a loop around the block has no real turnaround
   const pin=L.marker(far,{keyboard:false,icon:L.divIcon({className:'act-turn-pin',iconSize:[28,38],iconAnchor:[14,36],
     html:'<svg viewBox="0 0 28 38"><path d="M14 1C7 1 1.5 6.4 1.5 13.3 1.5 22.5 14 37 14 37s12.5-14.5 12.5-23.7C26.5 6.4 21 1 14 1z" fill="#fff" stroke="#fc4c02" stroke-width="2"/><circle cx="14" cy="13.5" r="4.6" fill="#fc4c02"/></svg>'})}).addTo(m);
-  const label=rp=>{ if(rp&&rp.furthest_place) pin.bindTooltip(destName(rp)+' · '+fmtD(rp.furthest_km_from_start*1000)+' out',{direction:'top',offset:[0,-34]}); };
+  const label=rp=>{ if(rp&&rp.furthest_place) pin.bindTooltip(destName(rp)+' · '+kmOut(rp.furthest_km_from_start),{direction:'top',offset:[0,-34]}); };
   if(a.route_places&&a.route_places.furthest_place) label(a.route_places);
   else if(typeof aiRoutePlaces==='function') aiRoutePlaces(a).then(label).catch(()=>{});
 }
