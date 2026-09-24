@@ -279,7 +279,7 @@ const APP_ID = {
   'Avg Cadence': 'Cadence Rata-rata', 'Avg HR': 'HR Rata-rata', 'Max HR': 'HR Maks',
   // activity modal action buttons (kept out of the caption generators, which post to Strava)
   'Analyze performance': 'Analisis performa', 'AI title & description': 'Judul & deskripsi AI',
-  'Stats title & description': 'Judul & deskripsi statistik',
+  'Stats title & description': 'Judul & deskripsi statistik', 'Stats image': 'Gambar statistik',
   'Avg Power': 'Daya Rata-rata', 'Norm Power': 'Daya Normal', 'Max Power': 'Daya Maks',
   'Energy': 'Energi', 'Relative Effort': 'Upaya Relatif', 'Avg Temp': 'Suhu Rata-rata',
   'Comments': 'Komentar',
@@ -974,6 +974,10 @@ const TR_ID = {
   'Download CSV': 'Unduh CSV',
   'Download JSON': 'Unduh JSON',
   'Download SQL': 'Unduh SQL',
+  // Stats image (activity modal)
+  'Drawing your image…': 'Membuat gambar Anda…', 'Share': 'Bagikan', 'Download': 'Unduh', 'Close': 'Tutup',
+  "Strava doesn't let apps attach photos, so share it to the Strava app or download it and add it to the activity there.": 'Strava tidak mengizinkan aplikasi menambahkan foto, jadi bagikan ke aplikasi Strava atau unduh lalu tambahkan ke aktivitas di sana.',
+  "Sharing isn't supported in this browser — downloaded instead.": 'Browser ini tidak mendukung berbagi — gambar diunduh.',
   // Overview — where you ride (route places)
   'Villages reached': 'Desa dijelajahi', 'across {0} kecamatan': 'di {0} kecamatan',
   'Regencies': 'Kabupaten', 'Home base': 'Basis', '{0}% of starts': '{0}% titik mulai',
