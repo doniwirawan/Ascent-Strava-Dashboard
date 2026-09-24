@@ -3,8 +3,8 @@
    times), destination, route shape and key stats. Strava's public API can't
    attach photos to an activity, so the image is previewed here and then
    shared (phone share sheet → Strava) or downloaded to add by hand.
-   The route matches the activity map exactly: full polyline with green
-   start and red finish dots (the athlete chose this over trimming home out). */
+   The route matches the activity map: the full polyline as a plain line, no
+   start/finish dots and no home trimming (the athlete's choice). */
 const SI_W = 1080, SI_H = 1350;
 const SI_FONT = "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif";
 const SI_ORANGE = '#fc4c02';
@@ -271,20 +271,6 @@ async function drawStatsImage(canvas, a, wx, style) {
     const home = a.start_latlng && a.start_latlng.length === 2 ? a.start_latlng : all[0];
     const far = all.reduce((m, p) => _siKm(home, p) > _siKm(home, m) ? p : m, all[0]);
     if (rp && rp.furthest_place) _siPin(ctx, X(far), Y(far) - 34, 40, '#ffffff');
-    // start (green) + finish (red) dots, same as the activity map. On a loop
-    // they overlap, so draw one split dot (green | red) to keep the start visible.
-    const s0 = all[0], f0 = all[all.length - 1];
-    const dot = (p, col, from, to) => {
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(X(p), Y(p), 20, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(X(p), Y(p)); ctx.arc(X(p), Y(p), 15, from, to); ctx.closePath(); ctx.fill();
-    };
-    if (Math.hypot(X(s0) - X(f0), Y(s0) - Y(f0)) < 30) {
-      dot(s0, '#22c55e', Math.PI / 2, Math.PI * 1.5);
-      ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(X(s0), Y(s0)); ctx.arc(X(s0), Y(s0), 15, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill();
-    } else {
-      dot(f0, '#ef4444', 0, Math.PI * 2);
-      dot(s0, '#22c55e', 0, Math.PI * 2);
-    }
   }
 
   // stats grid (3 columns)
