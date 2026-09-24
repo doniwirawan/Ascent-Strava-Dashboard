@@ -982,6 +982,7 @@ const TR_ID = {
   // Stats image (activity modal)
   '{0} rides': '{0} ride', 'Top destination: {0} ({1}×)': 'Tujuan teratas: {0} ({1}×)', 'mostly {0}': 'paling sering {0}', '{0} outside Bali': '{0} di luar Bali',
   'Top speed': 'Kecepatan tertinggi', 'into the ride': 'dari awal ride',
+  'BEST': 'TERBAIK', 'WORST': 'TERBURUK', 'MAX': 'MAKS', 'MIN': 'MIN',
   'Rest day': 'Hari istirahat', 'All': 'Semua', 'Activities': 'Aktivitas', 'Rest days': 'Hari istirahat', '{0} rows': '{0} baris',
   'Sleep columns appear for the dashboard owner.': 'Kolom tidur hanya tampil untuk pemilik dashboard.',
   'Distance': 'Jarak', 'Elevation': 'Elevasi', 'Avg speed': 'Kecepatan rata-rata', 'Max speed': 'Kecepatan maks', 'Avg power': 'Daya rata-rata', 'Energy': 'Energi',

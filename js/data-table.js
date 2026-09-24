@@ -20,34 +20,34 @@ function _dtColumns(withSleep) {
     { key: 'type', lbl: 'Type', val: r => r.a ? (r.a.sport_type || r.a.type) : null, txt: true },
     { key: 'dest', lbl: 'Destination', val: r => r.a && r.a.route_places && r.a.route_places.furthest_place ? destName(r.a.route_places) : null, txt: true },
     { key: 'reg', lbl: 'Regency', val: r => r.a && typeof _regOf !== 'undefined' ? (_regOf[r.a.id] || null) : null, txt: true },
-    { key: 'dist', lbl: 'Distance', unit: U, val: r => r.a ? kmVal(r.a.distance || 0) : null, fmt: r => r.a ? _dtNum(kmVal(r.a.distance || 0), 1) : '' },
-    { key: 'time', lbl: 'Moving time', val: r => r.a ? r.a.moving_time : null, fmt: r => r.a ? fmtT(r.a.moving_time) : '' },
-    { key: 'elev', lbl: 'Elevation', unit: elevUnit(), val: r => r.a ? elevVal(r.a.total_elevation_gain || 0) : null, fmt: r => r.a ? _dtNum(elevVal(r.a.total_elevation_gain || 0)) : '' },
-    { key: 'avg', lbl: 'Avg speed', unit: S, val: r => r.a && r.a.average_speed ? +kmh(r.a.average_speed) : null, fmt: r => r.a && r.a.average_speed ? (ride(r.a) ? kmh(r.a.average_speed) : fmtPace(r.a.average_speed)) : '' },
-    { key: 'max', lbl: 'Max speed', unit: S, val: r => r.a && typeof cleanMax === 'function' && cleanMax(r.a) ? +kmh(cleanMax(r.a)) : null },
-    { key: 'hr', lbl: 'Avg HR', val: r => r.a && r.a.average_heartrate ? Math.round(r.a.average_heartrate) : null },
-    { key: 'hrmax', lbl: 'Max HR', val: r => r.a && r.a.max_heartrate ? Math.round(r.a.max_heartrate) : null },
-    { key: 'w', lbl: 'Avg power', unit: 'W', val: r => r.a && r.a.average_watts ? Math.round(r.a.average_watts) : null },
-    { key: 'kj', lbl: 'Energy', unit: 'kJ', val: r => r.a && r.a.kilojoules ? Math.round(r.a.kilojoules) : null },
-    { key: 'effort', lbl: 'Relative effort', val: r => r.a && r.a.suffer_score ? r.a.suffer_score : null },
-    { key: 'kudos', lbl: 'Kudos', val: r => r.a ? (r.a.kudos_count || 0) : null },
-    { key: 'prs', lbl: 'PRs', val: r => r.a ? (r.a.pr_count || 0) : null },
+    { key: 'dist', better: 1, lbl: 'Distance', unit: U, val: r => r.a ? kmVal(r.a.distance || 0) : null, fmt: r => r.a ? _dtNum(kmVal(r.a.distance || 0), 1) : '' },
+    { key: 'time', better: 1, lbl: 'Moving time', val: r => r.a ? r.a.moving_time : null, fmt: r => r.a ? fmtT(r.a.moving_time) : '' },
+    { key: 'elev', better: 1, lbl: 'Elevation', unit: elevUnit(), val: r => r.a ? elevVal(r.a.total_elevation_gain || 0) : null, fmt: r => r.a ? _dtNum(elevVal(r.a.total_elevation_gain || 0)) : '' },
+    { key: 'avg', better: 1, lbl: 'Avg speed', unit: S, val: r => r.a && r.a.average_speed ? +kmh(r.a.average_speed) : null, fmt: r => r.a && r.a.average_speed ? (ride(r.a) ? kmh(r.a.average_speed) : fmtPace(r.a.average_speed)) : '' },
+    { key: 'max', better: 1, lbl: 'Max speed', unit: S, val: r => r.a && typeof cleanMax === 'function' && cleanMax(r.a) ? +kmh(cleanMax(r.a)) : null },
+    { key: 'hr', better: -1, lbl: 'Avg HR', val: r => r.a && r.a.average_heartrate ? Math.round(r.a.average_heartrate) : null },
+    { key: 'hrmax', better: -1, lbl: 'Max HR', val: r => r.a && r.a.max_heartrate ? Math.round(r.a.max_heartrate) : null },
+    { key: 'w', better: 1, lbl: 'Avg power', unit: 'W', val: r => r.a && r.a.average_watts ? Math.round(r.a.average_watts) : null },
+    { key: 'kj', better: 1, lbl: 'Energy', unit: 'kJ', val: r => r.a && r.a.kilojoules ? Math.round(r.a.kilojoules) : null },
+    { key: 'effort', better: 0, lbl: 'Relative effort', val: r => r.a && r.a.suffer_score ? r.a.suffer_score : null },
+    { key: 'kudos', better: 1, lbl: 'Kudos', val: r => r.a ? (r.a.kudos_count || 0) : null },
+    { key: 'prs', better: 1, lbl: 'PRs', val: r => r.a ? (r.a.pr_count || 0) : null },
   ];
   if (withSleep) cols.push(
-    { key: 's_asleep', lbl: 'Sleep', val: r => r.s && r.s.asleep ? r.s.asleep : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.asleep) : '', sleep: true, first: true },
-    { key: 's_deep', lbl: 'Deep', val: r => r.s && r.s.asleep ? r.s.deep : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.deep) : '', sleep: true },
-    { key: 's_light', lbl: 'Light', val: r => r.s && r.s.asleep ? r.s.light : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.light) : '', sleep: true },
-    { key: 's_rem', lbl: 'REM', val: r => r.s && r.s.asleep ? r.s.rem : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.rem) : '', sleep: true },
-    { key: 's_wake', lbl: 'Awake (min)', val: r => r.s && r.s.asleep ? r.s.wake : null, sleep: true },
-    { key: 's_wakeups', lbl: 'Wake-ups', val: r => r.s ? r.s.wakeups : null, sleep: true },
-    { key: 's_bed', lbl: 'Bedtime', val: r => r.s && r.s.bed != null ? r.s.bed : null, fmt: r => r.s ? _dtClock(r.s.bed) : '', sleep: true },
-    { key: 's_up', lbl: 'Woke up', val: r => r.s && r.s.up != null ? r.s.up : null, fmt: r => r.s ? _dtClock(r.s.up) : '', sleep: true },
-    { key: 's_eff', lbl: 'Efficiency (%)', val: r => r.s ? r.s.eff : null, fmt: r => r.s ? _dtNum(r.s.eff, 1) : '', sleep: true },
-    { key: 's_rhr', lbl: 'Resting HR', val: r => r.s ? r.s.rhr : null, sleep: true },
-    { key: 's_hrv', lbl: 'HRV (ms)', val: r => r.s ? r.s.hrv : null, sleep: true },
-    { key: 's_stress', lbl: 'Stress', val: r => r.s ? r.s.stress : null, sleep: true },
-    { key: 's_steps', lbl: 'Steps', val: r => r.s ? r.s.steps : null, sleep: true },
-    { key: 's_spo2', lbl: 'SpO₂ (%)', val: r => r.s ? r.s.spo2 : null, fmt: r => r.s ? _dtNum(r.s.spo2, 1) : '', sleep: true },
+    { key: 's_asleep', better: 1, lbl: 'Sleep', val: r => r.s && r.s.asleep ? r.s.asleep : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.asleep) : '', sleep: true, first: true },
+    { key: 's_deep', better: 1, lbl: 'Deep', val: r => r.s && r.s.asleep ? r.s.deep : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.deep) : '', sleep: true },
+    { key: 's_light', better: 0, lbl: 'Light', val: r => r.s && r.s.asleep ? r.s.light : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.light) : '', sleep: true },
+    { key: 's_rem', better: 1, lbl: 'REM', val: r => r.s && r.s.asleep ? r.s.rem : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.rem) : '', sleep: true },
+    { key: 's_wake', better: -1, lbl: 'Awake (min)', val: r => r.s && r.s.asleep ? r.s.wake : null, sleep: true },
+    { key: 's_wakeups', better: -1, lbl: 'Wake-ups', val: r => r.s ? r.s.wakeups : null, sleep: true },
+    { key: 's_bed', better: 0, lbl: 'Bedtime', val: r => r.s && r.s.bed != null ? r.s.bed : null, fmt: r => r.s ? _dtClock(r.s.bed) : '', sleep: true },
+    { key: 's_up', better: 0, lbl: 'Woke up', val: r => r.s && r.s.up != null ? r.s.up : null, fmt: r => r.s ? _dtClock(r.s.up) : '', sleep: true },
+    { key: 's_eff', better: 1, lbl: 'Efficiency (%)', val: r => r.s ? r.s.eff : null, fmt: r => r.s ? _dtNum(r.s.eff, 1) : '', sleep: true },
+    { key: 's_rhr', better: -1, lbl: 'Resting HR', val: r => r.s ? r.s.rhr : null, sleep: true },
+    { key: 's_hrv', better: 1, lbl: 'HRV (ms)', val: r => r.s ? r.s.hrv : null, sleep: true },
+    { key: 's_stress', better: -1, lbl: 'Stress', val: r => r.s ? r.s.stress : null, sleep: true },
+    { key: 's_steps', better: 1, lbl: 'Steps', val: r => r.s ? r.s.steps : null, sleep: true },
+    { key: 's_spo2', better: 1, lbl: 'SpO₂ (%)', val: r => r.s ? r.s.spo2 : null, fmt: r => r.s ? _dtNum(r.s.spo2, 1) : '', sleep: true },
   );
   return cols;
 }
@@ -89,15 +89,36 @@ function _dtRender() {
   document.getElementById('dataTableBar').innerHTML =
     ['all', 'ride'].concat(hasSleep ? ['rest'] : []).map(k => '<button type="button" class="act-reg-tag' + (k === _dtFilter ? ' on' : '') + '" data-f="' + k + '">'
       + T({ all: 'All', ride: 'Activities', rest: 'Rest days' }[k]) + ' <b>' + counts[k] + '</b></button>').join('')
-    + (hasSleep ? '' : '<span class="dt-note">' + T('Sleep columns appear for the dashboard owner.') + '</span>');
+    + (hasSleep ? '' : '<span class="dt-note">' + T('Sleep columns appear for the dashboard owner.') + '</span>')
+    + '<span class="dt-legend"><i class="dt-best">' + T('BEST') + '</i><i class="dt-worst">' + T('WORST') + '</i><i class="dt-max">' + T('MAX') + '</i><i class="dt-min">' + T('MIN') + '</i></span>';
   document.querySelectorAll('#dataTableBar [data-f]').forEach(b => b.onclick = () => { _dtFilter = b.dataset.f; _dtRender(); });
 
   const cell = (c, r) => c.fmt ? c.fmt(r) : (blank(c.val(r)) ? '' : _dtNum(c.val(r)));
+  // best / worst (or max / min for neutral columns) within the rows shown;
+  // a value shared by more than 2 rows isn't tagged (e.g. many rides with 0 PRs)
+  const marks = {};
+  _dtCols.filter(c => c.better != null).forEach(c => {
+    const vs = list.map(c.val).filter(v => !blank(v));
+    if (vs.length < 3) return;
+    const hi = Math.max(...vs), lo = Math.min(...vs);
+    if (hi === lo) return;
+    const few = v => vs.filter(x => x === v).length <= 2;
+    marks[c.key] = { hi: few(hi) ? hi : null, lo: few(lo) ? lo : null };
+  });
+  const tag = (c, r) => {
+    const m = marks[c.key]; if (!m) return ['', ''];
+    const v = c.val(r); if (blank(v)) return ['', ''];
+    const isHi = v === m.hi, isLo = v === m.lo; if (!isHi && !isLo) return ['', ''];
+    if (c.better === 0) return [isHi ? 'dt-max' : 'dt-min', isHi ? T('MAX') : T('MIN')];
+    const good = (isHi && c.better > 0) || (isLo && c.better < 0);
+    return [good ? 'dt-best' : 'dt-worst', good ? T('BEST') : T('WORST')];
+  };
   const th = c => '<th class="' + [c.sticky ? 'dt-sticky' : '', c.txt ? 'dt-txt' : '', c.sleep ? 'dt-sleep' : '', c.first ? 'dt-first' : '', c.key === _dtSort.key ? 'dt-on' : ''].join(' ') + '" data-k="' + c.key + '">'
     + T(c.lbl) + (c.unit ? ' (' + c.unit + ')' : '') + (c.key === _dtSort.key ? (_dtSort.dir > 0 ? ' ▲' : ' ▼') : '') + '</th>';
   wrap.innerHTML = '<table class="dt"><thead><tr>' + _dtCols.map(th).join('') + '</tr></thead><tbody>'
-    + list.map(r => '<tr' + (r.a ? ' class="dt-act" data-id="' + r.a.id + '"' : '') + '>' + _dtCols.map(c =>
-        '<td class="' + [c.sticky ? 'dt-sticky' : '', c.txt ? 'dt-txt' : '', c.sleep ? 'dt-sleep' : '', c.first ? 'dt-first' : ''].join(' ') + '">' + cell(c, r) + '</td>').join('') + '</tr>').join('')
+    + list.map(r => '<tr' + (r.a ? ' class="dt-act" data-id="' + r.a.id + '"' : '') + '>' + _dtCols.map(c => { const [cls, lbl] = tag(c, r);
+        return '<td class="' + [c.sticky ? 'dt-sticky' : '', c.txt ? 'dt-txt' : '', c.sleep ? 'dt-sleep' : '', c.first ? 'dt-first' : '', cls].join(' ') + '">'
+          + (lbl ? '<span class="dt-tag">' + lbl + '</span>' : '') + cell(c, r) + '</td>'; }).join('') + '</tr>').join('')
     + '</tbody></table>';
   document.getElementById('dataTableCount').textContent = TF('{0} rows', list.length);
   wrap.querySelectorAll('th').forEach(h => h.onclick = () => {
