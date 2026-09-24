@@ -23,6 +23,8 @@ Weight: **11.11 kg**
 | Stem | Mosso internal routing stem |
 | Seatpost | Toseek 3K carbon |
 | Saddle | Prologo EC90 |
+| Handlebar | Mosso alloy dropbar |
+| Pedals | Racework Infinity (SPD / flat dual-side) |
 
 ## Camp SR3D — road (Strava bike 17223820)
 
@@ -36,6 +38,8 @@ Weight: **11.83 kg**
 | Wheels | Mavic Cosmic Elite 50mm alloy |
 | Tyres | Maxxis Pursuer 700x28c skinwall |
 | Saddle | Kocevlo 143mm (S/M) |
+| Handlebar | Mosso alloy dropbar |
+| Pedals | Racework Duo (SPD / flat dual-side) |
 
 ## Polygon Xtrada 6 (2018) — mountain bike
 
