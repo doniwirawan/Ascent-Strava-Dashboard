@@ -56,6 +56,66 @@ function _siPin(ctx, x, y, s, color) {
   ctx.restore();
 }
 
+/* Weather condition words (AI_WMO) → icon kind. Night = the ride started after
+   dark or before dawn; only picks a moon over a sun, no time is shown. */
+function _siWeatherKind(cond, a) {
+  const c = String(cond || '').toLowerCase();
+  const h = parseInt(String(a.start_date_local || '').slice(11, 13), 10);
+  const night = h >= 18 || h < 6;
+  if (/thunder/.test(c)) return 'storm';
+  if (/snow/.test(c)) return 'snow';
+  if (/rain|drizzle|shower/.test(c)) return 'rain';
+  if (/fog/.test(c)) return 'fog';
+  if (/overcast/.test(c)) return 'cloud';
+  if (/partly|mainly/.test(c)) return night ? 'moon-cloud' : 'sun-cloud';
+  return night ? 'moon' : 'sun';
+}
+
+/* Weather-app style icon centred at (x, y), s = overall size. */
+function _siWeatherIcon(ctx, kind, x, y, s) {
+  const SUN = '#ffc53d', MOON = '#e8e4d0', CLOUD = '#e9edf2', CLOUD2 = '#aab3bf', RAIN = '#4da3ff', BOLT = '#ffd23f';
+  const sun = (cx, cy, r) => {
+    ctx.fillStyle = SUN; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = SUN; ctx.lineWidth = r * 0.28; ctx.lineCap = 'round';
+    for (let i = 0; i < 8; i++) { const t = i * Math.PI / 4; ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(t) * r * 1.45, cy + Math.sin(t) * r * 1.45); ctx.lineTo(cx + Math.cos(t) * r * 1.85, cy + Math.sin(t) * r * 1.85); ctx.stroke(); }
+  };
+  const moon = (cx, cy, r) => { // crescent cut on its own canvas so the cut-out doesn't punch through the image
+    const m = document.createElement('canvas'); m.width = m.height = Math.ceil(r * 2 + 2);
+    const g = m.getContext('2d'); g.fillStyle = MOON;
+    g.beginPath(); g.arc(r + 1, r + 1, r, 0, Math.PI * 2); g.fill();
+    g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.arc(r + 1 + r * 0.55, r + 1 - r * 0.35, r * 0.85, 0, Math.PI * 2); g.fill();
+    ctx.drawImage(m, cx - r - 1, cy - r - 1);
+  };
+  const cloud = (cx, cy, w, col) => {
+    ctx.fillStyle = col; ctx.beginPath();
+    ctx.arc(cx - w * 0.28, cy + w * 0.05, w * 0.22, 0, Math.PI * 2);
+    ctx.arc(cx + w * 0.02, cy - w * 0.1, w * 0.3, 0, Math.PI * 2);
+    ctx.arc(cx + w * 0.3, cy + w * 0.06, w * 0.2, 0, Math.PI * 2);
+    ctx.fill(); ctx.fillRect(cx - w * 0.28, cy + w * 0.02, w * 0.58, w * 0.24);
+  };
+  ctx.save();
+  if (kind === 'sun') sun(x, y, s * 0.24);
+  else if (kind === 'moon') moon(x, y, s * 0.36);
+  else if (kind === 'sun-cloud' || kind === 'moon-cloud') {
+    kind === 'sun-cloud' ? sun(x + s * 0.12, y - s * 0.14, s * 0.18) : moon(x + s * 0.14, y - s * 0.16, s * 0.24);
+    cloud(x - s * 0.06, y + s * 0.08, s * 0.8, CLOUD);
+  } else {
+    const dark = kind === 'rain' || kind === 'storm';
+    cloud(x, y - s * 0.1, s * 0.9, dark ? CLOUD2 : CLOUD);
+    if (kind === 'rain') { ctx.strokeStyle = RAIN; ctx.lineWidth = s * 0.07; ctx.lineCap = 'round';
+      [-0.22, 0, 0.22].forEach(o => { ctx.beginPath(); ctx.moveTo(x + s * o, y + s * 0.26); ctx.lineTo(x + s * (o - 0.07), y + s * 0.44); ctx.stroke(); }); }
+    if (kind === 'storm') { ctx.fillStyle = BOLT; ctx.beginPath();
+      ctx.moveTo(x + s * 0.04, y + s * 0.18); ctx.lineTo(x - s * 0.12, y + s * 0.38); ctx.lineTo(x, y + s * 0.38);
+      ctx.lineTo(x - s * 0.08, y + s * 0.55); ctx.lineTo(x + s * 0.14, y + s * 0.3); ctx.lineTo(x + s * 0.02, y + s * 0.3); ctx.closePath(); ctx.fill(); }
+    if (kind === 'snow') { ctx.fillStyle = '#ffffff';
+      [-0.22, 0, 0.22].forEach((o, i) => { ctx.beginPath(); ctx.arc(x + s * o, y + s * (0.32 + (i % 2) * 0.1), s * 0.05, 0, Math.PI * 2); ctx.fill(); }); }
+    if (kind === 'fog') { ctx.strokeStyle = CLOUD2; ctx.lineWidth = s * 0.06; ctx.lineCap = 'round';
+      [0.3, 0.44].forEach((o, i) => { ctx.beginPath(); ctx.moveTo(x - s * (0.34 - i * 0.08), y + s * o); ctx.lineTo(x + s * (0.34 - i * 0.04), y + s * o); ctx.stroke(); }); }
+  }
+  ctx.restore();
+}
+
 /* Up to 9 stats that exist for this activity. */
 function _siStats(a, wx) {
   const ride = isRide(a), S = [];
@@ -68,7 +128,7 @@ function _siStats(a, wx) {
   if (a.average_watts) S.push(['Avg power', Math.round(a.average_watts) + ' W']);
   if (a.kilojoules) S.push(['Energy', Math.round(a.kilojoules).toLocaleString() + ' kJ']);
   else if (a.calories) S.push(['Calories', Math.round(a.calories).toLocaleString()]);
-  if (wx && wx.temp_c != null) S.push(['Weather', wx.temp_c + '°C' + (wx.condition ? ' · ' + wx.condition : '')]);
+  if (wx && wx.temp_c != null) S.push(['Weather', wx.temp_c + '°C', _siWeatherKind(wx.condition, a)]);
   if (a.pr_count) S.push(['PRs', String(a.pr_count)]);
   return S.slice(0, 9);
 }
@@ -218,11 +278,13 @@ async function drawStatsImage(canvas, a, wx, style) {
   // stats grid (3 columns)
   const stats = _siStats(a, wx), cols = 3, cw = (SI_W - P * 2) / cols, rh = 130;
   ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(P, statsTop - 20, SI_W - P * 2, 2);
-  stats.forEach(([lbl, val], i) => {
+  stats.forEach(([lbl, val, icon], i) => {
     const cx = P + (i % cols) * cw, cy = statsTop + 30 + Math.floor(i / cols) * rh;
     ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = '#8a8a8a'; ctx.fillText(lbl.toUpperCase(), cx, cy);
+    let tx = cx;
+    if (icon) { _siWeatherIcon(ctx, icon, cx + 38, cy + 36, 80); tx = cx + 92; }
     ctx.font = '800 ' + (val.length > 12 ? 36 : 48) + 'px ' + SI_FONT; ctx.fillStyle = '#ffffff';
-    ctx.fillText(_siWrap(ctx, val, cw - 20, 1)[0], cx, cy + 56);
+    ctx.fillText(_siWrap(ctx, val, cw - 20 - (tx - cx), 1)[0], tx, cy + 56);
   });
 
   // footer
