@@ -8,7 +8,10 @@ Last updated: 2026-09-24
 
 ## Mosso 735 GVL — gravel (Strava bike 17599912)
 
+<img src="docs/bikes/mosso-side.jpg" alt="Mosso 735 GVL" width="320">
+
 Weight: **11.11 kg**. All Shimano: groupset, brakes, pads and rotors.
+Strava components: 21 (front and rear counted separately for wheels, tyres, brakes, rotors and pads).
 
 | Part | Component |
 |---|---|
@@ -28,7 +31,10 @@ Weight: **11.11 kg**. All Shimano: groupset, brakes, pads and rotors.
 
 ## Camp SR3D — road (Strava bike 17223820)
 
+<img src="docs/bikes/camp-side.jpg" alt="Camp SR3D" width="320">
+
 Weight: **11.83 kg**
+Strava components: 13.
 
 | Part | Component |
 |---|---|
