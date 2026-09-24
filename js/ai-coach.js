@@ -282,6 +282,7 @@ async function aiRoutePlaces(a) {
     if (!furthest) return null;
     if (furthest.name !== start.name) {
       Object.assign(out, { furthest_place: furthest.name, furthest_kec: furthest.kec, furthest_kab: furthest.kab, furthest_km_from_start: Math.round(farKm) });
+      if (typeof loadBaliPlaces === 'function') await loadBaliPlaces();
       _placesLandmark(out, far);
     }
   }
@@ -295,6 +296,7 @@ async function aiRoutePlaces(a) {
 function _placesLandmark(rp, far) {
   const lm = typeof nearestLandmark === 'function' && far ? nearestLandmark(far[0], far[1]) : null;
   rp.furthest_landmark = lm ? lm.n : '';
+  rp.lmv = typeof landmarkVersion === 'function' ? landmarkVersion() : null;
 }
 function _placesFarPoint(a) {
   const pl = a.map && a.map.summary_polyline; if (!pl) return null;
@@ -315,10 +317,12 @@ async function placesBackfill() {
   const fresh = a => a.route_places && a.route_places.v === PLACES_V;
   let reattached = 0;
   acts.forEach(a => { if (!fresh(a) && m[a.id]) { a.route_places = m[a.id]; reattached++; } });
-  // destinations looked up before landmarks existed: tag them locally
+  // (re)tag destinations whose landmark list is out of date — local, no lookups
+  if (typeof loadBaliPlaces === 'function') await loadBaliPlaces();
+  const lmv = typeof landmarkVersion === 'function' ? landmarkVersion() : null;
   let tagged = 0;
   acts.forEach(a => { const rp = a.route_places;
-    if (fresh(a) && rp.furthest_place && !('furthest_landmark' in rp)) { _placesLandmark(rp, _placesFarPoint(a)); m[a.id] = rp; tagged++; } });
+    if (lmv && fresh(a) && rp.furthest_place && rp.lmv !== lmv) { _placesLandmark(rp, _placesFarPoint(a)); m[a.id] = rp; tagged++; } });
   if (tagged) { _placesSave(m); aiSyncCache(); }
   if (reattached || tagged) _placesRefreshUI(true);
   const todo = acts.filter(a => !fresh(a) && a.map && a.map.summary_polyline);
