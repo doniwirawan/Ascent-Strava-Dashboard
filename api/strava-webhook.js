@@ -112,7 +112,20 @@ async function routePlaces(a) {
   return out;
 }
 
-async function generateCaption(a) {
+// The bike used: { name, type } — type from Strava's frame_type (GET /gear/{id}),
+// else a guess from the bike's name. Rides only.
+const FRAME_TYPE = { 1: 'Mountain', 2: 'Cyclocross', 3: 'Road', 4: 'Time trial', 5: 'Gravel' };
+async function bikeInfo(a, token) {
+  if (!a.gear_id || !/ride/i.test(a.sport_type || a.type || '')) return undefined;
+  let g = a.gear || {};
+  try { const r = await fetch(STRAVA + '/gear/' + a.gear_id, { headers: { Authorization: 'Bearer ' + token } }); if (r.ok) g = await r.json(); } catch {}
+  const name = g.nickname || g.name || '';
+  const n = (name + ' ' + (g.model_name || '')).toLowerCase();
+  const type = FRAME_TYPE[g.frame_type] || (/gravel|gvl|\bcx\b|cyclocross/.test(n) ? 'Gravel' : /road|race|aero|sr\d/.test(n) ? 'Road' : undefined);
+  return name ? { name, type } : undefined;
+}
+
+async function generateCaption(a, token) {
   const KEY = (process.env.DEEPSEEK_API_KEY || '').replace(/\s+/g, '');
   if (!KEY) return null;
   const data = {
@@ -125,6 +138,7 @@ async function generateCaption(a) {
     avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     avg_watts: a.average_watts ? Math.round(a.average_watts) : null,
     prs: a.pr_count || 0,
+    bike: token ? await bikeInfo(a, token) : undefined,
   };
   const wx = await fetchWeather(a);
   if (wx) data.weather = wx;
@@ -133,7 +147,7 @@ async function generateCaption(a) {
   if (rp && rp.furthest_place) Object.assign(data, { furthest_landmark: rp.furthest_landmark, furthest_place: rp.furthest_place, furthest_km_from_start: rp.furthest_km_from_start });
   const messages = [
     { role: 'system', content:
-      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
+      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the bike I rode and its type (e.g. road or gravel) — mention it naturally when it fits (e.g. "took the gravel bike out"). NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nWrite my new title and description.' },
   ];
   const r = await fetch('https://api.deepseek.com/chat/completions', {
@@ -157,7 +171,7 @@ async function processActivity(activityId) {
   const ar = await fetch(STRAVA + '/activities/' + activityId, { headers: { Authorization: 'Bearer ' + token } });
   if (!ar.ok) return;
   const act = await ar.json();
-  const text = await generateCaption(act);
+  const text = await generateCaption(act, token);
   if (!text) return;
   const lines = text.trim().split('\n');
   const name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100);

@@ -174,7 +174,19 @@ function aiActivityData(a) {
     avg_watts: a.average_watts ? Math.round(a.average_watts) : null,
     kj: a.kilojoules ? Math.round(a.kilojoules) : null,
     prs: a.pr_count || 0, kudos: a.kudos_count || 0, is_ride: ride,
+    bike: aiBikeInfo(a),
   };
+}
+
+/* The bike used for this activity: { name, type } where type is Road / Gravel / …
+   (Gear page label: your choice, Strava's frame type, or a guess from the name). */
+function aiBikeInfo(a) {
+  if (!a.gear_id || !isRide(a)) return undefined;
+  const bikes = (typeof _gearCache !== 'undefined' && _gearCache) || (typeof currentAthlete !== 'undefined' && currentAthlete && currentAthlete.bikes) || [];
+  const b = bikes.find(x => String(x.id) === String(a.gear_id));
+  if (!b) return undefined;
+  const type = typeof bikeType === 'function' ? bikeType(b) : '';
+  return { name: b.nickname || b.name, type: type || undefined };
 }
 
 /* WMO weather codes → plain words. */
@@ -389,7 +401,7 @@ async function aiCaptionActivity(id) {
       + (roast ? 'Be fun and witty with a light, good-natured ROAST of the effort. ' : 'Keep an upbeat, motivating tone. ')
       + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. '
       + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
-      + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. NEVER mention, guess or hint at where I started or where I live. '
+      + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the bike I rode and its type (e.g. road or gravel) — mention it naturally when it fits (e.g. "took the gravel bike out"). NEVER mention, guess or hint at where I started or where I live. '
       + 'If a "weather" field is present it is a rough estimate that may be inaccurate — reference conditions only lightly, never as a hard fact, and if it seems inconsistent with the effort just leave weather out. '
       + 'Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
@@ -593,7 +605,7 @@ async function bulkRun(p, mode) {
         const t = aiStatsTemplate(a, wx, rp); name = t.title; desc = t.desc;
       } else {
         const messages = [
-          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
+          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the bike I rode and its type (e.g. road or gravel) — mention it naturally when it fits (e.g. "took the gravel bike out"). NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
           { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
         ];
         const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
