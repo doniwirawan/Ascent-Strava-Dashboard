@@ -251,6 +251,7 @@
   padding: 0 8px;
 }
 
+.best-place { display: block; font-size: 10px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
 .best-val { font-size: 14px; font-weight: 800; color: var(--text); flex-shrink: 0; }
 
 .best-card .best-extra { display: none; }
@@ -560,6 +561,8 @@
 @media (max-width: 560px) {
   .ctop-row { grid-template-columns: 24px minmax(0,1fr) auto; gap: 10px; }
   .ctop-bar { display: none; }
+  /* tight rows: show just the destination (the "Start →" part is in the tooltip) */
+  .ctop-meta .act-place:not(.loop) .no-ai { display: none; }
 }
 
 /* ── Rewind — year-over-year comparison ── */

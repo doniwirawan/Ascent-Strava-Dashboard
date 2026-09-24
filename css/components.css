@@ -61,6 +61,9 @@
 .act-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--text-2); margin-top: 5px; }
 .act-stats:empty { display: none; }
 .act-place { color: var(--text-2); }
+.act-where { font-size: 11px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* let the list card shrink inside the .g2 grid so no-wrap meta lines ellipsize instead of widening the page */
+#actSection .g2 > .card { min-width: 0; }
 .act-turn-pin { background: none; border: 0; filter: drop-shadow(0 2px 3px rgba(0,0,0,.55)); }
 .act-turn-pin svg { display: block; width: 28px; height: 38px; }
 .act-right { text-align: right; flex-shrink: 0; }

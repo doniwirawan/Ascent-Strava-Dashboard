@@ -78,7 +78,9 @@
 }
 
 .stat-card.hi .s-value { color: var(--orange); }
-/* place names (Home base, Top destination…) are longer than numbers */
+/* place names (Home base, Top destination…) are longer than numbers; min-width:0
+   lets the grid cell shrink so they ellipsize instead of widening the page */
+.stat-card.ov-insight { min-width: 0; }
 .s-value.s-place { font-size: 20px; letter-spacing: -.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .s-sub {

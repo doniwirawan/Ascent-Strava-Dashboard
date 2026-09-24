@@ -240,12 +240,10 @@ async function drawStatsImage(canvas, a, wx, style) {
   let y = 190;
   lines.forEach(l => { ctx.fillText(l, P, y); y += 74; });
 
-  // start → destination (the athlete is fine showing the start on the image;
-  // only AI text must never mention it). Font shrinks to fit one line.
+  // destination only — the start village (home) is never written on the image;
+  // the route line/map still show the whole ride. Font shrinks to fit one line.
   const rp = a.route_places;
-  const placeLine = !rp || !rp.start_place ? ''
-    : rp.furthest_place ? rp.start_place.split(',')[0] + '  →  ' + rp.furthest_place + '  ·  ' + fmtD(rp.furthest_km_from_start * 1000) + ' out'
-    : rp.start_place;
+  const placeLine = rp && rp.furthest_place ? rp.furthest_place + '  ·  ' + fmtD(rp.furthest_km_from_start * 1000) + ' out' : '';
   if (placeLine) {
     _siPin(ctx, P + 14, y - 20, 30, SI_ORANGE);
     let fs = 34;

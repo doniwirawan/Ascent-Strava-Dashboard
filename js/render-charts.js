@@ -53,7 +53,7 @@ function renderCycling() {
           <span class="ctop-rank">${i+1}</span>
           <span class="ctop-info">
             <span class="ctop-name">${r.name}</span>
-            <span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)} · avg ${fmtSpeed(r.average_speed)}${placeTag(r,' · ')}</span>
+            <span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)} · avg ${fmtSpeed(r.average_speed)}</span>${placeTag(r)?`<span class="ctop-meta">${placeTag(r)}</span>`:''}
           </span>
           <span class="ctop-bar"><span class="ctop-bar-fill" style="width:${((r.max_speed/top5Max)*100).toFixed(0)}%"></span></span>
           <span class="ctop-val">${kmh(r.max_speed)}<i>${speedUnit()}</i></span>
@@ -144,7 +144,7 @@ function renderRunning() {
       ${top5.map((r, i) => `
         <a class="ctop-row" href="https://www.strava.com/activities/${r.id}" onclick="openActivityModal('${r.id}');return false;" rel="noopener">
           <span class="ctop-rank">${i+1}</span>
-          <span class="ctop-info"><span class="ctop-name">${r.name}</span><span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)}${placeTag(r,' · ')}</span></span>
+          <span class="ctop-info"><span class="ctop-name">${r.name}</span><span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)}</span>${placeTag(r)?`<span class="ctop-meta">${placeTag(r)}</span>`:''}</span>
           <span class="ctop-bar"><span class="ctop-bar-fill" style="width:${(r.average_speed/top5max*100).toFixed(0)}%"></span></span>
           <span class="ctop-val">${_pace(r.average_speed)}<i>/${distUnit()}</i></span>
         </a>`).join('')}
@@ -357,8 +357,9 @@ function _renderActList(q){
       <div style="flex:1;min-width:0">
         <div class="act-name">${a.name}</div>
         <div class="act-meta">
-          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDt(a.start_date_local||a.start_date)}${placeTag(a,' · ')}
+          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDt(a.start_date_local||a.start_date)}
         </div>
+        ${placeTag(a)?`<div class="act-where">${placeTag(a)}</div>`:''}
         <div class="act-stats">${[
           a.average_speed ? (isRide(a) ? fmtSpeed(a.average_speed) : fmtPace(a.average_speed)) : '',
           a.total_elevation_gain ? '↑ '+fmtElev(a.total_elevation_gain) : '',

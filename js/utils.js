@@ -84,7 +84,7 @@ function placeTag(a, sep){
   const full=rp.furthest_place ? rp.start_place+' → '+rp.furthest_place+' ('+fmtD(rp.furthest_km_from_start*1000)+' out)' : rp.start_place;
   // the start is home: wrapped in .no-ai so AI page insights never read it
   const txt=rp.furthest_place ? '<span class="no-ai">'+rp.start_place.split(',')[0]+' → </span>'+rp.furthest_place : '<span class="no-ai">'+rp.start_place+'</span>';
-  return (sep||'')+'<span class="act-place" title="'+full.replace(/"/g,'&quot;')+'">📍 '+txt+'</span>';
+  return (sep||'')+'<span class="act-place'+(rp.furthest_place?'':' loop')+'" title="'+full.replace(/"/g,'&quot;')+'">📍 '+txt+'</span>';
 }
 // Local calendar-date key "YYYY-MM-DD" for a Date, matching the wall-clock date
 // in start_date_local (never UTC, so early-morning activities key to the right
