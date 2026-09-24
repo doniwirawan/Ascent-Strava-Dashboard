@@ -994,7 +994,7 @@ const TR_ID = {
   'Correlation with efficiency over {0} rides: r = {1}': 'Korelasi dengan efisiensi dari {0} ride: r = {1}',
   'Not enough rides with sleep data yet to compare.': 'Belum cukup ride dengan data tidur untuk dibandingkan.',
   'BEST': 'TERBAIK', 'WORST': 'TERBURUK', 'MAX': 'MAKS', 'MIN': 'MIN',
-  'Rest day': 'Hari istirahat', 'All': 'Semua', 'Activities': 'Aktivitas', 'Rest days': 'Hari istirahat', '{0} rows': '{0} baris',
+  'Rest day': 'Hari istirahat', 'All': 'Semua', 'Activities': 'Aktivitas', 'Rest days': 'Hari istirahat', 'Activity + sleep': 'Aktivitas + tidur', '{0} rows': '{0} baris',
   'Sleep columns appear for the dashboard owner.': 'Kolom tidur hanya tampil untuk pemilik dashboard.',
   'Distance': 'Jarak', 'Elevation': 'Elevasi', 'Avg speed': 'Kecepatan rata-rata', 'Max speed': 'Kecepatan maks', 'Avg power': 'Daya rata-rata', 'Energy': 'Energi',
   'Date': 'Tanggal', 'Activity': 'Aktivitas', 'Type': 'Jenis', 'Destination': 'Tujuan', 'Regency': 'Kabupaten', 'Moving time': 'Waktu bergerak',

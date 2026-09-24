@@ -77,7 +77,9 @@ function _dtRender() {
   if (!wrap) return;
   const T = typeof tr === 'function' ? tr : (x => x), TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
   const col = _dtCols.find(c => c.key === _dtSort.key) || _dtCols[0];
-  const list = _dtRows.filter(r => _dtFilter === 'all' || (_dtFilter === 'ride' ? r.a : !r.a));
+  const both = r => r.a && r.s && r.s.asleep; // an activity with sleep from the night before
+  const pass = { all: () => true, ride: r => !!r.a, both, rest: r => !r.a };
+  const list = _dtRows.filter(pass[_dtFilter] || pass.all);
   const blank = v => v == null || v === '' || (typeof v === 'number' && isNaN(v));
   list.sort((x, y) => {
     const a = col.val(x), b = col.val(y);
@@ -86,10 +88,10 @@ function _dtRender() {
     return c * _dtSort.dir || (x.date < y.date ? 1 : -1);
   });
   const hasSleep = _dtCols.some(c => c.sleep);
-  const counts = { all: _dtRows.length, ride: _dtRows.filter(r => r.a).length, rest: _dtRows.filter(r => !r.a).length };
+  const counts = { all: _dtRows.length, ride: _dtRows.filter(r => r.a).length, both: _dtRows.filter(both).length, rest: _dtRows.filter(r => !r.a).length };
   document.getElementById('dataTableBar').innerHTML =
-    ['all', 'ride'].concat(hasSleep ? ['rest'] : []).map(k => '<button type="button" class="act-reg-tag' + (k === _dtFilter ? ' on' : '') + '" data-f="' + k + '">'
-      + T({ all: 'All', ride: 'Activities', rest: 'Rest days' }[k]) + ' <b>' + counts[k] + '</b></button>').join('')
+    ['all', 'ride'].concat(hasSleep ? ['both', 'rest'] : []).map(k => '<button type="button" class="act-reg-tag' + (k === _dtFilter ? ' on' : '') + '" data-f="' + k + '">'
+      + T({ all: 'All', ride: 'Activities', both: 'Activity + sleep', rest: 'Rest days' }[k]) + ' <b>' + counts[k] + '</b></button>').join('')
     + (hasSleep ? '' : '<span class="dt-note">' + T('Sleep columns appear for the dashboard owner.') + '</span>')
     + '<span class="dt-legend"><i class="dt-best">' + T('BEST') + '</i><i class="dt-worst">' + T('WORST') + '</i><i class="dt-max">' + T('MAX') + '</i><i class="dt-min">' + T('MIN') + '</i></span>';
   document.querySelectorAll('#dataTableBar [data-f]').forEach(b => b.onclick = () => { _dtFilter = b.dataset.f; _dtRender(); });
