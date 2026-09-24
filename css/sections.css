@@ -817,7 +817,10 @@ body.dev .dev-tag { display: inline-block; }
 .ai-cap-input:focus { border-color: var(--orange); }
 .ai-cap-roast { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 10px; cursor: pointer; }
 .ai-cap-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.si-preview { display: block; width: 100%; max-width: 420px; margin: 0 auto 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.si-styles { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 0 0 12px; }
+.si-style { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-2); font-size: 12px; font-weight: 600; cursor: pointer; }
+.si-style.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+.si-preview { transition: opacity .15s; display: block; width: 100%; max-width: 420px; margin: 0 auto 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
 .ai-cap-loading { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 8px; }
 .ai-cap-status { font-size: 12px; margin-top: 8px; min-height: 14px; color: var(--muted); }
 .ai-cap-status.ok { color: #4ade80; font-weight: 600; }

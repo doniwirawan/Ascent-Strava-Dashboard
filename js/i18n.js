@@ -975,6 +975,7 @@ const TR_ID = {
   'Download JSON': 'Unduh JSON',
   'Download SQL': 'Unduh SQL',
   // Stats image (activity modal)
+  'Map style': 'Gaya peta', 'Satellite': 'Satelit', 'Dark': 'Gelap', 'Relief': 'Relief', 'Plain': 'Polos',
   'Drawing your image…': 'Membuat gambar Anda…', 'Share': 'Bagikan', 'Download': 'Unduh', 'Close': 'Tutup',
   "Strava doesn't let apps attach photos, so share it to the Strava app or download it and add it to the activity there.": 'Strava tidak mengizinkan aplikasi menambahkan foto, jadi bagikan ke aplikasi Strava atau unduh lalu tambahkan ke aktivitas di sana.',
   "Sharing isn't supported in this browser — downloaded instead.": 'Browser ini tidak mendukung berbagi — gambar diunduh.',
