@@ -41,6 +41,9 @@ function renderAll() {
   // only surface it for the dashboard owner.
   const slpNav = document.getElementById('sleepNavLink');
   if(slpNav) slpNav.style.display = (typeof _slpIsOwner==='function' && _slpIsOwner()) ? '' : 'none';
+  // Cycling purchases: personal spending from the purchase tracker — owner only too
+  const cbNav = document.getElementById('cyclingBuysNavLink');
+  if(cbNav) cbNav.style.display = (typeof cbIsOwner==='function' && cbIsOwner()) ? '' : 'none';
 
   // Restore the last section the user had open before refresh (default: Overview)
   let last = 'statRow';

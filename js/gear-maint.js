@@ -129,6 +129,8 @@ function renderGearMaint(bikes) {
   gcWire(el, bikes);
   // first visit on a device: pull the owner's bike prices, then redraw once
   gcOwnerDefaults(bikes).then(changed => { if (changed) renderGearMaint(bikes); });
+  // cycling purchases arrive async — redraw once so the parts line appears
+  if (typeof loadCyclingBuys === 'function' && typeof _cbItems !== 'undefined' && !_cbItems) loadCyclingBuys().then(d => { if (d) renderGearMaint(bikes); });
 }
 
 function gmLog(bikeId, comp, bikes) {
@@ -236,7 +238,11 @@ function renderGearCost(bikes, stats) {
     return `<div class="gc-bike"><div class="gc-head"><span class="gc-name">${b.nickname || b.name || tr('Bike')}</span>${input('bike:' + b.id, price, 'Bike + components')}</div>${body}</div>`;
   }).join('');
 
-  const bikesOnly = priced.reduce((t, b) => t + s.bikes[b.id], 0), invested = bikesOnly + tools;
+  // parts & gear bought on Tokopedia/Shopee (the bikes themselves excluded), toggleable
+  const parts = typeof cyclingPartsCost === 'function' ? cyclingPartsCost() : null;
+  let partsOn = true; try { partsOn = localStorage.getItem('gc_parts') !== '0'; } catch {}
+  const partsAdd = parts && partsOn ? parts.total : 0;
+  const bikesOnly = priced.reduce((t, b) => t + s.bikes[b.id], 0), invested = bikesOnly + tools + partsAdd;
   const allRides = priced.reduce((t, b) => t + rides(b.id), 0);
   const allH = priced.reduce((t, b) => t + ((stats[b.id] || {}).time || 0), 0) / 3600;
   const km0 = per(kmAll).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' ' + U;
@@ -244,9 +250,10 @@ function renderGearCost(bikes, stats) {
   const total = invested && kmAll ? `<div class="gc-total">
       <div class="gc-l">${tr('All bikes + gear')} · ${trf('{0} ridden', km0)}</div>
       <div class="gc-pair">
-        <div><div class="gc-big">${gcRp(invested / per(kmAll))}<small>/${U}</small></div><div class="gc-hero-sub">${trf('With tools · {0}', gcRp(invested))}</div></div>
+        <div><div class="gc-big">${gcRp(invested / per(kmAll))}<small>/${U}</small></div><div class="gc-hero-sub">${trf(partsAdd ? 'Bikes + tools + parts · {0}' : 'With tools · {0}', gcRp(invested))}</div></div>
         ${tools ? `<div><div class="gc-big gc-big2">${gcRp(bikesOnly / per(kmAll))}<small>/${U}</small></div><div class="gc-hero-sub">${trf('Bikes only · {0}', gcRp(bikesOnly))}</div></div>` : ''}
       </div>
+      ${parts ? `<label class="gc-parts"><input type="checkbox" id="gcParts"${partsOn ? ' checked' : ''}> <span>${trf('Include parts & gear bought on Tokopedia/Shopee: {0} ({1} items)', gcRp(parts.total), parts.count)}${parts.bikes.length ? `<i>${trf('Not counted (bikes already priced above): {0}', parts.bikes.map(n => n.slice(0, 40)).join(', '))}</i>` : ''}</span></label>` : ''}
       <div class="gc-stats">${allRides ? stat('Per ride', gcRp(invested / allRides), trf('{0} rides', allRides)) : ''}${allH >= 1 ? stat('Per hour', gcRp(invested / allH), Math.round(allH) + ' h') : ''}${timeStats(invested, priced.map(b => String(b.id)))}${tools ? stat('Tools', gcRp(tools), trf('{0} of the total', Math.round(tools / invested * 100) + '%')) : ''}</div>
     </div>` : '';
 
@@ -255,6 +262,8 @@ function renderGearCost(bikes, stats) {
 }
 
 function gcWire(el, bikes) {
+  const pt = el.querySelector('#gcParts');
+  if (pt) pt.onchange = () => { try { localStorage.setItem('gc_parts', pt.checked ? '1' : '0'); } catch {} renderGearMaint(bikes); };
   el.querySelectorAll('[data-gc]').forEach(inp => inp.onchange = () => {
     const v = +String(inp.value).replace(/[^\d]/g, '') || 0;
     const s = gcLoad(), k = inp.dataset.gc;

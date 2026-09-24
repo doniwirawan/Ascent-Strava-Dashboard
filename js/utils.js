@@ -142,7 +142,7 @@ function chartOpts(unit='', legend=false) {
 
 const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','trendsSection','actSection','calSection',
   'eddySection','trainingSection','sleepSection','monthlySection','bestSection','gearSection','heatSection',
-  'segmentsSection','gapsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','settingsSection','helpSection','dataSection'];
+  'segmentsSection','gapsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','settingsSection','helpSection','dataSection','cyclingBuysSection'];
 
 // True while the Overview (statRow) is the section on screen. Overview-only
 // cards that fill asynchronously must check this before unhiding themselves —
@@ -207,6 +207,7 @@ function navScrollTo(id, btn) {
   // the regency map is built while hidden (0×0) — re-render/fit once visible
   if (id === 'actSection' && typeof renderRegencyMap === 'function') setTimeout(renderRegencyMap, 80);
   if (id === 'dataSection' && typeof renderDataTable === 'function') renderDataTable();
+  if (id === 'cyclingBuysSection' && typeof renderCyclingBuys === 'function') renderCyclingBuys();
   if (window.applyI18n) window.applyI18n();
 }
 

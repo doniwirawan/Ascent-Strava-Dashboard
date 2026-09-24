@@ -418,6 +418,10 @@
       <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       Gear
     </button>
+    <button class="nav-link" id="cyclingBuysNavLink" style="display:none" onclick="navScrollTo('cyclingBuysSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M6 6h15l-1.5 8H7.5L5 3H2"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>
+      Cycling purchases
+    </button>
 
     <div class="sidebar-group-label">History</div>
 
@@ -774,6 +778,16 @@
   </div>
 
   <!-- GEAR -->
+  <!-- CYCLING PURCHASES (owner only) — from purchase.doniwirawan.xyz -->
+  <div id="cyclingBuysSection" style="display:none">
+    <div class="section-title">Cycling purchases</div>
+    <div class="card">
+      <div class="card-title">Everything bought for cycling</div>
+      <div class="chart-note">All cycling items from your Tokopedia and Shopee orders: parts, tools and small stuff. Amounts are what you paid after discounts. Only you can see this.</div>
+      <div id="cyclingBuysBody"></div>
+    </div>
+  </div>
+
   <div id="gearSection" style="display:none">
     <div class="section-title">Gear</div>
     <div id="gearGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;"></div>
@@ -1316,6 +1330,7 @@
 <script src="js/training.js"></script>
 <script src="js/sleep.js"></script>
 <script src="js/data-table.js"></script>
+<script src="js/cycling-buys.js"></script>
 <script src="js/sleep-import.js"></script>
 <script src="js/power-curve.js"></script>
 <script src="js/hr-decoupling.js"></script>
