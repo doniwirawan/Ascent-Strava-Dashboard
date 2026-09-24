@@ -203,6 +203,14 @@ function renderGearCost(bikes, stats) {
   const tools = s.tools > 0 ? s.tools : 0;
   const U = distUnit(), per = m => kmVal(m) || 0;
   const rides = id => acts.filter(a => String(a.gear_id) === String(id)).length;
+  // days in use: from the bike's first recorded ride to today; riding days = distinct dates ridden
+  const DAY = 86400000;
+  const onBike = ids => acts.filter(a => ids.includes(String(a.gear_id)) && a.start_date);
+  const daysOwned = ids => { const t = onBike(ids).map(a => new Date(a.start_date).getTime()); return t.length ? Math.max(1, Math.ceil((Date.now() - Math.min(...t)) / DAY)) : 0; };
+  const rideDays = ids => new Set(onBike(ids).map(a => (a.start_date_local || a.start_date).slice(0, 10))).size;
+  const timeStats = (cost, ids) => { const d = daysOwned(ids), rd = rideDays(ids); return (d ? stat('Per day', gcRp(cost / d), trf('{0} days in use', d)) : '')
+    + (d >= 30 ? stat('Per month', gcRp(cost / (d / 30.44)), trf('{0} months', (d / 30.44).toFixed(1))) : '')
+    + (rd ? stat('Per riding day', gcRp(cost / rd), trf('{0} days ridden', rd)) : ''); };
   const input = (key, val, lbl) => `<label class="gc-in"><span>${tr(lbl)}</span><span class="gc-rp">Rp<input type="text" inputmode="numeric" data-gc="${key}" value="${val ? Math.round(val).toLocaleString('id-ID') : ''}" placeholder="0"></span></label>`;
   const stat = (lbl, val, sub) => `<div class="gc-stat"><div class="gc-v">${val}</div><div class="gc-l">${tr(lbl)}${sub ? '<br><i>' + sub + '</i>' : ''}</div></div>`;
 
@@ -220,6 +228,7 @@ function renderGearCost(bikes, stats) {
           ${stat('Per 100 ' + U, gcRp(all / km * 100))}
           ${n ? stat('Per ride', gcRp(all / n), trf('{0} rides', n)) : ''}
           ${h >= 1 ? stat('Per hour', gcRp(all / h), Math.round(h) + ' h') : ''}
+          ${timeStats(all, [String(b.id)])}
           ${tools ? stat('Tools share', Math.round(share * 100) + '%', gcRp(toolPart)) : ''}
         </div>
         ${next.length ? `<div class="gc-proj"><span>${tr('Keep riding:')}</span>${next.map(m => `<b>${per(m).toLocaleString()} ${U} → ${gcRp(all / per(m))}/${U}</b>`).join('')}</div>` : ''}`;
@@ -238,7 +247,7 @@ function renderGearCost(bikes, stats) {
         <div><div class="gc-big">${gcRp(invested / per(kmAll))}<small>/${U}</small></div><div class="gc-hero-sub">${trf('With tools · {0}', gcRp(invested))}</div></div>
         ${tools ? `<div><div class="gc-big gc-big2">${gcRp(bikesOnly / per(kmAll))}<small>/${U}</small></div><div class="gc-hero-sub">${trf('Bikes only · {0}', gcRp(bikesOnly))}</div></div>` : ''}
       </div>
-      <div class="gc-stats">${allRides ? stat('Per ride', gcRp(invested / allRides), trf('{0} rides', allRides)) : ''}${allH >= 1 ? stat('Per hour', gcRp(invested / allH), Math.round(allH) + ' h') : ''}${tools ? stat('Tools', gcRp(tools), trf('{0} of the total', Math.round(tools / invested * 100) + '%')) : ''}</div>
+      <div class="gc-stats">${allRides ? stat('Per ride', gcRp(invested / allRides), trf('{0} rides', allRides)) : ''}${allH >= 1 ? stat('Per hour', gcRp(invested / allH), Math.round(allH) + ' h') : ''}${timeStats(invested, priced.map(b => String(b.id)))}${tools ? stat('Tools', gcRp(tools), trf('{0} of the total', Math.round(tools / invested * 100) + '%')) : ''}</div>
     </div>` : '';
 
   return `<div class="gm-section-title">${tr('Cost per km')} <span class="gm-hint">${tr('Only you can see this. Shared tools are split by how far each bike has been ridden.')}</span></div>

@@ -1007,7 +1007,7 @@ const TR_ID = {
   'Cost per km': 'Biaya per km', 'Only you can see this. Shared tools are split by how far each bike has been ridden.': 'Hanya kamu yang bisa melihat ini. Perlengkapan bersama dibagi sesuai jarak tempuh tiap sepeda.',
   'All bikes + gear': 'Semua sepeda + perlengkapan', '{0} invested · {1} ridden': '{0} total modal · {1} ditempuh', 'Tools / workshop (shared)': 'Tools / workshop (bersama)',
   'Bike + components': 'Sepeda + komponen', 'Enter what this bike cost to see its cost per km.': 'Isi harga sepeda ini untuk melihat biaya per km-nya.',
-  '{0} incl. {1} of shared tools': '{0} termasuk {1} bagian perlengkapan', '{0} ridden': '{0} ditempuh', 'Bike only': 'Sepeda saja', 'With tools · {0}': 'Dengan alat · {0}', 'Bikes only · {0}': 'Sepeda saja · {0}', 'Tools': 'Alat', '{0} of the total': '{0} dari total',
+  '{0} incl. {1} of shared tools': '{0} termasuk {1} bagian perlengkapan', '{0} ridden': '{0} ditempuh', 'Bike only': 'Sepeda saja', 'Per day': 'Per hari', '{0} days in use': '{0} hari dipakai', 'Per month': 'Per bulan', '{0} months': '{0} bulan', 'Per riding day': 'Per hari gowes', '{0} days ridden': '{0} hari gowes', 'With tools · {0}': 'Dengan alat · {0}', 'Bikes only · {0}': 'Sepeda saja · {0}', 'Tools': 'Alat', '{0} of the total': '{0} dari total',
   'Per 100 km': 'Per 100 km', 'Per 100 mi': 'Per 100 mi', 'Per ride': 'Per ride', 'Per hour': 'Per jam', 'Tools share': 'Bagian perlengkapan', 'Keep riding:': 'Kalau terus gowes:',
   'Map style': 'Gaya peta', 'Satellite': 'Satelit', 'Dark': 'Gelap', 'Relief': 'Relief', 'Plain': 'Polos',
   'Drawing your image…': 'Membuat gambar Anda…', 'Share': 'Bagikan', 'Download': 'Unduh', 'Close': 'Tutup',
