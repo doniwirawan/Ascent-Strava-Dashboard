@@ -3,9 +3,9 @@
    times), destination, route shape and key stats. Strava's public API can't
    attach photos to an activity, so the image is previewed here and then
    shared (phone share sheet → Strava) or downloaded to add by hand.
-   Privacy: the start is the athlete's home — the route is drawn without a
-   basemap and every point within HOME_CLIP_KM of the start is left out. */
-const SI_W = 1080, SI_H = 1350, HOME_CLIP_KM = 1;
+   The route matches the activity map exactly: full polyline with green
+   start and red finish dots (the athlete chose this over trimming home out). */
+const SI_W = 1080, SI_H = 1350;
 const SI_FONT = "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif";
 const SI_ORANGE = '#fc4c02';
 
@@ -15,20 +15,12 @@ function _siKm(a, b) {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-/* Route split into segments, with everything near the start (home) removed. */
+/* The route as one segment — the same polyline the activity map draws. */
 function _siRouteSegments(a) {
   const pl = a.map && a.map.summary_polyline;
   if (!pl) return [];
   const pts = decodePolyline(pl);
-  if (pts.length < 2) return [];
-  const home = a.start_latlng && a.start_latlng.length === 2 ? a.start_latlng : pts[0];
-  const segs = []; let cur = [];
-  pts.forEach(p => {
-    if (_siKm(home, p) < HOME_CLIP_KM) { if (cur.length > 1) segs.push(cur); cur = []; }
-    else cur.push(p);
-  });
-  if (cur.length > 1) segs.push(cur);
-  return segs;
+  return pts.length < 2 ? [] : [pts];
 }
 
 /* Wrap text to at most maxLines lines of width w (ellipsis on the last). */
@@ -257,7 +249,7 @@ async function drawStatsImage(canvas, a, wx, style) {
     y += 30;
   }
 
-  // route on a map (home clipped out), full-bleed between header and stats
+  // route on a map, full-bleed between header and stats
   const top = y + 20, statsTop = 860;
   const segs = _siRouteSegments(a);
   const proj = segs.length ? await _siMap(ctx, segs, { x: 0, y: top, w: SI_W, h: statsTop - 30 - top }, style, P) : null;
@@ -273,6 +265,11 @@ async function drawStatsImage(canvas, a, wx, style) {
     const home = a.start_latlng && a.start_latlng.length === 2 ? a.start_latlng : all[0];
     const far = all.reduce((m, p) => _siKm(home, p) > _siKm(home, m) ? p : m, all[0]);
     if (rp && rp.furthest_place) _siPin(ctx, X(far), Y(far) - 34, 40, '#ffffff');
+    // start (green) + finish (red) dots, same as the activity map; finish on top
+    [[all[0], '#22c55e'], [all[all.length - 1], '#ef4444']].forEach(([p, col]) => {
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(X(p), Y(p), 15, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(p), Y(p), 11, 0, Math.PI * 2); ctx.fill();
+    });
   }
 
   // stats grid (3 columns)
@@ -282,7 +279,7 @@ async function drawStatsImage(canvas, a, wx, style) {
     const cx = P + (i % cols) * cw, cy = statsTop + 30 + Math.floor(i / cols) * rh;
     ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = '#8a8a8a'; ctx.fillText(lbl.toUpperCase(), cx, cy);
     let tx = cx;
-    if (icon) { _siWeatherIcon(ctx, icon, cx + 38, cy + 36, 80); tx = cx + 92; }
+    if (icon) { _siWeatherIcon(ctx, icon, cx + 24, cy + 38, 50); tx = cx + 58; }
     ctx.font = '800 ' + (val.length > 12 ? 36 : 48) + 'px ' + SI_FONT; ctx.fillStyle = '#ffffff';
     ctx.fillText(_siWrap(ctx, val, cw - 20 - (tx - cx), 1)[0], tx, cy + 56);
   });
