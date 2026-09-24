@@ -347,12 +347,14 @@ function renderActivities() {
 
 // Live client-side filter for the Recent Activities list (name or type).
 // Rows open by activity id so filtering never desyncs from the modal.
+let _actRegency = ''; // regency tag filter for the list ('' = all), see renderRegencyTags
 function _renderActList(q){
   const el=document.getElementById('actList');
   if(!el) return;
   q=(q||'').trim().toLowerCase();
   const where = a => { const r=a.route_places; return r ? [r.furthest_place,r.furthest_kec,r.furthest_kab].filter(Boolean).join(' ').toLowerCase() : ''; };
-  const list = q ? _actListSrc.filter(a=>(a.name||'').toLowerCase().includes(q)||(a.type||'').toLowerCase().includes(q)||where(a).includes(q)) : _actListSrc;
+  const inReg = a => !_actRegency || (typeof _regOf!=='undefined' && _regOf[a.id]===_actRegency);
+  const list = _actListSrc.filter(a=>inReg(a) && (!q || (a.name||'').toLowerCase().includes(q)||(a.type||'').toLowerCase().includes(q)||where(a).includes(q)));
   if(!list.length){ el.innerHTML=`<div class="act-empty">No activities match “${q}”.</div>`; return; }
   el.innerHTML = list.map(a=>`
     <div class="act-row" role="button" tabindex="0" onclick="openActivityModal('${a.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActivityModal('${a.id}');}">
@@ -522,9 +524,29 @@ function _actSpeedHover(m,trk){
 
 function _actMapModeControl(m,a,line){
   const T=(typeof tr==='function')?tr:(x=>x);
-  let speedLayer=null, legend=null, hover=null;
+  let speedLayer=null, legend=null, hover=null, peakMarker=null, trkNow=null;
   const legendCtl=L.control({position:'bottomleft'});
   legendCtl.onAdd=()=>{ legend=L.DomUtil.create('div','speed-legend'); return legend; };
+
+  // Speed mode only: jump to the fastest point of the ride and pin it.
+  const peakCtl=L.control({position:'topleft'});
+  peakCtl.onAdd=()=>{
+    const b=L.DomUtil.create('button','speed-peak-btn leaflet-bar');
+    b.type='button'; b.innerHTML='⚡ '+T('Top speed');
+    L.DomEvent.disableClickPropagation(b);
+    b.onclick=()=>{
+      const pts=trkNow&&trkNow.pts; if(!pts) return;
+      let k=0; pts.forEach((p,i)=>{ if(p[2]>pts[k][2]) k=i; });
+      let into=0; for(let i=1;i<=k;i++) into+=aiHaversine(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1])*1000;
+      const at=[pts[k][0],pts[k][1]];
+      if(peakMarker) m.removeLayer(peakMarker);
+      peakMarker=L.marker(at,{keyboard:false,zIndexOffset:1000,icon:L.divIcon({className:'speed-peak-pin',iconSize:[30,30],iconAnchor:[15,15],html:'⚡'})})
+        .bindTooltip(`<b>${kmh(pts[k][2])} ${speedUnit()}</b> · ${fmtD(into)} ${T('into the ride')}`,{permanent:true,direction:'top',offset:[0,-16],className:'speed-peak-tip'})
+        .addTo(m);
+      m.flyTo(at,Math.max(m.getZoom(),16),{duration:.8});
+    };
+    return b;
+  };
 
   const apply = async () => {
     if(_actMapMode==='speed'){
@@ -537,9 +559,12 @@ function _actMapModeControl(m,a,line){
       speedLayer.addTo(m);
       legendCtl.addTo(m);
       legend.innerHTML=`<span>${kmh(trk.lo)}</span><i></i><span>${kmh(trk.hi)} ${speedUnit()}</span>`;
+      trkNow=trk; peakCtl.addTo(m);
     } else {
       if(speedLayer){ m.removeLayer(speedLayer); hover.off(); }
       legendCtl.remove();
+      peakCtl.remove();
+      if(peakMarker){ m.removeLayer(peakMarker); peakMarker=null; }
       line.setStyle({opacity:.95});
     }
   };

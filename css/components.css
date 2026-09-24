@@ -14,6 +14,12 @@
   color: var(--text);
   font-size: 13px;
 }
+.act-reg-tags { display: flex; gap: 6px; overflow-x: auto; margin: -2px 0 10px; padding-bottom: 2px; scrollbar-width: none; }
+.act-reg-tags::-webkit-scrollbar { display: none; }
+.act-reg-tag { flex-shrink: 0; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-2); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.act-reg-tag b { color: var(--muted); font-weight: 700; margin-left: 2px; }
+.act-reg-tag.on { background: var(--orange); border-color: var(--orange); color: #fff; }
+.act-reg-tag.on b { color: #fff; }
 .act-search::placeholder { color: var(--text-3); }
 .act-search:focus { outline: none; border-color: var(--orange); }
 .act-empty { color: var(--text-2); font-size: 13px; padding: 12px 4px; }
@@ -480,6 +486,10 @@
   font-size: 11px; font-weight: 600; color: var(--text-2);
   box-shadow: 0 2px 10px rgba(0, 0, 0, .45);
 }
+.speed-peak-btn { display: block; margin-top: 8px !important; padding: 6px 11px; background: var(--surface); color: var(--text); border: 1px solid var(--border) !important; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.speed-peak-btn:hover { border-color: var(--orange) !important; color: var(--orange); }
+.speed-peak-pin { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: #fc4c02; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.6); font-size: 15px; line-height: 1; }
+.leaflet-tooltip.speed-peak-tip { background: var(--surface); color: var(--text); border: 1px solid var(--orange); font-size: 12px; }
 .speed-legend i { width: 90px; height: 7px; border-radius: 4px; background: linear-gradient(90deg, hsl(120,90%,50%), hsl(60,90%,50%), hsl(0,90%,50%)); }
 
 /* ── Sleep before/after a training session (activity detail modal) ── */

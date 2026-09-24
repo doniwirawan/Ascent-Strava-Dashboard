@@ -1306,18 +1306,22 @@ body.dev .dev-tag { display: inline-block; }
 .regency-card { margin-top: 16px; }
 .regency-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px; margin-top: 10px; }
 .regency-map { height: 380px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); background: var(--surface2); }
-.regency-list { display: flex; flex-direction: column; gap: 10px; max-height: 380px; overflow-y: auto; }
+.regency-list { display: flex; flex-direction: column; gap: 10px; }
 .regency-row-head { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
 .regency-n { color: var(--orange); }
 .regency-bar { height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; margin: 5px 0 3px; }
 .regency-bar span { display: block; height: 100%; background: var(--orange); border-radius: 3px; }
 .regency-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .regency-outside { margin-top: 4px; }
+.regency-row { cursor: pointer; border-radius: 6px; padding: 4px 6px; margin: -4px -6px; }
+.regency-row:hover { background: var(--surface2); }
+.regency-map .leaflet-interactive:focus { outline: none; }
+.regency-modal-sum { font-size: 12px; color: var(--muted); margin: -4px 0 10px; }
+.regency-rides { max-height: 60vh; }
 .leaflet-tooltip.regency-count { background: none; border: 0; box-shadow: none; color: #fff; font-weight: 800; font-size: 13px; text-shadow: 0 1px 3px rgba(0,0,0,.9); padding: 0; }
 .leaflet-tooltip.regency-count::before { display: none; }
 .leaflet-tooltip.regency-tip { background: var(--surface); color: var(--text); border: 1px solid var(--border); font-size: 12px; line-height: 1.45; }
 @media (max-width: 760px) {
   .regency-body { grid-template-columns: 1fr; }
   .regency-map { height: 240px; }
-  .regency-list { max-height: none; }
 }

@@ -633,6 +633,7 @@
       <div class="card" style="display:flex;flex-direction:column;">
         <div class="card-title">Recent Activities</div>
         <input type="search" id="actSearch" class="act-search" placeholder="Search by name, type or destination…" oninput="_renderActList(this.value)" autocomplete="off">
+        <div class="act-reg-tags" id="actRegTags"></div>
         <div class="act-list" id="actList"></div>
       </div>
       <div class="card">
@@ -1244,6 +1245,15 @@
 </div>
 
 <!-- ACTIVITY DETAIL MODAL -->
+<div class="modal-overlay" id="regencyModal">
+  <div class="modal act-modal">
+    <div class="modal-header">
+      <div class="modal-title" id="regencyModalTitle">Regency</div>
+      <button class="modal-close" onclick="closeRegencyRides()">✕</button>
+    </div>
+    <div id="regencyModalBody"></div>
+  </div>
+</div>
 <div class="modal-overlay" id="actModal">
   <div class="modal act-modal">
     <div class="modal-header">

@@ -978,6 +978,7 @@ const TR_ID = {
   'Download SQL': 'Unduh SQL',
   // Stats image (activity modal)
   '{0} rides': '{0} ride', 'Top destination: {0} ({1}×)': 'Tujuan teratas: {0} ({1}×)', 'mostly {0}': 'paling sering {0}', '{0} outside Bali': '{0} di luar Bali',
+  'Top speed': 'Kecepatan tertinggi', 'into the ride': 'dari awal ride',
   'Map style': 'Gaya peta', 'Satellite': 'Satelit', 'Dark': 'Gelap', 'Relief': 'Relief', 'Plain': 'Polos',
   'Drawing your image…': 'Membuat gambar Anda…', 'Share': 'Bagikan', 'Download': 'Unduh', 'Close': 'Tutup',
   "Strava doesn't let apps attach photos, so share it to the Strava app or download it and add it to the activity there.": 'Strava tidak mengizinkan aplikasi menambahkan foto, jadi bagikan ke aplikasi Strava atau unduh lalu tambahkan ke aktivitas di sana.',
@@ -1009,7 +1010,7 @@ window.trf = function (s, ...args) {
   const grab = el => el.childNodes.forEach(n => {
     if (n.nodeType === 3 && n.nodeValue.trim()) appNodes.push({ n, en: n.nodeValue });
   });
-  document.querySelectorAll('.section-title, .card-title, .sidebar-group-label, .sidebar-act, .sidebar-user-sub, .nav-link, #saveImgBtn, #shareBtn, #logoutBtn').forEach(grab);
+  document.querySelectorAll('.section-title, .card-title, .chart-note, .sidebar-group-label, .sidebar-act, .sidebar-user-sub, .nav-link, #saveImgBtn, #shareBtn, #logoutBtn').forEach(grab);
   document.querySelectorAll('.s-label, .s-sub').forEach(el => { if (!el.id) grab(el); });
 
   // Dynamic labels are rebuilt (in English) by the render layer, so they can't
