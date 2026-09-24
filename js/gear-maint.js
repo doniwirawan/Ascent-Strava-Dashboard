@@ -74,7 +74,7 @@ function renderGearMaint(bikes) {
     const avg = s.time > 0 ? s.dist / s.time : 0;
     const w = gmWorst(b.id, dm, state);
     return `<tr>
-      <td class="gm-td-name">${b.nickname || b.name || tr('Bike')}${b.primary ? ' <span class="gear-primary">' + tr('Primary') + '</span>' : ''}</td>
+      <td class="gm-td-name">${b.nickname || b.name || tr('Bike')}${bikeTypeBadge(b)}${b.primary ? ' <span class="gear-primary">' + tr('Primary') + '</span>' : ''}</td>
       <td>${kmVal(dm).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${distUnit()}</td>
       <td>${s.elev ? Math.round(elevVal(s.elev)).toLocaleString() + ' ' + elevUnit() : '—'}</td>
       <td>${s.time ? Math.round(s.time / 3600).toLocaleString() + ' h' : '—'}</td>
@@ -111,7 +111,7 @@ function renderGearMaint(bikes) {
       </div>`;
     }).join('');
     return `<div class="gm-bike">
-      <div class="gm-bike-head">${b.nickname || b.name || tr('Bike')} <span class="gm-bike-km">${kmVal(dm).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${distUnit()} ${tr('total')}</span></div>
+      <div class="gm-bike-head">${b.nickname || b.name || tr('Bike')}${bikeTypeBadge(b)} <span class="gm-bike-km">${kmVal(dm).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${distUnit()} ${tr('total')}</span></div>
       <div class="gm-comps">${comps}</div>
     </div>`;
   }).join('');
@@ -119,6 +119,7 @@ function renderGearMaint(bikes) {
   el.innerHTML = `
     <div class="gm-section-title">${tr('Bike Usage')}</div>
     ${table}
+    ${renderBikeCompare(bikes)}
     ${renderGearCost(bikes, stats)}
     <div class="gm-section-title">${tr('Maintenance')} <span class="gm-hint">${tr('Strava has no service data — log a service to start tracking. Saved on this device.')}</span></div>
     ${cards}`;
@@ -127,6 +128,8 @@ function renderGearMaint(bikes) {
   el.querySelectorAll('.gm-clear').forEach(btn => btn.onclick = () => gmClear(btn.dataset.bike, btn.dataset.comp, bikes));
   el.querySelectorAll('.gm-thr').forEach(inp => inp.onchange = () => gmSetThr(inp.dataset.bike, inp.dataset.comp, inp.value, bikes));
   gcWire(el, bikes);
+  bikeCompareWire(el, bikes);
+  gmFetchFrameTypes(bikes).then(changed => { if (changed) renderGearMaint(bikes); });
   // first visit on a device: pull the owner's bike prices, then redraw once
   gcOwnerDefaults(bikes).then(changed => { if (changed) renderGearMaint(bikes); });
   // cycling purchases arrive async — redraw once so the parts line appears
@@ -269,5 +272,115 @@ function gcWire(el, bikes) {
     const s = gcLoad(), k = inp.dataset.gc;
     if (k === 'tools') s.tools = v; else s.bikes[k.slice(5)] = v;
     gcSave(s); renderGearMaint(bikes);
+  });
+}
+
+/* ── BIKE TYPE + COMPARISON ──
+   Type: your override (dropdown) → Strava's frame_type (from /gear/{id},
+   fetched once and cached) → a guess from the bike's name. Comparison uses
+   outdoor rides (no trainer / virtual) of 10 min+ on each bike. Raw averages
+   mix very different routes, so speed is also compared on flat rides only
+   and per heartbeat (efficiency). */
+const BIKE_TYPES = ['Road', 'Gravel', 'Mountain', 'Cyclocross', 'Time trial', 'Hybrid'];
+const FRAME_TYPE = { 1: 'Mountain', 2: 'Cyclocross', 3: 'Road', 4: 'Time trial', 5: 'Gravel' };
+const BT_KEY = 'bike_type_v1', BF_KEY = 'bike_frame_v1';
+const btLoad = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch { return {}; } };
+let _bfTried = false;
+
+function bikeType(b) {
+  const o = btLoad(BT_KEY)[b.id]; if (o) return o;
+  const ft = b.frame_type || btLoad(BF_KEY)[b.id]; if (FRAME_TYPE[ft]) return FRAME_TYPE[ft];
+  const n = ((b.nickname || '') + ' ' + (b.name || '') + ' ' + (b.model_name || '')).toLowerCase();
+  if (/gravel|gvl|\bcx\b|cyclocross|adventure|allroad/.test(n)) return 'Gravel';
+  if (/\bmtb\b|mountain|trail|enduro|xc\b/.test(n)) return 'Mountain';
+  if (/road|race|aero|sr\d|endurance|climb/.test(n)) return 'Road';
+  return '';
+}
+const bikeTypeBadge = b => { const t = bikeType(b); return t ? ` <span class="bike-type bt-${t.toLowerCase().replace(/\s/g, '')}">${tr(t)}</span>` : ''; };
+
+/* Strava's frame_type isn't in the athlete summary — fetch each bike once. */
+async function gmFetchFrameTypes(bikes) {
+  if (_bfTried) return false;
+  _bfTried = true;
+  const cache = btLoad(BF_KEY), need = bikes.filter(b => !b.frame_type && !(b.id in cache));
+  if (!need.length || typeof api !== 'function') return false;
+  await Promise.all(need.map(b => api('/gear/' + b.id).then(g => { cache[b.id] = (g && g.frame_type) || 0; }).catch(() => {})));
+  try { localStorage.setItem(BF_KEY, JSON.stringify(cache)); } catch {}
+  return need.some(b => cache[b.id]);
+}
+
+function bikeCompareStats(b) {
+  const rides = acts.filter(a => String(a.gear_id) === String(b.id) && isRide(a) && !a.trainer && a.sport_type !== 'VirtualRide' && (a.moving_time || 0) >= 600 && a.distance > 0);
+  if (!rides.length) return null;
+  const sum = (arr, f) => arr.reduce((s, a) => s + (f(a) || 0), 0);
+  const t = sum(rides, a => a.moving_time), d = sum(rides, a => a.distance);
+  const hrR = rides.filter(a => a.average_heartrate), wR = rides.filter(a => a.average_watts);
+  const wAvg = arr => { const tt = sum(arr, a => a.moving_time); return tt ? sum(arr, a => a.average_watts * a.moving_time) / tt : null; };
+  const flat = rides.filter(a => (a.total_elevation_gain || 0) / (a.distance / 1000) < 8); // < 8 m climbing per km
+  const efR = hrR.filter(a => a.average_speed);
+  return {
+    b, n: rides.length, km: d / 1000, avgDist: d / rides.length, speed: d / t,
+    flatSpeed: flat.length >= 2 ? sum(flat, a => a.distance) / sum(flat, a => a.moving_time) : null, flatN: flat.length,
+    hr: hrR.length ? sum(hrR, a => a.average_heartrate * a.moving_time) / sum(hrR, a => a.moving_time) : null,
+    watts: wR.length ? wAvg(wR) : null, measured: wR.filter(a => a.device_watts).length, wattsN: wR.length,
+    wMeasured: wAvg(wR.filter(a => a.device_watts)),
+    ef: efR.length ? sum(efR, a => a.average_speed * 60 / a.average_heartrate * a.moving_time) / sum(efR, a => a.moving_time) : null,
+    climb: sum(rides, a => a.total_elevation_gain) / (d / 1000),
+    maxSpeed: Math.max(...rides.map(a => (typeof cleanMax === 'function' ? cleanMax(a) : a.max_speed) || 0)),
+  };
+}
+
+function renderBikeCompare(bikes) {
+  const S = bikes.map(bikeCompareStats).filter(Boolean).sort((x, y) => y.n - x.n);
+  if (!S.length) return '';
+  const name = s => s.b.nickname || s.b.name || tr('Bike');
+  const pct = (a, b) => (a - b) / b * 100;
+  const fmtPct = v => (v > 0 ? '+' : '') + v.toFixed(1) + '%';
+  const col = s => `<div class="bc-bike">
+      <div class="bc-head"><span class="bc-name">${name(s)}</span>
+        <select class="bc-type" data-bike="${s.b.id}" aria-label="${tr('Bike type')}"><option value="">${tr('Type…')}</option>${BIKE_TYPES.map(t => `<option value="${t}"${bikeType(s.b) === t ? ' selected' : ''}>${tr(t)}</option>`).join('')}</select></div>
+      <div class="bc-rows">
+        <div><span>${tr('Rides')}</span><b>${s.n}</b></div>
+        <div><span>${tr('Avg speed')}</span><b>${fmtSpeed(s.speed)}</b></div>
+        <div><span>${tr('Flat rides speed')}</span><b>${s.flatSpeed ? fmtSpeed(s.flatSpeed) : '—'}</b></div>
+        <div><span>${tr('Avg power')}</span><b>${s.watts ? Math.round(s.watts) + ' W' : '—'}</b></div>
+        <div><span>${tr('Avg HR')}</span><b>${s.hr ? Math.round(s.hr) + ' bpm' : '—'}</b></div>
+        <div><span>${tr('Efficiency')}</span><b>${s.ef ? s.ef.toFixed(2) + ' m/beat' : '—'}</b></div>
+        <div><span>${tr('Climbing')}</span><b>${s.climb.toFixed(1)} m/km</b></div>
+        <div><span>${tr('Avg distance')}</span><b>${fmtD(s.avgDist)}</b></div>
+        <div><span>${tr('Top speed')}</span><b>${s.maxSpeed ? fmtSpeed(s.maxSpeed) : '—'}</b></div>
+      </div></div>`;
+
+  // head-to-head for the two most-ridden bikes
+  let facts = '';
+  if (S.length >= 2 && S[1].n >= 3) {
+    const [a, b] = S, A = name(a), B = name(b), L = [];
+    const faster = (x, y, v, lbl) => { const p = pct(v(x), v(y)); return Math.abs(p) < 1.5 ? trf('{0}: about the same on both.', tr(lbl))
+      : trf(lbl + ': {0} faster on the {1} ({2} vs {3}).', fmtPct(Math.abs(p)).replace('+', ''), name(p > 0 ? x : y), fmtSpeed(v(p > 0 ? x : y)), fmtSpeed(v(p > 0 ? y : x))); };
+    if (a.flatSpeed && b.flatSpeed) L.push(faster(a, b, s => s.flatSpeed, 'Flat rides'));
+    L.push(faster(a, b, s => s.speed, 'All rides'));
+    if (a.ef && b.ef) { const p = pct(a.ef, b.ef); L.push(Math.abs(p) < 1.5 ? tr('Efficiency (distance per heartbeat) is about the same on both.')
+      : trf('You cover {0} more distance per heartbeat on the {1} — the same effort goes further.', Math.abs(p).toFixed(1) + '%', p > 0 ? A : B)); }
+    if (a.watts && b.watts) {
+      const est = [a, b].filter(s => s.measured < s.wattsN / 2).map(name);
+      L.push(trf('Average power: {0} W on the {1} vs {2} W on the {3}.', Math.round(a.watts), A, Math.round(b.watts), B)
+        + (est.length ? ' ' + trf('({0}: mostly estimated by Strava, not a power meter — compare with care.)', est.join(', ')) : ''));
+    }
+    if (a.hr && b.hr) L.push(trf('Average heart rate: {0} bpm on the {1} vs {2} bpm on the {3}.', Math.round(a.hr), A, Math.round(b.hr), B));
+    const hilly = a.climb > b.climb ? a : b, flatter = hilly === a ? b : a;
+    if (Math.abs(a.climb - b.climb) >= 2) L.push(trf('Your {0} rides are hillier: {1} m climbing per km vs {2} on the {3}.', name(hilly), hilly.climb.toFixed(1), flatter.climb.toFixed(1), name(flatter)));
+    L.push(trf('You ride the {0} most: {1} rides vs {2}, averaging {3} vs {4} per ride.', A, a.n, b.n, fmtD(a.avgDist), fmtD(b.avgDist)));
+    facts = `<div class="bc-facts">${L.map(x => `<div>• ${x}</div>`).join('')}</div>`;
+  }
+  return `<div class="gm-section-title">${tr('Bike comparison')} <span class="gm-hint">${tr('Outdoor rides only. Flat rides = under 8 m climbing per km, the fairest speed comparison.')}</span></div>
+    <div class="bc-grid">${S.map(col).join('')}</div>${facts}`;
+}
+
+function bikeCompareWire(el, bikes) {
+  el.querySelectorAll('.bc-type').forEach(sel => sel.onchange = () => {
+    const o = btLoad(BT_KEY); if (sel.value) o[sel.dataset.bike] = sel.value; else delete o[sel.dataset.bike];
+    try { localStorage.setItem(BT_KEY, JSON.stringify(o)); } catch {}
+    renderGearMaint(bikes);
+    const grid = document.getElementById('gearGrid'); if (grid && typeof _renderBikeList === 'function') _renderBikeList(grid, bikes);
   });
 }

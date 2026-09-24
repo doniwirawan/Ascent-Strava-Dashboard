@@ -230,7 +230,7 @@ function _renderBikeList(el, bikes) {
   el.innerHTML=bikes.map(b=>{
     const st=bikeStats[b.id]||{rides:0,dist:0,elev:0};
     return `<div class="gear-card">
-      <div class="gear-name">${b.nickname||b.name||'Bike'}${b.primary?'<span class="gear-primary">Primary</span>':''}</div>
+      <div class="gear-name">${b.nickname||b.name||'Bike'}${typeof bikeTypeBadge==='function'?bikeTypeBadge(b):''}${b.primary?'<span class="gear-primary">Primary</span>':''}</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">${b.name||''}</div>
       <div class="gear-stats">
         <div><div class="gear-stat-val">${kmVal(b.distance||st.dist).toFixed(0)}</div><div class="gear-stat-lbl">Total ${distUnit()}</div></div>
