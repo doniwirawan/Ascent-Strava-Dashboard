@@ -54,6 +54,58 @@ async function fetchWeather(a) {
   return a.average_temp != null ? { temp_c: Math.round(a.average_temp) } : null;
 }
 
+function decodePolyline(enc) {
+  const pts = []; let i = 0, lat = 0, lng = 0;
+  while (i < enc.length) {
+    let s = 0, r = 0, b; do { b = enc.charCodeAt(i++) - 63; r |= (b & 31) << s; s += 5; } while (b >= 32);
+    lat += (r & 1) ? ~(r >> 1) : (r >> 1);
+    s = r = 0; do { b = enc.charCodeAt(i++) - 63; r |= (b & 31) << s; s += 5; } while (b >= 32);
+    lng += (r & 1) ? ~(r >> 1) : (r >> 1);
+    pts.push([lat / 1e5, lng / 1e5]);
+  }
+  return pts;
+}
+
+function haversineKm(aLat, aLng, bLat, bLng) {
+  const rad = Math.PI / 180, dLat = (bLat - aLat) * rad, dLng = (bLng - aLng) * rad;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(s));
+}
+
+// Nominatim reverse geocode → "Village, Regency". Its usage policy requires a
+// real User-Agent from servers.
+async function placeName(lat, lng) {
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=14&lat=' + lat + '&lon=' + lng,
+      { headers: { Accept: 'application/json', 'User-Agent': 'ascent-analytics/1.0 (https://ascent-analytics.doniwirawan.xyz)' } });
+    if (!r.ok) return '';
+    const a = ((await r.json()) || {}).address || {};
+    const local = a.suburb || a.neighbourhood || a.city_district || a.village || a.town || a.municipality || a.city || a.county || a.state_district || '';
+    const region = a.city || a.county || a.state || a.country || '';
+    return [local, region && region !== local ? region : ''].filter(Boolean).join(', ');
+  } catch { return ''; }
+}
+
+// Start place + the route point furthest from the start (the turnaround, not
+// the finish — which is usually back home).
+async function routePlaces(a) {
+  const pl = a.map && (a.map.summary_polyline || a.map.polyline);
+  if (!pl) return null;
+  const pts = decodePolyline(pl);
+  if (pts.length < 2) return null;
+  const [sLat, sLng] = pts[0];
+  let far = pts[0], farKm = 0;
+  pts.forEach(p => { const d = haversineKm(sLat, sLng, p[0], p[1]); if (d > farKm) { farKm = d; far = p; } });
+  const start = await placeName(sLat, sLng);
+  const out = { start_place: start || null };
+  if (farKm >= 2) {
+    await new Promise(res => setTimeout(res, 1100)); // Nominatim: max 1 req/s
+    const furthest = await placeName(far[0], far[1]);
+    if (furthest && furthest !== start) { out.furthest_place = furthest; out.furthest_km_from_start = Math.round(farKm); }
+  }
+  return out;
+}
+
 async function generateCaption(a) {
   const KEY = (process.env.DEEPSEEK_API_KEY || '').replace(/\s+/g, '');
   if (!KEY) return null;
@@ -71,9 +123,11 @@ async function generateCaption(a) {
   };
   const wx = await fetchWeather(a);
   if (wx) data.weather = wx;
+  const rp = await routePlaces(a).catch(() => null);
+  if (rp) Object.assign(data, rp);
   const messages = [
     { role: 'system', content:
-      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
+      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If "furthest_place" is present it is the furthest point I reached from the start (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"); "start_place" is where I set off. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nWrite my new title and description.' },
   ];
   const r = await fetch('https://api.deepseek.com/chat/completions', {

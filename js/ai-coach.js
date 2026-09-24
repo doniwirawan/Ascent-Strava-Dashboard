@@ -219,10 +219,31 @@ async function aiWeather(a) {
   return wx;
 }
 
-/* Activity data + weather, for the caption prompt. */
+/* Where the ride started and the point on the route furthest from that start
+   (the turnaround / destination — not the finish, which is usually back home).
+   Both reverse-geocoded to place names. null when there's no GPS route. */
+async function aiRoutePlaces(a) {
+  const pl = a.map && (a.map.summary_polyline || a.map.polyline);
+  if (!pl) return null;
+  const pts = decodePolyline(pl);
+  if (pts.length < 2) return null;
+  const [sLat, sLng] = pts[0];
+  let far = pts[0], farKm = 0;
+  pts.forEach(p => { const d = aiHaversine(sLat, sLng, p[0], p[1]); if (d > farKm) { farKm = d; far = p; } });
+  const start = await aiReverseGeocode(sLat, sLng, 14);
+  const out = { start_place: start || null };
+  if (farKm >= 2) { // a real out-and-back / A-to-B, not a loop around the block
+    const furthest = await aiReverseGeocode(far[0], far[1], 14);
+    if (furthest && furthest !== start) { out.furthest_place = furthest; out.furthest_km_from_start = Math.round(farKm); }
+  }
+  return out;
+}
+
+/* Activity data + weather + route places, for the caption prompt. */
 async function aiWithWeather(a) {
   const data = aiActivityData(a);
   try { const wx = await aiWeather(a); if (wx) data.weather = wx; } catch {}
+  try { const rp = await aiRoutePlaces(a); if (rp) Object.assign(data, rp); } catch {}
   return data;
 }
 
@@ -243,6 +264,7 @@ async function aiCaptionActivity(id) {
       + (roast ? 'Be fun and witty with a light, good-natured ROAST of the effort. ' : 'Keep an upbeat, motivating tone. ')
       + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. '
       + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
+      + 'If "furthest_place" is present it is the furthest point I reached from the start (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"); "start_place" is where I set off. '
       + 'If a "weather" field is present it is a rough estimate that may be inaccurate — reference conditions only lightly, never as a hard fact, and if it seems inconsistent with the effort just leave weather out. '
       + 'Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
@@ -336,7 +358,7 @@ function aiShowCaptionPreview(id, title, desc, source, roast) {
 }
 
 /* Build a title + stats description purely from the numbers — no AI, no cost. */
-function aiStatsTemplate(a, wx) {
+function aiStatsTemplate(a, wx, rp) {
   const ride = isRide(a);
   const when = a.start_date_local || a.start_date || '';
   const h = parseInt(when.slice(11, 13) || '0', 10) || 0;
@@ -345,6 +367,7 @@ function aiStatsTemplate(a, wx) {
   const title = (tod + ' ' + typeLabel + ' · ' + fmtD(a.distance) + (a.total_elevation_gain > 100 ? ' · ' + fmtElev(a.total_elevation_gain) : '')).slice(0, 100);
 
   const L = ['Distance: ' + fmtD(a.distance)];
+  if (rp && rp.furthest_place) L.push('Route: ' + (rp.start_place ? rp.start_place + ' → ' : '') + rp.furthest_place + ' (furthest point)');
   if (a.moving_time) L.push('Time: ' + fmtT(a.moving_time));
   if (a.total_elevation_gain) L.push('Elevation: ' + fmtElev(a.total_elevation_gain));
   if (a.average_speed) L.push(ride ? 'Avg speed: ' + fmtSpeed(a.average_speed) : 'Avg pace: ' + fmtPace(a.average_speed));
@@ -365,7 +388,8 @@ async function aiStatsCaption(id) {
   if (!a || !panel) return;
   panel.innerHTML = '<div class="ai-cap-loading"><span class="ai-dots"><span></span><span></span><span></span></span> Building from stats…</div>';
   let wx = null; try { wx = await aiWeather(a); } catch {}
-  const { title, desc } = aiStatsTemplate(a, wx);
+  let rp = null; try { rp = await aiRoutePlaces(a); } catch {}
+  const { title, desc } = aiStatsTemplate(a, wx, rp);
   aiShowCaptionPreview(id, title, desc, 'stats');
 }
 
@@ -440,10 +464,11 @@ async function bulkRun(p, mode) {
       let name = '', desc = '';
       if (mode === 'stats') {
         let wx = null; try { wx = await aiWeather(a); } catch {}
-        const t = aiStatsTemplate(a, wx); name = t.title; desc = t.desc;
+        let rp = null; try { rp = await aiRoutePlaces(a); } catch {}
+        const t = aiStatsTemplate(a, wx, rp); name = t.title; desc = t.desc;
       } else {
         const messages = [
-          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
+          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If "furthest_place" is present it is the furthest point I reached from the start (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"); "start_place" is where I set off. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
           { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
         ];
         const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
