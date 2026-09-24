@@ -305,6 +305,13 @@ function routePlacesText(rp) {
   return rp.furthest_place ? rp.start_place + ' → ' + rp.furthest_place + ' · ' + fmtD(rp.furthest_km_from_start * 1000) + ' out' : rp.start_place;
 }
 
+/* Append a "📍 start → destination" line to an AI description (so the place
+   is always in it, whatever the model wrote). No-op without route places. */
+function aiWithLocation(desc, a) {
+  const t = routePlacesText(a && a.route_places);
+  return t ? (desc ? desc + '\n\n' : '') + '📍 ' + t : desc;
+}
+
 /* Activity data + weather + route places, for the caption prompt. */
 async function aiWithWeather(a) {
   const data = aiActivityData(a);
@@ -342,7 +349,7 @@ async function aiCaptionActivity(id) {
     const lines = data.text.trim().split('\n');
     const title = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '');
     const desc = lines.join('\n').replace(/^\s+/, '').trim();
-    aiShowCaptionPreview(id, title, desc, 'ai', roast);
+    aiShowCaptionPreview(id, title, aiWithLocation(desc, a), 'ai', roast);
   } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error — try again.</div>'; }
 }
 
@@ -539,7 +546,7 @@ async function bulkRun(p, mode) {
         ];
         const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
         const data = await r.json().catch(() => ({}));
-        if (r.ok && data.text) { const lines = data.text.trim().split('\n'); name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100); desc = lines.join('\n').trim(); }
+        if (r.ok && data.text) { const lines = data.text.trim().split('\n'); name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100); desc = aiWithLocation(lines.join('\n').trim(), a); }
       }
       if (name) {
         const credited = aiCredit(desc, mode !== 'stats');

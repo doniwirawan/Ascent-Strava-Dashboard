@@ -137,7 +137,12 @@ async function generateCaption(a) {
   });
   if (!r.ok) return null;
   const d = await r.json();
-  return (d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || null;
+  const text = (d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || null;
+  // always state the place in the description: "📍 Guwang, Sukawati → Kintamani, Bangli (46 km out)"
+  if (text && rp && rp.start_place) {
+    return text.trim() + '\n\n📍 ' + rp.start_place + (rp.furthest_place ? ' → ' + rp.furthest_place + ' (' + rp.furthest_km_from_start + ' km out)' : '');
+  }
+  return text;
 }
 
 async function processActivity(activityId) {
