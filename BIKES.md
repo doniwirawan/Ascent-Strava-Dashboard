@@ -18,7 +18,7 @@ Weight: **11.11 kg**
 | Bottom bracket | Shimano Ultegra SM-BBR60 BSA |
 | Wheels | Hand-built: Strummer Super30 alloy rims, Strummer HR360 front hub (12x100, centerlock), Novatec Microspline rear hub, 24h |
 | Tyres | Maxxis Reaver 700x40c skinwall |
-| Rotors | Floating Rotor PRO 160mm (6-bolt on centerlock adapter) |
+| Rotors | Shimano Ice Tech (centerlock) |
 | Brake pads | Toopre Ice Tech TL-01S ceramic |
 | Stem | Mosso internal routing stem |
 | Seatpost | Toseek 3K carbon |
