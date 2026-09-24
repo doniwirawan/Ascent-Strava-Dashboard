@@ -72,7 +72,7 @@ function _regStats(list) {
     s.n++; s.m += a.distance || 0; s.acts.push(a);
     s.pieces[_regPiece[a.id]] = (s.pieces[_regPiece[a.id]] || 0) + 1;
     const v = a.route_places && a.route_places.furthest_place;
-    if (v) { const d = v.split(',')[0]; s.dest[d] = (s.dest[d] || 0) + 1; }
+    if (v) { const d = a.route_places.furthest_landmark || v.split(',')[0]; s.dest[d] = (s.dest[d] || 0) + 1; }
   });
   return { by, outside };
 }
@@ -146,7 +146,7 @@ function openRegencyRides(name) {
   document.getElementById('regencyModalBody').innerHTML =
     '<div class="regency-modal-sum">' + TF('{0} rides', s.n) + ' · ' + fmtD(s.m) + '</div>'
     + '<div class="act-list regency-rides">' + rides.map(a => {
-      const dest = a.route_places && a.route_places.furthest_place;
+      const dest = a.route_places && a.route_places.furthest_place && destName(a.route_places);
       return '<div class="act-row" role="button" tabindex="0" onclick="openActivityModal(\'' + a.id + '\')">'
         + '<div style="flex:1;min-width:0"><div class="act-name">' + (a.name || 'Activity').replace(/</g, '&lt;') + '</div>'
         + '<div class="act-meta">' + fmtDt(a.start_date_local || a.start_date) + '</div>'

@@ -229,7 +229,7 @@ function renderOverviewInsights(){
       [r.start_kec,r.furthest_kec].forEach(k=>k&&kecs.add(k));
       [r.start_kab,r.furthest_kab].forEach(k=>k&&kabs.add(k));
       home[r.start_place]=(home[r.start_place]||0)+1;
-      if(r.furthest_place) dest[r.furthest_place]=(dest[r.furthest_place]||0)+1; });
+      if(r.furthest_place) dest[destName(r)]=(dest[destName(r)]||0)+1; });
     const top=o=>Object.entries(o).sort((x,y)=>y[1]-x[1])[0];
     const h=top(home), t=top(dest);
     const outs=placed.filter(a=>a.route_places.furthest_km_from_start);
@@ -240,7 +240,7 @@ function renderOverviewInsights(){
       {ic:'map',lbl:T('Regencies'),val:kabs.size,sub:[...kabs].slice(0,3).join(', ')+(kabs.size>3?'…':'')},
       {ic:'home',lbl:T('Home base'),val:desa(h[0]),sub:TF('{0}% of starts',Math.round(h[1]/placed.length*100))+(area(h[0])?' · '+area(h[0]):''),place:true,cls:'no-ai'},
       t&&{ic:'flag',lbl:T('Top destination'),val:desa(t[0]),sub:TF('{0} trips',t[1])+(area(t[0])?' · '+area(t[0]):''),place:true},
-      far&&{ic:'route',lbl:T('Furthest trip'),val:desa(far.route_places.furthest_place),sub:TF('{0} from start',fmtD(far.route_places.furthest_km_from_start*1000)),place:true,act:far.id},
+      far&&{ic:'route',lbl:T('Furthest trip'),val:desa(destName(far.route_places)),sub:TF('{0} from start',fmtD(far.route_places.furthest_km_from_start*1000)),place:true,act:far.id},
       outs.length&&{ic:'reach',lbl:T('Avg reach'),val:fmtD(reach*1000),sub:T('start → turnaround')});
   }
 

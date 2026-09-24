@@ -243,7 +243,7 @@ async function drawStatsImage(canvas, a, wx, style) {
   // destination only — the start village (home) is never written on the image;
   // the route line/map still show the whole ride. Font shrinks to fit one line.
   const rp = a.route_places;
-  const placeLine = rp && rp.furthest_place ? rp.furthest_place + '  ·  ' + fmtD(rp.furthest_km_from_start * 1000) + ' out' : '';
+  const placeLine = rp && rp.furthest_place ? destName(rp) + '  ·  ' + fmtD(rp.furthest_km_from_start * 1000) + ' out' : '';
   if (placeLine) {
     _siPin(ctx, P + 14, y - 20, 30, SI_ORANGE);
     let fs = 34;

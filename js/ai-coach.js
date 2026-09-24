@@ -282,11 +282,27 @@ async function aiRoutePlaces(a) {
     if (!furthest) return null;
     if (furthest.name !== start.name) {
       Object.assign(out, { furthest_place: furthest.name, furthest_kec: furthest.kec, furthest_kab: furthest.kab, furthest_km_from_start: Math.round(farKm) });
+      _placesLandmark(out, far);
     }
   }
   a.route_places = out;
   if (a.id) { const m = _placesMap(); m[a.id] = out; _placesSave(m); }
   return out;
+}
+
+/* Tag a destination with a Bali landmark (js/landmarks.js) — local, no lookup.
+   furthest_landmark is '' when the turnaround isn't at one, so it's set once. */
+function _placesLandmark(rp, far) {
+  const lm = typeof nearestLandmark === 'function' && far ? nearestLandmark(far[0], far[1]) : null;
+  rp.furthest_landmark = lm ? lm.n : '';
+}
+function _placesFarPoint(a) {
+  const pl = a.map && a.map.summary_polyline; if (!pl) return null;
+  const pts = decodePolyline(pl); if (pts.length < 2) return null;
+  const s = a.start_latlng && a.start_latlng.length === 2 ? a.start_latlng : pts[0];
+  let far = pts[0], d0 = 0;
+  pts.forEach(p => { const d = aiHaversine(s[0], s[1], p[0], p[1]); if (d > d0) { d0 = d; far = p; } });
+  return far;
 }
 
 /* Fill route_places for every activity in the background (newest first).
@@ -299,7 +315,12 @@ async function placesBackfill() {
   const fresh = a => a.route_places && a.route_places.v === PLACES_V;
   let reattached = 0;
   acts.forEach(a => { if (!fresh(a) && m[a.id]) { a.route_places = m[a.id]; reattached++; } });
-  if (reattached) _placesRefreshUI(true);
+  // destinations looked up before landmarks existed: tag them locally
+  let tagged = 0;
+  acts.forEach(a => { const rp = a.route_places;
+    if (fresh(a) && rp.furthest_place && !('furthest_landmark' in rp)) { _placesLandmark(rp, _placesFarPoint(a)); m[a.id] = rp; tagged++; } });
+  if (tagged) { _placesSave(m); aiSyncCache(); }
+  if (reattached || tagged) _placesRefreshUI(true);
   const todo = acts.filter(a => !fresh(a) && a.map && a.map.summary_polyline);
   let done = 0;
   for (const a of todo) {
@@ -325,7 +346,8 @@ function _placesRefreshUI(full) {
 /* "Guwang, Sukawati → Kintamani, Bangli · 46 km out" (or just the start). */
 function routePlacesText(rp) {
   if (!rp || !rp.start_place) return '';
-  return rp.furthest_place ? rp.start_place + ' → ' + rp.furthest_place + ' · ' + fmtD(rp.furthest_km_from_start * 1000) + ' out' : rp.start_place;
+  const dest = rp.furthest_landmark ? rp.furthest_landmark + ' (' + rp.furthest_place + ')' : rp.furthest_place;
+  return rp.furthest_place ? rp.start_place + ' → ' + dest + ' · ' + fmtD(rp.furthest_km_from_start * 1000) + ' out' : rp.start_place;
 }
 
 /* Append a "📍 destination · 46 km out" line to an AI description (so the place
@@ -334,7 +356,7 @@ function routePlacesText(rp) {
 function aiWithLocation(desc, a) {
   const rp = a && a.route_places;
   if (!rp || !rp.furthest_place) return desc;
-  return (desc ? desc + '\n\n' : '') + '📍 ' + rp.furthest_place + ' · ' + fmtD(rp.furthest_km_from_start * 1000) + ' out';
+  return (desc ? desc + '\n\n' : '') + '📍 ' + destName(rp) + ' · ' + fmtD(rp.furthest_km_from_start * 1000) + ' out';
 }
 
 /* Activity data + weather + route places, for the caption prompt. */
@@ -342,7 +364,7 @@ async function aiWithWeather(a) {
   const data = aiActivityData(a);
   try { const wx = await aiWeather(a); if (wx) data.weather = wx; } catch {}
   // destination only — the start is the athlete's home and must never reach the AI
-  try { const rp = await aiRoutePlaces(a); if (rp && rp.furthest_place) Object.assign(data, { furthest_place: rp.furthest_place, furthest_kab: rp.furthest_kab, furthest_km_from_start: rp.furthest_km_from_start }); } catch {}
+  try { const rp = await aiRoutePlaces(a); if (rp && rp.furthest_place) Object.assign(data, { furthest_landmark: rp.furthest_landmark || undefined, furthest_place: rp.furthest_place, furthest_kab: rp.furthest_kab, furthest_km_from_start: rp.furthest_km_from_start }); } catch {}
   return data;
 }
 
@@ -363,7 +385,7 @@ async function aiCaptionActivity(id) {
       + (roast ? 'Be fun and witty with a light, good-natured ROAST of the effort. ' : 'Keep an upbeat, motivating tone. ')
       + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. '
       + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
-      + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). NEVER mention, guess or hint at where I started or where I live. '
+      + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. NEVER mention, guess or hint at where I started or where I live. '
       + 'If a "weather" field is present it is a rough estimate that may be inaccurate — reference conditions only lightly, never as a hard fact, and if it seems inconsistent with the effort just leave weather out. '
       + 'Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
@@ -466,7 +488,7 @@ function aiStatsTemplate(a, wx, rp) {
   const title = (tod + ' ' + typeLabel + ' · ' + fmtD(a.distance) + (a.total_elevation_gain > 100 ? ' · ' + fmtElev(a.total_elevation_gain) : '')).slice(0, 100);
 
   const L = ['Distance: ' + fmtD(a.distance)];
-  if (rp && rp.furthest_place) L.push('Destination: ' + rp.furthest_place + ' (' + fmtD(rp.furthest_km_from_start * 1000) + ' out)');
+  if (rp && rp.furthest_place) L.push('Destination: ' + destName(rp) + ' (' + fmtD(rp.furthest_km_from_start * 1000) + ' out)');
   if (a.moving_time) L.push('Time: ' + fmtT(a.moving_time));
   if (a.total_elevation_gain) L.push('Elevation: ' + fmtElev(a.total_elevation_gain));
   if (a.average_speed) L.push(ride ? 'Avg speed: ' + fmtSpeed(a.average_speed) : 'Avg pace: ' + fmtPace(a.average_speed));
@@ -567,7 +589,7 @@ async function bulkRun(p, mode) {
         const t = aiStatsTemplate(a, wx, rp); name = t.title; desc = t.desc;
       } else {
         const messages = [
-          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
+          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
           { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
         ];
         const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
@@ -680,7 +702,7 @@ const AI_SECTION_EXTRA = {
     for (let i = 0; i < byDist.length && far.length < 2; i++) {
       if (byDist[i].d < 5) break; // not meaningfully far from home
       const w = byDist[i];
-      const loc = w.a.route_places && w.a.route_places.furthest_place; // destination, never the start
+      const loc = destName(w.a.route_places); // destination, never the start
       far.push('"' + ((w.a.name || 'a ride').slice(0, 40)) + '"' + (loc ? ' to ' + loc : '') + ' (~' + Math.round(w.d) + ' km away)');
     }
 
@@ -688,7 +710,7 @@ const AI_SECTION_EXTRA = {
     if (far.length) s += ' Rides that started furthest from home: ' + far.join('; ') + '.';
     // most-visited destinations (turnaround villages), from the stored route places
     const dest = {};
-    acts.forEach(a => { const f = a.route_places && a.route_places.furthest_place; if (f) dest[f] = (dest[f] || 0) + 1; });
+    acts.forEach(a => { const f = a.route_places && a.route_places.furthest_place && destName(a.route_places); if (f) dest[f] = (dest[f] || 0) + 1; });
     const topDest = Object.entries(dest).sort((x, y) => y[1] - x[1]).slice(0, 8);
     if (topDest.length) s += ' Most-visited ride destinations (furthest point from start): ' + topDest.map(([p, n]) => p + ' ×' + n).join('; ') + '.';
     return s;

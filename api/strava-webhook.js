@@ -11,6 +11,7 @@
 //   STRAVA_WEBHOOK_VERIFY_TOKEN. Optional: AUTO_CAPTION=off to disable.
 const { waitUntil } = require('@vercel/functions');
 const STRAVA = 'https://www.strava.com/api/v3';
+const { nearestLandmark } = require('../js/landmarks.js');
 
 async function ownerAccessToken() {
   const client_id = (process.env.STRAVA_CLIENT_ID || '').replace(/\s+/g, '');
@@ -103,7 +104,10 @@ async function routePlaces(a) {
   if (farKm >= 2) {
     await new Promise(res => setTimeout(res, 1100)); // Nominatim: max 1 req/s
     const furthest = await placeName(far[0], far[1]);
-    if (furthest && furthest !== start) { out.furthest_place = furthest; out.furthest_km_from_start = Math.round(farKm); }
+    if (furthest && furthest !== start) {
+      out.furthest_place = furthest; out.furthest_km_from_start = Math.round(farKm);
+      const lm = nearestLandmark(far[0], far[1]); if (lm) out.furthest_landmark = lm.n;
+    }
   }
   return out;
 }
@@ -126,10 +130,10 @@ async function generateCaption(a) {
   if (wx) data.weather = wx;
   const rp = await routePlaces(a).catch(() => null);
   // destination only — the start is the athlete's home and must never reach the AI
-  if (rp && rp.furthest_place) Object.assign(data, { furthest_place: rp.furthest_place, furthest_km_from_start: rp.furthest_km_from_start });
+  if (rp && rp.furthest_place) Object.assign(data, { furthest_landmark: rp.furthest_landmark, furthest_place: rp.furthest_place, furthest_km_from_start: rp.furthest_km_from_start });
   const messages = [
     { role: 'system', content:
-      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
+      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nWrite my new title and description.' },
   ];
   const r = await fetch('https://api.deepseek.com/chat/completions', {
@@ -142,7 +146,7 @@ async function generateCaption(a) {
   // always state the destination in the description: "📍 Kintamani, Bangli · 46 km out".
   // Never the start — that's home.
   if (text && rp && rp.furthest_place) {
-    return text.trim() + '\n\n📍 ' + rp.furthest_place + ' · ' + rp.furthest_km_from_start + ' km out';
+    return text.trim() + '\n\n📍 ' + (rp.furthest_landmark || rp.furthest_place) + ' · ' + rp.furthest_km_from_start + ' km out';
   }
   return text;
 }

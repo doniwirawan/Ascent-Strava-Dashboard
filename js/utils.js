@@ -81,9 +81,10 @@ const fmtDtShort = d => new Date(d).toLocaleDateString('en-GB',{day:'numeric',mo
    in front when there is a label. '' until the places backfill has reached it. */
 function placeTag(a, sep){
   const rp=a&&a.route_places; if(!rp||!rp.start_place) return '';
-  const full=rp.furthest_place ? rp.start_place+' → '+rp.furthest_place+' ('+fmtD(rp.furthest_km_from_start*1000)+' out)' : rp.start_place;
+  const dest=rp.furthest_landmark ? rp.furthest_landmark+' ('+rp.furthest_place+')' : rp.furthest_place;
+  const full=rp.furthest_place ? rp.start_place+' → '+dest+' ('+fmtD(rp.furthest_km_from_start*1000)+' out)' : rp.start_place;
   // the start is home: wrapped in .no-ai so AI page insights never read it
-  const txt=rp.furthest_place ? '<span class="no-ai">'+rp.start_place.split(',')[0]+' → </span>'+rp.furthest_place : '<span class="no-ai">'+rp.start_place+'</span>';
+  const txt=rp.furthest_place ? '<span class="no-ai">'+rp.start_place.split(',')[0]+' → </span>'+destName(rp) : '<span class="no-ai">'+rp.start_place+'</span>';
   return (sep||'')+'<span class="act-place'+(rp.furthest_place?'':' loop')+'" title="'+full.replace(/"/g,'&quot;')+'">📍 '+txt+'</span>';
 }
 // Local calendar-date key "YYYY-MM-DD" for a Date, matching the wall-clock date
