@@ -1325,3 +1325,31 @@ body.dev .dev-tag { display: inline-block; }
   .regency-body { grid-template-columns: 1fr; }
   .regency-map { height: 240px; }
 }
+
+/* ── Data page — every activity + sleep night, sortable ── */
+.dt-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
+.dt-bar .act-reg-tags { margin: 0; flex: 1; min-width: 0; align-items: center; }
+.dt-count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.dt-note { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.dt-wrap { overflow: auto; max-height: 72vh; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.dt { border-collapse: separate; border-spacing: 0; font-size: 12px; min-width: 100%; }
+.dt th, .dt td { padding: 7px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.dt th { position: sticky; top: 0; z-index: 2; background: var(--surface2); color: var(--text-2); font-size: 11px; font-weight: 700; cursor: pointer; user-select: none; }
+.dt th:hover, .dt th.dt-on { color: var(--orange); }
+.dt td { background: var(--surface); color: var(--text); font-variant-numeric: tabular-nums; }
+.dt .dt-txt { text-align: left; }
+.dt td.dt-txt { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+.dt .dt-sticky { position: sticky; left: 0; z-index: 1; text-align: left; box-shadow: 1px 0 0 var(--border); }
+.dt th.dt-sticky { z-index: 3; }
+.dt .dt-sleep { color: #a5b4fc; }
+.dt th.dt-sleep { color: #a5b4fc; }
+.dt .dt-first { border-left: 2px solid rgba(165,180,252,.35); }
+.dt tr.dt-act { cursor: pointer; }
+.dt tr.dt-act:hover td { background: var(--surface2); }
+.dt-rest { color: var(--muted); font-style: italic; }
+@media (max-width: 560px) {
+  .dt-bar { flex-direction: column; align-items: stretch; gap: 6px; }
+  .dt { font-size: 11px; }
+  .dt th, .dt td { padding: 6px 8px; }
+  .dt td.dt-txt { max-width: 150px; }
+}
