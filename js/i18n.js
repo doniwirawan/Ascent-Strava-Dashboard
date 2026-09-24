@@ -281,6 +281,7 @@ const APP_ID = {
   'Analyze performance': 'Analisis performa', 'AI title & description': 'Judul & deskripsi AI',
   'Stats title & description': 'Judul & deskripsi statistik', 'Stats image': 'Gambar statistik',
   'Ride destinations by regency': 'Tujuan ride per kabupaten',
+  'Search by name, type or destination…': 'Cari nama, jenis, atau tujuan…',
   "Where each ride turned around, on Bali's regencies. Loops count where they stayed. Hover or tap a regency for details.": 'Titik balik tiap ride, dipetakan per kabupaten di Bali. Ride keliling dihitung di tempatnya. Arahkan kursor atau ketuk kabupaten untuk detail.',
   'Avg Power': 'Daya Rata-rata', 'Norm Power': 'Daya Normal', 'Max Power': 'Daya Maks',
   'Energy': 'Energi', 'Relative Effort': 'Upaya Relatif', 'Avg Temp': 'Suhu Rata-rata',
@@ -1058,6 +1059,12 @@ window.trf = function (s, ...args) {
       const key = en.trim();
       const tr = APP_ID[key];
       n.nodeValue = (lang === 'id' && tr != null) ? en.replace(key, tr) : en;
+    });
+    // input placeholders: the English text is the key, remembered on first pass
+    document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(el => {
+      if (el.dataset.phEn == null) el.dataset.phEn = el.placeholder;
+      const tr = APP_ID[el.dataset.phEn];
+      el.placeholder = (lang === 'id' && tr != null) ? tr : el.dataset.phEn;
     });
     translateDynamic();
     document.documentElement.lang = lang;
