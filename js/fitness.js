@@ -359,6 +359,7 @@ function setHrzMode(m, id) {
   const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
   if (a) renderActivityHrZones(a);
 }
+let _hrzOwnerDobTried = false; // one /api/owner-profile lookup per page load
 function setHrzBirthDate(v, id) {
   if (!v) return;
   try { localStorage.setItem('hrzBirthDate', v); } catch {}
@@ -385,6 +386,15 @@ async function renderActivityHrZones(a) {
   if (_hrzMode === 'age' && a.id) {
     const note = document.getElementById('actHrzNote');
     if (!age) {
+      // the owner's birth date is kept server-side (public repo) — fetch it once
+      if (_isHrzOwner() && !_hrzOwnerDobTried) {
+        _hrzOwnerDobTried = true;
+        try {
+          const r = await fetch('/api/owner-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: CONFIG.accessToken }) });
+          const d = r.ok ? await r.json() : null;
+          if (d && d.birthdate) { setHrzBirthDate(d.birthdate, a.id); return; }
+        } catch {}
+      }
       document.getElementById('actHrzRing').style.display = 'none';
       note.innerHTML = `${tr('Your birth date (Strava doesn’t share it) — saved in this browser only:')}
         <input type="date" class="hrz-dob" onchange="setHrzBirthDate(this.value,'${a.id}')">`;
