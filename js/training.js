@@ -491,6 +491,52 @@ function _trFtpCardHTML(ftpEst) {
     </div>`;
 }
 
+/* ── RUN PREDICTIONS ──────────────────────────────────────────────────────────
+   Jack Daniels' VDOT: a run's pace and duration → an "effective VO2max", which
+   then predicts race times at any distance. Two rows: from your best actual run
+   (dated — old runs predict old fitness) and your potential from the cycling
+   VO2max estimate, an upper bound since running legs & economy need running. */
+const _trVo2Pace = v => -4.60 + 0.182258 * v + 0.000104 * v * v;               // v in m/min
+const _trVo2Frac = t => 0.8 + 0.1894393 * Math.exp(-0.012778 * t) + 0.2989558 * Math.exp(-0.1932605 * t); // t in min
+const _trVdot = (m, min) => _trVo2Pace(m / min) / _trVo2Frac(min);
+function _trRaceMin(vdot, m) {   // bisection: VDOT falls as the time for a distance grows
+  let lo = 1, hi = 900;
+  for (let i = 0; i < 50; i++) { const t = (lo + hi) / 2; if (_trVdot(m, t) > vdot) lo = t; else hi = t; }
+  return (lo + hi) / 2;
+}
+const _TR_RACES = [['5K', 5000], ['10K', 10000], ['Half', 21097.5], ['Marathon', 42195]];
+
+function _trRunPredictHTML() {
+  // best run: ≥1.5 km at a running (not walking) pace
+  let best = null;
+  acts.forEach(a => {
+    if (!/Run/.test(a.sport_type || a.type || '') || (a.distance || 0) < 1500 || !(a.moving_time > 0)) return;
+    if (a.moving_time / 60 / (a.distance / 1000) >= 12) return;
+    const v = _trVdot(a.distance, a.moving_time / 60);
+    if (!best || v > best.v) best = { v, a };
+  });
+  const vo2 = (typeof estimateVo2max === 'function') ? estimateVo2max() : null;
+  if (!best && !vo2) return '';
+  const hms = min => { const s = Math.round(min * 60), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(ss).padStart(2, '0'); };
+  const pace = (min, m) => { const p = min / (m / 1000), mm = Math.floor(p), ss = Math.round((p - mm) * 60); return (ss === 60 ? (mm + 1) + ':00' : mm + ':' + String(ss).padStart(2, '0')) + '/km'; };
+  const cells = V => _TR_RACES.map(([, m]) => { const t = _trRaceMin(V, m); return `<td><b>${hms(t)}</b><small>${pace(t, m)}</small></td>`; }).join('');
+  const rows = [];
+  if (best) {
+    const d = best.a.start_date || best.a.start_date_local;   // real UTC — fmtDt converts to local
+    const months = Math.floor((Date.now() - new Date(d).getTime()) / (30.44 * 864e5));
+    rows.push(`<tr><th>${tr('From your runs')}<small>VDOT ${best.v.toFixed(0)} · <a href="#" onclick="openActivityModal('${best.a.id}');return false">${fmtD(best.a.distance)} ${tr('on')} ${fmtDt(d)}</a>${months >= 3 ? ' · ' + trf('{0} months ago', months) : ''}</small></th>${cells(best.v)}</tr>`);
+  }
+  if (vo2) rows.push(`<tr><th>${tr('Potential')}<small>${trf('from cycling VO₂max {0}', vo2.value)}</small></th>${cells(vo2.value)}</tr>`);
+  return `<div class="card tr-runp">
+    <div class="tr-chart-title">${tr('Run Predictions')} <span class="gm-hint">${tr('Daniels VDOT')}</span></div>
+    <div class="tr-runp-wrap"><table class="tr-runp-t">
+      <thead><tr><th></th>${_TR_RACES.map(([n]) => `<th>${tr(n)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table></div>
+    <div class="tr-basis-note">${tr('“From your runs” is what your best logged run supports today. “Potential” is the ceiling your aerobic engine allows — reaching it takes running training (legs, economy), and Half/Marathon also need long-run endurance. A 5K time trial updates the first row best.')}</div>
+  </div>`;
+}
+
 /* ── FITNESS TREND (ZONE-2) / SEASONAL / SIMILAR RIDE ─────────────────────────
    Three list-data insight cards, no extra API calls. */
 
@@ -788,6 +834,7 @@ function renderTraining() {
     ${_trFtpTrendHTML()}
     ${typeof _trClimbPowerHTML === 'function' ? _trClimbPowerHTML() : ''}
     ${_trNote('FTP & W/kg')}
+    ${_trRunPredictHTML()}
     <div class="tr-tiles">
       ${tile(Math.round(d.ctl), '', tr('Fitness · CTL'), 'var(--orange)', tr('42-day load'))}
       ${tile(Math.round(d.atl), '', tr('Fatigue · ATL'), '#a78bfa', tr('7-day load'))}

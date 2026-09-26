@@ -1136,6 +1136,14 @@ body.dev .dev-tag { display: inline-block; }
 .cp-w { width: 70px; flex: none; font-weight: 800; color: var(--orange); }
 .cp-ctx { flex: 1; min-width: 180px; font-size: 11px; color: var(--muted); }
 .cp-ctx a { color: var(--text-2); }
+.tr-runp-wrap { overflow-x: auto; }
+.tr-runp-t { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tr-runp-t th, .tr-runp-t td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tr-runp-t thead th { font-size: 11px; color: var(--muted); font-weight: 600; }
+.tr-runp-t tbody th { text-align: left; font-weight: 700; }
+.tr-runp-t small { display: block; font-size: 10px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.tr-runp-t small a { color: var(--text-2); }
+.tr-runp-t td b { color: var(--orange); }
 .pc-dur { font-size: 12px; font-weight: 700; color: var(--text-2); width: 48px; flex: none; }
 .pc-track { flex: 1; height: 9px; border-radius: 5px; background: var(--surface3, #2a2a2a); overflow: hidden; }
 .pc-track > span { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #a855f7, #fc4c02); }
