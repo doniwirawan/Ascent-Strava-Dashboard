@@ -1137,6 +1137,13 @@ body.dev .dev-tag { display: inline-block; }
 .cp-ctx { flex: 1; min-width: 180px; font-size: 11px; color: var(--muted); }
 .cp-ctx a { color: var(--text-2); }
 .tr-runp-wrap { overflow-x: auto; }
+.tr-zcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.tr-zc-h { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+.tr-zc-h small { font-weight: 400; color: var(--muted); margin-left: 6px; }
+.tr-zr { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.tr-zn { width: 26px; font-weight: 800; color: var(--orange); }
+.tr-zl { flex: 1; color: var(--text-2); }
+.tr-zv { font-weight: 700; white-space: nowrap; }
 .tr-runp-t { width: 100%; border-collapse: collapse; font-size: 13px; }
 .tr-runp-t th, .tr-runp-t td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .tr-runp-t thead th { font-size: 11px; color: var(--muted); font-weight: 600; }

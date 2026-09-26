@@ -491,6 +491,31 @@ function _trFtpCardHTML(ftpEst) {
     </div>`;
 }
 
+/* ── TRAINING ZONES ───────────────────────────────────────────────────────────
+   Power zones (Coggan, % of FTP) and heart-rate zones (Friel, % of threshold
+   HR ≈ 89% of max), so a "Zone 2 ride" or "sweet spot" has concrete targets. */
+const _TR_PZ = [['Z1', 'Recovery', 0, .55], ['Z2', 'Endurance', .56, .75], ['Z3', 'Tempo', .76, .87], ['SS', 'Sweet spot', .88, .94],
+  ['Z4', 'Threshold', .95, 1.05], ['Z5', 'VO₂max', 1.06, 1.20], ['Z6', 'Anaerobic', 1.21, 1.50]];
+const _TR_HZ = [['Z1', 'Recovery', 0, .80], ['Z2', 'Endurance', .81, .89], ['Z3', 'Tempo', .90, .93], ['Z4', 'Threshold', .94, .99], ['Z5', 'VO₂max', 1.00, 1.06]];
+function _trZonesHTML(ftpEst) {
+  const hrMax = (typeof observedMaxHr === 'function' && observedMaxHr()) || 0;
+  if (!ftpEst && !hrMax) return '';
+  const lthr = Math.round(hrMax * 0.89);
+  const col = (title, sub, zones, base, unit) => `<div class="tr-zc">
+      <div class="tr-zc-h">${title} <small>${sub}</small></div>
+      ${zones.map(([z, name, , hi], i) => `<div class="tr-zr"><span class="tr-zn">${z}</span><span class="tr-zl">${tr(name)}</span>
+        <span class="tr-zv">${i === 0 ? '< ' + Math.round(base * hi) : (Math.round(base * zones[i - 1][3]) + 1) + '–' + Math.round(base * hi)} ${unit}</span></div>`).join('')}
+    </div>`;
+  return `<div class="card tr-zones">
+    <div class="tr-chart-title">${tr('Training Zones')}</div>
+    <div class="tr-zcols">
+      ${ftpEst ? col(tr('Power'), 'FTP ' + ftpEst.value + ' W', _TR_PZ, ftpEst.value, 'W') : ''}
+      ${hrMax ? col(tr('Heart rate'), trf('threshold ≈ {0} bpm', lthr), _TR_HZ, lthr, 'bpm') : ''}
+    </div>
+    <div class="tr-basis-note">${tr('Easy rides belong in Z2 (both columns agree). Sweet spot and Z4 build FTP; keep them to 1–2 sessions a week.')}</div>
+  </div>`;
+}
+
 /* ── RUN PREDICTIONS ──────────────────────────────────────────────────────────
    Jack Daniels' VDOT: a run's pace and duration → an "effective VO2max", which
    then predicts race times at any distance. Two rows: from your best actual run
@@ -834,6 +859,7 @@ function renderTraining() {
     ${_trFtpTrendHTML()}
     ${typeof _trClimbPowerHTML === 'function' ? _trClimbPowerHTML() : ''}
     ${_trNote('FTP & W/kg')}
+    ${_trZonesHTML(d.ftpEst)}
     ${_trRunPredictHTML()}
     <div class="tr-tiles">
       ${tile(Math.round(d.ctl), '', tr('Fitness · CTL'), 'var(--orange)', tr('42-day load'))}
