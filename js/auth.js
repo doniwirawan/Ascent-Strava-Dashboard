@@ -84,6 +84,8 @@ async function loadData(forceRefresh = false) {
         try {
           if (isTokenExpired()) await doRefresh();
           renderAthlete(await api('/athlete'));
+          // list was drawn before the athlete (and its bikes) loaded — redraw for bike labels
+          _renderActList((document.getElementById('actSearch') || {}).value || '');
           await loadHrZones();
           renderGear();
         } catch {}
