@@ -617,6 +617,67 @@ function _slpBikeBody(allDays, train, byDate) {
                  rideN: rideSteps.length, restN: restSteps.length } : null };
 }
 
+/* ── BODY → BIKE ─────────────────────────────────────────────────────────────
+   The reverse of the table above: does the night BEFORE a ride show up in it?
+   Speed and ride HR depend mostly on the route, so both are first corrected for
+   climbing per km and distance (least squares over your own rides); what's left
+   — "faster / lower HR than usual for a ride like that" — is compared between
+   nights above and below your own 30-night baseline. |r| ≥ 2/√n is treated as a
+   real effect (~95%); anything weaker is reported as no clear effect. */
+function _slpOls(X, y) {
+  const k = X[0].length + 1, A = Array.from({ length: k }, () => Array(k).fill(0)), b = Array(k).fill(0);
+  X.forEach((x, i) => { const r = [1, ...x]; for (let p = 0; p < k; p++) { b[p] += r[p] * y[i]; for (let q = 0; q < k; q++) A[p][q] += r[p] * r[q]; } });
+  for (let i = 0; i < k; i++) {                      // Gauss–Jordan, partial pivot
+    let m = i; for (let r = i + 1; r < k; r++) if (Math.abs(A[r][i]) > Math.abs(A[m][i])) m = r;
+    [A[i], A[m]] = [A[m], A[i]]; [b[i], b[m]] = [b[m], b[i]];
+    if (!A[i][i]) return null;
+    for (let r = 0; r < k; r++) if (r !== i) { const f = A[r][i] / A[i][i]; for (let c = i; c < k; c++) A[r][c] -= f * A[i][c]; b[r] -= f * b[i]; }
+  }
+  return b.map((v, i) => v / A[i][i]);
+}
+function _slpBodyBike(allDays) {
+  if (typeof acts === 'undefined' || !acts) return null;
+  const idx = new Map(allDays.map((d, i) => [d.date, i]));
+  const base = (i, k) => {
+    const v = allDays.slice(Math.max(0, i - 30), i).map(x => x[k]).filter(x => x != null);
+    return v.length >= 10 ? _slpMean(v) : null;
+  };
+  const rows = [];
+  acts.forEach(a => {
+    if (!isRide(a) || a.sport_type === 'VirtualRide' || a.trainer || (a.moving_time || 0) < 1800 || !(a.average_heartrate > 0) || !(a.distance > 0)) return;
+    const d = (a.start_date_local || '').slice(0, 10), i = idx.get(d);
+    if (i == null) return;
+    const n = allDays[i];                              // the night that ended that morning
+    if (!(n.asleep >= 180)) return;
+    const r = { spd: a.average_speed * 3.6, hr: a.average_heartrate,
+                epk: (a.total_elevation_gain || 0) / (a.distance / 1000), ld: Math.log(a.distance / 1000) };
+    [['hrv', 'hrv'], ['rhr', 'rhr'], ['asleep', 'sleep']].forEach(([k, o]) => { const b = base(i, k); r[o] = (n[k] != null && b != null) ? n[k] - b : null; });
+    rows.push(r);
+  });
+  if (rows.length < 20) return null;
+  const bs = _slpOls(rows.map(r => [r.epk, r.ld]), rows.map(r => r.spd));
+  const bh = _slpOls(rows.map(r => [r.spd, r.epk]), rows.map(r => r.hr));
+  if (!bs || !bh) return null;
+  rows.forEach(r => { r.rs = r.spd - (bs[0] + bs[1] * r.epk + bs[2] * r.ld); r.rh = r.hr - (bh[0] + bh[1] * r.spd + bh[2] * r.epk); });
+  const SIG = [
+    { k: 'hrv',   lbl: tr('HRV'),                good: 1 },
+    { k: 'rhr',   lbl: tr('Resting heart rate'), good: -1 },
+    { k: 'sleep', lbl: tr('Sleep length'),       good: 1 },
+  ];
+  const out = SIG.map(s => {
+    const R = rows.filter(r => r[s.k] != null);
+    if (R.length < 20) return null;
+    const hi = R.filter(r => r[s.k] > 0), lo = R.filter(r => r[s.k] <= 0);
+    const rS = _slpCorr(R.map(r => r[s.k]), R.map(r => r.rs)), rH = _slpCorr(R.map(r => r[s.k]), R.map(r => r.rh));
+    if (rS == null || rH == null) return null;
+    const thr = 2 / Math.sqrt(R.length);
+    return { ...s, n: R.length, rS, rH, sigS: Math.abs(rS) >= thr, sigH: Math.abs(rH) >= thr,
+             hiS: _slpMean(hi.map(r => r.rs)), loS: _slpMean(lo.map(r => r.rs)), hiH: _slpMean(hi.map(r => r.rh)), loH: _slpMean(lo.map(r => r.rh)),
+             nHi: hi.length, nLo: lo.length };
+  }).filter(Boolean);
+  return out.length ? { sigs: out, n: rows.length } : null;
+}
+
 /* ── PHANTOM STEPS ───────────────────────────────────────────────────────────
    The watch counts steps from wrist movement, and a bike ride shakes the wrist
    for hours. Rides are recorded on an iGPSport head unit and land in Strava, so
@@ -886,9 +947,10 @@ function _slpAnalyse(nights) {
   const stress = _slpStressAnalysis(allDays, train, byDate);
   const energy = _slpEnergy(allDays, train);
   const bike = _slpBikeBody(allDays, train, byDate);
+  const bodyBike = _slpBodyBike(allDays);
   const steps = _slpSteps(allDays, train);
 
-  return { real, allDays, records, risk, yearHealth, stress, energy, bike, steps,
+  return { real, allDays, records, risk, yearHealth, stress, energy, bike, bodyBike, steps,
            train, win, byDate, days, afterT, afterR, aT, aR, cuts, buckets,
            dowAgg, worst, byMonth, months, starts, dawn, later, startBuckets,
            bigDays, arc, HIST, under6, over7, byYear, years, bp, bedSlope, all,
@@ -1238,6 +1300,35 @@ function _slpBikeHTML(B) {
         : tr('Strava knows what you did and the watch knows what it cost — joining them is the only way to see the price of a hard day.')}</div>
 
       ${B.steps ? `<div class="slp-note">${trf('Worth reading alongside the step correction above: you record {0} steps on riding days against {1} on rest days, and most of that gap is the bike shaking your wrist rather than extra walking.', _slpNum(B.steps.ride), _slpNum(B.steps.rest))}</div>` : ''}
+    </div>`;
+}
+
+function _slpBodyBikeHTML(P) {
+  if (!P) return '';
+  const sgn = (v, d) => { const t = Math.abs(v).toFixed(d); return (+t === 0 ? '±' : v > 0 ? '+' : '−') + t; };
+  const rows = P.sigs.map(s => `<tr>
+    <td>${s.lbl}<span class="slp-cell-sub">${trf('{0} rides', s.n)}</span></td>
+    <td class="slp-num">${sgn(s.hiS, 1)} km/h<span class="slp-cell-sub">${sgn(s.hiH, 1)} bpm · n ${s.nHi}</span></td>
+    <td class="slp-num">${sgn(s.loS, 1)} km/h<span class="slp-cell-sub">${sgn(s.loH, 1)} bpm · n ${s.nLo}</span></td>
+    <td class="slp-num">${s.rS.toFixed(2)}${s.sigS ? ' ✓' : ''}<span class="slp-cell-sub">HR ${s.rH.toFixed(2)}${s.sigH ? ' ✓' : ''}</span></td>
+  </tr>`).join('');
+  const real = P.sigs.filter(s => s.sigS || s.sigH);
+  const note = real.length
+    ? real.map(s => {
+        const helps = (s.sigS ? Math.sign(s.rS) : -Math.sign(s.rH)) * s.good > 0;
+        return trf(helps ? '{0} matters for you: a better night before shows up as a better ride.' : '{0} runs against expectation for you — rides after a “better” night were no better, often worse.', s.lbl);
+      }).join(' ')
+    : tr('No clear effect yet: across these rides, last night’s HRV, resting HR and sleep don’t predict how fast or at what heart rate you ride. Your pace is set more by the route and how hard you choose to go than by recovery — so the Readiness score is a guide for how hard to go, not a forecast of your speed.');
+  return `
+    <div class="slp-chart-card card">
+      <div class="slp-chart-title">${tr('What your night does to the ride')}</div>
+      <div class="slp-chart-sub">${tr('Ride speed and heart rate, corrected for climbing and distance, after nights above vs below your own 30-night baseline')}</div>
+      <table class="slp-table">
+        <thead><tr><th>${tr('Night before')}</th><th>${tr('Above baseline')}</th><th>${tr('Below baseline')}</th><th>r</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="slp-note">${note}</div>
+      <div class="slp-chart-sub">${trf('✓ = beyond chance (|r| ≥ 2/√n). Positive km/h = faster than usual for that route; negative bpm = lower heart rate than usual for that speed. {0} rides with heart rate matched to a night.', P.n)}</div>
     </div>`;
 }
 
@@ -1612,6 +1703,7 @@ function _slpDraw(nights, body) {
     ${_slpEnergyHTML(energy)}
     ${_slpStepsHTML(steps)}
     ${_slpBikeHTML(bike)}
+    ${_slpBodyBikeHTML(A.bodyBike)}
     ${_slpExportHTML(A)}
   `;
 
