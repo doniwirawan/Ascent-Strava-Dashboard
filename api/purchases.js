@@ -34,14 +34,26 @@ module.exports = async (req, res) => {
       headers: { 'Neon-Connection-String': db, 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: 'select data, updated_at from purchase_data where id = $1', params: ['items'] }),
     });
-    if (!r.ok) throw new Error('neon ' + r.status);
+    // Tell the page WHY it's empty, since the data lives in another app that
+    // can change under us: table renamed / role lost access, row gone, or the
+    // "Cycling" category renamed.
+    if (!r.ok) {
+      const msg = String(((await r.json().catch(() => ({}))) || {}).message || '');
+      const code = /does not exist/i.test(msg) ? 'source_missing'
+                 : /permission denied|password authentication/i.test(msg) ? 'no_access' : 'store_unavailable';
+      res.status(502).json({ error: code });
+      return;
+    }
     const row = ((await r.json()).rows || [])[0];
-    const items = ((row && row.data && row.data.items) || [])
+    const all = row && row.data && Array.isArray(row.data.items) ? row.data.items : null;
+    if (!all) { res.status(502).json({ error: 'no_items_row' }); return; }
+    const items = all
       .filter(x => x.category === 'Cycling')
       .map(({ site, date, date_approx, order_id, shop, item, variant, qty, list_price, paid, status, cancelled, sub }) =>
         ({ site, date, date_approx, order_id, shop, item, variant, qty, list_price, paid, status, cancelled, sub }));
     res.setHeader('Cache-Control', 'private, no-store');
-    res.status(200).json({ updated_at: row ? row.updated_at : null, items });
+    // total lets the page tell "no Cycling items" apart from "no purchases at all"
+    res.status(200).json({ updated_at: row.updated_at, total: all.length, items });
   } catch (e) {
     res.status(502).json({ error: 'store_unavailable' });
   }

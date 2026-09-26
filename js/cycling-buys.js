@@ -1,8 +1,8 @@
 /* ── CYCLING PURCHASES (owner only) ──
-   Every cycling item bought on Tokopedia / Shopee, from the purchase tracker
-   (purchase.doniwirawan.xyz) via the owner-gated /api/purchases. Also feeds the
+   Every cycling item bought on Tokopedia / Shopee, from the finance app
+   (finance.doniwirawan.xyz) via the owner-gated /api/purchases. Also feeds the
    Gear "cost per km" as a "parts & gear" line (bikes themselves excluded). */
-let _cbItems = null, _cbPromise = null;
+let _cbItems = null, _cbPromise = null, _cbErr = '';
 let _cbState = { sub: '', small: false, q: '', sort: 'date', dir: -1 };
 const CB_SMALL = 100000; // "small stuff" = under Rp100.000
 
@@ -15,8 +15,15 @@ function loadCyclingBuys() {
   if (_cbItems) return Promise.resolve(_cbItems);
   if (!cbIsOwner()) return Promise.resolve(null);
   return _cbPromise || (_cbPromise = fetch('/api/purchases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: CONFIG.accessToken }) })
-    .then(r => r.ok ? r.json() : null).then(d => { _cbItems = d ? d.items.filter(x => !x.cancelled) : null; return _cbItems; })
-    .catch(() => null).finally(() => { _cbPromise = null; }));
+    .then(async r => {
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d || !Array.isArray(d.items)) { _cbErr = (d && d.error) || 'store_unavailable'; return null; }
+      // purchases exist but none are "Cycling" — the finance app's category was likely renamed
+      _cbErr = !d.items.length && d.total > 0 ? 'no_cycling' : '';
+      _cbItems = d.items.filter(x => !x.cancelled);
+      return _cbItems;
+    })
+    .catch(() => { _cbErr = 'store_unavailable'; return null; }).finally(() => { _cbPromise = null; }));
 }
 
 /* Parts & gear total for the Gear cost-per-km (null until loaded / not owner). */
@@ -32,7 +39,18 @@ async function renderCyclingBuys() {
   if (!cbIsOwner()) { el.innerHTML = ''; return; }
   if (!_cbItems) el.innerHTML = '<div class="chart-note">' + tr('Loading your purchases…') + '</div>';
   const items = await loadCyclingBuys();
-  if (!items) { el.innerHTML = '<div class="chart-note">' + tr('Purchase data unavailable right now.') + '</div>'; return; }
+  // Explain an empty section instead of just going blank (the data lives in the finance app)
+  const why = {
+    source_missing: 'The purchase table was not found in the finance app’s database — it may have been renamed. The Ascent /api/purchases query needs updating to match.',
+    no_items_row: 'The finance app has no built purchase list yet (purchase_data “items” row missing) — open Spending there and sync once.',
+    no_access: 'The dashboard’s read-only database login (ascent_ro) no longer has access to the purchase table.',
+    no_cycling: 'Purchases loaded, but none are in the “Cycling” category — it may have been renamed in the finance app.',
+    not_configured: 'NEON_PURCHASES_URL is not set on this deployment.',
+  };
+  if (!items || _cbErr === 'no_cycling') {
+    el.innerHTML = '<div class="chart-note">' + tr(why[_cbErr] || 'Purchase data unavailable right now.') + '</div>';
+    return;
+  }
   const T = tr, TF = trf, sum = a => a.reduce((s, x) => s + (x.paid || 0), 0);
   const orders = a => new Set(a.map(x => x.site + x.order_id)).size;
   const parts = items.filter(x => !cbIsBike(x)), small = items.filter(x => x.paid < CB_SMALL);
