@@ -444,6 +444,10 @@ function estimateFtp() {
   const ath = (typeof currentAthlete !== 'undefined' && currentAthlete) || {};
   if (ath.ftp) return { value: Math.round(ath.ftp), estimated: false, basis: 'strava' };
 
+  // Without a power meter: climbing physics + heart rate (js/climb-ftp.js)
+  const climb = (typeof climbFtp === 'function') && climbFtp();
+  if (climb) return { value: climb, estimated: true, basis: 'climb' };
+
   if (typeof acts !== 'undefined' && acts.length) {
     let best = 0;
     for (const a of acts) {
@@ -468,9 +472,17 @@ function estimateVo2max() {
   if (!weight || typeof acts === 'undefined' || !acts.length) return null;
   const vo2FromPower = watts => 10.8 * (watts / weight) + 7;
 
-  // Steady rides (≥20 min) with both power and heart rate.
+  // Without a meter, the climb line read at max HR (js/climb-ftp.js).
+  const pMax = (typeof climbPmax === 'function') && climbPmax();
+  if (pMax) {
+    const v = vo2FromPower(pMax);
+    if (v >= 25 && v <= 90) return { value: Math.round(v), method: 'climb' };
+  }
+
+  // Steady rides (≥20 min) with both power and heart rate. Real meters only —
+  // Strava's estimated watts barely move with HR, so the fit reads nonsense.
   const pts = acts
-    .filter(a => isRide(a) && (a.moving_time || 0) >= 1200
+    .filter(a => isRide(a) && a.device_watts === true && (a.moving_time || 0) >= 1200
       && (a.weighted_average_watts || a.average_watts) > 0 && a.average_heartrate > 0)
     .map(a => ({ hr: a.average_heartrate, w: a.weighted_average_watts || a.average_watts }));
 

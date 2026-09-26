@@ -1022,6 +1022,8 @@ body.dev .dev-tag { display: inline-block; }
 .tr-ftp-wkg-val { font-size: 26px; font-weight: 900; letter-spacing: -.5px; line-height: 1; color: var(--text); }
 .tr-ftp-wkg-val span { font-size: 12px; font-weight: 700; color: var(--muted); margin-left: 3px; }
 .tr-ftp-wkg-band { font-size: 11px; font-weight: 700; color: var(--orange); margin-top: 5px; letter-spacing: .03em; }
+.tr-ftp-kg { display: block; margin-top: 8px; font-size: 11px; color: var(--muted); }
+.tr-ftp-kg input { width: 58px; padding: 2px 4px; background: var(--surface2, var(--surface)); color: var(--text); border: 1px solid var(--border); border-radius: 5px; font: inherit; text-align: center; }
 .tr-ftp-vo2 .tr-ftp-wkg-val { color: #22c55e; }
 .tr-ftp-wkg-empty { border-left: none; }
 .tr-ftp-wkg-hint { font-size: 11px; color: var(--muted); max-width: 130px; }
@@ -1129,6 +1131,11 @@ body.dev .dev-tag { display: inline-block; }
 /* ── POWER CURVE ─────────────────────────────────────────────────────── */
 .tr-pc { padding: 16px; margin-top: 16px; }
 .pc-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+.cp-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.cp-lbl { width: 110px; flex: none; font-size: 12px; color: var(--text-2); }
+.cp-w { width: 70px; flex: none; font-weight: 800; color: var(--orange); }
+.cp-ctx { flex: 1; min-width: 180px; font-size: 11px; color: var(--muted); }
+.cp-ctx a { color: var(--text-2); }
 .pc-dur { font-size: 12px; font-weight: 700; color: var(--text-2); width: 48px; flex: none; }
 .pc-track { flex: 1; height: 9px; border-radius: 5px; background: var(--surface3, #2a2a2a); overflow: hidden; }
 .pc-track > span { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #a855f7, #fc4c02); }

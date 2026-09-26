@@ -27,8 +27,9 @@ function _trToday() {
 function _trActivityLoad(a, ftp, hrMax, hrRest) {
   const dur = a.moving_time || a.elapsed_time || 0;
   if (dur <= 0) return null;
-  // 1) power-based TSS (rides with a power meter, when we have an FTP)
-  const np = a.weighted_average_watts || a.average_watts || 0;
+  // 1) power-based TSS (rides with a power meter, when we have an FTP).
+  // Strava's estimated watts don't count — they're a guess from speed.
+  const np = a.device_watts === true ? (a.weighted_average_watts || a.average_watts || 0) : 0;
   if (np > 0 && ftp > 0) {
     const IF = np / ftp;
     return { load: (dur * np * IF) / (ftp * 3600) * 100, basis: 'power' };
@@ -412,7 +413,8 @@ function _trWkgLabel(wkg) {
 // FTP trend: best ≥20-min normalized power per quarter × 0.95 (same basis as
 // estimateFtp), so you can see the estimate move over time. Power rides only.
 function _trFtpTrend() {
-  const rides = acts.filter(a => isRide(a) && (a.moving_time || 0) >= 1200 && (a.weighted_average_watts > 0 || a.average_watts > 0));
+  // real power meters only — a trend of Strava's estimated watts is a trend of guesses
+  const rides = acts.filter(a => isRide(a) && a.device_watts === true && (a.moving_time || 0) >= 1200 && (a.weighted_average_watts > 0 || a.average_watts > 0));
   if (rides.length < 4) return null;
   const q = {};
   rides.forEach(a => {
@@ -444,6 +446,14 @@ function _trFtpTrendHTML() {
   </div>`;
 }
 
+// Body weight typed on the FTP card (Strava often has none). Everything that
+// uses weight — W/kg, climb watts, VO2max — re-reads it.
+function trSetWeight(v) {
+  const w = parseFloat(v);
+  try { if (w >= 30 && w <= 200) localStorage.setItem('athlete_weight_kg', String(w)); else localStorage.removeItem('athlete_weight_kg'); } catch {}
+  renderTraining();
+}
+
 function _trFtpCardHTML(ftpEst) {
   if (!ftpEst) return '';
   const ath = (typeof currentAthlete !== 'undefined' && currentAthlete) || {};
@@ -451,6 +461,8 @@ function _trFtpCardHTML(ftpEst) {
   const wkg = weight > 0 ? ftpEst.value / weight : 0;
   const basisText = ftpEst.basis === 'strava'
     ? tr('From your Strava profile FTP.')
+    : ftpEst.basis === 'climb'
+      ? tr('From your climbs: watts from altitude & weight, read at your threshold heart rate.')
     : ftpEst.basis === 'power'
       ? tr('Estimated from your best sustained power (≈20-min effort × 0.95).')
       : tr('Estimated from body weight (~2.5 W/kg baseline) — add power data for a sharper number.');
@@ -469,6 +481,7 @@ function _trFtpCardHTML(ftpEst) {
       <div class="tr-ftp-wkg">
         <div class="tr-ftp-wkg-val">${wkg.toFixed(1)}<span>W/kg</span></div>
         <div class="tr-ftp-wkg-band">${_trWkgLabel(wkg)}</div>
+        <label class="tr-ftp-kg">${tr('Weight')} <input type="number" min="30" max="200" step="0.1" value="${weight}" onchange="trSetWeight(this.value)"> kg</label>
       </div>
       ${vo2 ? `
       <div class="tr-ftp-wkg tr-ftp-vo2">
@@ -773,6 +786,7 @@ function renderTraining() {
     ${_trIntroHTML(d)}
     ${_trFtpCardHTML(d.ftpEst)}
     ${_trFtpTrendHTML()}
+    ${typeof _trClimbPowerHTML === 'function' ? _trClimbPowerHTML() : ''}
     ${_trNote('FTP & W/kg')}
     <div class="tr-tiles">
       ${tile(Math.round(d.ctl), '', tr('Fitness · CTL'), 'var(--orange)', tr('42-day load'))}

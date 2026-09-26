@@ -27,7 +27,12 @@ const fmtSpeed= ms => kmh(ms) + ' ' + speedUnit();
 // scope AND when the athlete has shared it; older tokens return nothing. Fall
 // back to the owner's known weight so W/kg always renders.
 const FALLBACK_WEIGHT_KG = 78;
-const athWeightKg = () => (typeof currentAthlete !== 'undefined' && currentAthlete && currentAthlete.weight) || FALLBACK_WEIGHT_KG;
+// Body weight: the value typed on the Training FTP card wins (Strava often has
+// none), then the Strava profile, then a fallback.
+const athWeightKg = () => {
+  try { const w = parseFloat(localStorage.getItem('athlete_weight_kg')); if (w >= 30 && w <= 200) return w; } catch {}
+  return (typeof currentAthlete !== 'undefined' && currentAthlete && currentAthlete.weight) || FALLBACK_WEIGHT_KG;
+};
 // Strava derives max_speed from a single GPS sample, so one satellite glitch
 // can report an impossible peak (90+ km/h on a road bike). Rather than hide
 // those, we now show the real max_speed everywhere — glitches can be corrected
