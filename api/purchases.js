@@ -1,9 +1,15 @@
-// Owner-only: the cycling items from the purchase tracker (purchase.doniwirawan.xyz),
-// read from the purchase_data table in Supabase. Personal spending data, so it is
-// only handed to a Strava token that resolves to OWNER_ATHLETE_ID — the same gate
-// as api/sleep.js. Nothing about purchases lives in this (public) repo.
+// Owner-only: the cycling items from the owner's finance app
+// (finance.doniwirawan.xyz), which took over the purchase tracker on 2026-09-26
+// and keeps the purchase_data table in its Neon database. Personal spending
+// data, so it is only handed to a Strava token that resolves to
+// OWNER_ATHLETE_ID — the same gate as api/sleep.js. Nothing about purchases
+// lives in this (public) repo.
 //
-// Required env: OWNER_ATHLETE_ID, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
+// NEON_PURCHASES_URL is a connection string for a read-only role that can
+// SELECT purchase_data and nothing else in that database. Queried over Neon's
+// HTTP SQL endpoint, so no Postgres driver is needed.
+//
+// Required env: OWNER_ATHLETE_ID, NEON_PURCHASES_URL.
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'method_not_allowed' }); return; }
   let body = req.body;
@@ -20,13 +26,16 @@ module.exports = async (req, res) => {
   const OWNER = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
   if (!OWNER || String(athleteId) !== OWNER) { res.status(403).json({ error: 'not_authorized' }); return; }
 
-  const url = (process.env.SUPABASE_URL || '').replace(/\s+/g, '').replace(/\/$/, '');
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').replace(/\s+/g, '');
-  if (!url || !key) { res.status(500).json({ error: 'not_configured' }); return; }
+  const db = (process.env.NEON_PURCHASES_URL || '').replace(/\s+/g, '').replace(/\\n$/, '');
+  if (!db) { res.status(500).json({ error: 'not_configured' }); return; }
   try {
-    const r = await fetch(url + '/rest/v1/purchase_data?id=eq.items&select=data,updated_at', { headers: { apikey: key, Authorization: 'Bearer ' + key } });
-    if (!r.ok) throw new Error('supabase ' + r.status);
-    const row = (await r.json())[0];
+    const r = await fetch('https://' + new URL(db).hostname + '/sql', {
+      method: 'POST',
+      headers: { 'Neon-Connection-String': db, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: 'select data, updated_at from purchase_data where id = $1', params: ['items'] }),
+    });
+    if (!r.ok) throw new Error('neon ' + r.status);
+    const row = ((await r.json()).rows || [])[0];
     const items = ((row && row.data && row.data.items) || [])
       .filter(x => x.category === 'Cycling')
       .map(({ site, date, date_approx, order_id, shop, item, variant, qty, list_price, paid, status, cancelled, sub }) =>
