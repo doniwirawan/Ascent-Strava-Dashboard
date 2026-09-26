@@ -914,6 +914,8 @@ function renderTraining() {
   if (typeof analyzeWind === 'function') analyzeWind();
   if (typeof analyzeTimeLost === 'function') analyzeTimeLost();
   if (typeof analyzeHrDecoupling === 'function') analyzeHrDecoupling();
+  // keep FTP-from-climbs current: rescans only when new hilly rides arrive
+  if (typeof autoClimbPower === 'function') autoClimbPower();
 }
 
 // Draw the CTL / ATL / TSB chart (last ~180 days) with Chart.js.

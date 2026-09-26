@@ -12,8 +12,10 @@
 
    Streams: time, altitude, distance, moving, heartrate — fetched once per ride
    and reduced to a few points cached in localStorage (strava_climbp_<id>).
-   On-demand and owner-gated, like the Power Curve (Strava's rate limit is per
-   app, shared by every visitor). */
+   Owner-gated (Strava's rate limit is per app, shared by every visitor), and
+   kept current automatically: when the hilliest-rides pool or body weight
+   changes, the Training page rescans — cached rides cost nothing, so only new
+   climbs hit the API. */
 
 const CP_WIN = 480;                    // seconds per climbing window
 const CP_MIN_GRADE = 0.03;             // steep enough that lifting weight dominates
@@ -64,6 +66,7 @@ function cpPointsFromStreams(s, massKg) {
     const v = dd / dt, vz = dz / dt;
     if (v < 1.2 || v > 12 || vz * 3600 > 1600) continue;    // > 1600 m/h VAM is pro-level
     pts.push({
+      v: +v.toFixed(3), vz: +vz.toFixed(4),              // kept so watts can follow a new weight
       w: Math.round(cpPower(massKg, v, vz)),
       hr: Math.round((hr[j + 1] - hr[i]) / (hrN[j + 1] - hrN[i])),
       grade: +(dz / dd * 100).toFixed(1), vam: Math.round(vz * 3600), kmh: +(v * 3.6).toFixed(1),
@@ -101,18 +104,23 @@ async function _cpBikeKg(gearId) {
   return CP_BIKE_KG_DEFAULT;
 }
 
-// Per-ride climbing points, localStorage-first. Throws on 429.
+// Per-ride climbing points, localStorage-first. Throws on 429; null when the
+// stream fetch failed (not cached, so the next scan retries it).
 async function _cpPointsForRide(a) {
   const ck = 'strava_climbp_' + a.id;
   const mass = Math.round((athWeightKg() + await _cpBikeKg(a.gear_id) + CP_KIT_KG) * 10) / 10;
-  // cached per mass: a new body weight means the watts must be recomputed
-  try { const c = localStorage.getItem(ck); if (c) { const o = JSON.parse(c); if (o && o.v === 2 && o.m === mass) return o.pts; } } catch {}
+  // The cache keeps each window's speed & climb rate, so a new body weight
+  // just recomputes watts — no refetch.
+  try {
+    const c = localStorage.getItem(ck);
+    if (c) { const o = JSON.parse(c); if (o && o.v === 3) return o.pts.map(p => ({ ...p, w: Math.round(cpPower(mass, p.v, p.vz)) })); }
+  } catch {}
   let raw;
   try { raw = await api(`/activities/${a.id}/streams?keys=time,altitude,distance,moving,heartrate&key_by_type=true`); }
-  catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) throw e; return []; }
+  catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) throw e; return null; }
   const pick = k => raw && raw[k] && raw[k].data;
   const pts = cpPointsFromStreams({ time: pick('time'), altitude: pick('altitude'), distance: pick('distance'), moving: pick('moving'), heartrate: pick('heartrate') }, mass);
-  try { localStorage.setItem(ck, JSON.stringify({ v: 2, m: mass, pts })); } catch {}
+  try { localStorage.setItem(ck, JSON.stringify({ v: 3, pts })); } catch {}
   return pts;
 }
 
@@ -141,6 +149,22 @@ function _cpPool() {
   return acts.filter(a => isRide(a) && a.id && a.has_heartrate && !a.trainer && a.sport_type !== 'VirtualRide' && (a.total_elevation_gain || 0) >= CP_MIN_GAIN_M)
     .sort((a, b) => (b.total_elevation_gain || 0) - (a.total_elevation_gain || 0))
     .slice(0, CP_MAX_RIDES);
+}
+
+// What a scan depends on: which rides are in the pool, and the body weight.
+function _cpSig() { return athWeightKg() + '|' + _cpPool().map(a => a.id).join(','); }
+
+// Called from renderTraining: rescan (cache-first, so only new rides are
+// fetched) when the pool or weight changed. At most once per page load, so a
+// rate-limited scan doesn't retry on every render.
+let _cpAutoTried = false;
+function autoClimbPower() {
+  if (_cpAutoTried || _cpRunning || !document.getElementById('cpBody')) return;
+  if (!(typeof _isHrzOwner === 'function' && _isHrzOwner()) || !_cpPool().length) return;
+  const agg = cpLoadAgg();
+  if (agg && agg.sig === _cpSig() && !agg.partial) return;
+  _cpAutoTried = true;
+  computeClimbPower();
 }
 
 function _cpMarkup(agg, opts = {}) {
@@ -187,11 +211,12 @@ async function computeClimbPower() {
   if (!(typeof _isHrzOwner === 'function' && _isHrzOwner())) return;
   const pool = _cpPool();
   _cpRunning = true;
-  const agg = { v: 2, rides: 0, count: 0, pts: [], top: null, mass: Math.round((athWeightKg() + CP_BIKE_KG_DEFAULT + CP_KIT_KG) * 10) / 10 };
-  let done = 0, stopped = false;
+  const agg = { v: 2, sig: _cpSig(), rides: 0, count: 0, pts: [], top: null, mass: Math.round((athWeightKg() + CP_BIKE_KG_DEFAULT + CP_KIT_KG) * 10) / 10 };
+  let done = 0, stopped = false, failed = 0;
   for (const a of pool) {
     try {
       const pts = await _cpPointsForRide(a);
+      if (!pts) { failed++; done++; continue; }
       agg.rides++;
       pts.forEach(p => {
         agg.pts.push({ w: p.w, hr: p.hr });
@@ -204,7 +229,7 @@ async function computeClimbPower() {
   }
   agg.count = agg.pts.length;
   agg.fit = cpFit(agg.pts);
-  agg.partial = stopped;
+  agg.partial = stopped || failed > 0;   // retried on the next visit
   _cpSaveAgg(agg);
   _cpRunning = false;
   // FTP, W/kg, VO2max and the run predictions all read from this — redraw the page.

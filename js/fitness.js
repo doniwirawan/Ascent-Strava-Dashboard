@@ -459,7 +459,8 @@ function estimateFtp() {
     if (best > 0) return { value: Math.round(best * 0.95), estimated: true, basis: 'power' };
   }
 
-  if (ath.weight) return { value: Math.round(ath.weight * 2.5), estimated: true, basis: 'weight' };
+  const kg = (typeof athWeightKnown === 'function') ? athWeightKnown() : ath.weight;
+  if (kg) return { value: Math.round(kg * 2.5), estimated: true, basis: 'weight' };
   return null;
 }
 
