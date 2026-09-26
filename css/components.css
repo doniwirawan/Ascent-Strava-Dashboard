@@ -488,8 +488,8 @@
   font-size: 11px; font-weight: 600; color: var(--text-2);
   box-shadow: 0 2px 10px rgba(0, 0, 0, .45);
 }
-/* Top speed / Max HR row — directly under the Route/Speed switch (see .heat-mode) */
-.leaflet-top .map-peaks { position: absolute; top: 46px; left: 50px; margin: 0; display: flex; gap: 6px; }
+/* Top speed / Max HR row — bottom-right of the activity map */
+.map-peaks { display: flex; gap: 6px; }
 .speed-peak-btn { padding: 6px 11px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 10px rgba(0, 0, 0, .45); }
 .speed-peak-btn:hover { border-color: var(--orange); color: var(--orange); }
 .speed-peak-pin { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: #fc4c02; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.6); font-size: 15px; line-height: 1; }

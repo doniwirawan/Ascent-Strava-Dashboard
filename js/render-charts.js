@@ -530,7 +530,7 @@ function _actMapModeControl(m,a,line){
   legendCtl.onAdd=()=>{ legend=L.DomUtil.create('div','speed-legend'); return legend; };
 
   // Top speed / max HR: jump to that point of the ride and pin it. Row sits
-  // under the Route/Speed switch and works in both modes.
+  // bottom-right and works in both modes.
   const pins={};
   const peak=async(key,idx,icon,label)=>{
     const trk=await _actSpeedTrack(a.id); const pts=trk&&trk.pts; if(!pts) return;
@@ -544,7 +544,7 @@ function _actMapModeControl(m,a,line){
       .addTo(m);
     m.flyTo(at,Math.max(m.getZoom(),16),{duration:.8});
   };
-  const peakCtl=L.control({position:'topleft'});
+  const peakCtl=L.control({position:'bottomright'});
   peakCtl.onAdd=()=>{
     const row=L.DomUtil.create('div','map-peaks');
     row.innerHTML=`<button type="button" class="speed-peak-btn" data-k="speed">⚡ ${T('Top speed')}</button>`
