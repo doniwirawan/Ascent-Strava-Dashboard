@@ -451,7 +451,8 @@ function estimateFtp() {
   if (typeof acts !== 'undefined' && acts.length) {
     let best = 0;
     for (const a of acts) {
-      if (!isRide(a) || (a.moving_time || 0) < 1200) continue; // ≥ 20 min rides
+      // ≥ 20 min rides, real power meter only (Strava's estimated watts are a guess)
+      if (!isRide(a) || a.device_watts !== true || (a.moving_time || 0) < 1200) continue;
       const w = a.weighted_average_watts || a.average_watts || 0;
       if (w > best) best = w;
     }

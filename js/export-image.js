@@ -6,9 +6,13 @@
 let _saveImgOrient = 'desktop';
 let _saveImgRes    = 'hd';
 
+// 'long' is a phone-width, full-length PNG (a "long screenshot"): tall
+// sections like Sleep or Training shrink to unreadable in a fixed frame.
+// Its height follows the content, so only the width is fixed here.
 const _SAVE_IMG_DIMS = {
   desktop: { hd: [1920, 1080], ultra: [3840, 2160] },
   mobile:  { hd: [1080, 1920], ultra: [2160, 3840] },
+  long:    { hd: [1080, 0],    ultra: [2160, 0] },
 };
 
 // human-readable label for the active section, used in the filename
@@ -246,7 +250,8 @@ async function _doSaveImg() {
   go.disabled = true;
 
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#090909';
-  const [W, H] = _SAVE_IMG_DIMS[_saveImgOrient][_saveImgRes];
+  const long = _saveImgOrient === 'long' && !isHeatmap;   // a map has no "length": long → 9:16
+  let [W, H] = _SAVE_IMG_DIMS[isHeatmap && _saveImgOrient === 'long' ? 'mobile' : _saveImgOrient][_saveImgRes];
 
   let restoreMaps = null, restoreWidth = null, restoreGrids = null, restoreWrap = null;
   try {
@@ -324,6 +329,16 @@ async function _doSaveImg() {
       });
     }
 
+    // long: fit the capture to the width and let the height follow, within
+    // the browser's ~16k px canvas limit
+    let longScale = 0, longPad = 0;
+    if (long) {
+      longPad = Math.round(W * 0.04);
+      longScale = (W - longPad * 2) / shot.width;
+      H = Math.round(shot.height * longScale) + longPad * 2;
+      if (H > 16000) { longScale = (16000 - longPad * 2) / shot.height; H = 16000; }
+    }
+
     const out = document.createElement('canvas');
     out.width = W; out.height = H;
     const ctx = out.getContext('2d');
@@ -334,6 +349,9 @@ async function _doSaveImg() {
     if (isHeatmap) {
       // the map was rendered at the frame's exact aspect → fill edge to edge
       ctx.drawImage(shot, 0, 0, W, H);
+    } else if (long) {
+      const dw = shot.width * longScale;
+      ctx.drawImage(shot, (W - dw) / 2, longPad, dw, shot.height * longScale);
     } else {
       // contain-fit the capture into the frame with a small margin
       const pad = Math.round(Math.min(W, H) * 0.04);
