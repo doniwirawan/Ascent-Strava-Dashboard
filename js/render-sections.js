@@ -373,8 +373,10 @@ const HEAT_BANDS = [                   // ascending; `min` = rides through the c
 // purely as "everywhere I've been" — easier to take in at a glance. The choice
 // is remembered across visits.
 const HEAT_UNIFORM = { color: '#FC4C02', weight: 2.2, opacity: 0.8 };
+// 'regency' = Bali's regencies shaded by how many rides end in each (the
+// Activities page's regency map), with the routes drawn faintly on top.
 let heatMode = 'freq';
-try { const m = localStorage.getItem('heat_mode'); if (m === 'freq' || m === 'uniform') heatMode = m; } catch {}
+try { const m = localStorage.getItem('heat_mode'); if (m === 'freq' || m === 'uniform' || m === 'regency') heatMode = m; } catch {}
 
 // A dark casing drawn under every line lifts the routes off busy basemaps
 // (satellite especially) without changing their colour. Round joins/caps keep
@@ -444,7 +446,9 @@ function heatLegend(map){
   const c=L.control({position:'bottomleft'});
   c.onAdd=()=>{
     const d=L.DomUtil.create('div','heat-legend');
-    if(heatMode==='uniform'){
+    if(heatMode==='regency'){
+      d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:10px;width:14px;opacity:.6"></i>'+T('Rides ending in each regency')+'</span>';
+    }else if(heatMode==='uniform'){
       d.innerHTML='<span class="hl-i"><i style="background:'+HEAT_UNIFORM.color+
         ';height:'+HEAT_UNIFORM.weight+'px;opacity:'+HEAT_UNIFORM.opacity+'"></i>'+T('Where you ride')+'</span>';
     }else{
@@ -471,7 +475,7 @@ function heatModeControl(map){
     const d=L.DomUtil.create('div','heat-mode leaflet-bar');
     const mk=(id,label)=>'<button type="button" data-hm="'+id+'"'+
       (heatMode===id?' class="on"':'')+'>'+T(label)+'</button>';
-    d.innerHTML=mk('freq','Frequency')+mk('uniform','Uniform');
+    d.innerHTML=mk('freq','Frequency')+mk('uniform','Uniform')+(typeof regencyLayers==='function'?mk('regency','Regency'):'');
     L.DomEvent.disableClickPropagation(d);
     d.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
       const m=b.getAttribute('data-hm');
@@ -514,11 +518,20 @@ function renderHeatmap(preserveView){
 
   // Dark casing under everything so the routes read clearly on any basemap.
   if(tracks.length){
-    const cw=(heatMode==='uniform'?HEAT_UNIFORM.weight:HEAT_BANDS[HEAT_BANDS.length-1].weight)+1.6;
-    L.polyline(tracks,Object.assign({weight:cw},HEAT_CASING)).addTo(leafletMapInst);
+    const cw=(heatMode==='freq'?HEAT_BANDS[HEAT_BANDS.length-1].weight:HEAT_UNIFORM.weight)+1.6;
+    if(heatMode!=='regency') L.polyline(tracks,Object.assign({weight:cw},HEAT_CASING)).addTo(leafletMapInst);
   }
 
-  if(heatMode==='uniform'){
+  if(heatMode==='regency'){
+    // Regencies shaded by rides ending there; routes stay faintly on top.
+    L.polyline(tracks,{color:'#ffffff',weight:1.2,opacity:0.35,lineJoin:'round',lineCap:'round',interactive:false}).addTo(leafletMapInst);
+    const map=leafletMapInst, list=modeActs().filter(a=>a.map&&a.map.summary_polyline);
+    regencyGeo().then(g=>{
+      if(!g || leafletMapInst!==map) return;             // re-rendered while loading
+      const {by}=_regStats(list);
+      regencyLayers(map,by);
+    });
+  }else if(heatMode==='uniform'){
     // One flat colour: the map reads as "everywhere I've been", not "how often".
     L.polyline(tracks,{color:HEAT_UNIFORM.color,weight:HEAT_UNIFORM.weight,opacity:HEAT_UNIFORM.opacity,
       lineJoin:'round',lineCap:'round',interactive:false}).addTo(leafletMapInst);

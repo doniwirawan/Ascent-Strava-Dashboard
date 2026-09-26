@@ -495,6 +495,7 @@ const TR_ID = {
   'From your climbs: watts from altitude & weight, read at your threshold heart rate.': 'Dari tanjakan Anda: watt dari ketinggian & berat, dibaca di detak jantung ambang.',
   'Weight': 'Berat',
   'Run Predictions': 'Prediksi Lari',
+  'Rides ending in each regency': 'Gowes yang berakhir di tiap kabupaten',
   'Sleep length': 'Lama tidur',
   'What your night does to the ride': 'Pengaruh tidur Anda ke gowes',
   'Ride speed and heart rate, corrected for climbing and distance, after nights above vs below your own 30-night baseline': 'Kecepatan dan detak jantung gowes, dikoreksi untuk tanjakan dan jarak, setelah malam di atas vs di bawah baseline 30 malam Anda',

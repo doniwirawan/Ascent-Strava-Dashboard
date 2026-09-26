@@ -77,14 +77,45 @@ function _regStats(list) {
   return { by, outside };
 }
 
+/* Choropleth + count labels for `by` (from _regStats) on any Leaflet map.
+   Shared by the Activities regency card and the Heatmap's Regency mode.
+   Returns [polygonLayer, labelLayer], both already added to `map`. */
+function regencyLayers(map, by) {
+  const TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
+  const max = Math.max(1, ...Object.values(by).map(s => s.n));
+  const topOf = s => Object.entries(s.dest).sort((x, y) => y[1] - x[1])[0];
+  const tip = (name, s) => '<b>' + name + '</b><br>' + TF('{0} rides', s.n) + ' · ' + fmtD(s.m)
+    + (topOf(s) ? '<br>' + TF('Top destination: {0} ({1}×)', topOf(s)[0], topOf(s)[1]) : '');
+  const labels = [];
+  const layer = L.geoJSON(_regGeo, {
+    style: f => { const s = by[f.properties.name]; const k = s.n ? Math.sqrt(s.n / max) : 0;
+      return { color: s.n ? '#fc4c02' : '#666', weight: 1.4, fillColor: '#fc4c02', fillOpacity: s.n ? 0.12 + 0.6 * k : 0.03 }; },
+    onEachFeature: (f, l) => {
+      const name = f.properties.name, s = by[name];
+      const touch = window.matchMedia && matchMedia('(hover: none)').matches;
+      l.bindTooltip(tip(name, s), { sticky: !touch, direction: touch ? 'top' : 'auto', className: 'regency-tip' });
+      l.on('mouseover', () => l.setStyle({ weight: 3, color: '#ffffff' }));
+      l.on('mouseout', () => layer.resetStyle(l));
+      l.on('click', () => { if (s.n) openRegencyRides(name); });
+      if (s.n) labels.push(L.tooltip({ permanent: true, direction: 'center', className: 'regency-count', interactive: false })
+        .setLatLng(_regLabelPoint(f.geometry, +Object.entries(s.pieces).sort((x, y) => y[1] - x[1])[0][0])).setContent(String(s.n)));
+    },
+  }).addTo(map);
+  return [layer, L.layerGroup(labels).addTo(map)];
+}
+
+// Load the regency boundaries once (null if the file can't be fetched).
+async function regencyGeo() {
+  if (!_regGeo) { try { _regGeo = await (await fetch('data/bali-regencies.json')).json(); } catch { return null; } }
+  return _regGeo;
+}
+
 async function renderRegencyMap() {
   const card = document.getElementById('regencyCard');
   if (!card || typeof acts === 'undefined' || !window.L) return;
   const list = (typeof modeActs === 'function' ? modeActs() : acts).filter(a => a.map && a.map.summary_polyline);
   if (!list.length) { card.style.display = 'none'; return; }
-  if (!_regGeo) {
-    try { _regGeo = await (await fetch('data/bali-regencies.json')).json(); } catch { return; }
-  }
+  if (!await regencyGeo()) return;
   const { by, outside } = _regStats(list);
   _regBy = by;
   renderRegencyTags();
@@ -92,10 +123,8 @@ async function renderRegencyMap() {
   if (!Object.values(by).some(s => s.n)) { card.style.display = 'none'; return; }
   card.style.display = '';
 
-  const T = typeof tr === 'function' ? tr : (x => x), TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
+  const TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
   const topOf = s => Object.entries(s.dest).sort((x, y) => y[1] - x[1])[0];
-  const tip = (name, s) => '<b>' + name + '</b><br>' + TF('{0} rides', s.n) + ' · ' + fmtD(s.m)
-    + (topOf(s) ? '<br>' + TF('Top destination: {0} ({1}×)', topOf(s)[0], topOf(s)[1]) : '');
 
   // map (built once; restyled on re-render)
   const el = document.getElementById('regencyMap');
@@ -105,22 +134,7 @@ async function renderRegencyMap() {
   }
   if (_regLayer) _regLayer.remove();
   if (_regLabels) _regLabels.remove();
-  const labels = [];
-  _regLayer = L.geoJSON(_regGeo, {
-    style: f => { const s = by[f.properties.name]; const k = s.n ? Math.sqrt(s.n / max) : 0;
-      return { color: s.n ? '#fc4c02' : '#666', weight: 1.4, fillColor: '#fc4c02', fillOpacity: s.n ? 0.12 + 0.6 * k : 0.03 }; },
-    onEachFeature: (f, layer) => {
-      const name = f.properties.name, s = by[name];
-      const touch = window.matchMedia && matchMedia('(hover: none)').matches;
-      layer.bindTooltip(tip(name, s), { sticky: !touch, direction: touch ? 'top' : 'auto', className: 'regency-tip' });
-      layer.on('mouseover', () => layer.setStyle({ weight: 3, color: '#ffffff' }));
-      layer.on('mouseout', () => _regLayer.resetStyle(layer));
-      layer.on('click', () => { if (s.n) openRegencyRides(name); });
-      if (s.n) labels.push(L.tooltip({ permanent: true, direction: 'center', className: 'regency-count', interactive: false })
-        .setLatLng(_regLabelPoint(f.geometry, +Object.entries(s.pieces).sort((x, y) => y[1] - x[1])[0][0])).setContent(String(s.n)));
-    },
-  }).addTo(_regMap);
-  _regLabels = L.layerGroup(labels).addTo(_regMap);
+  [_regLayer, _regLabels] = regencyLayers(_regMap, by);
   const fit = () => { try { _regMap.invalidateSize(); _regMap.fitBounds(_regLayer.getBounds(), { padding: [10, 10] }); } catch {} };
   fit(); setTimeout(fit, 300);
 
