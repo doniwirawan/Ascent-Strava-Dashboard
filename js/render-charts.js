@@ -429,12 +429,12 @@ function _actBuildMap(a){
    the scale are the 5th/95th percentile of moving speed, so stops and a single
    top-speed moment don't flatten everything else into one colour. */
 let _actMapMode = localStorage.getItem('actMapMode')==='speed' ? 'speed' : 'route';
-const _actSpeedTracks = {}; // id → {pts:[[lat,lng,v]], lo, hi} — in memory only, streams are large
+const _actSpeedTracks = {}; // id → {pts:[[lat,lng,v,hr]], lo, hi} — in memory only, streams are large
 
 async function _actSpeedTrack(id){
   if(_actSpeedTracks[id]) return _actSpeedTracks[id];
   let raw;
-  try { raw = await api(`/activities/${id}/streams?keys=latlng,velocity_smooth&key_by_type=true`); }
+  try { raw = await api(`/activities/${id}/streams?keys=latlng,velocity_smooth,heartrate&key_by_type=true`); }
   catch { return null; }
   const ll = raw.latlng && raw.latlng.data;
   let v = raw.velocity_smooth && raw.velocity_smooth.data;
@@ -443,8 +443,9 @@ async function _actSpeedTrack(id){
     const isOwner = localStorage.getItem('strava_athlete_id')===OWNER_ATHLETE_ID;
     v = fixSpeedSpikes(v, isOwner?{ceiling:MAX_SPEED_CEILING}:{k:6}).data;
   }
+  const hr = raw.heartrate && raw.heartrate.data;
   const pts=[];
-  for(let i=0;i<ll.length;i++) if(ll[i] && v[i]!=null) pts.push([ll[i][0],ll[i][1],v[i]]);
+  for(let i=0;i<ll.length;i++) if(ll[i] && v[i]!=null) pts.push([ll[i][0],ll[i][1],v[i],hr?hr[i]:null]);
   if(pts.length<2) return null;
   const mv = pts.map(p=>p[2]).filter(x=>x>1).sort((x,y)=>x-y);
   const q = f => mv.length ? mv[Math.min(mv.length-1, Math.floor(f*mv.length))] : 0;
@@ -524,28 +525,35 @@ function _actSpeedHover(m,trk){
 
 function _actMapModeControl(m,a,line){
   const T=(typeof tr==='function')?tr:(x=>x);
-  let speedLayer=null, legend=null, hover=null, peakMarker=null, trkNow=null;
+  let speedLayer=null, legend=null, hover=null;
   const legendCtl=L.control({position:'bottomleft'});
   legendCtl.onAdd=()=>{ legend=L.DomUtil.create('div','speed-legend'); return legend; };
 
-  // Speed mode only: jump to the fastest point of the ride and pin it.
+  // Top speed / max HR: jump to that point of the ride and pin it. Row sits
+  // under the Route/Speed switch and works in both modes.
+  const pins={};
+  const peak=async(key,idx,icon,label)=>{
+    const trk=await _actSpeedTrack(a.id); const pts=trk&&trk.pts; if(!pts) return;
+    let k=-1; pts.forEach((p,i)=>{ if(p[idx]!=null && (k<0 || p[idx]>pts[k][idx])) k=i; });
+    if(k<0) return;
+    let into=0; for(let i=1;i<=k;i++) into+=aiHaversine(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1])*1000;
+    const at=[pts[k][0],pts[k][1]];
+    if(pins[key]) m.removeLayer(pins[key]);
+    pins[key]=L.marker(at,{keyboard:false,zIndexOffset:1000,icon:L.divIcon({className:'speed-peak-pin pin-'+key,iconSize:[30,30],iconAnchor:[15,15],html:icon})})
+      .bindTooltip(`<b>${label(pts[k][idx])}</b> · ${fmtD(into)} ${T('into the ride')}`,{permanent:true,direction:'top',offset:[0,-16],className:'speed-peak-tip tip-'+key})
+      .addTo(m);
+    m.flyTo(at,Math.max(m.getZoom(),16),{duration:.8});
+  };
   const peakCtl=L.control({position:'topleft'});
   peakCtl.onAdd=()=>{
-    const b=L.DomUtil.create('button','speed-peak-btn leaflet-bar');
-    b.type='button'; b.innerHTML='⚡ '+T('Top speed');
-    L.DomEvent.disableClickPropagation(b);
-    b.onclick=()=>{
-      const pts=trkNow&&trkNow.pts; if(!pts) return;
-      let k=0; pts.forEach((p,i)=>{ if(p[2]>pts[k][2]) k=i; });
-      let into=0; for(let i=1;i<=k;i++) into+=aiHaversine(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1])*1000;
-      const at=[pts[k][0],pts[k][1]];
-      if(peakMarker) m.removeLayer(peakMarker);
-      peakMarker=L.marker(at,{keyboard:false,zIndexOffset:1000,icon:L.divIcon({className:'speed-peak-pin',iconSize:[30,30],iconAnchor:[15,15],html:'⚡'})})
-        .bindTooltip(`<b>${kmh(pts[k][2])} ${speedUnit()}</b> · ${fmtD(into)} ${T('into the ride')}`,{permanent:true,direction:'top',offset:[0,-16],className:'speed-peak-tip'})
-        .addTo(m);
-      m.flyTo(at,Math.max(m.getZoom(),16),{duration:.8});
-    };
-    return b;
+    const row=L.DomUtil.create('div','map-peaks');
+    row.innerHTML=`<button type="button" class="speed-peak-btn" data-k="speed">⚡ ${T('Top speed')}</button>`
+      +(a.has_heartrate?`<button type="button" class="speed-peak-btn" data-k="hr">❤ ${T('Max HR')}</button>`:'');
+    L.DomEvent.disableClickPropagation(row);
+    row.querySelectorAll('button').forEach(b=>b.onclick=()=>b.dataset.k==='hr'
+      ? peak('hr',3,'❤',v=>Math.round(v)+' bpm')
+      : peak('speed',2,'⚡',v=>kmh(v)+' '+speedUnit()));
+    return row;
   };
 
   const apply = async () => {
@@ -559,12 +567,9 @@ function _actMapModeControl(m,a,line){
       speedLayer.addTo(m);
       legendCtl.addTo(m);
       legend.innerHTML=`<span>${kmh(trk.lo)}</span><i></i><span>${kmh(trk.hi)} ${speedUnit()}</span>`;
-      trkNow=trk; peakCtl.addTo(m);
     } else {
       if(speedLayer){ m.removeLayer(speedLayer); hover.off(); }
       legendCtl.remove();
-      peakCtl.remove();
-      if(peakMarker){ m.removeLayer(peakMarker); peakMarker=null; }
       line.setStyle({opacity:.95});
     }
   };
@@ -587,6 +592,7 @@ function _actMapModeControl(m,a,line){
     return box;
   };
   c.addTo(m);
+  peakCtl.addTo(m);
   sync();
 }
 
