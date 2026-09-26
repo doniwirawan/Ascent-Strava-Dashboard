@@ -112,8 +112,8 @@ async function routePlaces(a) {
   return out;
 }
 
-// The bike used: { name, type } — type from Strava's frame_type (GET /gear/{id}),
-// else a guess from the bike's name. Rides only.
+// The kind of bike used, e.g. "road bike" — from Strava's frame_type (GET /gear/{id}),
+// else a guess from the bike's name. Rides only. Never the name: no brands in captions.
 const FRAME_TYPE = { 1: 'Mountain', 2: 'Cyclocross', 3: 'Road', 4: 'Time trial', 5: 'Gravel' };
 async function bikeInfo(a, token) {
   if (!a.gear_id || !/ride/i.test(a.sport_type || a.type || '')) return undefined;
@@ -122,7 +122,7 @@ async function bikeInfo(a, token) {
   const name = g.nickname || g.name || '';
   const n = (name + ' ' + (g.model_name || '')).toLowerCase();
   const type = FRAME_TYPE[g.frame_type] || (/gravel|gvl|\bcx\b|cyclocross/.test(n) ? 'Gravel' : /road|race|aero|sr\d/.test(n) ? 'Road' : undefined);
-  return name ? { name, type } : undefined;
+  return type ? type.toLowerCase() + ' bike' : undefined;
 }
 
 async function generateCaption(a, token) {
@@ -137,6 +137,8 @@ async function generateCaption(a, token) {
     max_kmh: a.max_speed ? +((a.max_speed * 3.6).toFixed(1)) : null,
     avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     avg_watts: a.average_watts ? Math.round(a.average_watts) : null,
+    // Strava stores run/walk cadence per leg — double it for steps/min
+    avg_cadence: a.average_cadence ? (/ride/i.test(a.sport_type || a.type || '') ? Math.round(a.average_cadence) + ' rpm' : Math.round(a.average_cadence * 2) + ' spm') : null,
     prs: a.pr_count || 0,
     bike: token ? await bikeInfo(a, token) : undefined,
   };
@@ -147,7 +149,7 @@ async function generateCaption(a, token) {
   if (rp && rp.furthest_place) Object.assign(data, { furthest_landmark: rp.furthest_landmark, furthest_place: rp.furthest_place, furthest_km_from_start: rp.furthest_km_from_start });
   const messages = [
     { role: 'system', content:
-      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the bike I rode and its type (e.g. road or gravel) — mention it naturally when it fits (e.g. "took the gravel bike out"). NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
+      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). Be fun and witty with a light, good-natured roast of the effort. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nWrite my new title and description.' },
   ];
   const r = await fetch('https://api.deepseek.com/chat/completions', {
