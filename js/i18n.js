@@ -1084,6 +1084,9 @@ const TR_ID = {
   "Sharing isn't supported in this browser — downloaded instead.": 'Browser ini tidak mendukung berbagi — gambar diunduh.',
   // Overview — where you ride (route places)
   'Villages reached': 'Desa dijelajahi', 'across {0} kecamatan': 'di {0} kecamatan',
+  '{0} villages · {1} kecamatan · {2} regencies': '{0} desa · {1} kecamatan · {2} kabupaten',
+  'Kec. {0}': 'Kec. {0}', '{0}×': '{0}×', 'All villages': 'Semua desa',
+  'Unknown regency': 'Kabupaten tidak diketahui', 'Unknown kecamatan': 'Kecamatan tidak diketahui',
   'Regencies': 'Kabupaten', 'Home base': 'Basis', '{0}% of starts': '{0}% titik mulai',
   'Top destination': 'Tujuan favorit', '{0} trips': '{0} perjalanan',
   'Furthest trip': 'Perjalanan terjauh', '{0} from start': '{0} dari titik mulai',

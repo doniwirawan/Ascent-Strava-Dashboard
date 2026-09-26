@@ -1342,6 +1342,14 @@ body.dev .dev-tag { display: inline-block; }
 .regency-map .leaflet-interactive:focus { outline: none; }
 .regency-modal-sum { font-size: 12px; color: var(--muted); margin: -4px 0 10px; }
 .regency-rides { max-height: 60vh; }
+.vil-list { max-height: 62vh; overflow-y: auto; }
+.vil-kab { font-size: 12px; font-weight: 800; color: var(--orange); letter-spacing: .04em; text-transform: uppercase; margin: 14px 0 4px; }
+.vil-kab:first-child { margin-top: 0; }
+.vil-kec { font-size: 11px; color: var(--muted); margin: 8px 0 2px 2px; }
+.vil-row { display: flex; justify-content: space-between; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.vil-row:hover, .vil-row:focus { background: var(--surface2, rgba(255,255,255,.05)); outline: none; }
+.vil-row b { color: var(--text-2); font-weight: 600; font-size: 12px; }
+.vil-back { background: none; border: 0; color: var(--orange); font: inherit; font-size: 12px; cursor: pointer; padding: 0 0 8px; }
 .leaflet-tooltip.regency-count { background: none; border: 0; box-shadow: none; color: #fff; font-weight: 800; font-size: 13px; text-shadow: 0 1px 3px rgba(0,0,0,.9); padding: 0; }
 .leaflet-tooltip.regency-count::before { display: none; }
 .leaflet-tooltip.regency-tip { background: var(--surface); color: var(--text); border: 1px solid var(--border); font-size: 12px; line-height: 1.45; }

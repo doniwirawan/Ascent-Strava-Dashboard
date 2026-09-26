@@ -155,19 +155,95 @@ function openRegencyRides(name) {
   const box = document.getElementById('regencyModal');
   if (!s || !box) return;
   const TF = typeof trf === 'function' ? trf : ((t, ...a) => t.replace(/\{(\d+)\}/g, (_, i) => a[i]));
-  const rides = s.acts.slice().sort((x, y) => new Date(y.start_date) - new Date(x.start_date));
   document.getElementById('regencyModalTitle').textContent = name;
   document.getElementById('regencyModalBody').innerHTML =
-    '<div class="regency-modal-sum">' + TF('{0} rides', s.n) + ' · ' + fmtD(s.m) + '</div>'
-    + '<div class="act-list regency-rides">' + rides.map(a => {
-      const dest = a.route_places && a.route_places.furthest_place && destName(a.route_places);
-      return '<div class="act-row" role="button" tabindex="0" onclick="openActivityModal(\'' + a.id + '\')">'
-        + '<div style="flex:1;min-width:0"><div class="act-name">' + (a.name || 'Activity').replace(/</g, '&lt;') + '</div>'
-        + '<div class="act-meta">' + fmtDt(a.start_date_local || a.start_date) + '</div>'
-        + (dest ? '<div class="act-where"><span class="act-place">📍 ' + dest + '</span></div>' : '') + '</div>'
-        + '<div class="act-right"><div class="act-dist">' + fmtD(a.distance) + '</div><div class="act-time">' + fmtT(a.moving_time) + '</div></div></div>';
-    }).join('') + '</div>';
+    '<div class="regency-modal-sum">' + TF('{0} rides', s.n) + ' · ' + fmtD(s.m) + '</div>' + _regRideRows(s.acts);
   box.classList.add('open');
+}
+
+// Clickable ride rows (newest first) for the list popups.
+function _regRideRows(list) {
+  const rides = list.slice().sort((x, y) => new Date(y.start_date) - new Date(x.start_date));
+  return '<div class="act-list regency-rides">' + rides.map(a => {
+    const dest = a.route_places && a.route_places.furthest_place && destName(a.route_places);
+    return '<div class="act-row" role="button" tabindex="0" onclick="openActivityModal(\'' + a.id + '\')">'
+      + '<div style="flex:1;min-width:0"><div class="act-name">' + (a.name || 'Activity').replace(/</g, '&lt;') + '</div>'
+      + '<div class="act-meta">' + fmtDt(a.start_date_local || a.start_date) + '</div>'
+      + (dest ? '<div class="act-where"><span class="act-place">📍 ' + dest + '</span></div>' : '') + '</div>'
+      + '<div class="act-right"><div class="act-dist">' + fmtD(a.distance) + '</div><div class="act-time">' + fmtT(a.moving_time) + '</div></div></div>';
+  }).join('') + '</div>';
+}
+
+/* ── VILLAGES REACHED popup (Overview "Villages reached" card) ──
+   Every desa a ride started in or turned around at, grouped Kabupaten →
+   Kecamatan with visit counts; tap a desa for the rides through it. Built from
+   each activity's reverse-geocoded route_places. */
+let _villages = null; // place → {desa, kec, kab, acts[]}
+// The geocoder is inconsistent: "Kabupaten Klungkung" vs "Gianyar", and
+// sometimes only the province ("Bali"). Province-only means unknown.
+const _PROVINCES = /^(Bali|Nusa Tenggara (Barat|Timur)|Jawa (Barat|Tengah|Timur))$/i;
+function normKab(k) { k = (k || '').replace(/^(Kabupaten|Kota)\s+/i, '').trim(); return _PROVINCES.test(k) ? '' : k; }
+function setVillages(list) {
+  const v = {};
+  const add = (place, kec, kab, a) => {
+    if (!place) return;
+    const desa = place.split(',')[0].trim();
+    if (!desa || _PROVINCES.test(desa)) return;          // no village, just a province
+    const o = v[place] || (v[place] = { desa, kec: (kec || '').trim(), kab: normKab(kab), acts: [] });
+    if (!o.kab) o.kab = normKab(kab);
+    if (!o.kec && kec) o.kec = kec.trim();
+    if (!o.acts.includes(a)) o.acts.push(a);
+  };
+  list.forEach(a => {
+    const r = a.route_places; if (!r) return;
+    add(r.start_place, r.start_kec, r.start_kab, a);
+    add(r.furthest_place, r.furthest_kec, r.furthest_kab, a);
+  });
+  _villages = v;
+  const all = Object.values(v);
+  return (_villageStats = { villages: all.length, kecs: new Set(all.map(o => o.kec).filter(Boolean)), kabs: new Set(all.map(o => o.kab).filter(Boolean)) });
+}
+let _villageStats = null;
+function openVillageList() {
+  const box = document.getElementById('regencyModal');
+  if (!_villages || !box) return;
+  const T = typeof tr === 'function' ? tr : (x => x), TF = typeof trf === 'function' ? trf : ((t, ...a) => t.replace(/\{(\d+)\}/g, (_, i) => a[i]));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const tree = {};
+  Object.entries(_villages).forEach(([place, o]) => {
+    const kab = o.kab || T('Unknown regency'), kec = o.kec || T('Unknown kecamatan');
+    ((tree[kab] = tree[kab] || {})[kec] = tree[kab][kec] || []).push([place, o]);
+  });
+  const n = o => o.acts.length;
+  const sum = arr => arr.reduce((s, [, o]) => s + n(o), 0);
+  const kabs = Object.entries(tree).sort((x, y) => sum(Object.values(y[1]).flat()) - sum(Object.values(x[1]).flat()));
+  document.getElementById('regencyModalTitle').textContent = T('Villages reached');
+  document.getElementById('regencyModalBody').innerHTML =
+    '<div class="regency-modal-sum">' + TF('{0} villages · {1} kecamatan · {2} regencies', _villageStats.villages, _villageStats.kecs.size, _villageStats.kabs.size) + '</div>'
+    + '<div class="vil-list">' + kabs.map(([kab, kecs]) =>
+      '<div class="vil-kab">' + esc(kab) + '</div>'
+      + Object.entries(kecs).sort((x, y) => sum(y[1]) - sum(x[1])).map(([kec, vs]) =>
+        '<div class="vil-kec">' + TF('Kec. {0}', esc(kec)) + '</div>'
+        + vs.sort((x, y) => n(y[1]) - n(x[1])).map(([place, o]) =>
+          '<div class="vil-row" role="button" tabindex="0" data-place="' + esc(place) + '"><span>' + esc(o.desa) + '</span><b>' + TF('{0}×', n(o)) + '</b></div>').join('')
+      ).join('')
+    ).join('') + '</div>';
+  document.querySelectorAll('#regencyModalBody .vil-row').forEach(r => {
+    const open = () => openVillageRides(r.dataset.place);
+    r.onclick = open;
+    r.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
+  });
+  box.classList.add('open');
+}
+function openVillageRides(place) {
+  const o = _villages && _villages[place];
+  if (!o) return;
+  const T = typeof tr === 'function' ? tr : (x => x), TF = typeof trf === 'function' ? trf : ((t, ...a) => t.replace(/\{(\d+)\}/g, (_, i) => a[i]));
+  document.getElementById('regencyModalTitle').textContent = o.desa;
+  document.getElementById('regencyModalBody').innerHTML =
+    '<button type="button" class="vil-back" onclick="openVillageList()">← ' + T('All villages') + '</button>'
+    + '<div class="regency-modal-sum">' + [o.kec && TF('Kec. {0}', o.kec), o.kab].filter(Boolean).join(' · ') + ' · ' + TF('{0} rides', o.acts.length) + '</div>'
+    + _regRideRows(o.acts);
 }
 function closeRegencyRides() { const b = document.getElementById('regencyModal'); if (b) b.classList.remove('open'); }
 document.addEventListener('click', e => { if (e.target && e.target.id === 'regencyModal') closeRegencyRides(); });

@@ -225,12 +225,12 @@ function renderOverviewInsights(){
   const T=(typeof tr==='function')?tr:(x=>x), TF=(typeof trf==='function')?trf:((s,...a)=>s.replace(/\{(\d+)\}/g,(_,i)=>a[i]));
   const placed=set.filter(a=>a.route_places&&a.route_places.start_place);
   if(placed.length){
+    // villages / kecamatan / regencies counted by the same cleaned-up index the
+    // Villages popup lists, so the card and the popup always agree
+    const vs=setVillages(placed), villages={size:vs.villages}, kecs=vs.kecs, kabs=vs.kabs;
     const desa=s=>s.split(',')[0], area=s=>s.split(', ')[1]||'';
-    const villages=new Set(), kecs=new Set(), kabs=new Set(), home={}, dest={};
+    const home={}, dest={};
     placed.forEach(a=>{ const r=a.route_places;
-      villages.add(r.start_place); if(r.furthest_place) villages.add(r.furthest_place);
-      [r.start_kec,r.furthest_kec].forEach(k=>k&&kecs.add(k));
-      [r.start_kab,r.furthest_kab].forEach(k=>k&&kabs.add(k));
       home[r.start_place]=(home[r.start_place]||0)+1;
       if(r.furthest_place) dest[destName(r)]=(dest[destName(r)]||0)+1; });
     const top=o=>Object.entries(o).sort((x,y)=>y[1]-x[1])[0];
@@ -239,7 +239,7 @@ function renderOverviewInsights(){
     const far=outs.reduce((m,a)=>!m||a.route_places.furthest_km_from_start>m.route_places.furthest_km_from_start?a:m,null);
     const reach=outs.length?outs.reduce((s,a)=>s+a.route_places.furthest_km_from_start,0)/outs.length:0;
     cards.push(
-      {ic:'pin',lbl:T('Villages reached'),val:villages.size,sub:TF('across {0} kecamatan',kecs.size)},
+      {ic:'pin',lbl:T('Villages reached'),val:villages.size,sub:TF('across {0} kecamatan',kecs.size),click:'openVillageList()'},
       {ic:'map',lbl:T('Regencies'),val:kabs.size,sub:[...kabs].slice(0,3).join(', ')+(kabs.size>3?'…':'')},
       {ic:'home',lbl:T('Home base'),val:desa(h[0]),sub:TF('{0}% of starts',Math.round(h[1]/placed.length*100))+(area(h[0])?' · '+area(h[0]):''),place:true,cls:'no-ai'},
       t&&{ic:'flag',lbl:T('Top destination'),val:desa(t[0]),sub:TF('{0} trips',t[1])+(area(t[0])?' · '+area(t[0]):''),place:true},
@@ -269,7 +269,7 @@ function renderOverviewInsights(){
   el.innerHTML=''; // insights now live inside the main stat grid
   if(!grid) return;
   grid.insertAdjacentHTML('beforeend', cards.filter(Boolean).map(c=>`
-        <div class="stat-card ov-insight${c.cls?' '+c.cls:''}"${c.act?` role="button" tabindex="0" style="cursor:pointer" onclick="openActivityModal('${c.act}')"`:''}>
+        <div class="stat-card ov-insight${c.cls?' '+c.cls:''}"${c.act?` role="button" tabindex="0" style="cursor:pointer" onclick="openActivityModal('${c.act}')"`:c.click?` role="button" tabindex="0" style="cursor:pointer" onclick="${c.click}" onkeydown="if(event.key==='Enter'){${c.click}}"`:''}>
           <div class="s-label">${c.lbl}</div>
           <div class="s-icon"><svg viewBox="0 0 24 24">${svg(c.ic)}</svg></div>
           <div class="s-value${c.place?' s-place':''}">${c.val}</div>
