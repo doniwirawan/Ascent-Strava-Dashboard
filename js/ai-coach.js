@@ -250,6 +250,17 @@ function _geoThrottled(fn) {
   return run;
 }
 
+/* Villages whose OSM boundary has no parent admin area, so Nominatim returns
+   only "<desa>, Bali" with no kecamatan / kabupaten. Serangan (the reclaimed
+   island) sits outside Denpasar Selatan's polygon in OSM. desa → [kec, kab]. */
+const PLACE_ADMIN_FIXES = {
+  'Serangan': ['Denpasar Selatan', 'Denpasar'],
+};
+function fixPlaceAdmin(desa, kec, kab) {
+  const f = PLACE_ADMIN_FIXES[desa];
+  return f && !kec ? { kec: f[0], kab: f[1] } : { kec, kab };
+}
+
 /* Village-level place for a point: { name: "Desa, Kecamatan", desa, kec, kab }.
    zoom=18 snaps to the nearest road/building, so the desa comes from the OSM
    admin boundary (admin_level 7) that actually contains the point — checked
@@ -264,8 +275,8 @@ async function placeVillage(lat, lng) {
       if (!r.ok) return null;
       const a = ((await r.json()) || {}).address || {};
       const desa = a.village || a.suburb || a.neighbourhood || a.hamlet || a.town || a.city || a.municipality || a.county || '';
-      const kec = a.town || a.city_district || a.municipality || a.city || '';
-      const kab = a.region || a.county || a.state_district || a.city || a.state || '';
+      const { kec, kab } = fixPlaceAdmin(desa, a.town || a.city_district || a.municipality || a.city || '',
+        a.region || a.county || a.state_district || a.city || a.state || '');
       let area = kec && kec !== desa ? kec : (kab !== desa ? kab : '');
       const place = { name: [desa, area].filter(Boolean).join(', '), desa, kec, kab };
       if (!place.name) return null;

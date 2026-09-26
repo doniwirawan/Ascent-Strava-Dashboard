@@ -189,6 +189,8 @@ function setVillages(list) {
     if (!place) return;
     const desa = place.split(',')[0].trim();
     if (!desa || _PROVINCES.test(desa)) return;          // no village, just a province
+    // places saved before a fix was known (see PLACE_ADMIN_FIXES)
+    if (typeof fixPlaceAdmin === 'function') ({ kec, kab } = fixPlaceAdmin(desa, (kec || '').trim(), kab));
     const o = v[place] || (v[place] = { desa, kec: (kec || '').trim(), kab: normKab(kab), acts: [] });
     if (!o.kab) o.kab = normKab(kab);
     if (!o.kec && kec) o.kec = kec.trim();
