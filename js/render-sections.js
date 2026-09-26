@@ -1028,7 +1028,7 @@ async function renderChallenges(){
     {icon:'mountain',name:'Everest Climber', val:Math.round(ltElev/1000)+'k',unit:'m climbed',color:'#4da8ff',unlocked:ltElev>=8848},
     {icon:'runner',  name:'Half Marathoner', val:longestRun.toFixed(1), unit:'km best',   color:'#00cc88', unlocked:longestRun>=21.1},
     {icon:'bike',    name:'1,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#00cc88',unlocked:ltDist>=1000},
-    {icon:'world',   name:'Bentang Jawa',    val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#f43f5e',unlocked:ltDist>=1500},
+    {icon:'world',   name:'Bentang Jawa',    val:biggestRide.toFixed(1),unit:'km best',color:'#f43f5e',unlocked:biggestRide>=1500}, // Java end to end in ONE activity
     {icon:'flame',   name:'5,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#fb923c',unlocked:ltDist>=5000},
     {icon:'world',   name:'10,000 km Club',  val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#a78bfa',unlocked:ltDist>=10000},
     {icon:'target',  name:'100 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#fb923c',unlocked:(lifetimeRides||rides.length)>=100},
