@@ -145,13 +145,14 @@ function _bestToggle(btn){
 }
 // Render one ranking card. `list` is already sorted+sliced; `fmtRow(a)` → value string.
 // `spot` ('speed' | 'hr') adds a pin per row that opens where that peak happened.
+// Clicking a row opens that activity's detail modal.
 function _bestCard(title, sub, list, fmtRow, spot){
   const rows=list.map((a,i)=>`
-      <div class="best-row${i>=BEST_SHOWN?' best-extra':''}">
+      <div class="best-row${i>=BEST_SHOWN?' best-extra':''}"${a.id?` role="button" tabindex="0" onclick="openActivityModal('${a.id}')" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();openActivityModal('${a.id}');}"`:''}>
         <div class="best-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
         <div class="best-name">${a.name||'Activity'} <span style="color:var(--muted);font-size:10px;">${fmtDt(a.start_date)}</span>${placeTag(a)?`<span class="best-place">${placeTag(a)}</span>`:''}</div>
         <div class="best-val">${fmtRow(a)}</div>
-        ${spot&&a.id?`<button class="best-where" onclick="showSpeedSpot('${a.id}',this,'${spot}','bspot-${spot}-${a.id}')" title="${tr('Where did this happen?')}" aria-label="${tr('Where did this happen?')}">${ic('pin')}</button>`:''}
+        ${spot&&a.id?`<button class="best-where" onclick="event.stopPropagation();showSpeedSpot('${a.id}',this,'${spot}','bspot-${spot}-${a.id}')" title="${tr('Where did this happen?')}" aria-label="${tr('Where did this happen?')}">${ic('pin')}</button>`:''}
       </div>${spot&&a.id?`<div class="spot-panel" id="bspot-${spot}-${a.id}"></div>`:''}`).join('');
   const more=list.length>BEST_SHOWN?`<button class="best-more" onclick="_bestToggle(this)">Show more</button>`:'';
   const subHtml=sub?` <span style="color:var(--muted);font-weight:400;letter-spacing:0;text-transform:none;">· ${sub}</span>`:'';
