@@ -171,6 +171,7 @@
 }
 
 .type-pill.ride { color: var(--orange); background: var(--orange-dim); }
+.type-pill.bike-pill { color: var(--text-2); letter-spacing: 0; }
 
 /* Contain Leaflet's internal z-index (panes/controls up to ~1000) so a map can
    never paint above the mobile sidebar drawer or modals */

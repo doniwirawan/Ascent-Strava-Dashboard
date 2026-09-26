@@ -345,6 +345,14 @@ function renderActivities() {
   }).join('');
 }
 
+// Pill naming the bike an activity was ridden on (its Strava nickname or name).
+function actBikePill(a){
+  if(!a.gear_id || !isRide(a)) return '';
+  const bikes=(typeof _gearCache!=='undefined'&&_gearCache)||(currentAthlete&&currentAthlete.bikes)||[];
+  const b=bikes.find(x=>String(x.id)===String(a.gear_id));
+  return b ? `<span class="type-pill bike-pill">🚲 ${b.nickname||b.name}</span>` : '';
+}
+
 // Live client-side filter for the Recent Activities list (name or type).
 // Rows open by activity id so filtering never desyncs from the modal.
 let _actRegency = ''; // regency tag filter for the list ('' = all), see renderRegencyTags
@@ -361,7 +369,7 @@ function _renderActList(q){
       <div style="flex:1;min-width:0">
         <div class="act-name">${a.name}</div>
         <div class="act-meta">
-          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${fmtDt(a.start_date_local||a.start_date)}
+          <span class="type-pill ${isRide(a)?'ride':''}">${a.type}</span>${actBikePill(a)}${fmtDt(a.start_date_local||a.start_date)}
         </div>
         ${placeTag(a)?`<div class="act-where">${placeTag(a)}</div>`:''}
         <div class="act-stats">${[
@@ -655,7 +663,7 @@ function openActivityModal(ref){
   document.getElementById('actModalBody').innerHTML=`
     ${hasRoute?'<div class="actd-map" id="actMapBig"></div>':''}
     <div class="actd-head">
-      <span class="type-pill ${ride?'ride':''}">${a.sport_type||a.type}</span>
+      <span class="type-pill ${ride?'ride':''}">${a.sport_type||a.type}</span>${actBikePill(a)}
       <span class="actd-date">${dateStr} · ${timeStr}</span>
       ${badges}
     </div>
