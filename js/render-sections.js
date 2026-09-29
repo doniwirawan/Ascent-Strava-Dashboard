@@ -1322,8 +1322,8 @@ async function _scanForSegs(onProgress){
       (det&&det.segment_efforts||[]).forEach(e=>{
         const id=e.segment&&e.segment.id; if(!id) return;
         const ex=store.segs[id], t=e.elapsed_time||e.moving_time||0;
-        if(!ex) store.segs[id]=_normEffortSeg(e,a.id);
-        else{ ex.effort_count=(ex.effort_count||1)+1;
+        if(!ex) (store.segs[id]=_normEffortSeg(e,a.id))._last=a.start_date;
+        else{ if(a.start_date>(ex._last||'')) ex._last=a.start_date;   // latest ride — for Local Legends ex.effort_count=(ex.effort_count||1)+1;
           if(t&&(!ex.athlete_pr_effort.elapsed_time||t<ex.athlete_pr_effort.elapsed_time)) ex.athlete_pr_effort.elapsed_time=t;
           if(!ex._srcAct) ex._srcAct=a.id;
           ex._hasKom=ex._hasKom||e.kom_rank!=null; ex._hasPr=ex._hasPr||e.pr_rank===1; }
@@ -1499,12 +1499,13 @@ function _renderSegGrid(el, segs){
       kom:segs.filter(_isKomSeg).length,
       pr:segs.filter(s=>s.athlete_pr_effort).length,
       mine:segs.filter(_isMineSeg).length,
+      legend:segs.filter(_isLegendSeg).length,
     };
     const _chip=(f,lbl)=>`<button class="seg-chip-btn${f==='all'?' active':''}" data-filter="${f}">${lbl} <span class="seg-chip-n">${_cnt[f]}</span></button>`;
     const _unstarredArrow=segs.filter(s=>s.id&&_segMineAuto(s)&&!s._starred).length;
     const controlsHtml=`<div class="seg-controls">
       <div class="seg-chips">
-        ${_chip('all','All')}${_chip('ride','Rides')}${_chip('run','Runs')}${_chip('climb','Climbs')}${_chip('kom','KOMs')}${_chip('pr','With PR')}${_chip('mine','Created by me')}
+        ${_chip('all','All')}${_chip('ride','Rides')}${_chip('run','Runs')}${_chip('climb','Climbs')}${_chip('kom','KOMs')}${_chip('pr','With PR')}${_chip('mine','Created by me')}${_cnt.legend?_chip('legend','Local Legend'):''}
       </div>
       <div class="seg-tools">
         <select class="seg-sort" id="segSort">
@@ -1520,7 +1521,7 @@ function _renderSegGrid(el, segs){
       </div>
     </div>`;
 
-    el.innerHTML=recHtml+controlsHtml+`<div class="seg-grid" id="segGrid">`+segs.map(s=>{
+    el.innerHTML=recHtml+segLegendPanelHTML()+controlsHtml+`<div class="seg-grid" id="segGrid">`+segs.map(s=>{
       const dist    =kmVal(s.distance).toFixed(2);
       const gradeNum=s.average_grade!=null?parseFloat(s.average_grade):null;
       const gradeStr=gradeNum!=null?gradeNum.toFixed(1)+'%':null;
@@ -1536,6 +1537,7 @@ function _renderSegGrid(el, segs){
       const location=[s.city,s.state,s.country].filter(Boolean).join(', ');
       const isKom   =_isKomSeg(s);
       const isMine  =_isMineSeg(s);
+      const isLegend=_isLegendSeg(s);
 
       const gc=gradeNum==null?'#666'
         :gradeNum<2?'#4ade80'
@@ -1545,7 +1547,7 @@ function _renderSegGrid(el, segs){
 
       return `<article class="seg-card${isKom?' is-kom':''}"
         data-sport="${(s.activity_type||'').toLowerCase()}" data-climb="${(s.climb_category||0)>0?1:0}"
-        data-kom="${isKom?1:0}" data-pr="${pr?1:0}" data-mine="${isMine?1:0}"
+        data-kom="${isKom?1:0}" data-pr="${pr?1:0}" data-mine="${isMine?1:0}" data-legend="${isLegend?1:0}"
         data-mineauto="${_segMineAuto(s)?1:0}" data-speed="${prSpeedNum||0}"
         data-dist="${s.distance||0}" data-grade="${gradeNum!=null?gradeNum:-99}"
         data-efforts="${s.effort_count||0}" data-segname="${(s.name||'').toLowerCase().replace(/"/g,'')}">
@@ -1554,6 +1556,7 @@ function _renderSegGrid(el, segs){
           <div class="seg-badges">
             ${gradeStr?`<span class="seg-chip" style="background:${gc}">${gradeStr}</span>`:'<span></span>'}
             ${isKom?`<span class="seg-chip seg-kom">${ic('crown')} KOM</span>`:''}
+            ${isLegend?`<span class="seg-chip seg-ll-chip">${ic('crown')} Local Legend</span>`:''}
           </div>
           <div class="seg-overlay">
             <a class="seg-name" href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener">${s.name}</a>
@@ -1611,6 +1614,7 @@ function _renderSegGrid(el, segs){
         else if(filter==='kom') show=d.kom==='1';
         else if(filter==='pr') show=d.pr==='1';
         else if(filter==='mine') show=d.mine==='1';
+        else if(filter==='legend') show=d.legend==='1';
         c.style.display=show?'':'none';
       });
       if(sort!=='default'){
@@ -1642,6 +1646,8 @@ function _renderSegGrid(el, segs){
     </div>`;
 
     document.querySelectorAll('.seg-refresh-btn').forEach(b=>b.onclick=_doRefresh);
+
+    wireSegLegend();
 
     const starAllBtn=document.getElementById('segStarAll');
     if(starAllBtn) starAllBtn.onclick=()=>starAllArrowSegs(starAllBtn);
