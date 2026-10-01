@@ -1163,6 +1163,8 @@ body.dev .dev-tag { display: inline-block; }
 .pc-track > span { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #a855f7, #fc4c02); }
 .pc-w { font-size: 13px; font-weight: 800; color: var(--text); width: 56px; text-align: right; flex: none; }
 .pc-wkg { font-size: 11px; color: var(--muted); width: 68px; text-align: right; flex: none; }
+.tr-sp .cp-w { width: auto; min-width: 70px; white-space: nowrap; }
+.tr-sp .pc-rank { width: 84px; }
 
 /* ── HR DECOUPLING ───────────────────────────────────────────────────── */
 .tr-hrd { padding: 16px; margin-top: 16px; }

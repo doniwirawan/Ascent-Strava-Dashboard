@@ -674,6 +674,7 @@ function openActivityModal(ref){
     ${a.id ? '<div class="actd-streams" id="actStreams"></div>' : ''}
     ${a.average_heartrate ? '<div class="actd-hrz" id="actHrz"></div>' : ''}
     ${a.average_heartrate ? '<div id="actHrd"></div>' : ''}
+    ${ride && a.id ? '<div id="actSauce"></div>' : ''}
     ${a.id ? `<div class="actd-actions">
       <button class="btn actd-ai-btn" type="button" onclick="aiAnalyzeActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} Analyze performance</button>
       <button class="btn actd-ai-btn" type="button" onclick="aiCaptionActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} AI title &amp; description</button>
@@ -695,6 +696,7 @@ function openActivityModal(ref){
   if(a.id && typeof renderActivityAnalysis==='function') renderActivityAnalysis(a);
   if(typeof renderActivitySleep==='function') renderActivitySleep(a);
   if(typeof renderActivityDecoupling==='function') renderActivityDecoupling(a);
+  if(typeof renderActivitySauce==='function') renderActivitySauce(a);
 }
 
 function closeActivityModal(){

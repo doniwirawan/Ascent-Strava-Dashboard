@@ -9,7 +9,16 @@ two ideas taken from it:
 2. **Build our own browser extension**, later, that brings dashboard features onto
    strava.com.
 
-Status: **plan only — nothing built yet.**
+Status (2026-10-01): **Part 1 built** in `js/sauce.js`. That covers items #1–#10 plus
+#11's packing, which is used for the per-ride cache. #12 (FIT/TCX/GPX export) and Part 2
+(the extension) are not built yet.
+
+- **Training section:** an "Estimated Power" card (owner clicks *Estimate my power*).
+- **Activity modal:** an "Estimated Power" block with W′ balance.
+- **Training load:** est-power TSS is source 1b.
+- **Segment Intelligence:** shows "PR pace ≈ N W".
+
+The maths is checked in Node against known answers, and the UI in a headless harness.
 
 ---
 

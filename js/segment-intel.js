@@ -56,6 +56,12 @@ function _segMetrics(efforts) {
   return { pr, recentBest, gap, improvePct: +improvePct.toFixed(1), prob: Math.round(prob * 100), count: n };
 }
 
+// Estimated watts to match the PR (js/sauce.js physics); blank on old caches.
+function _segPrWatts(s) {
+  const w = (typeof spSegmentWatts === 'function') && spSegmentWatts(s.distance, s.grade, s.pr);
+  return w ? ' · ' + trf('PR pace ≈ {0} W', '<b>' + w + '</b>') : '';
+}
+
 function _segIntelSig(starred) { return (starred || []).length + ':' + ((starred && starred[0] && starred[0].id) || ''); }
 
 function _segIntelMarkup(data, stopped) {
@@ -68,7 +74,7 @@ function _segIntelMarkup(data, stopped) {
   const stagnating = segs.filter(s => Math.abs(s.improvePct) <= 2 && s.count >= 5).slice(0, 5);
   const group = (title, items, fmt) => items.length ? `<div class="si-group"><div class="si-title">${title}</div>${items.map(fmt).join('')}</div>` : '';
   let html = '';
-  html += group(tr('Closest to a PR'), closest, s => `<div class="si-row"><span class="si-name">${s.name}</span><span class="si-meta">${s.gap <= 0 ? tr('at your PR') : trf('+{0} behind', _segFmtGap(s.gap))} · ${trf('{0}% chance', '<b>' + s.prob + '</b>')}</span></div>`);
+  html += group(tr('Closest to a PR'), closest, s => `<div class="si-row"><span class="si-name">${s.name}</span><span class="si-meta">${s.gap <= 0 ? tr('at your PR') : trf('+{0} behind', _segFmtGap(s.gap))} · ${trf('{0}% chance', '<b>' + s.prob + '</b>')}${_segPrWatts(s)}</span></div>`);
   html += group(tr('Improving fastest'), improving, s => `<div class="si-row"><span class="si-name">${s.name}</span><span class="si-meta" style="color:#22c55e">${trf('▲ {0}% faster', s.improvePct)}</span></div>`);
   html += group(tr('Stagnating'), stagnating, s => `<div class="si-row"><span class="si-name">${s.name}</span><span class="si-meta">${trf('{0} efforts · flat', s.count)}</span></div>`);
   if (stopped) html += '<div class="tr-basis-note">' + tr('Rate-limited — some segments skipped; reopen later to finish.') + '</div>';
@@ -120,7 +126,7 @@ async function computeSegmentIntel() {
       try {
         const efs = await api('/segments/' + seg.id + '/all_efforts?per_page=200');
         const m = _segMetrics((efs || []).map(e => ({ t: e.elapsed_time, date: e.start_date_local || e.start_date })));
-        if (m) results.push({ id: seg.id, name: seg.name, ...m });
+        if (m) results.push({ id: seg.id, name: seg.name, distance: seg.distance, grade: seg.average_grade, ...m });
       } catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) { stopped = true; return; } }
       const p = body.querySelector('.si-prog'); if (p) p.textContent = trf('Analysing… {0}/{1}', idx, pool.length);
     }

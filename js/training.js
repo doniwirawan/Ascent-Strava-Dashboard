@@ -34,6 +34,9 @@ function _trActivityLoad(a, ftp, hrMax, hrRest) {
     const IF = np / ftp;
     return { load: (dur * np * IF) / (ftp * 3600) * 100, basis: 'power' };
   }
+  // 1b) TSS from estimated power (js/sauce.js) — rides the owner has scanned
+  const est = (typeof spRideLoad === 'function') && spRideLoad(a, ftp);
+  if (est) return est;
   // 2) Strava Relative Effort (suffer_score) — already an HR-TRIMP, ~TSS scale
   if (a.suffer_score > 0) return { load: a.suffer_score, basis: 'effort' };
   // 3) HR-TRIMP (Banister), scaled toward the TSS range
@@ -62,7 +65,7 @@ function _trBuildSeries() {
 
   // Sum load per calendar day + tally which basis was used (for transparency).
   const byDay = new Map();
-  const basis = { power: 0, effort: 0, hr: 0, time: 0 };
+  const basis = { power: 0, estpower: 0, effort: 0, hr: 0, time: 0 };
   let earliest = null;
   for (const a of acts) {
     const key = _trDayKey(a);
@@ -114,6 +117,7 @@ function _trFormBand(tsb, ramp) {
 function _trBasisNote(basis) {
   const parts = [];
   if (basis.power)  parts.push(trf('{0} from power', basis.power));
+  if (basis.estpower) parts.push(trf('{0} from estimated power', basis.estpower));
   if (basis.effort) parts.push(trf('{0} from Relative Effort', basis.effort));
   if (basis.hr)     parts.push(trf('{0} from heart rate', basis.hr));
   if (basis.time)   parts.push(trf('{0} from duration', basis.time));
@@ -858,6 +862,7 @@ function renderTraining() {
     ${_trFtpCardHTML(d.ftpEst)}
     ${_trFtpTrendHTML()}
     ${typeof _trClimbPowerHTML === 'function' ? _trClimbPowerHTML() : ''}
+    ${typeof _trSauceHTML === 'function' ? _trSauceHTML() : ''}
     ${_trNote('FTP & W/kg')}
     ${_trZonesHTML(d.ftpEst)}
     ${_trRunPredictHTML()}
