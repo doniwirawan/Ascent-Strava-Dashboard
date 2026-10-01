@@ -6,6 +6,9 @@ See **[STATUS.md](STATUS.md)** — the public stats API (`/api/stats`, for doniw
 ## Bikes
 See **[BIKES.md](BIKES.md)** — the owner's three bikes, their components and weights.
 
+## Sauce for Strava plan
+See **[SAUCE_PLAN.md](SAUCE_PLAN.md)** — what to port from sauce4strava (MIT): physics power estimate, Morton CP/W′, W′ balance, etc., plus a later browser-extension plan.
+
 ## What this project is
 A personal Strava activity dashboard deployed as a static site on Vercel. No backend server — all Strava API calls happen in the browser. Supabase is used to cache activity data so the 200-activity limit doesn't require re-fetching every visit.
 
