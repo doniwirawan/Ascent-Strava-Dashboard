@@ -493,6 +493,148 @@ function _slpStressAnalysis(allDays, train, byDate) {
            rStressVsSleep, rStressVsNextSleep };
 }
 
+/* ── PATTERNS: SLEEP → THE DAY, TRAINING TIME → THE BODY, BEDTIME → TOMORROW ──
+   Three joins the watch can't make on its own (it never sees the rides):
+   - last night's sleep against that day's stress, HRV, resting HR and steps;
+   - when in the day you trained (earliest start) against that day's stress,
+     the night that followed and the next morning's HRV / resting HR;
+   - what time you went to bed against the next day.
+   A row is dated by the morning you woke, so row D carries the night before D
+   and D's own daily stats. Groups need ≥5 days; a difference counts as clear
+   when it's more than twice its standard error (≈95%), otherwise "slight". */
+function _slpPatterns(allDays, train) {
+  const byDay = new Map(allDays.map(d => [d.date, d]));
+  const vals = (g, k) => g.map(d => d[k]).filter(x => x != null && !isNaN(x));
+  const stat = (g, k) => { const v = vals(g, k); if (v.length < 5) return null;
+    const m = _slpMean(v), sd = Math.sqrt(_slpMean(v.map(x => (x - m) ** 2))); return { v: m, n: v.length, sd }; };
+  const diff = (a, b) => { if (!a || !b) return null;
+    const se = Math.sqrt(a.sd * a.sd / a.n + b.sd * b.sd / b.n) || 1; return { d: a.v - b.v, clear: Math.abs(a.v - b.v) > 2 * se }; };
+
+  // 1) last night's sleep → the day
+  const SB = [{ k: 'lt6', lbl: 'Under 6 h', lo: 60, hi: 360 }, { k: '6to7', lbl: '6–7 h', lo: 360, hi: 420 },
+              { k: '7to8', lbl: '7–8 h', lo: 420, hi: 480 }, { k: '8p', lbl: '8 h or more', lo: 480, hi: 1e9 }];
+  const sleepRows = SB.map(b => { const g = allDays.filter(d => d.asleep >= b.lo && d.asleep < b.hi);
+    return { ...b, n: g.length, stress: stat(g, 'stress'), hrv: stat(g, 'hrv'), rhr: stat(g, 'rhr'), steps: stat(g, 'steps') }; })
+    .filter(r => r.n >= 5);
+
+  // 2) training time → the body (only days inside the Strava history, so "rest" is real)
+  const tDates = [...train.keys()].sort();
+  const slot = h => h < 10 ? 'morning' : h < 15 ? 'midday' : 'evening';
+  const TB = { morning: [], midday: [], evening: [], rest: [] };
+  if (tDates.length) allDays.forEach(d => {
+    if (d.date < tDates[0] || d.date > tDates[tDates.length - 1]) return;
+    const t = train.get(d.date);
+    TB[t && t.startH != null ? slot(t.startH) : 'rest'].push(d);
+  });
+  const TLBL = { morning: 'Morning (before 10:00)', midday: 'Midday (10:00–15:00)', evening: 'Afternoon / evening (15:00+)', rest: 'Rest day' };
+  const timeRows = ['morning', 'midday', 'evening', 'rest'].map(k => {
+    const g = TB[k], next = g.map(d => byDay.get(_slpNext(d.date))).filter(Boolean), slept = next.filter(n => n.asleep >= 60);
+    return { k, lbl: TLBL[k], n: g.length, stress: stat(g, 'stress'), asleep: stat(slept, 'asleep'), bed: stat(slept, 'bed'),
+             hrvNext: stat(next, 'hrv'), rhrNext: stat(next, 'rhr') };
+  }).filter(r => r.n >= 5);
+
+  // 3) bedtime (hours from midnight, −1.5 = 22:30) → the next day
+  const BB = [{ k: 'early', lbl: 'Before 22:30', lo: -99, hi: -1.5 }, { k: 'mid', lbl: '22:30–23:30', lo: -1.5, hi: -0.5 },
+              { k: 'late', lbl: 'After 23:30', lo: -0.5, hi: 99 }];
+  const bedRows = BB.map(b => { const g = allDays.filter(d => d.asleep >= 60 && d.bed != null && d.bed >= b.lo && d.bed < b.hi);
+    return { ...b, n: g.length, asleep: stat(g, 'asleep'), stress: stat(g, 'stress'), hrv: stat(g, 'hrv'), rhr: stat(g, 'rhr') }; })
+    .filter(r => r.n >= 5);
+
+  // the findings, strongest first — only differences big enough to notice
+  const S = k => sleepRows.find(r => r.k === k), Tm = k => timeRows.find(r => r.k === k), Bd = k => bedRows.find(r => r.k === k);
+  const F = [];
+  const add = (cmp, min, text) => { if (cmp && Math.abs(cmp.d) >= min) F.push({ ...cmp, text, w: Math.abs(cmp.d) / min * (cmp.clear ? 2 : 1) }); };
+  const short = S('lt6'), good = S('7to8') || S('8p');
+  if (short && good) {
+    add(diff(short.stress, good.stress), 2, ['stress', short.stress, good.stress, 'sleep']);
+    add(diff(short.hrv, good.hrv), 2, ['hrv', short.hrv, good.hrv, 'sleep']);
+    add(diff(short.rhr, good.rhr), 1, ['rhr', short.rhr, good.rhr, 'sleep']);
+    add(diff(short.steps, good.steps), 800, ['steps', short.steps, good.steps, 'sleep']);
+  }
+  const mo = Tm('morning'), ev = Tm('evening'), rest = Tm('rest');
+  if (mo && ev) {
+    add(diff(mo.stress, ev.stress), 2, ['stress', mo.stress, ev.stress, 'time']);
+    add(diff(ev.bed, mo.bed), 0.25, ['bed', ev.bed, mo.bed, 'time']);
+    add(diff(ev.asleep, mo.asleep), 10, ['asleep', ev.asleep, mo.asleep, 'time']);
+    add(diff(mo.hrvNext, ev.hrvNext), 2, ['hrvNext', mo.hrvNext, ev.hrvNext, 'time']);
+  }
+  if (mo && rest) add(diff(mo.stress, rest.stress), 2, ['stressRest', mo.stress, rest.stress, 'time']);
+  const late = Bd('late'), early = Bd('early') || Bd('mid');
+  if (late && early) {
+    add(diff(late.stress, early.stress), 2, ['stress', late.stress, early.stress, 'bed']);
+    add(diff(late.hrv, early.hrv), 2, ['hrv', late.hrv, early.hrv, 'bed']);
+    add(diff(late.asleep, early.asleep), 10, ['asleep', late.asleep, early.asleep, 'bed']);
+  }
+  F.sort((a, b) => b.w - a.w);
+  // the questions people ask most ("does a short night stress me out?", "does
+  // morning training?") deserve an answer even when the answer is "not really"
+  const none = [];
+  const flat = (cmp, min, text) => { if (cmp && Math.abs(cmp.d) < min) none.push({ ...cmp, text, none: true }); };
+  if (short && good) flat(diff(short.stress, good.stress), 2, ['stress', short.stress, good.stress, 'sleep']);
+  if (mo && ev) flat(diff(mo.stress, ev.stress), 2, ['stress', mo.stress, ev.stress, 'time']);
+  return sleepRows.length || timeRows.length || bedRows.length ? { sleepRows, timeRows, bedRows, findings: F.slice(0, 6).concat(none) } : null;
+}
+
+function _slpPatternsHTML(P) {
+  if (!P) return '';
+  const T = tr, R = v => v == null ? '—' : Math.round(v.v);
+  const clock = v => v == null ? '—' : _slpClock(v.v);
+  const cell = (v, f) => '<td class="slp-num">' + (v == null ? '—' : f(v)) + '</td>';
+  const clearTxt = c => c ? T('a clear difference') : T('a slight difference, could be chance');
+
+  const say = f => {
+    const [k, a, b, grp] = f.text;
+    const fmt = v => k === 'bed' ? _slpClock(v.v) : k === 'asleep' ? _slpHM(v.v).trim() : k === 'steps' ? _slpNum(v.v) : Math.round(v.v);
+    const A = fmt(a), B = fmt(b);
+    if (f.none) return '<li class="slp-finding-none">' + trf({
+      sleep: 'A short night barely moves your stress: {0} after under 6 h, {1} after 7 h or more.',
+      time: 'When you train barely moves your stress: {0} on morning-training days, {1} on afternoon or evening ones.',
+    }[grp], A, B) + '</li>';
+    const key = {
+      sleep: { stress: 'After a night under 6 h your stress that day averages {0}, against {1} after 7 h or more — {2}.',
+               hrv: 'After a night under 6 h your HRV reads {0} ms, against {1} ms after 7 h or more — {2}.',
+               rhr: 'After a night under 6 h your resting heart rate is {0} bpm, against {1} bpm after 7 h or more — {2}.',
+               steps: 'After a night under 6 h you walk {0} steps, against {1} after 7 h or more — {2}. Short nights tend to come with busy days.' },
+      time:  { stress: 'On days you train in the morning your stress averages {0}, against {1} when you train in the afternoon or evening — {2}.',
+               stressRest: 'Morning-training days run at stress {0}, against {1} on rest days — {2}.',
+               bed: 'After an afternoon or evening session you go to bed around {0}, against {1} after a morning one — {2}.',
+               asleep: 'You sleep {0} after an afternoon or evening session, against {1} after a morning one — {2}.',
+               hrvNext: 'The morning after a morning session your HRV reads {0} ms, against {1} ms after an evening one — {2}.' },
+      bed:   { stress: 'After going to bed past 23:30 your stress the next day averages {0}, against {1} after an earlier night — {2}.',
+               hrv: 'After a bedtime past 23:30 your HRV reads {0} ms, against {1} ms after an earlier night — {2}.',
+               asleep: 'Going to bed past 23:30 gets you {0} of sleep, against {1} on earlier nights — {2}.' },
+    }[grp][k];
+    return '<li>' + trf(key, A, B, clearTxt(f.clear)) + '</li>';
+  };
+
+  const tbl = (head, rows) => '<table class="slp-table" style="margin-top:12px"><thead><tr>' + head.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+  return `
+    <div class="slp-chart-card card">
+      <div class="slp-chart-title">${T('Patterns in your body')}</div>
+      <div class="slp-chart-sub">${T('How last night’s sleep, the time you train and your bedtime show up in stress, HRV and resting heart rate — joining the watch with Strava')}</div>
+      ${P.findings.length ? '<ul class="slp-findings">' + P.findings.map(say).join('') + '</ul>'
+        : '<div class="slp-note">' + T('No difference big enough to call out yet — more nights will sharpen this.') + '</div>'}
+
+      ${P.sleepRows.length ? `<div class="slp-key-h" style="margin-top:14px">${T('Last night’s sleep → that day')}</div>` + tbl(
+        [T('Slept'), T('Stress'), 'HRV', T('Resting HR'), T('Steps')],
+        P.sleepRows.map(r => '<tr><td>' + T(r.lbl) + '<span class="slp-cell-sub">' + trf('{0} days', r.n) + '</span></td>'
+          + cell(r.stress, R) + cell(r.hrv, v => R(v) + ' ms') + cell(r.rhr, v => R(v) + ' bpm') + cell(r.steps, v => _slpNum(v.v)) + '</tr>').join('')) : ''}
+
+      ${P.timeRows.length ? `<div class="slp-key-h" style="margin-top:14px">${T('When you train → the body')}</div>` + tbl(
+        [T('Trained'), T('Stress that day'), T('Bedtime'), T('Sleep that night'), T('HRV next morning'), T('Resting HR next morning')],
+        P.timeRows.map(r => '<tr><td>' + T(r.lbl) + '<span class="slp-cell-sub">' + trf('{0} days', r.n) + '</span></td>'
+          + cell(r.stress, R) + cell(r.bed, clock) + cell(r.asleep, v => _slpHM(v.v)) + cell(r.hrvNext, v => R(v) + ' ms') + cell(r.rhrNext, v => R(v) + ' bpm') + '</tr>').join('')) : ''}
+
+      ${P.bedRows.length ? `<div class="slp-key-h" style="margin-top:14px">${T('Bedtime → the next day')}</div>` + tbl(
+        [T('Went to bed'), T('Sleep'), T('Stress'), 'HRV', T('Resting HR')],
+        P.bedRows.map(r => '<tr><td>' + T(r.lbl) + '<span class="slp-cell-sub">' + trf('{0} days', r.n) + '</span></td>'
+          + cell(r.asleep, v => _slpHM(v.v)) + cell(r.stress, R) + cell(r.hrv, v => R(v) + ' ms') + cell(r.rhr, v => R(v) + ' bpm') + '</tr>').join('')) : ''}
+
+      <div class="slp-note">${T('These are your own averages, not causes: a short night and a stressful day can both come from the same busy week. Clear means the gap is more than twice its uncertainty; slight means it could be chance.')}</div>
+    </div>`;
+}
+
 /* ── ENERGY: CALORIES, STEPS, MOVEMENT ───────────────────────────────────────
    Straight from the watch's daily totals. Calories here are the ACTIVE burn the
    watch counted (it stores them in thousandths of a kcal), not a total daily
@@ -949,8 +1091,9 @@ function _slpAnalyse(nights) {
   const bike = _slpBikeBody(allDays, train, byDate);
   const bodyBike = _slpBodyBike(allDays);
   const steps = _slpSteps(allDays, train);
+  const patterns = _slpPatterns(allDays, train);
 
-  return { real, allDays, records, risk, yearHealth, stress, energy, bike, bodyBike, steps,
+  return { real, allDays, records, risk, yearHealth, stress, energy, bike, bodyBike, steps, patterns,
            train, win, byDate, days, afterT, afterR, aT, aR, cuts, buckets,
            dowAgg, worst, byMonth, months, starts, dawn, later, startBuckets,
            bigDays, arc, HIST, under6, over7, byYear, years, bp, bedSlope, all,
@@ -1700,6 +1843,7 @@ function _slpDraw(nights, body) {
     </div>
 
     ${_slpStressHTML(stress)}
+    ${_slpPatternsHTML(A.patterns)}
     ${_slpEnergyHTML(energy)}
     ${_slpStepsHTML(steps)}
     ${_slpBikeHTML(bike)}
@@ -2310,6 +2454,15 @@ function sleepAiSummary() {
       return { year: y, nights: a.n, asleep_min: r1(a.asleep), deep_pct: r1(100 * a.deep / tot), rem_pct: r1(100 * a.rem / tot), light_pct: r1(100 * a.light / tot) }; }),
     correlations: corr,
     recent_rides_with_sleep: perRide,
+    patterns: A.patterns && (() => {
+      const v = x => x ? { mean: r1(x.v), days: x.n } : null;
+      return {
+        _note: 'Group means. Row D = the night before D + that day\'s stats. bed is hours from midnight (−1.5 = 22:30). Differences under ~2× their SE are chance.',
+        last_night_sleep_to_that_day: A.patterns.sleepRows.map(r => ({ slept: r.lbl, stress: v(r.stress), hrv_ms: v(r.hrv), rhr_bpm: v(r.rhr), steps: v(r.steps) })),
+        training_time_to_body: A.patterns.timeRows.map(r => ({ trained: r.lbl, stress_that_day: v(r.stress), bed_that_night: v(r.bed), sleep_min_that_night: v(r.asleep), hrv_next_morning: v(r.hrvNext), rhr_next_morning: v(r.rhrNext) })),
+        bedtime_to_next_day: A.patterns.bedRows.map(r => ({ bed: r.lbl, sleep_min: v(r.asleep), stress: v(r.stress), hrv_ms: v(r.hrv), rhr_bpm: v(r.rhr) })),
+      };
+    })(),
   };
 }
 
