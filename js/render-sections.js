@@ -373,8 +373,8 @@ const HEAT_BANDS = [                   // ascending; `min` = rides through the c
 // purely as "everywhere I've been" — easier to take in at a glance. The choice
 // is remembered across visits.
 const HEAT_UNIFORM = { color: '#FC4C02', weight: 2.2, opacity: 0.8 };
-// 'regency' = Bali's regencies shaded by how many rides end in each (the
-// Activities page's regency map), with the routes drawn faintly on top.
+// 'regency' = regencies (Bali) / areas (elsewhere) shaded by how many rides
+// end in each (the Activities page's map), with the routes drawn faintly on top.
 let heatMode = 'freq';
 try { const m = localStorage.getItem('heat_mode'); if (m === 'freq' || m === 'uniform' || m === 'regency') heatMode = m; } catch {}
 
@@ -447,7 +447,7 @@ function heatLegend(map){
   c.onAdd=()=>{
     const d=L.DomUtil.create('div','heat-legend');
     if(heatMode==='regency'){
-      d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:10px;width:14px;opacity:.6"></i>'+T('Rides ending in each regency')+'</span>';
+      d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:10px;width:14px;opacity:.6"></i>'+T(typeof areaIsRegency!=='function'||areaIsRegency()?'Rides ending in each regency':'Activities ending in each area')+'</span>';
     }else if(heatMode==='uniform'){
       d.innerHTML='<span class="hl-i"><i style="background:'+HEAT_UNIFORM.color+
         ';height:'+HEAT_UNIFORM.weight+'px;opacity:'+HEAT_UNIFORM.opacity+'"></i>'+T('Where you ride')+'</span>';
@@ -475,7 +475,7 @@ function heatModeControl(map){
     const d=L.DomUtil.create('div','heat-mode leaflet-bar');
     const mk=(id,label)=>'<button type="button" data-hm="'+id+'"'+
       (heatMode===id?' class="on"':'')+'>'+T(label)+'</button>';
-    d.innerHTML=mk('freq','Frequency')+mk('uniform','Uniform')+(typeof regencyLayers==='function'?mk('regency','Regency'):'');
+    d.innerHTML=mk('freq','Frequency')+mk('uniform','Uniform')+(typeof regencyLayers==='function'?mk('regency',typeof areaIsRegency!=='function'||areaIsRegency()?'Regency':'Areas'):'');
     L.DomEvent.disableClickPropagation(d);
     d.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
       const m=b.getAttribute('data-hm');
@@ -528,8 +528,9 @@ function renderHeatmap(preserveView){
     const map=leafletMapInst, list=modeActs().filter(a=>a.map&&a.map.summary_polyline);
     regencyGeo().then(g=>{
       if(!g || leafletMapInst!==map) return;             // re-rendered while loading
-      const {by}=_regStats(list);
+      const {by,missing}=_regStats(list);
       regencyLayers(map,by);
+      _regResolve(missing);                              // re-renders when new areas arrive
     });
   }else if(heatMode==='uniform'){
     // One flat colour: the map reads as "everywhere I've been", not "how often".

@@ -19,7 +19,7 @@ function _dtColumns(withSleep) {
     { key: 'name', lbl: 'Activity', val: r => r.a ? r.a.name : null, fmt: r => r.a ? (r.a.name || '').replace(/</g, '&lt;') : '<span class="dt-rest">' + tr('Rest day') + '</span>', txt: true },
     { key: 'type', lbl: 'Type', val: r => r.a ? (r.a.sport_type || r.a.type) : null, txt: true },
     { key: 'dest', lbl: 'Destination', val: r => r.a && r.a.route_places && r.a.route_places.furthest_place ? destName(r.a.route_places) : null, txt: true },
-    { key: 'reg', lbl: 'Regency', val: r => r.a && typeof _regOf !== 'undefined' ? (_regOf[r.a.id] || null) : null, txt: true },
+    { key: 'reg', lbl: typeof areaIsRegency !== 'function' || areaIsRegency() ? 'Regency' : 'Area', val: r => r.a && typeof _regOf !== 'undefined' ? (_regOf[r.a.id] || null) : null, txt: true },
     { key: 'dist', better: 1, lbl: 'Distance', unit: U, val: r => r.a ? kmVal(r.a.distance || 0) : null, fmt: r => r.a ? _dtNum(kmVal(r.a.distance || 0), 1) : '' },
     { key: 'time', better: 1, lbl: 'Moving time', val: r => r.a ? r.a.moving_time : null, fmt: r => r.a ? fmtT(r.a.moving_time) : '' },
     { key: 'elev', better: 1, lbl: 'Elevation', unit: elevUnit(), val: r => r.a ? elevVal(r.a.total_elevation_gain || 0) : null, fmt: r => r.a ? _dtNum(elevVal(r.a.total_elevation_gain || 0)) : '' },

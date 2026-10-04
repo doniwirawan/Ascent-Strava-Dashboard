@@ -227,7 +227,7 @@ function renderOverviewInsights(){
   if(placed.length){
     // villages / kecamatan / regencies counted by the same cleaned-up index the
     // Villages popup lists, so the card and the popup always agree
-    const vs=setVillages(placed), villages={size:vs.villages}, kecs=vs.kecs, kabs=vs.kabs;
+    const vs=setVillages(placed), villages={size:vs.villages}, kecs=vs.kecs, kabs=vs.kabs, reg=areaIsRegency();
     const desa=s=>s.split(',')[0], area=s=>s.split(', ')[1]||'';
     const home={}, dest={};
     placed.forEach(a=>{ const r=a.route_places;
@@ -239,8 +239,9 @@ function renderOverviewInsights(){
     const far=outs.reduce((m,a)=>!m||a.route_places.furthest_km_from_start>m.route_places.furthest_km_from_start?a:m,null);
     const reach=outs.length?outs.reduce((s,a)=>s+a.route_places.furthest_km_from_start,0)/outs.length:0;
     cards.push(
-      {ic:'pin',lbl:T('Villages reached'),val:villages.size,sub:TF('across {0} kecamatan',kecs.size),click:'openVillageList()'},
-      {ic:'map',lbl:T('Regencies'),val:kabs.size,sub:[...kabs].slice(0,3).join(', ')+(kabs.size>3?'…':'')},
+      // Bali-based athletes keep desa / kecamatan / kabupaten; elsewhere neutral words
+      {ic:'pin',lbl:T(reg?'Villages reached':'Places reached'),val:villages.size,sub:TF(reg?'across {0} kecamatan':'across {0} districts',kecs.size),click:'openVillageList()'},
+      {ic:'map',lbl:T(reg?'Regencies':'Regions'),val:kabs.size,sub:vs.countries.size>1?TF('in {0} countries',vs.countries.size):[...kabs].slice(0,3).join(', ')+(kabs.size>3?'…':'')},
       {ic:'home',lbl:T('Home base'),val:desa(h[0]),sub:TF('{0}% of starts',Math.round(h[1]/placed.length*100))+(area(h[0])?' · '+area(h[0]):''),place:true,cls:'no-ai'},
       t&&{ic:'flag',lbl:T('Top destination'),val:desa(t[0]),sub:TF('{0} trips',t[1])+(area(t[0])?' · '+area(t[0]):''),place:true},
       far&&{ic:'route',lbl:T('Furthest trip'),val:desa(destName(far.route_places)),sub:TF('{0} from start',fmtD(far.route_places.furthest_km_from_start*1000)),place:true,act:far.id},

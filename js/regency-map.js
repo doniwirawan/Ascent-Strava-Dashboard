@@ -4,8 +4,15 @@
    counted in the regency containing its destination — the route point furthest
    from the start; a loop that never gets 2 km away counts where it stayed.
    Point-in-polygon on the real boundaries, so it doesn't depend on the
-   reverse-geocoded names. Hover (tap on phones) shows count, km, top village. */
-let _regGeo = null, _regMap = null, _regLayer = null, _regLabels = null, _regBy = null;
+   reverse-geocoded names. Hover (tap on phones) shows count, km, top village.
+
+   Outside Bali the areas come from Nominatim instead: a destination no known
+   shape contains is looked up once at zoom 8 (≈ regency level — Gianyar, a
+   Singapore planning area like Tampines, Paris) and the returned boundary is
+   kept in localStorage, so later points inside it match locally. Areas are
+   grouped into places (state, else city, else country) — Bali, Singapore… —
+   and the card shows one place at a time. */
+let _regGeo = null, _regMap = null, _regLayer = null, _regLabels = null, _regBy = null, _regGroup = '';
 const _regPoint = {}, _regOf = {}, _regPiece = {}; // activity id → destination [lat, lng] / regency name / polygon piece (memoised)
 
 function _regDest(a) {
@@ -55,26 +62,98 @@ function _regLabelPoint(geom, piece) {
   return best || [(y0 + y1) / 2, (x0 + x1) / 2];
 }
 
+/* Areas fetched from Nominatim: feats = GeoJSON features, pts = rounded
+   point → area name ('' = no area there, e.g. out at sea). */
+const AREA_LS = 'areas_v1';
+let _areaStore = null;
+function _areas() {
+  if (!_areaStore) { try { _areaStore = JSON.parse(localStorage.getItem(AREA_LS) || 'null'); } catch {} }
+  return _areaStore || (_areaStore = { feats: [], pts: {} });
+}
+function _areasSave() { try { localStorage.setItem(AREA_LS, JSON.stringify(_areas())); } catch {} }
+const _ptKey = p => p[0].toFixed(3) + ',' + p[1].toFixed(3);
+
 function _regStats(list) {
-  const by = {}; let outside = 0;
-  _regGeo.features.forEach(f => { by[f.properties.name] = { n: 0, m: 0, dest: {}, pieces: {}, acts: [] }; });
+  const by = {}, missing = []; let outside = 0;
+  _regGeo.features.forEach(f => { const pr = f.properties; by[pr.name] = { n: 0, m: 0, dest: {}, pieces: {}, acts: [], group: pr.group, cc: pr.cc }; });
   list.forEach(a => {
     if (!(a.id in _regOf)) {
       const p = _regDest(a);
       let name = p ? '' : null;
-      if (p) _regGeo.features.some(f => { const k = _regPieceAt(f.geometry, p[1], p[0]); if (k < 0) return false; name = f.properties.name; _regPiece[a.id] = k; return true; });
+      if (p && !_regGeo.features.some(f => { const k = _regPieceAt(f.geometry, p[1], p[0]); if (k < 0) return false; name = f.properties.name; _regPiece[a.id] = k; return true; })) {
+        const k = _areas().pts[_ptKey(p)];
+        if (k === undefined) { missing.push(p); outside++; return; } // not looked up yet
+        name = k; _regPiece[a.id] = -1;
+      }
       _regOf[a.id] = name;
     }
     const name = _regOf[a.id];
     if (name === null) return;
-    if (!name) { outside++; return; }
+    if (!name || !by[name]) { outside++; return; }
     const s = by[name];
     s.n++; s.m += a.distance || 0; s.acts.push(a);
     s.pieces[_regPiece[a.id]] = (s.pieces[_regPiece[a.id]] || 0) + 1;
     const v = a.route_places && a.route_places.furthest_place;
     if (v) { const d = a.route_places.furthest_landmark || v.split(',')[0]; s.dest[d] = (s.dest[d] || 0) + 1; }
   });
-  return { by, outside };
+  return { by, outside, missing };
+}
+
+/* Add a Nominatim zoom-8 result as an area; returns its name ('' if none).
+   A result naming an area we already have (a Bali point just off the coast
+   comes back as "Gianyar") maps onto that one instead of a duplicate. */
+function _areaAdd(r) {
+  const g = r && r.geojson, ad = (r && r.address) || {};
+  if (!g || !/Polygon$/.test(g.type)) return '';
+  const group = ad.state || ad.city || ad.country || '';
+  let name = r.name || ad.suburb || ad.city_district || ad.city || ad.county || '';
+  if (!name) return '';
+  const same = _regGeo.features.find(f => f.properties.group === group && normKab(f.properties.name) === normKab(name));
+  if (same) return same.properties.name;
+  if (_regGeo.features.some(f => f.properties.name === name)) name += ', ' + group;
+  const f = { type: 'Feature', geometry: g, properties: { name, group, cc: ad.country_code || '' } };
+  _regGeo.features.push(f); _areas().feats.push(f);
+  return name;
+}
+
+/* Look up the area of each destination no known shape contains (through the
+   shared rate-limited Nominatim queue), then re-render the maps once. */
+let _regBusy = false;
+async function _regResolve(points) {
+  if (_regBusy || !points.length || typeof _geoThrottled !== 'function') return 0;
+  _regBusy = true;
+  const st = _areas(); let added = 0;
+  for (const p of points) {
+    const k = _ptKey(p);
+    if (k in st.pts || _regGeo.features.some(f => _regContains(f.geometry, p[1], p[0]))) continue;
+    const r = await _geoThrottled(() => fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=8&polygon_geojson=1&polygon_threshold=0.002&lat=' + p[0] + '&lon=' + p[1], { headers: { Accept: 'application/json' } })
+      .then(x => x.ok ? x.json() : null).catch(() => null));
+    if (!r) continue; // network trouble — retried on a later render
+    st.pts[k] = _areaAdd(r); added++;
+  }
+  _regBusy = false;
+  if (added) {
+    _areasSave(); renderRegencyMap();
+    if (typeof heatMode !== 'undefined' && heatMode === 'regency' && typeof renderHeatmap === 'function' && typeof leafletMapInst !== 'undefined' && leafletMapInst) renderHeatmap(true);
+  }
+  return added;
+}
+
+/* Country most activities start in — picks "regency / village" wording or
+   the neutral "area / place". Places saved before the country was recorded
+   are all Bali; with nothing placed yet, fall back to the athlete profile. */
+function mainCountry() {
+  const c = {};
+  (typeof acts !== 'undefined' ? acts : []).forEach(a => { const r = a.route_places; if (r && r.start_place) { const k = r.cc || 'id'; c[k] = (c[k] || 0) + 1; } });
+  const top = Object.entries(c).sort((x, y) => y[1] - x[1])[0];
+  if (top) return top[0];
+  const ca = typeof currentAthlete !== 'undefined' && currentAthlete;
+  return ca && ca.country && !/indonesia/i.test(ca.country) ? 'xx' : 'id';
+}
+const areaIsRegency = () => mainCountry() === 'id';
+// true / false once the Bali shapes are loaded, null before
+function inBali(lat, lng) {
+  return _regGeo ? _regGeo.features.some(f => f.properties.group === 'Bali' && _regContains(f.geometry, lng, lat)) : null;
 }
 
 /* Choropleth + count labels for `by` (from _regStats) on any Leaflet map.
@@ -104,9 +183,14 @@ function regencyLayers(map, by) {
   return [layer, L.layerGroup(labels).addTo(map)];
 }
 
-// Load the regency boundaries once (null if the file can't be fetched).
+// Load the Bali regency boundaries once, plus the areas fetched on earlier
+// visits (null if the file can't be fetched).
 async function regencyGeo() {
-  if (!_regGeo) { try { _regGeo = await (await fetch('data/bali-regencies.json')).json(); } catch { return null; } }
+  if (!_regGeo) {
+    let base; try { base = await (await fetch('data/bali-regencies.json')).json(); } catch { return null; }
+    base.features.forEach(f => Object.assign(f.properties, { group: 'Bali', cc: 'id' }));
+    _regGeo = { type: 'FeatureCollection', features: base.features.concat(_areas().feats) };
+  }
   return _regGeo;
 }
 
@@ -116,15 +200,34 @@ async function renderRegencyMap() {
   const list = (typeof modeActs === 'function' ? modeActs() : acts).filter(a => a.map && a.map.summary_polyline);
   if (!list.length) { card.style.display = 'none'; return; }
   if (!await regencyGeo()) return;
-  const { by, outside } = _regStats(list);
+  const { by, missing } = _regStats(list);
   _regBy = by;
   renderRegencyTags();
-  const max = Math.max(1, ...Object.values(by).map(s => s.n));
+  _regResolve(missing);
   if (!Object.values(by).some(s => s.n)) { card.style.display = 'none'; return; }
   card.style.display = '';
 
+  const T = typeof tr === 'function' ? tr : (x => x);
   const TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
   const topOf = s => Object.entries(s.dest).sort((x, y) => y[1] - x[1])[0];
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // places (Bali, Singapore, …) by activity count; the card shows one at a time
+  const groups = {};
+  Object.values(by).forEach(s => { if (s.n) (groups[s.group] = groups[s.group] || { n: 0, cc: s.cc }).n += s.n; });
+  const gl = Object.entries(groups).sort((x, y) => y[1].n - x[1].n);
+  if (!groups[_regGroup]) _regGroup = gl[0][0];
+  const G = groups[_regGroup], inG = Object.entries(by).filter(([, s]) => s.group === _regGroup);
+  const max = Math.max(1, ...inG.map(([, s]) => s.n));
+  const elsewhere = list.length - G.n;
+  card.querySelector('.card-title').textContent = T(G.cc === 'id' ? 'Ride destinations by regency' : 'Destinations by area');
+  card.querySelector('.chart-note').textContent = T(_regGroup === 'Bali'
+    ? "Where each ride turned around, on Bali's regencies. Loops count where they stayed. Hover or tap a regency for details."
+    : 'Where each activity turned around, by area. Loops count where they stayed. Hover or tap an area for details.');
+  const pl = document.getElementById('regencyPlaces');
+  pl.style.display = gl.length > 1 ? '' : 'none';
+  pl.innerHTML = gl.map(([g, o]) => '<button type="button" class="act-reg-tag' + (g === _regGroup ? ' on' : '') + '" data-g="' + esc(g) + '">' + esc(g) + ' <b>' + o.n + '</b></button>').join('');
+  pl.querySelectorAll('button').forEach(b => b.onclick = () => { _regGroup = b.dataset.g; renderRegencyMap(); });
 
   // map (built once; restyled on re-render)
   const el = document.getElementById('regencyMap');
@@ -135,17 +238,21 @@ async function renderRegencyMap() {
   if (_regLayer) _regLayer.remove();
   if (_regLabels) _regLabels.remove();
   [_regLayer, _regLabels] = regencyLayers(_regMap, by);
-  const fit = () => { try { _regMap.invalidateSize(); _regMap.fitBounds(_regLayer.getBounds(), { padding: [10, 10] }); } catch {} };
+  // Bali frames all its regencies; fetched areas only exist where you went
+  const shown = L.geoJSON({ type: 'FeatureCollection', features: _regGeo.features.filter(f => f.properties.group === _regGroup && (_regGroup === 'Bali' || by[f.properties.name].n)) });
+  const fit = () => { try { _regMap.invalidateSize(); _regMap.fitBounds(shown.getBounds(), { padding: [10, 10] }); } catch {} };
   fit(); setTimeout(fit, 300);
 
   // ranked list beside / under the map
-  const rows = Object.entries(by).filter(([, s]) => s.n).sort((x, y) => y[1].n - x[1].n);
-  document.getElementById('regencyList').innerHTML = rows.map(([name, s]) => {
+  const rows = inG.filter(([, s]) => s.n).sort((x, y) => y[1].n - x[1].n);
+  const listEl = document.getElementById('regencyList');
+  listEl.innerHTML = rows.map(([name, s]) => {
     const t = topOf(s);
-    return '<div class="regency-row" role="button" tabindex="0" onclick="openRegencyRides(\'' + name + '\')"><div class="regency-row-head"><span class="regency-name">' + name + '</span><span class="regency-n">' + s.n + '</span></div>'
+    return '<div class="regency-row" role="button" tabindex="0" data-reg="' + esc(name) + '"><div class="regency-row-head"><span class="regency-name">' + esc(name) + '</span><span class="regency-n">' + s.n + '</span></div>'
       + '<div class="regency-bar"><span style="width:' + Math.round(s.n / max * 100) + '%"></span></div>'
       + '<div class="regency-sub">' + fmtD(s.m) + (t ? ' · ' + TF('mostly {0}', t[0]) : '') + '</div></div>';
-  }).join('') + (outside ? '<div class="regency-sub regency-outside">' + TF('{0} outside Bali', outside) + '</div>' : '');
+  }).join('') + (elsewhere > 0 ? '<div class="regency-sub regency-outside">' + TF(_regGroup === 'Bali' ? '{0} outside Bali' : '{0} elsewhere', elsewhere) + '</div>' : '');
+  listEl.querySelectorAll('.regency-row').forEach(r => r.onclick = () => openRegencyRides(r.dataset.reg));
 }
 
 /* Popup listing the rides whose destination is in a regency (newest first).
@@ -177,7 +284,9 @@ function _regRideRows(list) {
 /* ── VILLAGES REACHED popup (Overview "Villages reached" card) ──
    Every desa a ride started in or turned around at, grouped Kabupaten →
    Kecamatan with visit counts; tap a desa for the rides through it. Built from
-   each activity's reverse-geocoded route_places. */
+   each activity's reverse-geocoded route_places. Outside Indonesia the same
+   levels read region → district → neighbourhood, and with more than one
+   country the list is split by country first. */
 let _villages = null; // place → {desa, kec, kab, acts[]}
 // The geocoder is inconsistent: "Kabupaten Klungkung" vs "Gianyar", and
 // sometimes only the province ("Bali"). Province-only means unknown.
@@ -185,25 +294,27 @@ const _PROVINCES = /^(Bali|Nusa Tenggara (Barat|Timur)|Jawa (Barat|Tengah|Timur)
 function normKab(k) { k = (k || '').replace(/^(Kabupaten|Kota)\s+/i, '').trim(); return _PROVINCES.test(k) ? '' : k; }
 function setVillages(list) {
   const v = {};
-  const add = (place, kec, kab, a) => {
+  const add = (place, kec, kab, a, cc, country) => {
     if (!place) return;
     const desa = place.split(',')[0].trim();
     if (!desa || _PROVINCES.test(desa)) return;          // no village, just a province
     // places saved before a fix was known (see PLACE_ADMIN_FIXES)
     if (typeof fixPlaceAdmin === 'function') ({ kec, kab } = fixPlaceAdmin(desa, (kec || '').trim(), kab));
-    const o = v[place] || (v[place] = { desa, kec: (kec || '').trim(), kab: normKab(kab), acts: [] });
+    // saved before the country was recorded = Bali
+    const o = v[place] || (v[place] = { desa, kec: (kec || '').trim(), kab: normKab(kab), cc: cc || 'id', country: country || (cc ? cc.toUpperCase() : 'Indonesia'), acts: [] });
     if (!o.kab) o.kab = normKab(kab);
     if (!o.kec && kec) o.kec = kec.trim();
     if (!o.acts.includes(a)) o.acts.push(a);
   };
   list.forEach(a => {
     const r = a.route_places; if (!r) return;
-    add(r.start_place, r.start_kec, r.start_kab, a);
-    add(r.furthest_place, r.furthest_kec, r.furthest_kab, a);
+    add(r.start_place, r.start_kec, r.start_kab, a, r.cc, r.country);
+    add(r.furthest_place, r.furthest_kec, r.furthest_kab, a, r.furthest_cc || r.cc, r.furthest_country || r.country);
   });
   _villages = v;
   const all = Object.values(v);
-  return (_villageStats = { villages: all.length, kecs: new Set(all.map(o => o.kec).filter(Boolean)), kabs: new Set(all.map(o => o.kab).filter(Boolean)) });
+  return (_villageStats = { villages: all.length, kecs: new Set(all.map(o => o.kec).filter(Boolean)), kabs: new Set(all.map(o => o.kab).filter(Boolean)),
+    countries: new Set(all.map(o => o.country)) });
 }
 let _villageStats = null;
 function openVillageList() {
@@ -211,23 +322,31 @@ function openVillageList() {
   if (!_villages || !box) return;
   const T = typeof tr === 'function' ? tr : (x => x), TF = typeof trf === 'function' ? trf : ((t, ...a) => t.replace(/\{(\d+)\}/g, (_, i) => a[i]));
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // country → kab → kec → places; '' kec (outside Indonesia) = no sub-heading
   const tree = {};
   Object.entries(_villages).forEach(([place, o]) => {
-    const kab = o.kab || T('Unknown regency'), kec = o.kec || T('Unknown kecamatan');
-    ((tree[kab] = tree[kab] || {})[kec] = tree[kab][kec] || []).push([place, o]);
+    const id = o.cc === 'id';
+    const kab = o.kab || T(id ? 'Unknown regency' : 'Unknown area'), kec = o.kec || (id ? T('Unknown kecamatan') : '');
+    const c = tree[o.country] || (tree[o.country] = {});
+    ((c[kab] = c[kab] || { id, kecs: {} }).kecs[kec] = c[kab].kecs[kec] || []).push([place, o]);
   });
   const n = o => o.acts.length;
   const sum = arr => arr.reduce((s, [, o]) => s + n(o), 0);
-  const kabs = Object.entries(tree).sort((x, y) => sum(Object.values(y[1]).flat()) - sum(Object.values(x[1]).flat()));
-  document.getElementById('regencyModalTitle').textContent = T('Villages reached');
+  const kabSum = k => sum(Object.values(k.kecs).flat());
+  const ctySum = c => Object.values(c).reduce((s, k) => s + kabSum(k), 0);
+  const multi = Object.keys(tree).length > 1, reg = areaIsRegency();
+  document.getElementById('regencyModalTitle').textContent = T(reg ? 'Villages reached' : 'Places reached');
   document.getElementById('regencyModalBody').innerHTML =
-    '<div class="regency-modal-sum">' + TF('{0} villages · {1} kecamatan · {2} regencies', _villageStats.villages, _villageStats.kecs.size, _villageStats.kabs.size) + '</div>'
-    + '<div class="vil-list">' + kabs.map(([kab, kecs]) =>
-      '<div class="vil-kab">' + esc(kab) + '</div>'
-      + Object.entries(kecs).sort((x, y) => sum(y[1]) - sum(x[1])).map(([kec, vs]) =>
-        '<div class="vil-kec">' + TF('Kec. {0}', esc(kec)) + '</div>'
-        + vs.sort((x, y) => n(y[1]) - n(x[1])).map(([place, o]) =>
-          '<div class="vil-row" role="button" tabindex="0" data-place="' + esc(place) + '"><span>' + esc(o.desa) + '</span><b>' + TF('{0}×', n(o)) + '</b></div>').join('')
+    '<div class="regency-modal-sum">' + TF(reg ? '{0} villages · {1} kecamatan · {2} regencies' : '{0} places · {1} districts · {2} regions', _villageStats.villages, _villageStats.kecs.size, _villageStats.kabs.size) + '</div>'
+    + '<div class="vil-list">' + Object.entries(tree).sort((x, y) => ctySum(y[1]) - ctySum(x[1])).map(([cty, kabs]) =>
+      (multi ? '<div class="vil-country">' + esc(cty) + '</div>' : '')
+      + Object.entries(kabs).sort((x, y) => kabSum(y[1]) - kabSum(x[1])).map(([kab, k]) =>
+        '<div class="vil-kab">' + esc(kab) + '</div>'
+        + Object.entries(k.kecs).sort((x, y) => sum(y[1]) - sum(x[1])).map(([kec, vs]) =>
+          (kec ? '<div class="vil-kec">' + (k.id ? TF('Kec. {0}', esc(kec)) : esc(kec)) + '</div>' : '')
+          + vs.sort((x, y) => n(y[1]) - n(x[1])).map(([place, o]) =>
+            '<div class="vil-row" role="button" tabindex="0" data-place="' + esc(place) + '"><span>' + esc(o.desa) + '</span><b>' + TF('{0}×', n(o)) + '</b></div>').join('')
+        ).join('')
       ).join('')
     ).join('') + '</div>';
   document.querySelectorAll('#regencyModalBody .vil-row').forEach(r => {
@@ -243,8 +362,8 @@ function openVillageRides(place) {
   const T = typeof tr === 'function' ? tr : (x => x), TF = typeof trf === 'function' ? trf : ((t, ...a) => t.replace(/\{(\d+)\}/g, (_, i) => a[i]));
   document.getElementById('regencyModalTitle').textContent = o.desa;
   document.getElementById('regencyModalBody').innerHTML =
-    '<button type="button" class="vil-back" onclick="openVillageList()">← ' + T('All villages') + '</button>'
-    + '<div class="regency-modal-sum">' + [o.kec && TF('Kec. {0}', o.kec), o.kab].filter(Boolean).join(' · ') + ' · ' + TF('{0} rides', o.acts.length) + '</div>'
+    '<button type="button" class="vil-back" onclick="openVillageList()">← ' + T(areaIsRegency() ? 'All villages' : 'All places') + '</button>'
+    + '<div class="regency-modal-sum">' + [o.kec && (o.cc === 'id' ? TF('Kec. {0}', o.kec) : o.kec), o.kab, o.cc !== 'id' && o.country].filter(Boolean).join(' · ') + ' · ' + TF('{0} rides', o.acts.length) + '</div>'
     + _regRideRows(o.acts);
 }
 function closeRegencyRides() { const b = document.getElementById('regencyModal'); if (b) b.classList.remove('open'); }

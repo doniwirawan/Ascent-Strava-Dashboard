@@ -1337,6 +1337,7 @@ body.dev .dev-tag { display: inline-block; }
 
 /* ── Activities — ride destinations by regency (Bali choropleth) ── */
 .regency-card { margin-top: 16px; }
+.regency-places { margin: 10px 0 0; }
 .regency-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px; margin-top: 10px; }
 .regency-map { height: 380px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); background: var(--surface2); }
 .regency-list { display: flex; flex-direction: column; gap: 10px; }
@@ -1354,6 +1355,9 @@ body.dev .dev-tag { display: inline-block; }
 .vil-list { max-height: 62vh; overflow-y: auto; }
 .vil-kab { font-size: 12px; font-weight: 800; color: var(--orange); letter-spacing: .04em; text-transform: uppercase; margin: 14px 0 4px; }
 .vil-kab:first-child { margin-top: 0; }
+.vil-country { font-size: 13px; font-weight: 800; color: var(--text); margin: 18px 0 2px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.vil-country:first-child { margin-top: 0; }
+.vil-country + .vil-kab { margin-top: 8px; }
 .vil-kec { font-size: 11px; color: var(--muted); margin: 8px 0 2px 2px; }
 .vil-row { display: flex; justify-content: space-between; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; }
 .vil-row:hover, .vil-row:focus { background: var(--surface2, rgba(255,255,255,.05)); outline: none; }

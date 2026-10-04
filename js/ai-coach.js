@@ -261,12 +261,14 @@ function fixPlaceAdmin(desa, kec, kab) {
   return f && !kec ? { kec: f[0], kab: f[1] } : { kec, kab };
 }
 
-/* Village-level place for a point: { name: "Desa, Kecamatan", desa, kec, kab }.
+/* Village-level place for a point: { name: "Desa, Kecamatan", desa, kec, kab, cc, country }.
    zoom=18 snaps to the nearest road/building, so the desa comes from the OSM
    admin boundary (admin_level 7) that actually contains the point — checked
-   against exact polygon containment for Bali. Cached; null on failure. */
+   against exact polygon containment for Bali. Outside Indonesia the same three
+   slots hold neighbourhood → district → region (Singapore: Tampines East →
+   Tampines → East Region). Cached; null on failure. */
 async function placeVillage(lat, lng) {
-  const key = 'geo_v2_' + lat.toFixed(4) + '_' + lng.toFixed(4);
+  const key = 'geo_v3_' + lat.toFixed(4) + '_' + lng.toFixed(4);
   const cached = localStorage.getItem(key);
   if (cached !== null) { try { return JSON.parse(cached); } catch {} }
   return _geoThrottled(async () => {
@@ -274,11 +276,20 @@ async function placeVillage(lat, lng) {
       const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&lat=' + lat + '&lon=' + lng, { headers: { Accept: 'application/json' } });
       if (!r.ok) return null;
       const a = ((await r.json()) || {}).address || {};
-      const desa = a.village || a.suburb || a.neighbourhood || a.hamlet || a.town || a.city || a.municipality || a.county || '';
-      const { kec, kab } = fixPlaceAdmin(desa, a.town || a.city_district || a.municipality || a.city || '',
-        a.region || a.county || a.state_district || a.city || a.state || '');
+      const cc = a.country_code || '';
+      let desa, kec, kab;
+      if (!cc || cc === 'id') {
+        desa = a.village || a.suburb || a.neighbourhood || a.hamlet || a.town || a.city || a.municipality || a.county || '';
+        ({ kec, kab } = fixPlaceAdmin(desa, a.town || a.city_district || a.municipality || a.city || '',
+          a.region || a.county || a.state_district || a.city || a.state || ''));
+      } else {
+        desa = a.neighbourhood || a.quarter || a.village || a.hamlet || a.suburb || a.town || a.city || a.municipality || a.county || '';
+        kec = a.suburb || a.city_district || a.town || a.municipality || '';
+        kab = a.county || a.state_district || a.borough || a.city || a.state || '';
+        if (kec === desa) kec = '';
+      }
       let area = kec && kec !== desa ? kec : (kab !== desa ? kab : '');
-      const place = { name: [desa, area].filter(Boolean).join(', '), desa, kec, kab };
+      const place = { name: [desa, area].filter(Boolean).join(', '), desa, kec, kab, cc, country: a.country || '' };
       if (!place.name) return null;
       try { localStorage.setItem(key, JSON.stringify(place)); } catch {}
       return place;
@@ -286,10 +297,18 @@ async function placeVillage(lat, lng) {
   });
 }
 
+/* Places saved before the country was recorded are all Bali — those stay;
+   one that starts outside Bali is looked up again to get its own country. */
+function _placesHasCountry(rp, a) {
+  if (rp.cc) return true;
+  const s = a.start_latlng && a.start_latlng.length === 2 ? a.start_latlng : null;
+  return !s || typeof inBali !== 'function' || inBali(s[0], s[1]) !== false;
+}
+
 async function aiRoutePlaces(a) {
-  if (a.route_places && a.route_places.v === PLACES_V) return a.route_places;
+  if (a.route_places && a.route_places.v === PLACES_V && _placesHasCountry(a.route_places, a)) return a.route_places;
   const saved = _placesMap()[a.id];
-  if (saved) return (a.route_places = saved);
+  if (saved && _placesHasCountry(saved, a)) return (a.route_places = saved);
   const pl = a.map && (a.map.summary_polyline || a.map.polyline);
   if (!pl) return null;
   const pts = decodePolyline(pl);
@@ -301,12 +320,12 @@ async function aiRoutePlaces(a) {
   pts.forEach(p => { const d = aiHaversine(sLat, sLng, p[0], p[1]); if (d > farKm) { farKm = d; far = p; } });
   const start = await placeVillage(sLat, sLng);
   if (!start) return null; // lookup failed — retry another time
-  const out = { v: PLACES_V, start_place: start.name, start_kec: start.kec, start_kab: start.kab };
+  const out = { v: PLACES_V, start_place: start.name, start_kec: start.kec, start_kab: start.kab, cc: start.cc, country: start.country };
   if (farKm >= 2) { // a real out-and-back / A-to-B, not a loop around the block
     const furthest = await placeVillage(far[0], far[1]);
     if (!furthest) return null;
     if (furthest.name !== start.name) {
-      Object.assign(out, { furthest_place: furthest.name, furthest_kec: furthest.kec, furthest_kab: furthest.kab, furthest_km_from_start: Math.round(farKm) });
+      Object.assign(out, { furthest_place: furthest.name, furthest_kec: furthest.kec, furthest_kab: furthest.kab, furthest_cc: furthest.cc, furthest_country: furthest.country, furthest_km_from_start: Math.round(farKm) });
       if (typeof loadBaliPlaces === 'function') await loadBaliPlaces();
       _placesLandmark(out, far);
     }
@@ -339,9 +358,11 @@ async function placesBackfill() {
   if (_placesBusy || typeof acts === 'undefined' || !acts.length) return;
   _placesBusy = true;
   const m = _placesMap();
-  const fresh = a => a.route_places && a.route_places.v === PLACES_V;
+  if (typeof regencyGeo === 'function') await regencyGeo(); // for inBali()
+  const cur = a => a.route_places && a.route_places.v === PLACES_V;
+  const fresh = a => cur(a) && _placesHasCountry(a.route_places, a);
   let reattached = 0;
-  acts.forEach(a => { if (!fresh(a) && m[a.id]) { a.route_places = m[a.id]; reattached++; } });
+  acts.forEach(a => { if (!cur(a) && m[a.id]) { a.route_places = m[a.id]; reattached++; } });
   // (re)tag destinations whose landmark list is out of date — local, no lookups
   if (typeof loadBaliPlaces === 'function') await loadBaliPlaces();
   const lmv = typeof landmarkVersion === 'function' ? landmarkVersion() : null;
