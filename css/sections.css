@@ -542,10 +542,10 @@
 .mst-sub { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 560px) { .mst-banner { grid-template-columns: repeat(2, 1fr); } }
 
-/* ── Cycling / Running — layout spacing ── */
-#cyclingSection > .card, #runningSection > .card { display: flex; flex-direction: column; gap: 24px; }
-#cyclingSection .cycling-hero, #runningSection .cycling-hero { margin-bottom: 2px; }
-#cyclingSection .g2, #runningSection .g2 { gap: 20px; }
+/* ── Cycling / Running / Walking / Swimming / Other — layout spacing ── */
+#cyclingSection > .card, #runningSection > .card, #walkSection > .card, #swimSection > .card, #otherSection > .card { display: flex; flex-direction: column; gap: 24px; }
+#cyclingSection .cycling-hero, #runningSection .cycling-hero, #walkSection .cycling-hero, #swimSection .cycling-hero, #otherSection .cycling-hero { margin-bottom: 2px; }
+#cyclingSection .g2, #runningSection .g2, #walkSection .g2, #swimSection .g2, #otherSection .g2 { gap: 20px; }
 
 /* ── Cycling — Top 5 fastest leaderboard ── */
 .ctop-title { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--text-2); margin: 4px 0 10px; }

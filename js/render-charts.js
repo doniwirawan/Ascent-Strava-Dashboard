@@ -261,14 +261,17 @@ function _renderSportPage(key, list) {
     options: chartOpts(byDist ? distUnit() : 'min', false)
   });
 
-  // hours per month, last 12 months
+  // hours per month: the last 12 months, reaching back to the first activity
+  // (up to 3 years) so a sport you did a while ago doesn't chart as empty
   const months = [], now = new Date();
-  for (let i = 11; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); }
+  const first = list.reduce((m, a) => { const d = a.start_date_local || a.start_date || ''; return d && d < m ? d : m; }, now.toISOString());
+  const back = Math.min(35, Math.max(11, (now.getFullYear() - +first.slice(0, 4)) * 12 + now.getMonth() + 1 - +first.slice(5, 7)));
+  for (let i = back; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); }
   const hrs = months.map(m => +(list.filter(a => (a.start_date_local || a.start_date || '').slice(0, 7) === m).reduce((s, a) => s + (a.moving_time || 0), 0) / 3600).toFixed(1));
   destroyChart(key + 'MonthChart');
   charts[key + 'MonthChart'] = new Chart(document.getElementById(key + 'MonthChart').getContext('2d'), {
     type: 'bar',
-    data: { labels: months.map(m => new Date(m + '-01T00:00:00').toLocaleDateString(window.LANG === 'id' ? 'id-ID' : 'en-GB', { month: 'short' })),
+    data: { labels: months.map(m => new Date(m + '-01T00:00:00').toLocaleDateString(window.LANG === 'id' ? 'id-ID' : 'en-GB', back > 11 ? { month: 'short', year: '2-digit' } : { month: 'short' })),
       datasets: [{ data: hrs, backgroundColor: 'rgba(252,76,2,.7)', borderRadius: 4, hoverBackgroundColor: '#FC4C02' }] },
     options: chartOpts('h', false)
   });
