@@ -219,6 +219,7 @@ function navScrollTo(id, btn) {
   try { if (id === 'actSection' && typeof bulkBuildList === 'function') { bulkBuildList('aiBulk'); bulkBuildList('stBulk'); } } catch {}
   // the regency map is built while hidden (0×0) — re-render/fit once visible
   if (id === 'actSection' && typeof renderRegencyMap === 'function') setTimeout(renderRegencyMap, 80);
+  if (id === 'actSection' && typeof renderHuaweiCard === 'function') renderHuaweiCard();
   if (id === 'dataSection' && typeof renderDataTable === 'function') renderDataTable();
   if (id === 'cyclingBuysSection' && typeof renderCyclingBuys === 'function') renderCyclingBuys();
   if (window.applyI18n) window.applyI18n();

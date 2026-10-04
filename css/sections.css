@@ -1338,6 +1338,17 @@ body.dev .dev-tag { display: inline-block; }
 /* ── Activities — ride destinations by regency (Bali choropleth) ── */
 .regency-card { margin-top: 16px; }
 .regency-places { margin: 10px 0 0; }
+/* ── Activities — workouts only on Huawei, with an upload button ── */
+.hw-card { margin-top: 16px; }
+.hw-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.hw-row:last-child { border-bottom: 0; }
+.hw-info { flex: 1; min-width: 0; }
+.hw-name { width: 100%; max-width: 360px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; font-weight: 700; padding: 5px 8px; margin-bottom: 4px; }
+.hw-status { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.hw-status:empty { display: none; }
+.hw-status a { color: var(--orange); font-weight: 700; }
+.hw-up { flex-shrink: 0; }
+@media (max-width: 600px) { .hw-row { flex-direction: column; align-items: stretch; } }
 .regency-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px; margin-top: 10px; }
 .regency-map { height: 380px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); background: var(--surface2); }
 .regency-list { display: flex; flex-direction: column; gap: 10px; }

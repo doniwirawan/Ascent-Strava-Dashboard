@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS huawei_workouts (
   calories     numeric,                  -- kcal
   steps        int,
   polyline     text,                     -- simplified GPS track, Google polyline (precision 5); null without GPS
+  track        jsonb,                    -- full track for GPX export: {cols:[t,lat,lng,alt,hr], rows} every ~2 s; null without GPS
   start_latlng numeric[],                -- [lat, lng]
   strava_id    text,                     -- matching Strava activity, null if it never reached Strava
   summary      jsonb,                    -- the raw summaryData, for anything not lifted into columns
