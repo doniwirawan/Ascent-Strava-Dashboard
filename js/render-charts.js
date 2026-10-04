@@ -790,6 +790,7 @@ function openActivityModal(ref){
     </div>
     ${loc?`<div class="actd-loc">📍 ${loc}</div>`:''}
     ${hasRoute?'<div class="actd-loc" id="actRoutePlaces"></div>':''}
+    ${!hasRoute && a.id && typeof renderManualPlace==='function' ? '<div class="actd-loc" id="actManualPlace"></div>' : ''}
     <div class="actd-grid">${stats}</div>
     <div class="actd-sleep" id="actSleep"></div>
     ${a.id ? '<div class="actd-streams" id="actStreams"></div>' : ''}
@@ -812,6 +813,7 @@ function openActivityModal(ref){
   if(hasRoute && typeof aiRoutePlaces==='function') aiRoutePlaces(a).then(rp=>{
     const el=document.getElementById('actRoutePlaces'); if(el&&rp) el.textContent='🧭 '+routePlacesText(rp);
   }).catch(()=>{});
+  if(!hasRoute && typeof renderManualPlace==='function') renderManualPlace(a);
   if(a.average_heartrate) renderActivityHrZones(a);
   if(a.id) renderActivityStreams(a);
   if(a.id && typeof renderActivityAnalysis==='function') renderActivityAnalysis(a);

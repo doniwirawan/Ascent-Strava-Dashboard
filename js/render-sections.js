@@ -529,7 +529,7 @@ function renderHeatmap(){
   if(heatMode==='regency'){
     // Regencies shaded by rides ending there; routes stay faintly on top.
     L.polyline(tracks,{color:'#ffffff',weight:1.2,opacity:0.35,lineJoin:'round',lineCap:'round',interactive:false}).addTo(leafletMapInst);
-    const map=leafletMapInst, list=modeActs().filter(a=>a.map&&a.map.summary_polyline);
+    const map=leafletMapInst, list=modeActs().filter(_regHasPoint);
     regencyGeo().then(g=>{
       if(!g || leafletMapInst!==map) return;             // re-rendered while loading
       const {by,missing}=_regStats(list);

@@ -17,10 +17,13 @@ let _regGeo = null, _regMap = null, _regLayer = null, _regLabels = null, _regBy 
 let _regPick = ''; try { _regPick = localStorage.getItem('reg_group') || ''; } catch {}
 const _regPoint = {}, _regOf = {}, _regPiece = {}; // activity id → destination [lat, lng] / regency name / polygon piece (memoised)
 
+// has a point to place on the map: a route, or a location set by hand (manual-place.js)
+const _regHasPoint = a => !!(a.map && a.map.summary_polyline) || !!(a.route_places && a.route_places.manual && a.route_places.lat != null);
+
 function _regDest(a) {
   if (_regPoint[a.id]) return _regPoint[a.id];
   const pl = a.map && a.map.summary_polyline;
-  if (!pl) return null;
+  if (!pl) { const rp = a.route_places; return rp && rp.manual && rp.lat != null ? (_regPoint[a.id] = [rp.lat, rp.lng]) : null; }
   const pts = decodePolyline(pl);
   if (!pts.length) return null;
   const home = a.start_latlng && a.start_latlng.length === 2 ? a.start_latlng : pts[0];
@@ -248,7 +251,7 @@ async function regencyGeo() {
 async function renderRegencyMap() {
   const card = document.getElementById('regencyCard');
   if (!card || typeof acts === 'undefined' || !window.L) return;
-  const list = (typeof modeActs === 'function' ? modeActs() : acts).filter(a => a.map && a.map.summary_polyline);
+  const list = (typeof modeActs === 'function' ? modeActs() : acts).filter(_regHasPoint);
   if (!list.length) { card.style.display = 'none'; return; }
   if (!await regencyGeo()) return;
   const { by, missing } = _regStats(list);
