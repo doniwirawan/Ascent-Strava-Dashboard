@@ -52,6 +52,25 @@ function _dtColumns(withSleep) {
   return cols;
 }
 
+/* A second horizontal scrollbar above the table, kept in step with the real
+   one, so wide columns can be reached without scrolling to the bottom first. */
+function _dtTopScroll() {
+  const top = document.getElementById('dataTableTop'), wrap = document.getElementById('dataTableWrap');
+  if (!top || !wrap) return;
+  const size = () => {
+    top.firstElementChild.style.width = wrap.scrollWidth + 'px';
+    top.style.display = wrap.scrollWidth > wrap.clientWidth + 1 ? '' : 'none';
+    top.scrollLeft = wrap.scrollLeft;
+  };
+  size();
+  if (top._wired) return;
+  top._wired = true;
+  // only write when they differ, so the echoed scroll event is a no-op
+  const sync = (from, to) => from.addEventListener('scroll', () => { if (to.scrollLeft !== from.scrollLeft) to.scrollLeft = from.scrollLeft; });
+  sync(top, wrap); sync(wrap, top);
+  new ResizeObserver(size).observe(wrap);
+}
+
 async function renderDataTable() {
   const wrap = document.getElementById('dataTableWrap');
   if (!wrap || typeof acts === 'undefined') return;
@@ -124,6 +143,7 @@ function _dtRender() {
           + (lbl ? '<span class="dt-tag">' + lbl + '</span>' : '') + cell(c, r) + '</td>'; }).join('') + '</tr>').join('')
     + '</tbody></table>';
   document.getElementById('dataTableCount').textContent = TF('{0} rows', list.length);
+  _dtTopScroll();
   wrap.querySelectorAll('th').forEach(h => h.onclick = () => {
     const k = h.dataset.k;
     _dtSort = _dtSort.key === k ? { key: k, dir: -_dtSort.dir } : { key: k, dir: (_dtCols.find(c => c.key === k) || {}).txt ? 1 : -1 };
