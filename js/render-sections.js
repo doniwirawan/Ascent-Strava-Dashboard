@@ -600,7 +600,9 @@ function sportDef(m){ return SPORTS[m||sportMode()] || SPORTS.ride; }
 function sportHas(m){ return m==='all' ? !!(acts&&acts.length) : (acts||[]).some(SPORTS[m].pred); }
 function sportMode(){
   if(milestoneMode===null){
-    // default to whichever of ride/run the athlete does most (unchanged)
+    // the sport picked last time (see setSportMode), if it still exists
+    try{ const m=localStorage.getItem('sport_mode'); if(SPORTS[m]){ milestoneMode=m; return m; } }catch{}
+    // else default to whichever of ride/run the athlete does most (unchanged)
     const r=(acts||[]).filter(isRide).length, ru=(acts||[]).filter(isRun).length;
     milestoneMode = ru>r ? 'run' : 'ride';
   }
@@ -631,6 +633,7 @@ function renderSportToggle(){
 function setMilestoneMode(m){ setSportMode(m); }
 function setSportMode(m){
   milestoneMode=m;
+  try{ localStorage.setItem('sport_mode',m); }catch{}   // remembered across reloads
   document.querySelectorAll('#modeToggle [data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
   // re-render every mode-aware page
   ['renderStats','renderOverviewInsights','renderEddington','renderActivities','renderTrends','renderCalendar','renderMonthly','renderBestEfforts','renderRewind']
