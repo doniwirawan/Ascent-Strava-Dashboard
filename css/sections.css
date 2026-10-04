@@ -1350,7 +1350,8 @@ body.dev .dev-tag { display: inline-block; }
 .mp-btn:hover { border-color: var(--orange); }
 /* ── AI Coach page — conversations left, chat right ── */
 body.on-coach .fab-group { display: none !important; }
-.coach { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; height: calc(100vh - 150px); min-height: 520px; }
+@media (min-width: 761px) { body.on-coach .app-footer { display: none; } } /* the page fills the screen; nothing below it */
+.coach { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; height: calc(100vh - 220px); min-height: 420px; } /* exact height set by aiCoachFit */
 .coach-side { display: flex; flex-direction: column; gap: 8px; min-height: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
 .coach-new { width: 100%; }
 .coach-sync { font-size: 11px; color: var(--muted); min-height: 14px; }

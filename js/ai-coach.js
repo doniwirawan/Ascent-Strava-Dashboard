@@ -1069,8 +1069,26 @@ function openAIModal() {
 }
 function closeAIModal() {} // nothing to close any more
 
+/* Size the page to exactly the space left below its title, so the page itself
+   never scrolls — only the conversation list and the chat log do. Re-run on
+   resize and whenever something above it (the status bar) changes height. */
+function aiCoachFit() {
+  const el = document.querySelector('#coachSection .coach');
+  if (!el || !el.offsetParent) return;
+  if (window.innerWidth <= 760) { el.style.height = ''; return; } // stacked on phones: let the page scroll
+  const top = el.getBoundingClientRect().top + window.scrollY;
+  const h = Math.max(420, window.innerHeight - top - 16);
+  el.style.height = h + 'px';
+  // whatever padding sits below it: take back any overflow that's left
+  const over = document.scrollingElement.scrollHeight - window.innerHeight;
+  if (over > 0 && h - over >= 420) el.style.height = (h - over) + 'px';
+}
+window.addEventListener('resize', aiCoachFit);
+if (window.ResizeObserver) new ResizeObserver(() => aiCoachFit()).observe(document.body);
+
 // called by navScrollTo when the page opens
 async function aiCoachShow() {
+  aiCoachFit();
   if (aiConfigured !== true) {
     const okConf = await aiCheckConfigured();
     if (!okConf) { aiGoSetup(); return; }
