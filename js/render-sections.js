@@ -482,7 +482,7 @@ function heatModeControl(map){
       if(m===heatMode) return;
       heatMode=m;
       try{ localStorage.setItem('heat_mode',m); }catch{}
-      renderHeatmap(true);                 // keep the current pan/zoom
+      renderHeatmap();                     // reopens at the current pan/zoom
     }));
     return d;
   };
@@ -490,15 +490,13 @@ function heatModeControl(map){
   return c;
 }
 
-function renderHeatmap(preserveView){
+// Where the user was last looking. Every rebuild (mode toggle, sport switch,
+// new areas arriving) reopens there; only the very first render fits the data.
+let _heatView=null;
+function renderHeatmap(){
   if(!window.L){setTimeout(renderHeatmap,300);return;}
   const el=document.getElementById('leafletMap');
-  // Remember where the user was looking so a mode toggle doesn't reset the view.
-  let keep=null;
-  if(leafletMapInst){
-    if(preserveView){ try{ keep={center:leafletMapInst.getCenter(),zoom:leafletMapInst.getZoom()}; }catch{} }
-    leafletMapInst.remove();leafletMapInst=null;
-  }
+  if(leafletMapInst){ leafletMapInst.remove();leafletMapInst=null; }
   // Hidden (e.g. the sport changed from another page): a 0×0 map fits to
   // nothing and lands at maxZoom on one spot. Drop it; navScrollTo rebuilds
   // it fresh once the section is shown.
@@ -506,6 +504,8 @@ function renderHeatmap(preserveView){
 
   leafletMapInst=L.map(el,{zoomControl:true,scrollWheelZoom:true,center:[-8.34,115.09],zoom:12});
   addBasemap(leafletMapInst,{switcher:true});
+  const keep=_heatView, map0=leafletMapInst;
+  map0.on('moveend',()=>{ if(el.offsetWidth) _heatView={center:map0.getCenter(),zoom:map0.getZoom()}; });
 
   const bounds=[];
   const tracks=[], withAct=[];

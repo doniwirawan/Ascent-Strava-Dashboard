@@ -13,6 +13,8 @@
    grouped into places (state, else city, else country) — Bali, Singapore… —
    and the card shows one place at a time. */
 let _regGeo = null, _regMap = null, _regLayer = null, _regLabels = null, _regBy = null, _regGroup = '';
+// the place last picked on the card — kept while a sport filter hides it, and across visits
+let _regPick = ''; try { _regPick = localStorage.getItem('reg_group') || ''; } catch {}
 const _regPoint = {}, _regOf = {}, _regPiece = {}; // activity id → destination [lat, lng] / regency name / polygon piece (memoised)
 
 function _regDest(a) {
@@ -134,7 +136,7 @@ async function _regResolve(points) {
   _regBusy = false;
   if (added) {
     _areasSave(); renderRegencyMap();
-    if (typeof heatMode !== 'undefined' && heatMode === 'regency' && typeof renderHeatmap === 'function' && typeof leafletMapInst !== 'undefined' && leafletMapInst) renderHeatmap(true);
+    if (typeof heatMode !== 'undefined' && heatMode === 'regency' && typeof renderHeatmap === 'function' && typeof leafletMapInst !== 'undefined' && leafletMapInst) renderHeatmap();
   }
   return added;
 }
@@ -227,7 +229,7 @@ async function renderRegencyMap() {
   const groups = {};
   Object.values(by).forEach(s => { if (s.n) (groups[s.group] = groups[s.group] || { n: 0, cc: s.cc }).n += s.n; });
   const gl = Object.entries(groups).sort((x, y) => y[1].n - x[1].n);
-  if (!groups[_regGroup]) _regGroup = gl[0][0];
+  _regGroup = groups[_regPick] ? _regPick : gl[0][0];
   const G = groups[_regGroup], inG = Object.entries(by).filter(([, s]) => s.group === _regGroup);
   const max = Math.max(1, ...inG.map(([, s]) => s.n));
   const elsewhere = list.length - G.n;
@@ -238,7 +240,10 @@ async function renderRegencyMap() {
   const pl = document.getElementById('regencyPlaces');
   pl.style.display = gl.length > 1 ? '' : 'none';
   pl.innerHTML = gl.map(([g, o]) => '<button type="button" class="act-reg-tag' + (g === _regGroup ? ' on' : '') + '" data-g="' + esc(g) + '">' + esc(g) + ' <b>' + o.n + '</b></button>').join('');
-  pl.querySelectorAll('button').forEach(b => b.onclick = () => { _regGroup = b.dataset.g; renderRegencyMap(); });
+  pl.querySelectorAll('button').forEach(b => b.onclick = () => {
+    _regPick = b.dataset.g; try { localStorage.setItem('reg_group', _regPick); } catch {}
+    renderRegencyMap();
+  });
 
   // map (built once; restyled on re-render)
   const el = document.getElementById('regencyMap');
