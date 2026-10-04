@@ -853,6 +853,7 @@ body.dev .dev-tag { display: inline-block; }
 .ai-bulk-progress { height: 4px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: 8px 0; }
 .ai-bulk-bar { height: 100%; width: 0; background: var(--orange); transition: width .25s; }
 .gr-row.gr-done { opacity: .55; }
+.gr-def { font-style: normal; font-size: 10px; font-weight: 700; color: var(--orange); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-left: 4px; vertical-align: 1px; }
 .gr-row.gr-done .gr-name { color: #4ade80; }
 
 .actd-stats-btn { border: 1px solid var(--border); color: var(--text); background: transparent; }

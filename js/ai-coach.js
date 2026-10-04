@@ -590,13 +590,22 @@ async function aiCaptionApply(id) {
    'ai') and 'stBulk' (mode 'stats'). Lives on the Activities page. */
 const bulkStop = {};
 
+/* A title nobody wrote: Strava's "Morning Ride" / "Bersepeda Sore" (EN or ID
+   app language) or what the Huawei sync names things ("Berjalan di luar
+   ruangan", "Berenang di kolam"). Used to pick out the ones worth captioning. */
+const _DEFAULT_TITLE = [
+  /^(morning|lunch|afternoon|evening|night)( (virtual|gravel|mountain bike|e-bike|e-mountain bike|trail|indoor|open water|weight|velomobile|handcycle))? (ride|run|walk|hike|swim|workout|activity|training|yoga|badminton|row|ski|skate)$/i,
+  /^(bersepeda|berlari|lari|berjalan|jalan|jalan kaki|berenang|renang|mendaki|hiking|latihan|olahraga)( (pagi|siang|sore|malam)( hari)?| di (luar|dalam) ruangan| di kolam| di perairan terbuka)$/i,
+];
+const isDefaultTitle = name => _DEFAULT_TITLE.some(re => re.test((name || '').trim()));
+
 function bulkBuildList(p) {
   const list = document.getElementById(p + 'List');
   if (!list || typeof acts === 'undefined') return;
-  list.innerHTML = (acts || []).map(a => '<label class="gr-row" data-name="' + (a.name || '').toLowerCase().replace(/"/g, '') + '">'
+  list.innerHTML = (acts || []).map(a => '<label class="gr-row" data-name="' + (a.name || '').toLowerCase().replace(/"/g, '') + '"' + (isDefaultTitle(a.name) ? ' data-def="1"' : '') + '>'
     + '<input type="checkbox" class="bulk-cb" value="' + a.id + '">'
     + '<span class="gr-date">' + fmtDt(a.start_date) + '</span>'
-    + '<span class="gr-name">' + (a.name || 'Activity').replace(/</g, '&lt;') + '</span>'
+    + '<span class="gr-name">' + (a.name || 'Activity').replace(/</g, '&lt;') + (isDefaultTitle(a.name) ? ' <i class="gr-def">' + tr('default') + '</i>' : '') + '</span>'
     + '<span class="gr-dist">' + fmtD(a.distance) + '</span>'
     + '</label>').join('');
   const cbs = () => [...list.querySelectorAll('.bulk-cb')];
@@ -604,8 +613,14 @@ function bulkBuildList(p) {
   list.onchange = upd;
   const all = document.getElementById(p + 'All');
   if (all) { all.checked = false; all.onchange = e => { cbs().forEach(cb => { if (cb.closest('.gr-row').style.display !== 'none') cb.checked = e.target.checked; }); upd(); }; }
-  const search = document.getElementById(p + 'Search');
-  if (search) search.oninput = e => { const q = e.target.value.toLowerCase(); list.querySelectorAll('.gr-row').forEach(r => { r.style.display = r.dataset.name.includes(q) ? '' : 'none'; }); };
+  // text filter + "default titles only", combined
+  const search = document.getElementById(p + 'Search'), def = document.getElementById(p + 'Def');
+  const filter = () => { const q = ((search || {}).value || '').toLowerCase(), d = def && def.checked;
+    list.querySelectorAll('.gr-row').forEach(r => { r.style.display = r.dataset.name.includes(q) && (!d || r.dataset.def) ? '' : 'none'; }); };
+  if (search) search.oninput = filter;
+  if (def) def.onchange = filter;
+  const dn = document.getElementById(p + 'DefN'); if (dn) dn.textContent = list.querySelectorAll('.gr-row[data-def]').length;
+  filter();
   upd();
 }
 
@@ -652,7 +667,8 @@ async function bulkRun(p, mode) {
         await apiPut('/activities/' + a.id, what === 'title' ? { name } : { name, description: credited });
         a.name = name; if (what !== 'title') a.description = credited;
         const cb = list.querySelector('.bulk-cb[value="' + a.id + '"]');
-        if (cb) { const row = cb.closest('.gr-row'); const nm = row.querySelector('.gr-name'); if (nm) nm.textContent = name; cb.checked = false; row.classList.add('gr-done'); }
+        if (cb) { const row = cb.closest('.gr-row'); const nm = row.querySelector('.gr-name'); if (nm) nm.textContent = name; cb.checked = false; row.classList.add('gr-done');
+          if (!isDefaultTitle(name)) { delete row.dataset.def; const dn = document.getElementById(p + 'DefN'); if (dn) dn.textContent = list.querySelectorAll('.gr-row[data-def]').length; } }
         ok++;
       } else fail++;
     } catch { fail++; }
