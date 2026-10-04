@@ -356,13 +356,32 @@ function actBikePill(a){
 // Live client-side filter for the Recent Activities list (name or type).
 // Rows open by activity id so filtering never desyncs from the modal.
 let _actRegency = ''; // regency tag filter for the list ('' = all), see renderRegencyTags
+let _actType = '';    // activity-type filter, only offered in the All sports mode
+const _actTypeOf = a => a.sport_type || a.type || 'Workout';
+// Type chips (Ride 120 · Run 31 · Walk 11 …) above the regency chips — All mode only.
+function _renderActTypeTags(){
+  const el=document.getElementById('actTypeTags'); if(!el) return;
+  const all=typeof sportMode==='function' && sportMode()==='all';
+  const counts={}; if(all) _actListSrc.forEach(a=>{ const t=_actTypeOf(a); counts[t]=(counts[t]||0)+1; });
+  const types=Object.entries(counts).sort((x,y)=>y[1]-x[1]);
+  if(!all || types.length<2){ el.style.display='none'; el.innerHTML=''; _actType=''; return; }
+  if(_actType && !counts[_actType]) _actType='';
+  el.style.display='';
+  el.innerHTML=types.map(([t,n])=>'<button type="button" class="act-reg-tag'+(t===_actType?' on':'')+'" data-type="'+t+'">'+(typeof tr==='function'?tr:(x=>x))(t.replace(/([a-z])([A-Z])/g,'$1 $2'))+' <b>'+n+'</b></button>').join('');
+  el.querySelectorAll('.act-reg-tag').forEach(b=>b.onclick=()=>{
+    _actType=_actType===b.dataset.type?'':b.dataset.type;
+    _renderActList((document.getElementById('actSearch')||{}).value||'');
+  });
+}
 function _renderActList(q){
   const el=document.getElementById('actList');
   if(!el) return;
+  _renderActTypeTags();
   q=(q||'').trim().toLowerCase();
   const where = a => { const r=a.route_places; return r ? [r.furthest_landmark,r.furthest_place,r.furthest_kec,r.furthest_kab].filter(Boolean).join(' ').toLowerCase() : ''; };
   const inReg = a => !_actRegency || (typeof _regOf!=='undefined' && _regOf[a.id]===_actRegency);
-  const list = _actListSrc.filter(a=>inReg(a) && (!q || (a.name||'').toLowerCase().includes(q)||(a.type||'').toLowerCase().includes(q)||where(a).includes(q)));
+  const inType = a => !_actType || _actTypeOf(a)===_actType;
+  const list = _actListSrc.filter(a=>inReg(a) && inType(a) && (!q || (a.name||'').toLowerCase().includes(q)||(a.type||'').toLowerCase().includes(q)||where(a).includes(q)));
   if(!list.length){ el.innerHTML=`<div class="act-empty">No activities match “${q}”.</div>`; return; }
   el.innerHTML = list.map(a=>`
     <div class="act-row" role="button" tabindex="0" onclick="openActivityModal('${a.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActivityModal('${a.id}');}">
