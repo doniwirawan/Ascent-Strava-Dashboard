@@ -47,7 +47,8 @@ function _hwGpx(w, name, track) {
     const alt = r[I('alt')], hr = r[I('hr')];
     return '<trkpt lat="' + r[I('lat')] + '" lon="' + r[I('lng')] + '">'
       + (alt != null ? '<ele>' + alt + '</ele>' : '')
-      + '<time>' + new Date(r[I('t')] * 1000).toISOString() + '</time>'
+      // seconds; older Huawei records were stored in ms — Strava rejects those as "corrupted time data"
+      + '<time>' + new Date(r[I('t')] > 1e11 ? r[I('t')] : r[I('t')] * 1000).toISOString() + '</time>'
       + (hr ? '<extensions><gpxtpx:TrackPointExtension><gpxtpx:hr>' + Math.round(hr) + '</gpxtpx:hr></gpxtpx:TrackPointExtension></extensions>' : '')
       + '</trkpt>';
   }).join('\n');
@@ -90,7 +91,7 @@ async function _hwUpload(w, name, step) {
     if (up.error) {
       const dup = /duplicate of .*?activities\/(\d+)/.exec(up.error);
       if (dup) return dup[1]; // already on Strava — just link it
-      throw new Error(up.error);
+      throw new Error(up.error.replace(/<[^>]+>/g, '').trim()); // Strava's error carries an HTML link
     }
     if (!up.activity_id) throw new Error(tr('Strava is still processing — check again in a minute.'));
     step(tr('Setting the sport…'));
