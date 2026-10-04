@@ -499,6 +499,10 @@ function renderHeatmap(preserveView){
     if(preserveView){ try{ keep={center:leafletMapInst.getCenter(),zoom:leafletMapInst.getZoom()}; }catch{} }
     leafletMapInst.remove();leafletMapInst=null;
   }
+  // Hidden (e.g. the sport changed from another page): a 0×0 map fits to
+  // nothing and lands at maxZoom on one spot. Drop it; navScrollTo rebuilds
+  // it fresh once the section is shown.
+  if(!el.offsetWidth) return;
 
   leafletMapInst=L.map(el,{zoomControl:true,scrollWheelZoom:true,center:[-8.34,115.09],zoom:12});
   addBasemap(leafletMapInst,{switcher:true});
