@@ -1027,7 +1027,8 @@ const TR_ID = {
   'Download JSON': 'Unduh JSON',
   'Download SQL': 'Unduh SQL',
   // Stats image (activity modal)
-  '{0} rides': '{0} ride', 'Top destination: {0} ({1}×)': 'Tujuan teratas: {0} ({1}×)', 'mostly {0}': 'paling sering {0}', '{0} outside Bali': '{0} di luar Bali',
+  '{0} rides': '{0} ride', '{0} ride': '{0} ride', '{0} run': '{0} lari', '{0} runs': '{0} lari', '{0} walk': '{0} jalan kaki', '{0} walks': '{0} jalan kaki',
+  '{0} swim': '{0} renang', '{0} swims': '{0} renang', '{0} activity': '{0} aktivitas', '{0} activities': '{0} aktivitas', 'Top destination: {0} ({1}×)': 'Tujuan teratas: {0} ({1}×)', 'mostly {0}': 'paling sering {0}', '{0} outside Bali': '{0} di luar Bali',
   'Top speed': 'Kecepatan tertinggi', 'into the ride': 'dari awal ride',
   'Sleep → ride insights': 'Insight tidur → ride',
   'Outdoor rides of 30 min+ with sleep data from the night before ({0} rides). Each card compares rides after a worse night with rides after a better one. Speed depends on the route, so efficiency (metres per heartbeat) is the fairer number. The factors overlap (short nights usually mean less deep sleep and a late bedtime), so read them together, not as separate causes.': 'Ride outdoor 30 menit+ yang punya data tidur malam sebelumnya ({0} ride). Tiap kartu membandingkan ride setelah malam yang lebih buruk dengan ride setelah malam yang lebih baik. Kecepatan tergantung rute, jadi efisiensi (meter per detak jantung) adalah angka yang lebih adil. Faktor-faktornya saling berkaitan (malam pendek biasanya juga berarti tidur dalam lebih sedikit dan tidur lebih larut), jadi baca bersama, bukan sebagai penyebab terpisah.',

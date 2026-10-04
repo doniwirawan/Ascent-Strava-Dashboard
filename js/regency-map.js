@@ -163,7 +163,7 @@ function regencyLayers(map, by) {
   const TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
   const max = Math.max(1, ...Object.values(by).map(s => s.n));
   const topOf = s => Object.entries(s.dest).sort((x, y) => y[1] - x[1])[0];
-  const tip = (name, s) => '<b>' + name + '</b><br>' + TF('{0} rides', s.n) + ' · ' + fmtD(s.m)
+  const tip = (name, s) => '<b>' + name + '</b><br>' + _regCount(s.acts) + ' · ' + fmtD(s.m)
     + (topOf(s) ? '<br>' + TF('Top destination: {0} ({1}×)', topOf(s)[0], topOf(s)[1]) : '');
   const labels = [];
   const layer = L.geoJSON(_regGeo, {
@@ -181,6 +181,17 @@ function regencyLayers(map, by) {
     },
   }).addTo(map);
   return [layer, L.layerGroup(labels).addTo(map)];
+}
+
+/* "3 rides" / "1 walk" / "4 activities" — named after what is actually in the
+   list, since with the All sports mode an area can hold walks and runs too. */
+function _regCount(list) {
+  const TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
+  const kind = a => isRide(a) ? 'ride' : isRun(a) ? 'run' : isWalk(a) ? 'walk' : isSwim(a) ? 'swim' : '';
+  const kinds = new Set(list.map(kind)), k = kinds.size === 1 ? [...kinds][0] : '';
+  const W = { ride: ['{0} ride', '{0} rides'], run: ['{0} run', '{0} runs'], walk: ['{0} walk', '{0} walks'],
+    swim: ['{0} swim', '{0} swims'], '': ['{0} activity', '{0} activities'] };
+  return TF(W[k][list.length === 1 ? 0 : 1], list.length);
 }
 
 // Load the Bali regency boundaries once, plus the areas fetched on earlier
@@ -264,7 +275,7 @@ function openRegencyRides(name) {
   const TF = typeof trf === 'function' ? trf : ((t, ...a) => t.replace(/\{(\d+)\}/g, (_, i) => a[i]));
   document.getElementById('regencyModalTitle').textContent = name;
   document.getElementById('regencyModalBody').innerHTML =
-    '<div class="regency-modal-sum">' + TF('{0} rides', s.n) + ' · ' + fmtD(s.m) + '</div>' + _regRideRows(s.acts);
+    '<div class="regency-modal-sum">' + _regCount(s.acts) + ' · ' + fmtD(s.m) + '</div>' + _regRideRows(s.acts);
   box.classList.add('open');
 }
 
@@ -363,7 +374,7 @@ function openVillageRides(place) {
   document.getElementById('regencyModalTitle').textContent = o.desa;
   document.getElementById('regencyModalBody').innerHTML =
     '<button type="button" class="vil-back" onclick="openVillageList()">← ' + T(areaIsRegency() ? 'All villages' : 'All places') + '</button>'
-    + '<div class="regency-modal-sum">' + [o.kec && (o.cc === 'id' ? TF('Kec. {0}', o.kec) : o.kec), o.kab, o.cc !== 'id' && o.country].filter(Boolean).join(' · ') + ' · ' + TF('{0} rides', o.acts.length) + '</div>'
+    + '<div class="regency-modal-sum">' + [o.kec && (o.cc === 'id' ? TF('Kec. {0}', o.kec) : o.kec), o.kab, o.cc !== 'id' && o.country].filter(Boolean).join(' · ') + ' · ' + _regCount(o.acts) + '</div>'
     + _regRideRows(o.acts);
 }
 function closeRegencyRides() { const b = document.getElementById('regencyModal'); if (b) b.classList.remove('open'); }
