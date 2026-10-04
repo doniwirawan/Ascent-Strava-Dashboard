@@ -149,7 +149,7 @@ function chartOpts(unit='', legend=false) {
 
 const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','walkSection','swimSection','otherSection','trendsSection','actSection','calSection',
   'eddySection','trainingSection','sleepSection','monthlySection','bestSection','gearSection','heatSection',
-  'segmentsSection','gapsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','settingsSection','helpSection','dataSection','cyclingBuysSection'];
+  'segmentsSection','gapsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','coachSection','settingsSection','helpSection','dataSection','cyclingBuysSection'];
 
 // True while the Overview (statRow) is the section on screen. Overview-only
 // cards that fill asynchronously must check this before unhiding themselves —
@@ -222,6 +222,8 @@ function navScrollTo(id, btn) {
   if (id === 'actSection' && typeof renderHuaweiCard === 'function') renderHuaweiCard();
   if (id === 'dataSection' && typeof renderDataTable === 'function') renderDataTable();
   if (id === 'settingsSection' && typeof renderViewSettings === 'function') renderViewSettings();
+  if (id === 'coachSection' && typeof aiCoachShow === 'function') aiCoachShow();
+  document.body.classList.toggle('on-coach', id === 'coachSection'); // floating buttons would cover the chat input
   if (id === 'cyclingBuysSection' && typeof renderCyclingBuys === 'function') renderCyclingBuys();
   if (window.applyI18n) window.applyI18n();
 }

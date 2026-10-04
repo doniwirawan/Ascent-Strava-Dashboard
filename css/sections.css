@@ -801,6 +801,7 @@ body.dev .dev-tag { display: inline-block; }
 .ai-hist-empty { color: var(--muted); font-size: 13px; text-align: center; margin: auto; padding: 20px; }
 .ai-hist-row { display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: border-color .15s; }
 .ai-hist-row:hover { border-color: var(--orange); }
+.ai-hist-row.on { border-color: var(--orange); background: rgba(252,76,2,.08); }
 .ai-hist-info { flex: 1; min-width: 0; }
 .ai-hist-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ai-hist-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
@@ -1347,6 +1348,25 @@ body.dev .dev-tag { display: inline-block; }
 .mp-sub { color: var(--muted); font-size: 12px; }
 .mp-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--orange); font: inherit; font-size: 12px; font-weight: 700; padding: 3px 9px; cursor: pointer; }
 .mp-btn:hover { border-color: var(--orange); }
+/* ── AI Coach page — conversations left, chat right ── */
+body.on-coach .fab-group { display: none !important; }
+.coach { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; height: calc(100vh - 150px); min-height: 520px; }
+.coach-side { display: flex; flex-direction: column; gap: 8px; min-height: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+.coach-new { width: 100%; }
+.coach-sync { font-size: 11px; color: var(--muted); min-height: 14px; }
+.coach-list { flex: 1; min-height: 0; overflow-y: auto; gap: 6px; }
+.coach-list .ai-hist-title { margin: 8px 0 2px; }
+.coach-list .ai-hist-row { padding: 9px 10px; }
+.coach-main { display: flex; flex-direction: column; min-height: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.coach-main .ai-intro { margin-bottom: 12px; }
+.coach-main .ai-log { flex: 1; min-height: 0; max-height: none; overflow-y: auto; }
+.coach-main.ai-compact .ai-intro, .coach-main.ai-compact .ai-goal { display: none; }
+.coach-main.ai-compact .ai-quick { margin: 0 0 10px; }
+@media (max-width: 760px) {
+  .coach { grid-template-columns: 1fr; height: auto; }
+  .coach-side { max-height: 230px; }
+  .coach-main { height: calc(100vh - 140px); }
+}
 /* ── Settings — what to show ── */
 .view-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 8px; }
 .view-h { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }

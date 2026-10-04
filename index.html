@@ -460,7 +460,7 @@
 
     <div class="sidebar-group-label">About</div>
 
-    <button class="nav-link" onclick="openAIModal()">
+    <button class="nav-link" onclick="navScrollTo('coachSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7Z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
       AI Coach
     </button>
@@ -955,7 +955,34 @@
     </div>
   </div>
 
-  <!-- AI COACH -->
+  <!-- AI COACH (js/ai-coach.js) — conversation list on the left, chat on the right -->
+  <div id="coachSection" style="display:none">
+    <div class="section-title">AI Coach</div>
+    <div class="coach">
+      <aside class="coach-side">
+        <button class="btn btn-primary coach-new" type="button" onclick="aiNewChat()">+ New chat</button>
+        <div class="coach-sync" id="aiSync"></div>
+        <div id="aiHistory" class="ai-history coach-list"></div>
+      </aside>
+      <div class="coach-main">
+        <p class="ai-intro">Ask an AI about your training. It sees a compact summary of your activities — totals, per-sport, recent weeks and trend — never your raw GPS. Pick your provider in <a href="#" onclick="navScrollTo('settingsSection');return false;" style="color:var(--orange)">Settings</a>.</p>
+        <div id="aiHighlight" class="ai-highlight" style="display:none"></div>
+        <div class="ai-quick">
+          <button class="ai-chip" data-ai-prompt="Analyse my training over the last 4 weeks versus the previous 4 weeks. Comment on volume, consistency and trend, then suggest one focus for next week.">Training insights</button>
+          <button class="ai-chip" data-ai-prompt="Give me a short, friendly summary of my recent training based on my last activities.">Summarise recent</button>
+          <button class="ai-chip" data-ai-prompt="__goal__">Goal check</button>
+          <button class="ai-chip ai-chip-roast" data-ai-prompt="Roast my training based on my data — be witty and savage but good-natured. Cite specific numbers (distances, speeds, consistency, rest-day gaps, the balance between sports). Keep it under 120 words and end with one backhanded compliment.">Roast me 🔥</button>
+        </div>
+        <input id="aiGoal" class="ai-goal" type="text" placeholder="Optional goal for 'Goal check' — e.g. ride 1,000 km this year" />
+        <div id="aiLog" class="ai-log"></div>
+        <form id="aiForm" class="ai-form">
+          <textarea id="aiInput" class="ai-input" rows="1" placeholder="Ask anything about your data…"></textarea>
+          <button type="submit" class="ai-send">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- SETTINGS -->
   <div id="settingsSection" style="display:none">
     <div class="section-title">Settings</div>
@@ -1169,34 +1196,6 @@
 
 <!-- STORY MODAL -->
 <!-- AI COACH MODAL -->
-<div class="modal-overlay" id="aiModal">
-  <div class="modal ai-modal">
-    <div class="modal-header">
-      <div class="modal-title"><svg class="ai-icon-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6l1.5 4.1 4.1 1.5-4.1 1.5L12 13.8l-1.5-4.1L6.4 8.2l4.1-1.5L12 2.6zM18.5 12l.85 2.35 2.35.85-2.35.85-.85 2.35-.85-2.35-2.35-.85 2.35-.85L18.5 12zM5.4 12.6l.75 2.05 2.05.75-2.05.75-.75 2.05-.75-2.05L4.6 15.4l2.05-.75L5.4 12.6z"/></svg> AI Coach</div>
-      <button class="ai-clear-btn" id="aiHistBtn" onclick="aiToggleHistory()" title="Past conversations">History</button>
-      <button class="ai-clear-btn" id="aiClearBtn" onclick="aiClearChat()" title="Save this chat and start a new one">New chat</button>
-      <button class="modal-close" id="aiModalClose" onclick="closeAIModal()">✕</button>
-    </div>
-    <div class="ai-modal-body">
-      <p class="ai-intro">Ask an AI about your training. It sees a compact summary of your activities — totals, per-sport, recent weeks and trend — never your raw GPS. Pick your provider in <a href="#" onclick="closeAIModal();navScrollTo('settingsSection');return false;" style="color:var(--orange)">Settings</a>.</p>
-      <div id="aiHighlight" class="ai-highlight" style="display:none"></div>
-      <div class="ai-quick">
-        <button class="ai-chip" data-ai-prompt="Analyse my training over the last 4 weeks versus the previous 4 weeks. Comment on volume, consistency and trend, then suggest one focus for next week.">Training insights</button>
-        <button class="ai-chip" data-ai-prompt="Give me a short, friendly summary of my recent training based on my last activities.">Summarise recent</button>
-        <button class="ai-chip" data-ai-prompt="__goal__">Goal check</button>
-        <button class="ai-chip ai-chip-roast" data-ai-prompt="Roast my training based on my data — be witty and savage but good-natured. Cite specific numbers (distances, speeds, consistency, rest-day gaps, the balance between sports). Keep it under 120 words and end with one backhanded compliment.">Roast me 🔥</button>
-      </div>
-      <input id="aiGoal" class="ai-goal" type="text" placeholder="Optional goal for 'Goal check' — e.g. ride 1,000 km this year" />
-      <div id="aiHistory" class="ai-history" style="display:none"></div>
-      <div id="aiLog" class="ai-log"></div>
-      <form id="aiForm" class="ai-form">
-        <textarea id="aiInput" class="ai-input" rows="1" placeholder="Ask anything about your data…"></textarea>
-        <button type="submit" class="ai-send">Send</button>
-      </form>
-    </div>
-  </div>
-</div>
-
 <!-- ROUTE BUILDER MODAL -->
 <div class="modal-overlay" id="routeModal">
   <div class="modal rb-modal">

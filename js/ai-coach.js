@@ -44,47 +44,93 @@ function aiSyncCache() {
   try { const aid = localStorage.getItem('strava_athlete_id'); if (aid && typeof cacheSave === 'function') cacheSave(acts, aid); } catch {}
 }
 
-let aiMessages = [];      // {role,content} chat turns (display + context)
+/* ── Conversations ──
+   Every chat is {id, title, ts, messages}. The list lives in localStorage
+   ('ai_chats_v2') and, for the owner, in Supabase through /api/ai-chats, so the
+   history follows you across devices. SAFE: only the question/answer text —
+   never the API key or Strava tokens. */
+let aiMessages = [];       // turns of the open conversation (display + context)
+let aiChatId = null;       // its id; null = a new chat not saved yet
 let aiSummaryCache = null; // rebuilt whenever data reloads (see clearAISummary)
 
 function clearAISummary() { aiSummaryCache = null; }
 
-/* Persist the conversation so it survives reloads. SAFE: we store only the
-   question/answer TEXT — never the API key (server-side only) or Strava tokens.
-   localStorage is per-origin, readable only by this site. */
-try { aiMessages = JSON.parse(localStorage.getItem('ai_chat') || '[]'); if (!Array.isArray(aiMessages)) aiMessages = []; } catch { aiMessages = []; }
-function aiPersist() { try { localStorage.setItem('ai_chat', JSON.stringify(aiMessages.slice(-40))); } catch {} }
+const AI_CHATS_LS = 'ai_chats_v2', AI_DEL_LS = 'ai_chats_deleted';
+const _aiTitle = msgs => { const u = msgs.find(m => m.role === 'user'); return (u ? u.content : 'Conversation').replace(/\s+/g, ' ').trim().slice(0, 60); };
+
+function aiLoadChats() {
+  try { const a = JSON.parse(localStorage.getItem(AI_CHATS_LS) || 'null'); if (Array.isArray(a)) return a; } catch {}
+  // first run: bring over the popup's open chat and its saved ones
+  let old = [], cur = [];
+  try { old = JSON.parse(localStorage.getItem('ai_chats') || '[]') || []; } catch {}
+  try { cur = JSON.parse(localStorage.getItem('ai_chat') || '[]') || []; } catch {}
+  const chats = old.filter(c => c && Array.isArray(c.messages) && c.messages.length)
+    .map(c => ({ id: String(c.id), title: c.title || _aiTitle(c.messages), ts: c.ts || Date.now(), messages: c.messages }));
+  if (Array.isArray(cur) && cur.length) {
+    const id = String(Date.now());
+    chats.unshift({ id, title: _aiTitle(cur), ts: Date.now(), messages: cur });
+    try { localStorage.setItem('ai_chat_open', id); } catch {} // it was the open one
+  }
+  aiSaveChats(chats);
+  return chats;
+}
+function aiSaveChats(a) { try { localStorage.setItem(AI_CHATS_LS, JSON.stringify(a.slice(0, 200))); } catch {} }
+
+// reopen the conversation that was open last time
+(function () {
+  const chats = aiLoadChats(); // first, so a migrated popup chat can set the open id
+  let id = null; try { id = localStorage.getItem('ai_chat_open'); } catch {}
+  const c = id && chats.find(x => x.id === id);
+  if (c) { aiChatId = c.id; aiMessages = c.messages.slice(); }
+})();
+
+/* Save the open conversation (newest first) after every turn. */
+function aiPersist() {
+  if (!aiMessages.length) return;
+  if (!aiChatId) aiChatId = String(Date.now());
+  const chats = aiLoadChats().filter(c => c.id !== aiChatId);
+  const chat = { id: aiChatId, title: _aiTitle(aiMessages), ts: Date.now(), messages: aiMessages.slice() };
+  chats.unshift(chat);
+  aiSaveChats(chats);
+  try { localStorage.setItem('ai_chat_open', aiChatId); } catch {}
+  aiRenderChatList();
+  aiCloudPush(chat);
+}
 
 function aiRenderHistory() {
   const log = document.getElementById('aiLog');
   if (!log) return;
   log.innerHTML = '';
   aiMessages.forEach(m => aiAppend(m.role === 'user' ? 'user' : 'bot', aiMd(m.content)));
+  log.scrollTop = log.scrollHeight;
 }
 
-/* Saved past conversations (the chat log). SAFE: only Q&A text, no secrets. */
-function aiLoadChats() { try { const a = JSON.parse(localStorage.getItem('ai_chats') || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } }
-function aiSaveChats(a) { try { localStorage.setItem('ai_chats', JSON.stringify(a.slice(0, 40))); } catch {} }
+/* "New chat" — the current one is already saved in the list. */
+function aiNewChat() {
+  aiChatId = null; aiMessages = [];
+  try { localStorage.removeItem('ai_chat_open'); } catch {}
+  aiRenderHistory(); aiRenderChatList();
+  const i = document.getElementById('aiInput'); if (i) i.focus();
+}
+const aiClearChat = aiNewChat; // old name
 
-/* Archive the current conversation into the chat log (if it has any messages). */
-function aiArchiveCurrent() {
-  if (!aiMessages.length) return;
-  const firstUser = aiMessages.find(m => m.role === 'user');
-  const title = (firstUser ? firstUser.content : 'Conversation').replace(/\s+/g, ' ').trim().slice(0, 60);
-  const chats = aiLoadChats();
-  chats.unshift({ id: Date.now(), ts: Date.now(), title, messages: aiMessages.slice() });
-  aiSaveChats(chats);
+function aiOpenChat(id) {
+  const c = aiLoadChats().find(x => x.id === String(id));
+  if (!c) return;
+  aiChatId = c.id; aiMessages = c.messages.slice();
+  try { localStorage.setItem('ai_chat_open', aiChatId); } catch {}
+  aiRenderHistory(); aiRenderChatList();
 }
 
-/* "New chat" — archive the current conversation, then start fresh (not lost). */
-function aiClearChat() {
-  aiArchiveCurrent();
-  aiMessages = [];
-  aiPersist();
-  const log = document.getElementById('aiLog');
-  if (log) log.innerHTML = '';
-  const h = document.getElementById('aiHistory');
-  if (h && h.style.display !== 'none') aiToggleHistory(); // back to chat view
+function aiDeleteChat(id) {
+  id = String(id);
+  aiSaveChats(aiLoadChats().filter(c => c.id !== id));
+  if (id === aiChatId) aiNewChat(); else aiRenderChatList();
+  if (_aiCloudOn()) {
+    // remember it until the cloud copy is gone too, so a later sync can't bring it back
+    const del = _aiDeleted(); del.add(id); _aiDeletedSave(del);
+    _aiCloud({ action: 'delete', id }).then(() => { const d = _aiDeleted(); d.delete(id); _aiDeletedSave(d); }).catch(() => {});
+  }
 }
 
 function aiTimeAgo(ts) {
@@ -96,57 +142,83 @@ function aiTimeAgo(ts) {
   return new Date(ts).toLocaleDateString();
 }
 
+// sidebar of the AI Coach page: every conversation, newest first, grouped by day
 function aiRenderChatList() {
   const wrap = document.getElementById('aiHistory');
   if (!wrap) return;
+  const T = typeof tr === 'function' ? tr : (x => x);
   const chats = aiLoadChats();
-  if (!chats.length) { wrap.innerHTML = '<div class="ai-hist-empty">No saved conversations yet. Your chats are saved here when you start a new one.</div>'; return; }
-  wrap.innerHTML = '<div class="ai-hist-title">Past conversations</div>' + chats.map(c =>
-    '<div class="ai-hist-row" onclick="aiOpenChat(' + c.id + ')">'
-    + '<div class="ai-hist-info"><div class="ai-hist-name">' + (c.title || 'Conversation').replace(/</g, '&lt;') + '</div>'
-    + '<div class="ai-hist-meta">' + aiTimeAgo(c.ts) + ' · ' + Math.ceil(c.messages.length / 2) + ' messages</div></div>'
-    + '<button class="ai-hist-del" title="Delete" onclick="event.stopPropagation();aiDeleteChat(' + c.id + ')">✕</button></div>'
-  ).join('');
+  if (!chats.length) { wrap.innerHTML = '<div class="ai-hist-empty">' + T('No conversations yet — ask something to start one.') + '</div>'; return; }
+  const day = ts => { const d = Math.floor((Date.now() - ts) / 864e5); return d < 1 ? T('Today') : d < 2 ? T('Yesterday') : d < 7 ? T('Previous 7 days') : d < 30 ? T('Previous 30 days') : T('Older'); };
+  let last = '';
+  wrap.innerHTML = chats.map(c => {
+    const g = day(c.ts), head = g !== last ? '<div class="ai-hist-title">' + g + '</div>' : '';
+    last = g;
+    return head + '<div class="ai-hist-row' + (c.id === aiChatId ? ' on' : '') + '" role="button" tabindex="0" data-id="' + c.id + '">'
+      + '<div class="ai-hist-info"><div class="ai-hist-name">' + (c.title || 'Conversation').replace(/</g, '&lt;') + '</div>'
+      + '<div class="ai-hist-meta">' + aiTimeAgo(c.ts) + ' · ' + Math.ceil(c.messages.length / 2) + ' ' + T('messages') + '</div></div>'
+      + '<button class="ai-hist-del" type="button" title="' + T('Delete') + '" data-del="' + c.id + '">✕</button></div>';
+  }).join('');
+  wrap.querySelectorAll('.ai-hist-row').forEach(r => {
+    r.onclick = e => { if (e.target.dataset.del) { aiDeleteChat(e.target.dataset.del); return; } aiOpenChat(r.dataset.id); };
+    r.onkeydown = e => { if (e.key === 'Enter') aiOpenChat(r.dataset.id); };
+  });
 }
 
-function aiOpenChat(id) {
-  const chats = aiLoadChats();
-  const idx = chats.findIndex(c => c.id === id);
-  if (idx < 0) return;
-  aiArchiveCurrent();                    // keep the current chat too
-  const chat = chats.splice(idx, 1)[0];  // becomes the active one
-  aiSaveChats(chats);
-  aiMessages = (chat.messages || []).slice();
-  aiPersist();
-  aiRenderHistory();                     // render into the log
-  if (document.getElementById('aiHistory').style.display !== 'none') aiToggleHistory();
+/* ── cloud copy (owner only, like the sleep data) ── */
+const _aiCloudOn = () => typeof _slpIsOwner === 'function' && _slpIsOwner();
+function _aiDeleted() { try { return new Set(JSON.parse(localStorage.getItem(AI_DEL_LS) || '[]')); } catch { return new Set(); } }
+function _aiDeletedSave(s) { try { localStorage.setItem(AI_DEL_LS, JSON.stringify([...s])); } catch {} }
+function _aiSyncNote(t) { const el = document.getElementById('aiSync'); if (el) el.textContent = t; }
+
+async function _aiCloud(body, retry) {
+  const r = await fetch('/api/ai-chats', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: CONFIG.accessToken, ...body }) });
+  if (r.status === 401 && !retry && typeof doRefresh === 'function') { await doRefresh(); return _aiCloud(body, true); }
+  if (!r.ok) throw new Error('ai-chats ' + r.status);
+  return r.json();
 }
 
-function aiDeleteChat(id) {
-  aiSaveChats(aiLoadChats().filter(c => c.id !== id));
-  aiRenderChatList();
+const _aiPushT = {};
+function aiCloudPush(chat) {
+  if (!_aiCloudOn()) return;
+  clearTimeout(_aiPushT[chat.id]);
+  _aiPushT[chat.id] = setTimeout(() => {
+    const T = typeof tr === 'function' ? tr : (x => x);
+    _aiCloud({ action: 'save', chat }).then(() => _aiSyncNote('☁ ' + T('Synced to the cloud')))
+      .catch(() => _aiSyncNote(T('Saved on this device — cloud sync failed')));
+  }, 600);
 }
 
-/* Toggle the history panel (hides the chat composer/log while browsing, then
-   restores exactly what was visible before). */
-function aiToggleHistory() {
-  const h = document.getElementById('aiHistory');
-  if (!h) return;
-  const open = h.style.display === 'none'; // currently hidden → we're opening it
-  const others = [
-    document.getElementById('aiLog'), document.getElementById('aiGoal'), document.getElementById('aiHighlight'),
-    document.querySelector('#aiModal .ai-form'), document.querySelector('#aiModal .ai-quick'),
-  ].filter(Boolean);
-  if (open) {
+/* Merge the cloud list with this device's (newer copy of each chat wins),
+   push what the cloud lacks, and finish deletes made while offline. */
+let _aiSyncing = false;
+async function aiCloudSync() {
+  const T = typeof tr === 'function' ? tr : (x => x);
+  if (!_aiCloudOn()) { _aiSyncNote(T('Saved on this device')); return; }
+  if (_aiSyncing) return;
+  _aiSyncing = true; _aiSyncNote(T('Syncing…'));
+  try {
+    const del = _aiDeleted();
+    for (const id of del) { try { await _aiCloud({ action: 'delete', id }); del.delete(id); } catch {} }
+    _aiDeletedSave(del);
+    const remote = ((await _aiCloud({ action: 'list' })).chats || []).filter(r => !del.has(r.id));
+    const byId = new Map(aiLoadChats().map(c => [c.id, c]));
+    const rmap = new Map(remote.map(r => [r.id, r]));
+    remote.forEach(r => { const l = byId.get(r.id); if (!l || (+r.ts || 0) > (+l.ts || 0)) byId.set(r.id, { id: r.id, title: r.title, ts: +r.ts, messages: r.messages || [] }); });
+    const merged = [...byId.values()].sort((a, b) => b.ts - a.ts);
+    aiSaveChats(merged);
+    for (const c of merged) { const r = rmap.get(c.id); if (!r || (+c.ts || 0) > (+r.ts || 0)) await _aiCloud({ action: 'save', chat: c }); }
+    // the open chat may have grown on another device
+    const open = aiChatId && merged.find(c => c.id === aiChatId);
+    if (open && open.messages.length !== aiMessages.length) { aiMessages = open.messages.slice(); aiRenderHistory(); }
     aiRenderChatList();
-    others.forEach(e => { if (e.style.display !== 'none') e.dataset.histHidden = '1'; e.style.display = 'none'; });
-    h.style.display = '';
-  } else {
-    h.style.display = 'none';
-    others.forEach(e => { if (e.dataset.histHidden) { delete e.dataset.histHidden; e.style.display = ''; } });
-  }
-  const hb = document.getElementById('aiHistBtn'); if (hb) hb.textContent = open ? 'Back' : 'History';
+    _aiSyncNote('☁ ' + T('Synced to the cloud'));
+  } catch {
+    _aiSyncNote(T('Saved on this device — cloud unavailable'));
+  } finally { _aiSyncing = false; }
 }
+
 
 let aiInsightOff = false; // set true once we learn the provider isn't configured
 
@@ -983,29 +1055,31 @@ async function aiCheckConfigured() {
 
 /* Send the user to Settings to set up a provider (when AI isn't configured). */
 function aiGoSetup() {
-  closeAIModal();
   if (typeof navScrollTo === 'function') navScrollTo('settingsSection');
-  const card = document.querySelector('#settingsSection .help-card');
+  const prov = document.getElementById('aiProvider'), card = prov && prov.closest('.help-card');
   if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.classList.add('ai-flash'); setTimeout(() => card.classList.remove('ai-flash'), 1600); }
   const out = document.getElementById('aiTestResult');
   if (out) { out.className = 'ai-test-result err'; out.innerHTML = 'Pick an AI provider and tap <b>Test connection</b> to set up the AI Coach.'; }
 }
 
-/* Popup open/close (global so inline onclick can call them). */
-async function openAIModal() {
-  const m = document.getElementById('aiModal');
-  if (!m) return;
+/* The AI Coach is a page now (#coachSection). openAIModal keeps its name for
+   the FAB / top-nav buttons and just goes there. */
+function openAIModal() {
+  if (typeof navScrollTo === 'function') navScrollTo('coachSection', document.querySelector('#sidebar .nav-link[onclick*="coachSection"]'));
+}
+function closeAIModal() {} // nothing to close any more
+
+// called by navScrollTo when the page opens
+async function aiCoachShow() {
   if (aiConfigured !== true) {
     const okConf = await aiCheckConfigured();
     if (!okConf) { aiGoSetup(); return; }
   }
-  m.classList.add('open');
+  aiRenderChatList();
   aiLoadHighlight();
+  aiCloudSync();
+  const log = document.getElementById('aiLog'); if (log) log.scrollTop = log.scrollHeight;
   setTimeout(() => { const i = document.getElementById('aiInput'); if (i) i.focus(); }, 60);
-}
-function closeAIModal() {
-  const m = document.getElementById('aiModal');
-  if (m) m.classList.remove('open');
 }
 
 /* Developer mode: visit with ?dev=1 to reveal owner/dev-only setup notes
@@ -1274,7 +1348,7 @@ async function aiSend(userText) {
   // once a conversation is running, hide the intro + goal field so the chat
   // gets the vertical space (matters most on phones)
   const logEl = document.getElementById('aiLog');
-  const bodyEl = document.querySelector('#aiModal .ai-modal-body');
+  const bodyEl = document.querySelector('#coachSection .coach-main');
   if (logEl && bodyEl) {
     const upd = () => bodyEl.classList.toggle('ai-compact', !!logEl.children.length);
     new MutationObserver(upd).observe(logEl, { childList: true });
@@ -1293,13 +1367,11 @@ async function aiSend(userText) {
   const testBtn = document.getElementById('aiTestBtn');
   if (testBtn) testBtn.addEventListener('click', () => aiTestConnection(false));
 
-  // restore saved conversation; close modal on backdrop click or Esc
+  // restore the open conversation and the list beside it
   aiRenderHistory();
-  const aiModal = document.getElementById('aiModal');
-  if (aiModal) aiModal.addEventListener('click', e => { if (e.target === aiModal) closeAIModal(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && aiModal && aiModal.classList.contains('open')) closeAIModal(); });
+  aiRenderChatList();
 
-  document.querySelectorAll('#aiModal [data-ai-prompt]').forEach(btn => {
+  document.querySelectorAll('#coachSection [data-ai-prompt]').forEach(btn => {
     btn.addEventListener('click', () => {
       let p = btn.getAttribute('data-ai-prompt');
       if (p === '__goal__') {
