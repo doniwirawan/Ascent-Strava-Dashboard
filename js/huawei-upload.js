@@ -6,7 +6,12 @@
    - with GPS: a GPX is built in the browser from the stored track (time,
      position, altitude, HR every ~2 s) and posted to /uploads, then the sport
      is set, since a GPX doesn't carry Strava's sport type;
-   - without GPS: created as a manual activity (time, duration, distance).
+   - without GPS but with HR (badminton, treadmill): a TCX of time + HR, so
+     Strava shows the heart-rate graph, average/max HR and calories;
+   - with neither: created as a manual activity (time, duration, distance).
+   Earlier no-GPS uploads went in as manual activities, which can't hold HR;
+   those get a "Replace with HR version" button. The API can't delete, so the
+   old manual one is linked for the user to delete on Strava.
    Needs the activity:write scope the dashboard already asks for. */
 
 let _hwList = null, _hwBusy = {};
@@ -57,6 +62,29 @@ function _hwGpx(w, name, track) {
     + '<trk><name>' + esc(name) + '</name><trkseg>\n' + pts + '\n</trkseg></trk></gpx>\n';
 }
 
+// TCX for a workout without GPS: time + HR (+ distance spread evenly, so a
+// treadmill run keeps its km). Strava reads HR, calories and the lap totals.
+function _hwTcx(w, track) {
+  const c = track.cols, I = k => c.indexOf(k), rows = track.rows;
+  const sec = t => t > 1e11 ? t / 1000 : t;
+  const iso = t => new Date(sec(t) * 1000).toISOString();
+  const t0 = sec(rows[0][I('t')]), span = Math.max(1, sec(rows[rows.length - 1][I('t')]) - t0);
+  const dist = w.distance_m || 0, start = new Date(w.start_time).toISOString();
+  const sport = { Run: 'Running', Ride: 'Biking' }[_hwSport(w)[0]] || 'Other';
+  const pts = rows.map(r => '<Trackpoint><Time>' + iso(r[I('t')]) + '</Time>'
+    + (dist ? '<DistanceMeters>' + (dist * (sec(r[I('t')]) - t0) / span).toFixed(1) + '</DistanceMeters>' : '')
+    + (r[I('hr')] ? '<HeartRateBpm><Value>' + Math.round(r[I('hr')]) + '</Value></HeartRateBpm>' : '') + '</Trackpoint>').join('\n');
+  return '<?xml version="1.0" encoding="UTF-8"?>\n'
+    + '<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"><Activities>'
+    + '<Activity Sport="' + sport + '"><Id>' + start + '</Id><Lap StartTime="' + start + '">'
+    + '<TotalTimeSeconds>' + (w.duration_s || span) + '</TotalTimeSeconds><DistanceMeters>' + dist + '</DistanceMeters>'
+    + '<Calories>' + Math.round(w.calories || 0) + '</Calories>'
+    + (w.avg_hr ? '<AverageHeartRateBpm><Value>' + w.avg_hr + '</Value></AverageHeartRateBpm>' : '')
+    + (w.max_hr ? '<MaximumHeartRateBpm><Value>' + w.max_hr + '</Value></MaximumHeartRateBpm>' : '')
+    + '<Intensity>Active</Intensity><TriggerMethod>Manual</TriggerMethod><Track>\n' + pts + '\n</Track></Lap></Activity>'
+    + '</Activities></TrainingCenterDatabase>\n';
+}
+
 async function _hwStrava(path, init, retry) {
   const r = await fetch('https://www.strava.com/api/v3' + path, { ...init, headers: { Authorization: 'Bearer ' + CONFIG.accessToken, ...(init.headers || {}) } });
   if (r.status === 401 && !retry) { await doRefresh(); return _hwStrava(path, init, true); }
@@ -68,16 +96,19 @@ async function _hwStrava(path, init, retry) {
   return j;
 }
 
-/* Upload one workout; returns the Strava activity id. */
-async function _hwUpload(w, name, step) {
+/* Upload one workout; returns { id, kind } — kind 'file' (GPX/TCX) or 'manual'.
+   `replacing` = the manual activity this upload supersedes (it may not be
+   reported back to us as a duplicate of itself). */
+async function _hwUpload(w, name, step, replacing, desc) {
   const [sport, trainer] = _hwSport(w);
-  if (w.polyline) {
-    step(tr('Building GPX…'));
+  if (w.polyline || w.hr_samples > 0) {
+    const gps = !!w.polyline, ext = gps ? 'gpx' : 'tcx';
+    step(tr(gps ? 'Building GPX…' : 'Building TCX…'));
     const { track } = await _hwApi({ action: 'track', id: w.record_id });
     if (!track || !track.rows || track.rows.length < 2) throw new Error('no track');
     const fd = new FormData();
-    fd.append('file', new Blob([_hwGpx(w, name, track)], { type: 'application/gpx+xml' }), 'huawei-' + w.record_id.replace(/\W/g, '') + '.gpx');
-    fd.append('data_type', 'gpx');
+    fd.append('file', new Blob([gps ? _hwGpx(w, name, track) : _hwTcx(w, track)], { type: 'application/xml' }), 'huawei-' + w.record_id.replace(/\W/g, '') + '.' + ext);
+    fd.append('data_type', ext);
     fd.append('name', name);
     fd.append('external_id', 'huawei-' + w.record_id.replace(/\W/g, ''));
     step(tr('Uploading…'));
@@ -90,20 +121,21 @@ async function _hwUpload(w, name, step) {
     }
     if (up.error) {
       const dup = /duplicate of .*?activities\/(\d+)/.exec(up.error);
-      if (dup) return dup[1]; // already on Strava — just link it
+      if (dup && dup[1] === String(replacing)) throw new Error(tr('Strava sees it as the same activity — delete the old manual one on Strava first, then try again.'));
+      if (dup) return { id: dup[1], kind: 'file' }; // already on Strava — just link it
       throw new Error(up.error.replace(/<[^>]+>/g, '').trim()); // Strava's error carries an HTML link
     }
     if (!up.activity_id) throw new Error(tr('Strava is still processing — check again in a minute.'));
     step(tr('Setting the sport…'));
-    await apiPut('/activities/' + up.activity_id, { sport_type: sport, trainer: !!trainer });
-    return String(up.activity_id);
+    await apiPut('/activities/' + up.activity_id, { sport_type: sport, trainer: !!trainer, ...(desc != null ? { description: desc } : {}) });
+    return { id: String(up.activity_id), kind: 'file' };
   }
   step(tr('Creating activity…'));
   const a = await _hwStrava('/activities', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, sport_type: sport, trainer: trainer ? 1 : 0,
       start_date_local: _hwLocal(w.start_time, w.tz), elapsed_time: w.duration_s || Math.round((Date.parse(w.end_time) - Date.parse(w.start_time)) / 1000),
       distance: w.distance_m || 0 }) });
-  return String(a.id);
+  return { id: String(a.id), kind: 'manual' };
 }
 
 async function renderHuaweiCard(force) {
@@ -116,34 +148,42 @@ async function renderHuaweiCard(force) {
   }
   const T = typeof tr === 'function' ? tr : (x => x), TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const missing = _hwList.filter(w => !w.strava_id);
-  card.style.display = missing.length ? '' : 'none';
-  if (!missing.length) return;
-  document.getElementById('huaweiList').innerHTML = missing.map(w => {
-    const loc = _hwLocal(w.start_time, w.tz);
+  const link = (id, label) => '<a href="https://www.strava.com/activities/' + id + '" target="_blank" rel="noopener">' + label + '</a>';
+  // not on Strava yet, then manual uploads that could carry HR
+  const todo = _hwList.filter(w => !w.strava_id).concat(_hwList.filter(w => w.strava_kind === 'manual' && w.hr_samples > 0));
+  card.style.display = todo.length ? '' : 'none';
+  if (!todo.length) return;
+  document.getElementById('huaweiList').innerHTML = todo.map(w => {
+    const loc = _hwLocal(w.start_time, w.tz), up = !!w.strava_id;
     const facts = [fmtDt(loc), T(w.sport), fmtT(w.duration_s || 0), w.distance_m ? fmtD(w.distance_m) : '',
       w.climb_m ? '↑ ' + Math.round(elevVal(w.climb_m)) + ' ' + elevUnit() : '', w.max_alt_m ? TF('top {0}', Math.round(elevVal(w.max_alt_m)) + ' ' + elevUnit()) : '',
-      w.polyline ? T('GPS') : T('no GPS')].filter(Boolean).join(' · ');
+      w.avg_hr ? '♥ ' + w.avg_hr + (w.max_hr ? '/' + w.max_hr : '') : '', w.polyline ? T('GPS') : T('no GPS')].filter(Boolean).join(' · ');
     const busy = _hwBusy[w.record_id];
     return '<div class="hw-row" data-id="' + esc(w.record_id) + '">'
-      + '<div class="hw-info"><input class="hw-name" type="text" value="' + esc(_hwDefaultName(w)) + '" aria-label="' + T('Activity name') + '">'
-      + '<div class="act-meta">' + esc(facts) + '</div><div class="hw-status">' + (busy ? esc(busy) : '') + '</div></div>'
-      + '<button type="button" class="seg-scan hw-up"' + (busy ? ' disabled' : '') + '>' + T('Upload to Strava') + '</button></div>';
+      + '<div class="hw-info"><input class="hw-name" type="text" value="' + (up ? '' : esc(_hwDefaultName(w))) + '"'
+      + (up ? ' placeholder="' + esc(T('Same name as on Strava')) + '"' : '') + ' aria-label="' + T('Activity name') + '">'
+      + '<div class="act-meta">' + esc(facts) + '</div>'
+      + '<div class="hw-status">' + (busy ? esc(busy) : up ? link(w.strava_id, T('On Strava')) + ' ' + T('as a manual activity — no heart rate.') : '') + '</div></div>'
+      + '<button type="button" class="seg-scan hw-up"' + (busy ? ' disabled' : '') + '>' + T(up ? 'Replace with HR version' : 'Upload to Strava') + '</button></div>';
   }).join('');
   document.querySelectorAll('#huaweiList .hw-row').forEach(row => {
-    const w = missing.find(x => x.record_id === row.dataset.id);
+    const w = todo.find(x => x.record_id === row.dataset.id);
     const btn = row.querySelector('.hw-up'), status = row.querySelector('.hw-status');
     btn.onclick = async () => {
-      const name = row.querySelector('.hw-name').value.trim() || _hwDefaultName(w);
       const step = s => { _hwBusy[w.record_id] = s; status.textContent = s; };
+      const old = w.strava_kind === 'manual' ? w.strava_id : null;
       btn.disabled = true;
       try {
-        const sid = await _hwUpload(w, name, step);
-        await _hwApi({ action: 'link', id: w.record_id, strava_id: sid });
-        w.strava_id = sid;
+        // carry the manual activity's name and description over (unless renamed here)
+        let prev = null;
+        if (old) { step(T('Reading the old activity…')); try { prev = await api('/activities/' + old); } catch {} }
+        const name = row.querySelector('.hw-name').value.trim() || (prev && prev.name) || _hwDefaultName(w);
+        const res = await _hwUpload(w, name, step, old, prev ? prev.description || '' : null);
+        await _hwApi({ action: 'link', id: w.record_id, strava_id: res.id, kind: res.kind });
+        w.strava_id = res.id; w.strava_kind = res.kind;
         delete _hwBusy[w.record_id];
-        status.innerHTML = '✓ <a href="https://www.strava.com/activities/' + sid + '" target="_blank" rel="noopener">' + T('On Strava →') + '</a> '
-          + T('Refresh to see it in the dashboard.');
+        status.innerHTML = '✓ ' + link(res.id, T('On Strava →')) + ' '
+          + (old && prev ? T('Now delete the old manual one:') + ' ' + link(old, T('open it on Strava')) + '.' : T('Refresh to see it in the dashboard.'));
         btn.remove();
       } catch (e) {
         delete _hwBusy[w.record_id];

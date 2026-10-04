@@ -8,11 +8,11 @@
 //
 // POST { token, action: 'list' }                  → { workouts: [...] } (no tracks)
 // POST { token, action: 'track', id }             → { track }
-// POST { token, action: 'link', id, strava_id }   → { ok } — mark as uploaded
+// POST { token, action: 'link', id, strava_id, kind } → { ok } — mark as uploaded ('file' | 'manual')
 //
 // Required env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OWNER_ATHLETE_ID.
 
-const LIST_COLS = 'record_id,sport_type,sport,start_time,end_time,tz,duration_s,distance_m,climb_m,min_alt_m,max_alt_m,avg_hr,max_hr,calories,steps,polyline,start_latlng,strava_id';
+const LIST_COLS = 'record_id,sport_type,sport,start_time,end_time,tz,duration_s,distance_m,climb_m,min_alt_m,max_alt_m,avg_hr,max_hr,calories,steps,polyline,start_latlng,strava_id,strava_kind,hr_samples';
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'method_not_allowed' }); return; }
@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
     const r = await fetch(one, {
       method: 'PATCH',
       headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ strava_id: sid }),
+      body: JSON.stringify({ strava_id: sid, strava_kind: body.kind === 'manual' ? 'manual' : 'file' }),
     });
     if (!r.ok) throw new Error('supabase ' + r.status);
     res.status(200).json({ ok: true });
