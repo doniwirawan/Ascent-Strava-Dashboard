@@ -222,8 +222,9 @@ function navScrollTo(id, btn) {
   if (id === 'actSection' && typeof renderHuaweiCard === 'function') renderHuaweiCard();
   if (id === 'dataSection' && typeof renderDataTable === 'function') renderDataTable();
   if (id === 'settingsSection' && typeof renderViewSettings === 'function') renderViewSettings();
-  if (id === 'coachSection' && typeof aiCoachShow === 'function') aiCoachShow();
+  // before aiCoachShow: the class hides the footer, which the page's height depends on
   document.body.classList.toggle('on-coach', id === 'coachSection'); // floating buttons would cover the chat input
+  if (id === 'coachSection' && typeof aiCoachShow === 'function') aiCoachShow();
   if (id === 'cyclingBuysSection' && typeof renderCyclingBuys === 'function') renderCyclingBuys();
   if (window.applyI18n) window.applyI18n();
 }

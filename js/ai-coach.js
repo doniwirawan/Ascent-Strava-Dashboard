@@ -1079,9 +1079,10 @@ function aiCoachFit() {
   const top = el.getBoundingClientRect().top + window.scrollY;
   const h = Math.max(420, window.innerHeight - top - 16);
   el.style.height = h + 'px';
-  // whatever padding sits below it: take back any overflow that's left
+  // the content area's bottom padding: take back a little overflow that's left
+  // (capped, so something transient on the page can't shrink it a lot)
   const over = document.scrollingElement.scrollHeight - window.innerHeight;
-  if (over > 0 && h - over >= 420) el.style.height = (h - over) + 'px';
+  if (over > 0 && over <= 40) el.style.height = (h - over) + 'px';
 }
 window.addEventListener('resize', aiCoachFit);
 if (window.ResizeObserver) new ResizeObserver(() => aiCoachFit()).observe(document.body);
@@ -1089,6 +1090,7 @@ if (window.ResizeObserver) new ResizeObserver(() => aiCoachFit()).observe(docume
 // called by navScrollTo when the page opens
 async function aiCoachShow() {
   aiCoachFit();
+  requestAnimationFrame(aiCoachFit); setTimeout(aiCoachFit, 350); // after layout settles (scroll-to-top, status bar)
   if (aiConfigured !== true) {
     const okConf = await aiCheckConfigured();
     if (!okConf) { aiGoSetup(); return; }
