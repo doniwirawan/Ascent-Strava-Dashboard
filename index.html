@@ -360,6 +360,18 @@
       <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="17" cy="5" r="1"/><path d="M7 21l3-4"/><path d="M16 21l-2-4-3-3 1-6"/><path d="M6 12l2-3 4-1 3 3 3 1"/></svg>
       Running
     </button>
+    <button class="nav-link" id="nav-walk" style="display:none" onclick="navScrollTo('walkSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="13" cy="4" r="1.2"/><path d="M11 21l1-7"/><path d="M15 21l-2-5-1.5-2 .5-4.5"/><path d="M9 9l3.5-1 2 2.5 2.5 1"/></svg>
+      Walking
+    </button>
+    <button class="nav-link" id="nav-swim" style="display:none" onclick="navScrollTo('swimSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="16" cy="7" r="1.3"/><path d="M4 16c1.3 1.2 2.7 1.2 4 0s2.7-1.2 4 0 2.7 1.2 4 0 2.7-1.2 4 0"/><path d="M6 13l4.5-2.5 3 1.5"/><path d="M10.5 10.5l2.5-3 2.5 1"/></svg>
+      Swimming
+    </button>
+    <button class="nav-link" id="nav-other" style="display:none" onclick="navScrollTo('otherSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M6 7v10M18 7v10M3 9.5v5M21 9.5v5M6 12h12"/></svg>
+      Other Sports
+    </button>
     <button class="nav-link" onclick="navScrollTo('trendsSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Trends
@@ -596,6 +608,59 @@
         <div>
           <div class="card-title">Run Distance Distribution</div>
           <div class="chart-wrap"><canvas id="rDistChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WALKING / SWIMMING / OTHER SPORTS (render-charts.js _renderSportPage) -->
+  <div id="walkSection" style="display:none">
+    <div class="section-title">Walking &amp; Hiking</div>
+    <div class="card">
+      <div class="cycling-hero" id="walkHero"></div>
+      <div id="walkTop5"></div>
+      <div class="g2">
+        <div>
+          <div class="card-title">Distance — Last 20 Walks</div>
+          <div class="chart-wrap"><canvas id="walkTrendChart"></canvas></div>
+        </div>
+        <div>
+          <div class="card-title">Time per Month</div>
+          <div class="chart-wrap"><canvas id="walkMonthChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="swimSection" style="display:none">
+    <div class="section-title">Swimming</div>
+    <div class="card">
+      <div class="cycling-hero" id="swimHero"></div>
+      <div id="swimTop5"></div>
+      <div class="g2">
+        <div>
+          <div class="card-title">Distance — Last 20 Swims</div>
+          <div class="chart-wrap"><canvas id="swimTrendChart"></canvas></div>
+        </div>
+        <div>
+          <div class="card-title">Time per Month</div>
+          <div class="chart-wrap"><canvas id="swimMonthChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="otherSection" style="display:none">
+    <div class="section-title">Other Sports</div>
+    <div class="card">
+      <div class="cycling-hero" id="otherHero"></div>
+      <div id="otherTop5"></div>
+      <div class="g2">
+        <div>
+          <div class="card-title">Duration — Last 20 Sessions</div>
+          <div class="chart-wrap"><canvas id="otherTrendChart"></canvas></div>
+        </div>
+        <div>
+          <div class="card-title">Time per Month</div>
+          <div class="chart-wrap"><canvas id="otherMonthChart"></canvas></div>
         </div>
       </div>
     </div>

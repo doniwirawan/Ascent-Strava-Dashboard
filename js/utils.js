@@ -147,7 +147,7 @@ function chartOpts(unit='', legend=false) {
   };
 }
 
-const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','trendsSection','actSection','calSection',
+const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','walkSection','swimSection','otherSection','trendsSection','actSection','calSection',
   'eddySection','trainingSection','sleepSection','monthlySection','bestSection','gearSection','heatSection',
   'segmentsSection','gapsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','settingsSection','helpSection','dataSection','cyclingBuysSection'];
 

@@ -185,6 +185,98 @@ function renderRunning() {
   });
 }
 
+/* ── WALKING / SWIMMING / OTHER SPORTS ──
+   The Running page for the rest of the sports: hero stats, a top 5, a last-20
+   trend and time per month. Pace reads per km for walks and per 100 m for
+   swims; "Other" (badminton, workouts…) has no distance, so it ranks and
+   charts by time. Each sidebar button hides when there's nothing to show. */
+function _renderSportPage(key, list) {
+  const sec = document.getElementById(key + 'Section'), nav = document.getElementById('nav-' + key);
+  if (nav) nav.style.display = list.length ? '' : 'none';
+  if (!list.length) { if (sec) sec.style.display = 'none'; return; }
+  const byDist = key !== 'other';
+  const W = { walk: ['Walk', 'Walks'], swim: ['Swim', 'Swims'], other: ['Session', 'Sessions'] }[key];
+  const pace = key === 'swim' ? _swimPace : _pace, paceU = key === 'swim' ? '/100m' : '/' + distUnit();
+  const totDist = list.reduce((s, a) => s + (a.distance || 0), 0);
+  const totTime = list.reduce((s, a) => s + (a.moving_time || 0), 0);
+  const hr = list.filter(a => a.average_heartrate > 0);
+  const avgHR = hr.length ? Math.round(hr.reduce((s, a) => s + a.average_heartrate, 0) / hr.length) : 0;
+  const size = a => byDist ? (a.distance || 0) : (a.moving_time || 0);
+  const longest = list.reduce((m, a) => size(a) > size(m) ? a : m, list[0]);
+  const withPace = list.filter(a => a.average_speed > 0 && a.distance > 0);
+  const fastest = withPace.length ? withPace.reduce((m, a) => a.average_speed > m.average_speed ? a : m) : null;
+  const typeOf = a => (a.sport_type || a.type || 'Workout').replace(/([a-z])([A-Z])/g, '$1 $2');
+  const types = {}; list.forEach(a => { types[typeOf(a)] = (types[typeOf(a)] || 0) + 1; });
+  const topType = Object.entries(types).sort((x, y) => y[1] - x[1])[0];
+  const maxHR = list.reduce((m, a) => Math.max(m, a.max_heartrate || 0), 0);
+  const T = typeof tr === 'function' ? tr : (x => x);
+  const subline = (r, extra) => r ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
+      <a href="https://www.strava.com/activities/${r.id}" onclick="openActivityModal('${r.id}');return false;" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);cursor:pointer;">${r.name}</a> &nbsp;·&nbsp; ${fmtDt(r.start_date)} &nbsp;·&nbsp; ${extra}${placeTag(r,' &nbsp;·&nbsp; ')}</div>` : '';
+  const box = (lbl, val, extra = '') => `<div class="hero-box"><div class="hero-label">${lbl}</div><div class="hero-value">${val}</div>${extra}</div>`;
+  const nKinds = Object.keys(types).length;
+
+  document.getElementById(key + 'Hero').innerHTML = (byDist ? `
+    <div class="hero-box hi"><div class="hero-label">Best Pace</div>
+      <div class="hero-value">${fastest ? pace(fastest.average_speed) : '—'} <span class="hero-unit">${paceU}</span></div>
+      ${subline(fastest, fastest ? fmtD(fastest.distance) : '')}</div>
+    <div class="hero-box hi"><div class="hero-label">Longest ${W[0]}</div>
+      <div class="hero-value">${fmtD(longest.distance || 0)}</div>
+      ${subline(longest, fmtT(longest.moving_time || 0))}</div>`
+    : `
+    <div class="hero-box hi"><div class="hero-label">Longest ${W[0]}</div>
+      <div class="hero-value">${fmtT(longest.moving_time || 0)}</div>
+      ${subline(longest, T(typeOf(longest)))}</div>
+    <div class="hero-box hi"><div class="hero-label">Most Played</div>
+      <div class="hero-value">${T(topType[0])}</div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">${topType[1]}× ${nKinds > 1 ? '· ' + Object.entries(types).sort((x, y) => y[1] - x[1]).slice(1).map(([t, n]) => T(t) + ' ' + n + '×').join(' · ') : ''}</div></div>`)
+    + box('Total ' + W[1], list.length)
+    + (byDist ? box('Total Distance', fmtD(totDist)) : box('Max Heart Rate', (maxHR || '—') + ' <span class="hero-unit">bpm</span>'))
+    + box('Total Time', (Math.round(totTime / 360) / 10) + ' <span class="hero-unit">h</span>')
+    + box('Avg Heart Rate', (avgHR || '—') + ' <span class="hero-unit">bpm</span>', avgHR ? hrZonePill(avgHR) : '');
+
+  const top5 = [...list].sort((a, b) => size(b) - size(a)).slice(0, 5);
+  const top = top5.length ? size(top5[0]) || 1 : 1;
+  document.getElementById(key + 'Top5').innerHTML = top5.length ? `
+    <div class="ctop-title">Top 5 Longest ${W[1]}</div>
+    <div class="ctop-list">
+      ${top5.map((a, i) => `
+        <a class="ctop-row" href="https://www.strava.com/activities/${a.id}" onclick="openActivityModal('${a.id}');return false;" rel="noopener">
+          <span class="ctop-rank">${i + 1}</span>
+          <span class="ctop-info"><span class="ctop-name">${a.name}</span><span class="ctop-meta">${fmtDt(a.start_date)} · ${byDist
+            ? fmtT(a.moving_time || 0) + (a.average_speed ? ' · ' + pace(a.average_speed) + paceU : '')
+            : T(typeOf(a)) + (a.average_heartrate ? ' · ♥ ' + Math.round(a.average_heartrate) : '')}</span>${placeTag(a) ? `<span class="ctop-meta">${placeTag(a)}</span>` : ''}</span>
+          <span class="ctop-bar"><span class="ctop-bar-fill" style="width:${(size(a) / top * 100).toFixed(0)}%"></span></span>
+          <span class="ctop-val">${byDist ? fmtD(a.distance || 0) : fmtT(a.moving_time || 0)}</span>
+        </a>`).join('')}
+    </div>` : '';
+
+  // last 20: distance (minutes for Other)
+  const last20 = [...list].slice(0, 20).reverse();
+  destroyChart(key + 'TrendChart');
+  charts[key + 'TrendChart'] = new Chart(document.getElementById(key + 'TrendChart').getContext('2d'), {
+    type: 'line',
+    data: { labels: last20.map(a => fmtDtShort(a.start_date)),
+      datasets: [{ data: last20.map(a => byDist ? +kmVal(a.distance || 0).toFixed(2) : Math.round((a.moving_time || 0) / 60)),
+        borderColor: '#FC4C02', backgroundColor: 'rgba(252,76,2,.07)', tension: .35, fill: true, pointRadius: 3, pointBackgroundColor: '#FC4C02' }] },
+    options: chartOpts(byDist ? distUnit() : 'min', false)
+  });
+
+  // hours per month, last 12 months
+  const months = [], now = new Date();
+  for (let i = 11; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); }
+  const hrs = months.map(m => +(list.filter(a => (a.start_date_local || a.start_date || '').slice(0, 7) === m).reduce((s, a) => s + (a.moving_time || 0), 0) / 3600).toFixed(1));
+  destroyChart(key + 'MonthChart');
+  charts[key + 'MonthChart'] = new Chart(document.getElementById(key + 'MonthChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: months.map(m => new Date(m + '-01T00:00:00').toLocaleDateString(window.LANG === 'id' ? 'id-ID' : 'en-GB', { month: 'short' })),
+      datasets: [{ data: hrs, backgroundColor: 'rgba(252,76,2,.7)', borderRadius: 4, hoverBackgroundColor: '#FC4C02' }] },
+    options: chartOpts('h', false)
+  });
+}
+function renderWalking()     { _renderSportPage('walk', acts.filter(isWalk)); }
+function renderSwimming()    { _renderSportPage('swim', acts.filter(isSwim)); }
+function renderOtherSports() { _renderSportPage('other', acts.filter(a => !isRide(a) && !isRun(a) && !isWalk(a) && !isSwim(a))); }
+
 /* ── TRENDS ── */
 function renderTrends() {
   const ma = modeActs(); // distance/speed charts follow the sport mode

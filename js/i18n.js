@@ -233,6 +233,12 @@ const APP_ID = {
   'Save Image': 'Simpan Gambar', 'Athlete': 'Atlet',
   // section titles
   'Cycling Performance': 'Performa Bersepeda', 'Running Performance': 'Performa Lari',
+  'Walking': 'Jalan Kaki', 'Swimming': 'Renang', 'Other Sports': 'Olahraga Lain', 'Walking & Hiking': 'Jalan Kaki & Mendaki',
+  'Distance — Last 20 Walks': 'Jarak — 20 Jalan Terakhir', 'Distance — Last 20 Swims': 'Jarak — 20 Renang Terakhir',
+  'Duration — Last 20 Sessions': 'Durasi — 20 Sesi Terakhir', 'Time per Month': 'Waktu per Bulan',
+  'Longest Walk': 'Jalan Terjauh', 'Longest Swim': 'Renang Terjauh', 'Longest Session': 'Sesi Terlama', 'Most Played': 'Paling Sering',
+  'Total Walks': 'Total Jalan', 'Total Swims': 'Total Renang', 'Total Sessions': 'Total Sesi', 'Max Heart Rate': 'HR Maksimum',
+  'Top 5 Longest Walks': '5 Jalan Terjauh', 'Top 5 Longest Swims': '5 Renang Terjauh', 'Top 5 Longest Sessions': '5 Sesi Terlama',
   'Training Load & Fatigue': 'Beban Latihan & Kelelahan',
   'Sleep & Recovery': 'Tidur & Pemulihan', 'Sleep': 'Tidur',
   'Activity Calendar — Last 12 Months': 'Kalender Aktivitas — 12 Bulan Terakhir',
