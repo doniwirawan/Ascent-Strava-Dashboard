@@ -62,6 +62,26 @@ function _hwGpx(w, name, track) {
     + '<trk><name>' + esc(name) + '</name><trkseg>\n' + pts + '\n</trkseg></trk></gpx>\n';
 }
 
+/* The watch's own numbers as a description line — Strava has no field for
+   steps, and a badminton session otherwise shows little beyond the HR graph.
+   Kept on its own line so a re-run can find and replace it. */
+const HW_STATS_MARK = '⌚ Huawei:';
+function _hwStatsLine(w) {
+  const h = Math.floor((w.duration_s || 0) / 3600), m = Math.round((w.duration_s || 0) % 3600 / 60);
+  const parts = [(h ? h + 'h ' : '') + m + 'm'];
+  if (w.avg_hr) parts.push('❤️ avg ' + w.avg_hr + (w.max_hr ? ' / max ' + w.max_hr : '') + ' bpm');
+  if (w.calories) parts.push('🔥 ' + Math.round(w.calories) + ' kcal');
+  if (w.steps) parts.push('👟 ' + w.steps.toLocaleString('en-US') + ' steps'
+    + (w.duration_s ? ' (' + Math.round(w.steps / (w.duration_s / 60)) + ' spm)' : ''));
+  if (w.distance_m && w.polyline == null && w.distance_m > 0) parts.push('📏 ' + (w.distance_m / 1000).toFixed(2) + ' km');
+  return HW_STATS_MARK + ' ' + parts.join(' · ');
+}
+// existing description (if any) + the stats line, replacing an older stats line
+function _hwDesc(w, prev) {
+  const keep = (prev || '').split('\n').filter(l => !l.startsWith(HW_STATS_MARK)).join('\n').trim();
+  return (keep ? keep + '\n\n' : '') + _hwStatsLine(w);
+}
+
 // TCX for a workout without GPS: time + HR (+ distance spread evenly, so a
 // treadmill run keeps its km). Strava reads HR, calories and the lap totals.
 function _hwTcx(w, track) {
@@ -127,14 +147,14 @@ async function _hwUpload(w, name, step, replacing, desc) {
     }
     if (!up.activity_id) throw new Error(tr('Strava is still processing — check again in a minute.'));
     step(tr('Setting the sport…'));
-    await apiPut('/activities/' + up.activity_id, { sport_type: sport, trainer: !!trainer, ...(desc != null ? { description: desc } : {}) });
+    await apiPut('/activities/' + up.activity_id, { sport_type: sport, trainer: !!trainer, description: _hwDesc(w, desc) });
     return { id: String(up.activity_id), kind: 'file' };
   }
   step(tr('Creating activity…'));
   const a = await _hwStrava('/activities', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, sport_type: sport, trainer: trainer ? 1 : 0,
       start_date_local: _hwLocal(w.start_time, w.tz), elapsed_time: w.duration_s || Math.round((Date.parse(w.end_time) - Date.parse(w.start_time)) / 1000),
-      distance: w.distance_m || 0 }) });
+      distance: w.distance_m || 0, description: _hwDesc(w, desc) }) });
   return { id: String(a.id), kind: 'manual' };
 }
 
