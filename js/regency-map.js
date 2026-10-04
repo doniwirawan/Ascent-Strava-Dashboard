@@ -66,7 +66,7 @@ function _regLabelPoint(geom, piece) {
 
 /* Areas fetched from Nominatim: feats = GeoJSON features, pts = rounded
    point → area name ('' = no area there, e.g. out at sea). */
-const AREA_LS = 'areas_v1';
+const AREA_LS = 'areas_v2'; // v1 could hold a whole-province "Bali" area (see _regNearBali)
 let _areaStore = null;
 function _areas() {
   if (!_areaStore) { try { _areaStore = JSON.parse(localStorage.getItem(AREA_LS) || 'null'); } catch {} }
@@ -83,7 +83,7 @@ function _regStats(list) {
       const p = _regDest(a);
       let name = p ? '' : null;
       if (p && !_regGeo.features.some(f => { const k = _regPieceAt(f.geometry, p[1], p[0]); if (k < 0) return false; name = f.properties.name; _regPiece[a.id] = k; return true; })) {
-        const k = _areas().pts[_ptKey(p)];
+        const k = _regNearBali(p) || _areas().pts[_ptKey(p)];
         if (k === undefined) { missing.push(p); outside++; return; } // not looked up yet
         name = k; _regPiece[a.id] = -1;
       }
@@ -101,6 +101,28 @@ function _regStats(list) {
   return { by, outside, missing };
 }
 
+/* Beaches, Serangan, the harbour: Bali destinations that fall just outside the
+   simplified regency outlines. Within 1.5 km of one (Java is further across
+   the strait) they belong to the nearest regency — Nominatim would answer with
+   the whole province instead. */
+function _regNearBali(p) {
+  const k = Math.cos(p[0] * Math.PI / 180), px = p[1] * k, py = p[0];
+  let best = 1.5, name;
+  _regGeo.features.forEach(f => {
+    if (f.properties.group !== 'Bali') return;
+    (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates).forEach(rings => {
+      const r = rings[0];
+      for (let i = 1; i < r.length; i++) {
+        const ax = r[i - 1][0] * k, ay = r[i - 1][1], dx = r[i][0] * k - ax, dy = r[i][1] - ay;
+        const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
+        const km = Math.hypot(px - ax - t * dx, py - ay - t * dy) * 111.32;
+        if (km < best) { best = km; name = f.properties.name; }
+      }
+    });
+  });
+  return name;
+}
+
 /* Add a Nominatim zoom-8 result as an area; returns its name ('' if none).
    A result naming an area we already have (a Bali point just off the coast
    comes back as "Gianyar") maps onto that one instead of a duplicate. */
@@ -109,7 +131,8 @@ function _areaAdd(r) {
   if (!g || !/Polygon$/.test(g.type)) return '';
   const group = ad.state || ad.city || ad.country || '';
   let name = r.name || ad.suburb || ad.city_district || ad.city || ad.county || '';
-  if (!name) return '';
+  // a whole province / state is too coarse to be an area (and overlaps the rest)
+  if (!name || name === group && /^(state|province)$/.test(r.addresstype || '')) return '';
   const same = _regGeo.features.find(f => f.properties.group === group && normKab(f.properties.name) === normKab(name));
   if (same) return same.properties.name;
   if (_regGeo.features.some(f => f.properties.name === name)) name += ', ' + group;
