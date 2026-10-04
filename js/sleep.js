@@ -2358,13 +2358,18 @@ function _slpDayMetricsHTML(n) {
 /* A rule-based read of how the session sits against the athlete's own usual:
    how rested they went in, how their stress compared, and how the night after
    recovered — the sleep ↔ stress ↔ training link for this one activity. */
-function _slpSessionInsight(before, after, base) {
+function _slpSessionInsight(before, after, base, a) {
   const T = (typeof tr === 'function') ? tr : (x => x);
   const parts = [];
   const bs = (before && before.asleep >= 60) ? _slpNightScore(before) : null;
   if (bs != null && base.score) {
     const lab = bs >= base.score + 6 ? T('above your usual') : bs <= base.score - 6 ? T('below your usual') : T('about usual');
-    parts.push(trf('you rode on a {0}/100 night ({1})', bs, lab));
+    // the verb follows the activity — a badminton session isn't a ride
+    const t = (a && (a.sport_type || a.type)) || '';
+    const verb = isRide(a || {}) ? 'you rode on a {0}/100 night ({1})' : /Run/.test(t) ? 'you ran on a {0}/100 night ({1})'
+      : t === 'Hike' ? 'you hiked on a {0}/100 night ({1})' : t === 'Walk' ? 'you walked on a {0}/100 night ({1})'
+      : /Swim/.test(t) ? 'you swam on a {0}/100 night ({1})' : 'you trained on a {0}/100 night ({1})';
+    parts.push(trf(verb, bs, lab));
   }
   if (before && before.stress != null && base.stress) {
     const s = Math.round(before.stress);
@@ -2459,7 +2464,7 @@ async function renderActivitySleep(a) {
     score: scores.length ? Math.round(scores.reduce((s, x) => s + x, 0) / scores.length) : 0,
     stress: stresses.length ? Math.round(stresses.reduce((s, x) => s + x, 0) / stresses.length) : 0,
   };
-  const insight = _slpSessionInsight(before, after, base);
+  const insight = _slpSessionInsight(before, after, base, a);
 
   host.innerHTML =
     '<div class="slp-ba-h">🌙 ' + T('Sleep around this session') + '</div>'
