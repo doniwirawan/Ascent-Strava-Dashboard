@@ -8,7 +8,7 @@ function renderCycling() {
   const fastMax  = cleanMax(fastMaxRide);
   const fastAvg  = fastAvgRide.average_speed||0;
   const totDist  = rides.reduce((s,r)=>s+(r.distance||0),0);
-  const longest  = Math.max(...rides.map(r=>r.distance||0));
+  const longRide = rides.reduce((a,r)=>(r.distance||0)>(a.distance||0)?r:a, rides[0]);
   const avgElev  = rides.reduce((s,r)=>s+(r.total_elevation_gain||0),0)/rides.length;
 
   document.getElementById('cyclingHero').innerHTML = `
@@ -30,8 +30,15 @@ function renderCycling() {
           ${fastAvgRide.name}</a> &nbsp;·&nbsp; ${fmtDt(fastAvgRide.start_date)} &nbsp;·&nbsp; ${fmtD(fastAvgRide.distance)}${placeTag(fastAvgRide,' &nbsp;·&nbsp; ')}
       </div>
     </div>
-    <div class="hero-box"><div class="hero-label">Longest Ride</div>
-      <div class="hero-value">${fmtD(longest)}</div></div>
+    <div class="hero-box hi">
+      <div class="hero-label">Longest Ride</div>
+      <div class="hero-value">${fmtD(longRide.distance)}</div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">
+        <a href="https://www.strava.com/activities/${longRide.id}" onclick="openActivityModal('${longRide.id}');return false;"
+           style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(252,76,2,.3);cursor:pointer;">
+          ${longRide.name}</a> &nbsp;·&nbsp; ${fmtDt(longRide.start_date)} &nbsp;·&nbsp; ${fmtT(longRide.moving_time||0)}${placeTag(longRide,' &nbsp;·&nbsp; ')}
+      </div>
+    </div>
     <div class="hero-box"><div class="hero-label">Total Rides</div>
       <div class="hero-value">${rides.length}</div></div>
     <div class="hero-box"><div class="hero-label">Total Distance</div>
