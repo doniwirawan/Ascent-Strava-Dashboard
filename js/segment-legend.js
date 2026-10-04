@@ -16,7 +16,7 @@ const LL_MAX  = 20;            // segments checked per run
 const LL_TTL  = 12 * 3600e3;   // don't re-check a segment within this
 const LL_DAYS = 90;            // Strava's Local Legend window
 
-let _llData = null;   // {segId: {ts, name, mine, holder, theirs, yours, none, dates}}
+let _llData = null;   // {segId: {ts, name, mine, holder, holder_id, theirs, yours, none, dates}}
 let _llRunning = false;
 function _llGet(){
   if(!_llData){ try{ _llData=JSON.parse(localStorage.getItem(LL_KEY)||'null')||{}; }catch{ _llData={}; } }
@@ -25,8 +25,8 @@ function _llGet(){
 function _llSave(){ try{ localStorage.setItem(LL_KEY, JSON.stringify(_llData)); }catch{ /* quota — non-fatal */ } }
 const _isLegendSeg = s => { const r=_llGet()[s.id]; return !!(r&&r.mine); };
 // due for a (re)check: never checked, older than the TTL, or a crown checked
-// before effort dates were kept
-const _llDue = r => !r || Date.now()-r.ts>=LL_TTL || (r.mine && !r.dates);
+// before effort dates (or the legend's athlete id) were kept
+const _llDue = r => !r || Date.now()-r.ts>=LL_TTL || (r.mine && !r.dates) || (!r.mine && !r.none && !r.holder_id);
 const _llOwner = () => typeof _isHrzOwner==='function' && _isHrzOwner();
 
 // Most recent ride on a segment that the segment cache knows about.
@@ -51,7 +51,9 @@ function _llCount(ll){
 async function _llEfforts(id){
   const iso=t=>new Date(t).toISOString().slice(0,19)+'Z';
   const efs=await api(`/segments/${id}/all_efforts?start_date_local=${encodeURIComponent(iso(Date.now()-LL_DAYS*864e5))}&end_date_local=${encodeURIComponent(iso(Date.now()))}&per_page=200`);
-  return Array.isArray(efs)?efs:null;
+  // all_efforts is the deprecated endpoint and may not honour the dates — keep the window here too
+  const from=Date.now()-LL_DAYS*864e5;
+  return Array.isArray(efs)?efs.filter(e=>Date.parse(e.start_date)>=from):null;
 }
 
 async function _llCheck(s, me){
@@ -69,6 +71,7 @@ async function _llCheck(s, me){
     return rec;
   }
   rec.holder=ll.title||'Someone';
+  if(ll.athlete_id) rec.holder_id=String(ll.athlete_id);
   const efs=await _llEfforts(s.id);
   rec.yours=efs?efs.length:0;
   return rec;
@@ -97,9 +100,14 @@ function _segLegendBodyHTML(){
       : `Local Legends are checked on the owner's device (per-segment calls, and Strava's rate limit is shared).`}</div>`;
   }else{
     const mine=recs.filter(r=>r.mine).sort((a,b)=>(b.theirs||0)-(a.theirs||0));
-    const chase=recs.filter(r=>!r.mine&&!r.none&&r.theirs!=null)
-      .map(r=>({...r,gap:Math.max(1,r.theirs-r.yours+1)})).sort((a,b)=>a.gap-b.gap).slice(0,10);
+    const chase=recs.filter(r=>!r.mine&&!r.none&&r.theirs!=null).map(r=>({...r,gap:r.theirs-r.yours+1}));
+    // more efforts than the legend yet not the legend: Strava isn't counting yours
+    // (private / hidden-from-leaderboard activities, flagged efforts) — "+1" would mislead
+    const uncounted=chase.filter(r=>r.gap<=0).sort((a,b)=>(b.yours-b.theirs)-(a.yours-a.theirs));
+    const close=chase.filter(r=>r.gap>0).sort((a,b)=>a.gap-b.gap).slice(0,10);
     const link=r=>`<a class="si-name" href="https://www.strava.com/segments/${r.id}" target="_blank" rel="noopener">${r.name}</a>`;
+    // the legend's Strava profile (records checked before the id was kept show the name only)
+    const who=r=>r.holder_id?`<a class="ll-who" href="https://www.strava.com/athletes/${r.holder_id}" target="_blank" rel="noopener">${r.holder}</a>`:r.holder;
     html+=`<div class="si-group"><div class="si-title">You're the Local Legend · ${mine.length}</div>${mine.length
       ? mine.map(r=>`<div class="si-row">${link(r)}<span class="si-meta"><b>${r.theirs??'?'}</b> efforts / ${LL_DAYS}d</span></div>`).join('')
       : `<div class="tr-basis-note">Not on any of the segments checked so far.</div>`}</div>`;
@@ -109,8 +117,11 @@ function _segLegendBodyHTML(){
     if(risk.length) html+=`<div class="si-group"><div class="si-title">Closest to being taken</div>${risk.map(r=>
       `<div class="si-row" title="${r.drop30} of your ${r.have} efforts age out in the next 30 days (${r.drop14} in 14). Ride it ${r.drop30}× in that time to hold ${r.have}.">${link(r)}<span class="si-meta">${r.have} → <b>${r.left30}</b> in 30d · last ${r.idle}d ago</span></div>`).join('')}</div>`;
     else if(mine.length && !mine.some(r=>r.dates)) html+=`<div class="tr-basis-note">Check again to see which of your crowns are closest to being taken.</div>`;
-    if(chase.length) html+=`<div class="si-group"><div class="si-title">Closest to taking</div>${chase.map(r=>
-      `<div class="si-row">${link(r)}<span class="si-meta">${r.holder} ${r.theirs} vs you ${r.yours} · <b>+${r.gap}</b> effort${r.gap===1?'':'s'}</span></div>`).join('')}</div>`;
+    if(close.length) html+=`<div class="si-group"><div class="si-title">Closest to taking</div>${close.map(r=>
+      `<div class="si-row">${link(r)}<span class="si-meta">${who(r)} ${r.theirs} vs you ${r.yours} · <b>+${r.gap}</b> effort${r.gap===1?'':'s'}</span></div>`).join('')}</div>`;
+    if(uncounted.length) html+=`<div class="si-group"><div class="si-title">Ahead, but not counted · ${uncounted.length}</div>${uncounted.slice(0,10).map(r=>
+      `<div class="si-row">${link(r)}<span class="si-meta">${who(r)} ${r.theirs} vs you ${r.yours}</span></div>`).join('')}
+      <div class="tr-basis-note">You have more efforts here than the Local Legend, so Strava isn't counting some of yours — usually activities set to "Only you" or hidden from leaderboards, or flagged efforts. Making those activities visible is what would win these, not another ride.</div></div>`;
     html+=`<div class="tr-basis-note">${recs.length} of ${cand.length} segments ridden in the last ${LL_DAYS} days checked. "+N" = efforts in the next ${LL_DAYS} days to pass the current legend, if their count holds. "A → B in 30d" = your count once efforts older than ${LL_DAYS} days drop off, if you don't ride it again — Strava doesn't share the runner-up's count, so the lowest B is the easiest crown to lose.</div>`;
   }
   if(owner && due) html+=`<button class="seg-scan" id="segLegendBtn" style="margin-top:10px">${ic('crown')} ${recs.length?`Check ${Math.min(due,LL_MAX)} more`:'Check Local Legends'}</button>`;

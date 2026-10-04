@@ -450,6 +450,8 @@
 .seg-ll { margin-bottom: 18px; }
 .seg-ll a.si-name { text-decoration: none; }
 .seg-ll a.si-name:hover { color: var(--orange); }
+.seg-ll a.ll-who { color: inherit; text-decoration: underline; text-decoration-color: var(--border-hover, #444); text-underline-offset: 2px; }
+.seg-ll a.ll-who:hover { color: var(--orange); }
 
 .seg-overlay {
   position: absolute; inset: auto 0 0 0; z-index: 500;
