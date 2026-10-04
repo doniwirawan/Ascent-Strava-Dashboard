@@ -1339,6 +1339,12 @@ body.dev .dev-tag { display: inline-block; }
 /* ── Activities — ride destinations by regency (Bali choropleth) ── */
 .regency-card { margin-top: 16px; }
 .regency-places { margin: 10px 0 0; }
+/* ── Settings — what to show ── */
+.view-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 8px; }
+.view-h { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.view-row { display: flex; align-items: center; gap: 8px; padding: 6px 2px; font-size: 13px; color: var(--text); cursor: pointer; }
+.view-row input { accent-color: var(--orange); }
+@media (max-width: 700px) { .view-settings { grid-template-columns: 1fr; } }
 /* ── Activities — workouts only on Huawei, with an upload button ── */
 .hw-card { margin-top: 16px; }
 .hw-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }

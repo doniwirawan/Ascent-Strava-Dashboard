@@ -849,7 +849,7 @@ function aiChartData(sec) {
 
 async function aiSectionInsight(sectionId, tries = 0) {
   const label = AI_SECTION_LABEL[sectionId];
-  if (!label || aiInsightOff) return;
+  if (!label || aiInsightOff || (typeof isViewOff === 'function' && isViewOff('ai'))) return; // off in Settings → no call
   if (typeof acts === 'undefined' || !acts.length) return;
   const sec = document.getElementById(sectionId);
   if (!sec) return;

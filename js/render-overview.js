@@ -47,7 +47,7 @@ function renderAll() {
 
   // Restore the last section the user had open before refresh (default: Overview)
   let last = 'statRow';
-  try { const s = localStorage.getItem('lastSection'); if (s && _ALL_SECTIONS.includes(s)) last = s; } catch {}
+  try { const s = localStorage.getItem('lastSection'); if (s && _ALL_SECTIONS.includes(s) && !(typeof isViewOff === 'function' && isViewOff('page:' + s))) last = s; } catch {}
   const navBtn = document.querySelector('#sidebarNav .nav-link[onclick*="'+last+'"]') || document.querySelector('#sidebarNav .nav-link');
   navScrollTo(last, navBtn);
   // Route Builder hidden for now — don't auto-reopen it on load.

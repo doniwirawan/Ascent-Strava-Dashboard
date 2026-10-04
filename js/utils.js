@@ -221,6 +221,7 @@ function navScrollTo(id, btn) {
   if (id === 'actSection' && typeof renderRegencyMap === 'function') setTimeout(renderRegencyMap, 80);
   if (id === 'actSection' && typeof renderHuaweiCard === 'function') renderHuaweiCard();
   if (id === 'dataSection' && typeof renderDataTable === 'function') renderDataTable();
+  if (id === 'settingsSection' && typeof renderViewSettings === 'function') renderViewSettings();
   if (id === 'cyclingBuysSection' && typeof renderCyclingBuys === 'function') renderCyclingBuys();
   if (window.applyI18n) window.applyI18n();
 }
