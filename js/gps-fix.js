@@ -97,45 +97,187 @@ function _gfStats(pts){
   return {points:pts.length, dist, gain, dur, start:t0?t0.time:null};
 }
 
-// In-place fix of a parsed pts array. Returns {smoothed, speedFixed}.
-function _gfFixTrack(pts, opts){
-  opts=opts||{};
-  const ceiling = opts.ceiling==null ? MAX_SPEED_CEILING : opts.ceiling; // m/s
-  let speedFixed=0;
-  // 1) speed-glitch fix — reposition points whose implied speed exceeds ceiling
-  if(opts.fixSpeed!==false){
-    for(let i=1;i<pts.length-1;i++){
-      const p0=pts[i-1], p1=pts[i], p2=pts[i+1];
-      let sp;
-      if(p0.time && p1.time && !isNaN(p0.time) && !isNaN(p1.time)){
-        const dt=(p1.time-p0.time)/1000;
-        sp = dt>0 ? _gfHaversine(p0.lat,p0.lon,p1.lat,p1.lon)/dt : Infinity;
-      } else {
-        // no timestamps — flag a point that detours far off the p0→p2 line
-        const d1=_gfHaversine(p0.lat,p0.lon,p1.lat,p1.lon);
-        const d2=_gfHaversine(p1.lat,p1.lon,p2.lat,p2.lon);
-        const dd=_gfHaversine(p0.lat,p0.lon,p2.lat,p2.lon);
-        sp = (d1+d2) > dd*4+10 ? Infinity : 0;
+/* ── TRACK REPAIR ──
+   Runs on parsed points {lat, lon, time, ele} in place, in this order:
+   1. times    — timestamps that repeat or go backwards are re-spread between
+                 their good neighbours (Strava rejects those as corrupted).
+   2. jumps    — a point is a GPS jump if it can't be reached from the last
+                 good point at the speed ceiling (+ noise slack). Unlike a
+                 one-point spike check, this catches multi-point excursions
+                 and leaves real gaps (tunnels, paused recording) alone, since
+                 their time gap makes the distance reachable. Bad points are
+                 moved onto the line between the good ones, by time.
+   3. stops    — while you stand still GPS wanders and adds distance; a cluster
+                 inside STOP_R for STOP_S or more is pinned to its centre.
+   4. smoothing— a Kalman filter + Rauch–Tung–Striebel smoother (constant-
+                 velocity model, metres), which follows the time between points
+                 so corners stay sharp — a plain moving average cuts them. A
+                 gap over 30 s starts a new segment. Without timestamps it falls
+                 back to the small moving average.
+   Returns counts for the report. */
+const _GF_SLACK = 25;      // m of GPS noise allowed on top of ceiling × dt
+const _GF_STOP_R = 12;     // m — a stop's wander radius
+const _GF_STOP_S = 30;     // s — shortest stop worth pinning
+const _GF_KF_R = 6;        // m — GPS position noise (1σ)
+const _GF_KF_Q = 2;        // m/s² — how hard the rider can change velocity (tuned on a synthetic ride: sharp corners vs jitter)
+
+const _gfT = p => p.time && !isNaN(p.time) ? +p.time : null;
+
+function _gfFixTimes(pts) {
+  let fixed = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const prev = _gfT(pts[i - 1]), cur = _gfT(pts[i]);
+    if (prev == null || cur == null || cur > prev) continue;
+    // run of bad times starting at i; next good time after it
+    let j = i; while (j < pts.length && (_gfT(pts[j]) == null || _gfT(pts[j]) <= prev)) j++;
+    const next = j < pts.length ? _gfT(pts[j]) : prev + (j - i + 1) * 1000;
+    for (let k = i; k < j; k++) { pts[k].time = new Date(prev + (next - prev) * (k - i + 1) / (j - i + 1)); fixed++; }
+    i = j - 1;
+  }
+  return fixed;
+}
+
+function _gfFixJumps(pts, ceiling) {
+  const n = pts.length, bad = new Array(n).fill(false);
+  const reach = (a, b) => { const ta = _gfT(pts[a]), tb = _gfT(pts[b]);
+    return _gfHaversine(pts[a].lat, pts[a].lon, pts[b].lat, pts[b].lon) <= ceiling * Math.max(1, (tb - ta) / 1000) + _GF_SLACK; };
+  // a glitched first fix: start from the first point its next two agree with
+  let s = 0;
+  while (s < Math.min(5, n - 2) && !(reach(s, s + 1) && reach(s + 1, s + 2))) s++;
+  for (let i = 0; i < s; i++) bad[i] = true;
+  let g = s, run = [];
+  for (let i = s + 1; i < n; i++) {
+    if (reach(g, i)) { g = i; run = []; continue; }
+    bad[i] = true; run.push(i);
+    // a long, self-consistent "excursion" means the anchor was the odd one out — accept it
+    if (run.length >= 30 && reach(run[run.length - 2], i)) { run.forEach(k => { bad[k] = false; }); g = i; run = []; }
+  }
+  let jumps = 0;
+  for (let i = 0; i < n; i++) {
+    if (!bad[i]) continue;
+    let l = i - 1; while (l >= 0 && bad[l]) l--;
+    let r = i + 1; while (r < n && bad[r]) r++;
+    const L = l >= 0 ? pts[l] : null, R = r < n ? pts[r] : null;
+    if (L && R) {
+      const tl = _gfT(L), tr = _gfT(R), ti = _gfT(pts[i]);
+      const f = tl != null && tr != null && ti != null && tr > tl ? (ti - tl) / (tr - tl) : (i - l) / (r - l);
+      pts[i].lat = L.lat + (R.lat - L.lat) * f; pts[i].lon = L.lon + (R.lon - L.lon) * f;
+    } else if (L || R) { pts[i].lat = (L || R).lat; pts[i].lon = (L || R).lon; }
+    jumps++;
+  }
+  return jumps;
+}
+
+function _gfFixStops(pts) {
+  let pinned = 0;
+  for (let i = 0; i < pts.length - 1;) {
+    let j = i + 1;
+    while (j < pts.length && _gfHaversine(pts[i].lat, pts[i].lon, pts[j].lat, pts[j].lon) < _GF_STOP_R) j++;
+    const ti = _gfT(pts[i]), tj = _gfT(pts[j - 1]);
+    if (j - i >= 5 && ti != null && tj != null && (tj - ti) / 1000 >= _GF_STOP_S) {
+      let la = 0, lo = 0; for (let k = i; k < j; k++) { la += pts[k].lat; lo += pts[k].lon; }
+      la /= (j - i); lo /= (j - i);
+      for (let k = i; k < j; k++) { pts[k].lat = la; pts[k].lon = lo; }
+      pinned += j - i; i = j;
+    } else i++;
+  }
+  return pinned;
+}
+
+// Kalman + RTS smoother on one axis (metres). xs: positions, ts: seconds.
+function _gfKalmanAxis(xs, ts) {
+  const n = xs.length, q2 = _GF_KF_Q * _GF_KF_Q, r2 = _GF_KF_R * _GF_KF_R;
+  const xf = [], Pf = [], xp = [], Pp = [];
+  let x = [xs[0], 0], P = [[r2, 0], [0, 25]];
+  for (let i = 0; i < n; i++) {
+    if (i > 0) {
+      const dt = Math.max(0.1, ts[i] - ts[i - 1]);
+      const dt2 = dt * dt, dt3 = dt2 * dt, dt4 = dt3 * dt;
+      x = [x[0] + dt * x[1], x[1]];
+      P = [[P[0][0] + dt * (P[1][0] + P[0][1]) + dt2 * P[1][1] + q2 * dt4 / 4, P[0][1] + dt * P[1][1] + q2 * dt3 / 2],
+           [P[1][0] + dt * P[1][1] + q2 * dt3 / 2, P[1][1] + q2 * dt2]];
+    }
+    xp.push(x); Pp.push(P);
+    const S = P[0][0] + r2, K = [P[0][0] / S, P[1][0] / S], y = xs[i] - x[0];
+    x = [x[0] + K[0] * y, x[1] + K[1] * y];
+    P = [[(1 - K[0]) * P[0][0], (1 - K[0]) * P[0][1]], [P[1][0] - K[1] * P[0][0], P[1][1] - K[1] * P[0][1]]];
+    xf.push(x); Pf.push(P);
+  }
+  const out = new Array(n); let xs1 = xf[n - 1]; out[n - 1] = xs1[0];
+  for (let i = n - 2; i >= 0; i--) {
+    const dt = Math.max(0.1, ts[i + 1] - ts[i]);
+    const PF = [[Pf[i][0][0] + Pf[i][0][1] * dt, Pf[i][0][1]], [Pf[i][1][0] + Pf[i][1][1] * dt, Pf[i][1][1]]]; // Pf·Fᵀ
+    const A = Pp[i + 1], det = A[0][0] * A[1][1] - A[0][1] * A[1][0] || 1e-9;
+    const Ai = [[A[1][1] / det, -A[0][1] / det], [-A[1][0] / det, A[0][0] / det]];
+    const C = [[PF[0][0] * Ai[0][0] + PF[0][1] * Ai[1][0], PF[0][0] * Ai[0][1] + PF[0][1] * Ai[1][1]],
+               [PF[1][0] * Ai[0][0] + PF[1][1] * Ai[1][0], PF[1][0] * Ai[0][1] + PF[1][1] * Ai[1][1]]];
+    const d = [xs1[0] - xp[i + 1][0], xs1[1] - xp[i + 1][1]];
+    xs1 = [xf[i][0] + C[0][0] * d[0] + C[0][1] * d[1], xf[i][1] + C[1][0] * d[0] + C[1][1] * d[1]];
+    out[i] = xs1[0];
+  }
+  return out;
+}
+
+function _gfSmooth(pts, win) {
+  const n = pts.length; if (n < 3) return 0;
+  const before = pts.map(p => [p.lat, p.lon]);
+  const timed = pts.every(p => _gfT(p) != null);
+  if (!timed) {
+    const sm = smoothTrack(before, win);
+    pts.forEach((p, i) => { p.lat = sm[i][0]; p.lon = sm[i][1]; });
+  } else {
+    const lat0 = pts[0].lat, lon0 = pts[0].lon, kx = Math.cos(lat0 * Math.PI / 180) * 111320, ky = 110540;
+    // segments split at gaps over 30 s — a filter shouldn't bridge a tunnel
+    for (let a = 0; a < n;) {
+      let b = a + 1; while (b < n && (_gfT(pts[b]) - _gfT(pts[b - 1])) / 1000 <= 30) b++;
+      if (b - a >= 3) {
+        const seg = pts.slice(a, b), ts = seg.map(p => _gfT(p) / 1000);
+        const ex = _gfKalmanAxis(seg.map(p => (p.lon - lon0) * kx), ts);
+        const ny = _gfKalmanAxis(seg.map(p => (p.lat - lat0) * ky), ts);
+        seg.forEach((p, i) => { p.lon = lon0 + ex[i] / kx; p.lat = lat0 + ny[i] / ky; });
       }
-      if(sp>ceiling){
-        let f=0.5;
-        if(p0.time && p2.time){ const span=p2.time-p0.time; if(span>0) f=(p1.time-p0.time)/span; }
-        p1.lat = p0.lat + (p2.lat-p0.lat)*f;
-        p1.lon = p0.lon + (p2.lon-p0.lon)*f;
-        speedFixed++;
+      a = b;
+    }
+  }
+  let moved = 0;
+  pts.forEach((p, i) => { if (_gfHaversine(before[i][0], before[i][1], p.lat, p.lon) > 0.5) moved++; });
+  return moved;
+}
+
+// In-place fix of a parsed pts array. Returns {smoothed, speedFixed, timeFixed, stopsPinned}.
+function _gfFixTrack(pts, opts) {
+  opts = opts || {};
+  const ceiling = opts.ceiling == null ? MAX_SPEED_CEILING : opts.ceiling; // m/s
+  const timed = pts.some(p => _gfT(p) != null);
+  const timeFixed = timed ? _gfFixTimes(pts) : 0;
+  let speedFixed = 0;
+  if (opts.fixSpeed !== false && pts.length > 2) {
+    if (timed) speedFixed = _gfFixJumps(pts, ceiling);
+    else {
+      // no timestamps — flag a point that detours far off the p0→p2 line
+      for (let i = 1; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1], p1 = pts[i], p2 = pts[i + 1];
+        const d1 = _gfHaversine(p0.lat, p0.lon, p1.lat, p1.lon), d2 = _gfHaversine(p1.lat, p1.lon, p2.lat, p2.lon);
+        if (d1 + d2 > _gfHaversine(p0.lat, p0.lon, p2.lat, p2.lon) * 4 + 10) { p1.lat = (p0.lat + p2.lat) / 2; p1.lon = (p0.lon + p2.lon) / 2; speedFixed++; }
       }
     }
   }
-  // 2) GPS smoothing
-  let smoothed=0;
-  if(opts.smooth!==false){
-    const sm=smoothTrack(pts.map(p=>[p.lat,p.lon]), opts.win);
-    for(let i=0;i<pts.length;i++){
-      if(pts[i].lat!==sm[i][0]||pts[i].lon!==sm[i][1]) smoothed++;
-      pts[i].lat=sm[i][0]; pts[i].lon=sm[i][1];
-    }
+  const stopsPinned = opts.stops !== false && timed ? _gfFixStops(pts) : 0;
+  const smoothed = opts.smooth !== false ? _gfSmooth(pts, opts.win) : 0;
+  return { smoothed, speedFixed, timeFixed, stopsPinned };
+}
+
+// distance (m) and max speed (m/s, over ≥5 s so one noisy fix can't set it)
+function _gfMeasure(pts) {
+  let dist = 0, max = 0;
+  for (let i = 1; i < pts.length; i++) dist += _gfHaversine(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon);
+  for (let i = 0; i < pts.length; i++) {
+    const ti = _gfT(pts[i]); if (ti == null) continue;
+    let d = 0, k = i;
+    while (k + 1 < pts.length && _gfT(pts[k + 1]) != null && (_gfT(pts[k + 1]) - ti) < 5000) { d += _gfHaversine(pts[k].lat, pts[k].lon, pts[k + 1].lat, pts[k + 1].lon); k++; }
+    if (k + 1 < pts.length && _gfT(pts[k + 1]) != null) { d += _gfHaversine(pts[k].lat, pts[k].lon, pts[k + 1].lat, pts[k + 1].lon); k++; const dt = (_gfT(pts[k]) - ti) / 1000; if (dt > 0) max = Math.max(max, d / dt); }
   }
-  return {smoothed, speedFixed};
+  return { dist, max };
 }
 
 // write fixed coords back into the trkpt elements and serialize the whole doc
@@ -143,6 +285,8 @@ function _gfSerialize(doc, nodes, pts){
   for(let i=0;i<nodes.length;i++){
     nodes[i].setAttribute('lat', pts[i].lat.toFixed(7));
     nodes[i].setAttribute('lon', pts[i].lon.toFixed(7));
+    const t=nodes[i].querySelector('time');           // times may have been repaired
+    if(t && pts[i].time && !isNaN(pts[i].time)) t.textContent=pts[i].time.toISOString();
   }
   return new XMLSerializer().serializeToString(doc);
 }
@@ -196,19 +340,26 @@ function _gfRenderFiles(){
 
 /* ── extra repair tools ── */
 
-// Median-filter elevation spikes: a sample >15 m off its local median is a
-// barometer/GPS altitude glitch — replace it (and the <ele> node) in place.
+// Elevation glitches: a Hampel filter (a sample more than 3·MAD — at least
+// 8 m — off the median of its 7 neighbours) plus a climb-rate check: over
+// 4 m/s vertical isn't riding or running, it's the barometer or GPS altitude.
+// Replaces the sample (and its <ele> node) with the local median.
 function _gfFixEle(pts, nodes){
   let fixed=0;
-  const eles=pts.map(p=>p.ele);
+  const e=pts.map(p=>p.ele);
   for(let i=0;i<pts.length;i++){
-    if(eles[i]==null) continue;
+    if(e[i]==null) continue;
     const win=[];
-    for(let j=Math.max(0,i-2);j<=Math.min(pts.length-1,i+2);j++) if(eles[j]!=null) win.push(eles[j]);
-    const med=_gfMedian(win);
-    if(Math.abs(eles[i]-med)>15){
+    for(let j=Math.max(0,i-3);j<=Math.min(pts.length-1,i+3);j++) if(e[j]!=null) win.push(e[j]);
+    const med=_gfMedian(win), mad=_gfMedian(win.map(v=>Math.abs(v-med)));
+    let bad=Math.abs(e[i]-med)>Math.max(8,3*1.4826*mad);
+    if(!bad && i>0 && pts[i-1].ele!=null){
+      const ti=_gfT(pts[i]), tp=_gfT(pts[i-1]);
+      if(ti!=null && tp!=null && ti>tp && Math.abs(e[i]-pts[i-1].ele)/((ti-tp)/1000)>4 && Math.abs(e[i]-med)>3) bad=true;
+    }
+    if(bad){
       pts[i].ele=med;
-      const el=nodes[i].querySelector('ele'); if(el) el.textContent=med.toFixed(1);
+      const el=nodes&&nodes[i]&&nodes[i].querySelector('ele'); if(el) el.textContent=med.toFixed(1);
       fixed++;
     }
   }
@@ -265,6 +416,7 @@ async function runGpxFix(){
     smooth:  document.getElementById('gpxSmooth').checked,
     fixSpeed:document.getElementById('gpxFixSpeed').checked,
     dedupe:  document.getElementById('gpxDedupe').checked,
+    stops:   document.getElementById('gpxStops').checked,
     ele:     document.getElementById('gpxEle').checked,
     trimStart:Math.max(0,parseFloat(document.getElementById('gpxTrimStart').value)||0),
     trimEnd:  Math.max(0,parseFloat(document.getElementById('gpxTrimEnd').value)||0),
@@ -279,13 +431,25 @@ async function runGpxFix(){
     const before=parsed.pts.map(p=>[p.lat,p.lon]);
     const dropped=_gfDropPoints(parsed, opts);
     if(dropped<0){ lines.push(`<div class="gpx-err">${_gfXmlEsc(f.name)}: trim/privacy would remove the whole track — skipped.</div>`); continue; }
-    const r=_gfFixTrack(parsed.pts,{smooth:opts.smooth, fixSpeed:opts.fixSpeed, ceiling});
+    const m0=_gfMeasure(parsed.pts);
+    const r=_gfFixTrack(parsed.pts,{smooth:opts.smooth, fixSpeed:opts.fixSpeed, stops:opts.stops, ceiling});
     const eleFixed=opts.ele?_gfFixEle(parsed.pts,parsed.nodes):0;
+    const m1=_gfMeasure(parsed.pts);
     const out=_gfSerialize(parsed.doc, parsed.nodes, parsed.pts);
     const name=f.name.replace(/\.gpx$/i,'')+'-fixed.gpx';
     _gfDownload(out, name);
     await _gfSleep(300); // breathing room between multiple downloads
-    lines.push(`<div class="gpx-ok">${_gfXmlEsc(f.name)}: normalized <b>${r.speedFixed}</b> speed spike(s), smoothed <b>${r.smoothed}</b> point(s)${opts.ele?`, repaired <b>${eleFixed}</b> elevation sample(s)`:''}${dropped?`, dropped <b>${dropped}</b> point(s)`:''} → <b>${name}</b></div>`);
+    const did=[
+      r.speedFixed?`moved <b>${r.speedFixed}</b> GPS-jump point(s)`:'',
+      r.stopsPinned?`pinned <b>${r.stopsPinned}</b> point(s) of stop drift`:'',
+      r.timeFixed?`re-timed <b>${r.timeFixed}</b> point(s)`:'',
+      r.smoothed?`smoothed <b>${r.smoothed}</b> point(s)`:'',
+      opts.ele?`repaired <b>${eleFixed}</b> elevation sample(s)`:'',
+      dropped?`dropped <b>${dropped}</b> point(s)`:'',
+    ].filter(Boolean).join(', ')||'nothing needed fixing';
+    const delta=`distance ${(m0.dist/1000).toFixed(2)} → <b>${(m1.dist/1000).toFixed(2)}</b> km`
+      +(m0.max?` · max speed ${kmh(m0.max)} → <b>${kmh(m1.max)}</b> ${speedUnit()}`:'');
+    lines.push(`<div class="gpx-ok">${_gfXmlEsc(f.name)}: ${did}. ${delta} → <b>${name}</b></div>`);
     if(!firstBefore){ firstBefore=before; firstAfter=parsed.pts.map(p=>[p.lat,p.lon]); }
   }
   res.innerHTML=lines.join('');

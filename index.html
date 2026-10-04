@@ -454,7 +454,7 @@
       Photos
     </button>
     <button class="nav-link" onclick="navScrollTo('fixSection',this)">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M3 17c3-6 6-6 9 0s6 6 9 0"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s-6.5-5.6-6.5-10.5a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21z"/><path d="M9.3 10.6l1.9 1.9 3.6-3.8"/></svg>
       GPS Fix
     </button>
 
@@ -929,7 +929,7 @@
 
     <div class="card gpx-card">
       <div class="gpx-card-title">GPX repair suite</div>
-      <div class="gpx-sub">Import one or more .gpx files — smooth GPS jitter, normalize speed spikes, repair elevation glitches, drop duplicate points, trim the ends or strip a privacy radius, then download the repaired files. Import two or more files to merge them into one track.</div>
+      <div class="gpx-sub">Import one or more .gpx files — fix GPS jumps (even several points long), pin the drift while you were stopped, repair timestamps Strava would reject, smooth jitter without cutting corners (Kalman smoother), repair elevation glitches, drop duplicate points, trim the ends or strip a privacy radius, then download the repaired files. Import two or more files to merge them into one track.</div>
       <div class="gpx-drop" id="gpxDrop">
         <input type="file" id="gpxFile" accept=".gpx,application/gpx+xml" multiple>
         <div class="gpx-drop-hint">…or drag &amp; drop .gpx files onto this box</div>
@@ -940,6 +940,7 @@
         <label class="gpx-opt"><input type="checkbox" id="gpxFixSpeed" checked> Normalize abnormal speed</label>
         <label class="gpx-opt">Max speed <input type="number" id="gpxCeiling" value="65" min="1" step="5"> km/h</label>
         <label class="gpx-opt"><input type="checkbox" id="gpxDedupe" checked> Drop duplicate points</label>
+        <label class="gpx-opt" title="While you stand still GPS wanders and adds fake distance — pin those points to one spot"><input type="checkbox" id="gpxStops" checked> Clean up stop drift</label>
         <label class="gpx-opt"><input type="checkbox" id="gpxEle"> Repair elevation spikes</label>
       </div>
       <div class="gpx-controls" style="margin-top:10px">
