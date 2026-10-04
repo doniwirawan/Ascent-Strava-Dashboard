@@ -1347,6 +1347,7 @@ body.dev .dev-tag { display: inline-block; }
 .regency-bar span { display: block; height: 100%; background: var(--orange); border-radius: 3px; }
 .regency-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .regency-outside { margin-top: 4px; }
+.reg-pending:empty, .heat-legend .reg-pending:empty { display: none; }
 .regency-row { cursor: pointer; border-radius: 6px; padding: 4px 6px; margin: -4px -6px; }
 .regency-row:hover { background: var(--surface2); }
 .regency-map .leaflet-interactive:focus { outline: none; }

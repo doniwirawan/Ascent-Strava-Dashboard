@@ -1097,7 +1097,7 @@ const TR_ID = {
   'Places reached': 'Tempat dijelajahi', 'across {0} districts': 'di {0} distrik', 'Regions': 'Wilayah', 'in {0} countries': 'di {0} negara',
   'Unknown area': 'Wilayah tidak diketahui', 'All places': 'Semua tempat', '{0} places · {1} districts · {2} regions': '{0} tempat · {1} distrik · {2} wilayah',
   'Destinations by area': 'Tujuan per wilayah', 'Where each activity turned around, by area. Loops count where they stayed. Hover or tap an area for details.': 'Titik balik tiap aktivitas, per wilayah. Aktivitas keliling dihitung di tempatnya. Arahkan kursor atau ketuk wilayah untuk detail.',
-  '{0} elsewhere': '{0} di tempat lain', 'Areas': 'Wilayah', 'Area': 'Wilayah', 'Activities ending in each area': 'Aktivitas yang berakhir di tiap wilayah', '{0}% of starts': '{0}% titik mulai',
+  '{0} elsewhere': '{0} di tempat lain', 'Looking up {0} areas…': 'Mencari {0} wilayah…', 'Looking up 1 area…': 'Mencari 1 wilayah…', 'Areas': 'Wilayah', 'Area': 'Wilayah', 'Activities ending in each area': 'Aktivitas yang berakhir di tiap wilayah', '{0}% of starts': '{0}% titik mulai',
   'Top destination': 'Tujuan favorit', '{0} trips': '{0} perjalanan',
   'Furthest trip': 'Perjalanan terjauh', '{0} from start': '{0} dari titik mulai',
   'Avg reach': 'Jangkauan rata-rata', 'start → turnaround': 'mulai → titik balik',

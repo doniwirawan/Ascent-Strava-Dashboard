@@ -142,21 +142,36 @@ function _areaAdd(r) {
 }
 
 /* Look up the area of each destination no known shape contains (through the
-   shared rate-limited Nominatim queue), then re-render the maps once. */
+   shared rate-limited Nominatim queue), then re-render the maps once. Points
+   asked for while a run is going (the card and the heatmap both ask) join its
+   queue instead of being dropped. */
 let _regBusy = false;
+const _regQueue = [];
+let _regCur = null; // the point being fetched right now
+const _regTodo = () => new Set(_regQueue.concat(_regCur ? [_regCur] : []).map(_ptKey).filter(k => !(k in _areas().pts))).size;
+// "Looking up 3 areas…" on both maps while the queue drains
+function _regPendingNote() {
+  const n = _regBusy ? _regTodo() : 0;
+  const TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
+  document.querySelectorAll('.reg-pending').forEach(el => { el.textContent = n ? TF(n === 1 ? 'Looking up 1 area…' : 'Looking up {0} areas…', n) : ''; });
+}
 async function _regResolve(points) {
-  if (_regBusy || !points.length || typeof _geoThrottled !== 'function') return 0;
-  _regBusy = true;
+  _regQueue.push(...points);
+  if (_regBusy) { _regPendingNote(); return 0; }
+  if (!_regQueue.length || typeof _geoThrottled !== 'function') return 0;
+  _regBusy = true; _regPendingNote();
   const st = _areas(); let added = 0;
-  for (const p of points) {
-    const k = _ptKey(p);
+  while (_regQueue.length) {
+    const p = _regQueue.shift(), k = _ptKey(p);
     if (k in st.pts || _regGeo.features.some(f => _regContains(f.geometry, p[1], p[0]))) continue;
+    _regCur = p;
     const r = await _geoThrottled(() => fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=8&polygon_geojson=1&polygon_threshold=0.002&lat=' + p[0] + '&lon=' + p[1], { headers: { Accept: 'application/json' } })
       .then(x => x.ok ? x.json() : null).catch(() => null));
     if (!r) continue; // network trouble — retried on a later render
     st.pts[k] = _areaAdd(r); added++;
+    _regPendingNote();
   }
-  _regBusy = false;
+  _regBusy = false; _regCur = null; _regPendingNote();
   if (added) {
     _areasSave(); renderRegencyMap();
     if (typeof heatMode !== 'undefined' && heatMode === 'regency' && typeof renderHeatmap === 'function' && typeof leafletMapInst !== 'undefined' && leafletMapInst) renderHeatmap();
@@ -239,8 +254,7 @@ async function renderRegencyMap() {
   const { by, missing } = _regStats(list);
   _regBy = by;
   renderRegencyTags();
-  _regResolve(missing);
-  if (!Object.values(by).some(s => s.n)) { card.style.display = 'none'; return; }
+  if (!Object.values(by).some(s => s.n)) { card.style.display = 'none'; _regResolve(missing); return; }
   card.style.display = '';
 
   const T = typeof tr === 'function' ? tr : (x => x);
@@ -290,8 +304,10 @@ async function renderRegencyMap() {
     return '<div class="regency-row" role="button" tabindex="0" data-reg="' + esc(name) + '"><div class="regency-row-head"><span class="regency-name">' + esc(name) + '</span><span class="regency-n">' + s.n + '</span></div>'
       + '<div class="regency-bar"><span style="width:' + Math.round(s.n / max * 100) + '%"></span></div>'
       + '<div class="regency-sub">' + fmtD(s.m) + (t ? ' · ' + TF('mostly {0}', t[0]) : '') + '</div></div>';
-  }).join('') + (elsewhere > 0 ? '<div class="regency-sub regency-outside">' + TF(_regGroup === 'Bali' ? '{0} outside Bali' : '{0} elsewhere', elsewhere) + '</div>' : '');
+  }).join('') + (elsewhere > 0 ? '<div class="regency-sub regency-outside">' + TF(_regGroup === 'Bali' ? '{0} outside Bali' : '{0} elsewhere', elsewhere) + '</div>' : '')
+    + '<div class="regency-sub reg-pending"></div>';
   listEl.querySelectorAll('.regency-row').forEach(r => r.onclick = () => openRegencyRides(r.dataset.reg));
+  _regResolve(missing); // after the list is drawn, so its "looking up" note is there to fill
 }
 
 /* Popup listing the rides whose destination is in a regency (newest first).

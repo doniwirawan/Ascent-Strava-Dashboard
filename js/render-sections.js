@@ -447,7 +447,7 @@ function heatLegend(map){
   c.onAdd=()=>{
     const d=L.DomUtil.create('div','heat-legend');
     if(heatMode==='regency'){
-      d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:10px;width:14px;opacity:.6"></i>'+T(typeof areaIsRegency!=='function'||areaIsRegency()?'Rides ending in each regency':'Activities ending in each area')+'</span>';
+      d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:10px;width:14px;opacity:.6"></i>'+T(typeof areaIsRegency!=='function'||areaIsRegency()?'Rides ending in each regency':'Activities ending in each area')+'</span><span class="hl-i reg-pending"></span>';
     }else if(heatMode==='uniform'){
       d.innerHTML='<span class="hl-i"><i style="background:'+HEAT_UNIFORM.color+
         ';height:'+HEAT_UNIFORM.weight+'px;opacity:'+HEAT_UNIFORM.opacity+'"></i>'+T('Where you ride')+'</span>';
@@ -535,6 +535,7 @@ function renderHeatmap(){
       const {by,missing}=_regStats(list);
       regencyLayers(map,by);
       _regResolve(missing);                              // re-renders when new areas arrive
+      _regPendingNote();                                 // queue may already be running for the card
     });
   }else if(heatMode==='uniform'){
     // One flat colour: the map reads as "everywhere I've been", not "how often".
