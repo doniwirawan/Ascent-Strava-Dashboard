@@ -866,6 +866,7 @@ function renderTraining() {
     ${_trNote('FTP & W/kg')}
     ${_trZonesHTML(d.ftpEst)}
     ${_trRunPredictHTML()}
+    ${typeof _trEventReadyHTML === 'function' ? _trEventReadyHTML(d) : ''}
     <div class="tr-tiles">
       ${tile(Math.round(d.ctl), '', tr('Fitness · CTL'), 'var(--orange)', tr('42-day load'))}
       ${tile(Math.round(d.atl), '', tr('Fatigue · ATL'), '#a78bfa', tr('7-day load'))}

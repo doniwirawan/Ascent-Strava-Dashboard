@@ -1577,3 +1577,26 @@ body.on-coach .fab-group { display: none !important; }
 .bc-rows b { white-space: nowrap; }
 .bc-facts { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; margin-bottom: 18px; border-radius: var(--radius-sm); border: 1px solid rgba(252,76,2,.35); background: rgba(252,76,2,.06); font-size: 13px; line-height: 1.5; }
 @media (max-width: 560px) { .bc-rows { grid-template-columns: 1fr; } }
+
+/* ── EVENT READINESS ─────────────────────────────────────────────────── */
+.evt-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.evt-chip { padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-2); font-size: 12px; font-weight: 600; cursor: pointer; }
+.evt-chip.on { background: var(--orange); border-color: var(--orange); color: #fff; }
+.evt-ins { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.evt-in { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
+.evt-in input { width: 100%; box-sizing: border-box; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2, var(--surface)); color: var(--text); font-size: 13px; }
+.evt-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.evt-score { flex: none; width: 74px; height: 74px; border-radius: 50%; border: 5px solid var(--c); display: flex; align-items: baseline; justify-content: center; padding-top: 18px; box-sizing: border-box; }
+.evt-score b { font-size: 24px; font-weight: 800; }
+.evt-score small { font-size: 12px; color: var(--muted); }
+.evt-verdict { font-size: 17px; font-weight: 800; }
+.evt-tl { font-size: 12px; color: var(--text-2); margin-top: 3px; line-height: 1.45; }
+.evt-f { padding: 6px 0; }
+.evt-f-top { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--text-2); margin-bottom: 5px; }
+.evt-warn { margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(239, 68, 68, .1); color: #ef4444; font-size: 12px; }
+.evt-times { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 14px; }
+.evt-t { padding: 10px; border-radius: 10px; background: var(--surface2, var(--surface)); border: 1px solid var(--border); }
+.evt-t b { display: block; font-size: 16px; font-weight: 800; }
+.evt-t small { font-size: 10px; color: var(--muted); }
+.evt-tips { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-2); line-height: 1.55; }
+.evt-tips li { margin-bottom: 4px; }
