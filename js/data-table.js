@@ -36,6 +36,7 @@ function _dtColumns(withSleep) {
   if (withSleep) cols.push(
     { key: 's_asleep', better: 1, lbl: 'Sleep', val: r => r.s && r.s.asleep ? r.s.asleep : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.asleep) : '', sleep: true, first: true },
     { key: 's_score', better: 1, lbl: 'Sleep score', val: r => r.s && typeof _slpNightScore === 'function' ? _slpNightScore(r.s) : null, sleep: true },
+    { key: 's_rec', better: 1, lbl: 'Recovery', val: r => r.rec ? r.rec.score : null, fmt: r => r.rec ? r.rec.score + (r.rec.unwell ? ' ⚠️' : '') : '', sleep: true },
     { key: 's_nap', better: 0, lbl: 'Nap', val: r => r.s && r.s.nap ? r.s.nap : null, fmt: r => r.s && r.s.nap ? _dtHM(r.s.nap) : '', sleep: true },
     { key: 's_napt', lbl: 'Nap time', val: r => r.s && r.s.napt ? r.s.napt : null, fmt: r => r.s && r.s.napt ? r.s.napt : '', sleep: true, txt: true },
     { key: 's_total', better: 1, lbl: 'Sleep + nap', val: r => r.s && (r.s.asleep || r.s.nap) ? (r.s.asleep || 0) + (r.s.nap || 0) : null, fmt: r => r.s && (r.s.asleep || r.s.nap) ? _dtHM((r.s.asleep || 0) + (r.s.nap || 0)) : '', sleep: true },
@@ -82,14 +83,15 @@ async function renderDataTable() {
   if (typeof _slpIsOwner === 'function' && _slpIsOwner()) { try { nights = await _slpLoad(); } catch {} }
   const byDate = {};
   (nights || []).forEach(n => { if (n.date) byDate[n.date] = n; });
+  const recMap = nights && typeof _slpRecoveryMap === 'function' ? _slpRecoveryMap(nights) : new Map();
 
   const rows = [], used = new Set();
   (typeof modeActs === 'function' ? modeActs() : acts).forEach(a => {
     const date = (a.start_date_local || a.start_date || '').slice(0, 10);
     const s = byDate[date] || null; if (s) used.add(date);
-    rows.push({ date, a, s });
+    rows.push({ date, a, s, rec: s ? recMap.get(date) : null });
   });
-  if (nights) nights.forEach(n => { if (n.date && !used.has(n.date) && (n.asleep || n.nap)) rows.push({ date: n.date, a: null, s: n }); });
+  if (nights) nights.forEach(n => { if (n.date && !used.has(n.date) && (n.asleep || n.nap)) rows.push({ date: n.date, a: null, s: n, rec: recMap.get(n.date) }); });
   _dtRows = rows; _dtCols = _dtColumns(!!nights);
   _dtRender();
   renderDataInsights();

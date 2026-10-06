@@ -1063,6 +1063,8 @@ const TR_ID = {
   'Date': 'Tanggal', 'Activity': 'Aktivitas', 'Type': 'Jenis', 'Destination': 'Tujuan', 'Regency': 'Kabupaten', 'Moving time': 'Waktu bergerak',
   'Avg HR': 'HR rata-rata', 'Max HR': 'HR maks', 'Relative effort': 'Relative effort', 'Kudos': 'Kudos', 'PRs': 'PR',
   'Sleep': 'Tidur', 'Deep': 'Dalam', 'Light': 'Ringan', 'REM': 'REM', 'Awake (min)': 'Terjaga (mnt)', 'Wake-ups': 'Terbangun',
+  'Recovery: HRV and resting HR against your last 30 days': 'Pemulihan: HRV dan HR istirahat dibanding 30 hari terakhir Anda',
+  'Possibly unwell: long sleep, but HRV {0} ms (usually {1}) and resting HR {2} bpm (usually {3}).': 'Kemungkinan tidak fit: tidur lama, tapi HRV {0} ms (biasanya {1}) dan HR istirahat {2} bpm (biasanya {3}).',
   'Sleep score': 'Skor tidur', 'Nap': 'Tidur siang', 'Nap time': 'Jam tidur siang', 'Sleep + nap': 'Tidur + siang', '☀️ With nap': '☀️ Ada tidur siang',
   'Bedtime': 'Jam tidur', 'Woke up': 'Bangun', 'Efficiency (%)': 'Efisiensi (%)', 'Resting HR': 'HR istirahat', 'HRV (ms)': 'HRV (ms)',
   'Stress': 'Stres', 'Steps': 'Langkah', 'SpO₂ (%)': 'SpO₂ (%)',

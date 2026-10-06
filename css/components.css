@@ -557,6 +557,7 @@
 }
 
 .slp-ba-nap { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 12px; line-height: 1.5; color: var(--text); }
+.slp-ba-unwell { margin-top: 8px; padding: 6px 9px; border-radius: 8px; font-size: 12px; line-height: 1.45; color: #fbbf24; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); }
 .slp-ba-only { margin-left: 8px; font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: 0; }
 
 /* Per-activity HR decoupling block in the activity modal (reuses .hrd-* grid) */

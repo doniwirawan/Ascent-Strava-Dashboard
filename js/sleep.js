@@ -2489,6 +2489,41 @@ function _slpNightScore(n) {
   return Math.round(parts.reduce((s, p) => s + p[0] * p[1], 0) / wsum);
 }
 
+/* Recovery per night: HRV and resting HR against YOUR previous 30 days, plus a
+   little sleep. Kept apart from the sleep score — a long night while ill sleeps
+   "well" but recovers badly. unwell = long night + HRV ≥10% under baseline +
+   RHR ≥2 bpm over it. Map date → {score, hrvBase, rhrBase, unwell}, cached. */
+let _slpRecCache = null;
+function _slpRecoveryMap(nights) {
+  if (_slpRecCache && _slpRecCache.src === nights) return _slpRecCache.map;
+  const map = new Map(), DAY = 86400000, t = d => Date.parse(d + 'T00:00:00Z');
+  const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+  const mean = a => a.reduce((s, x) => s + x, 0) / a.length;
+  const rows = nights.filter(n => n.date).slice().sort((a, b) => (a.date < b.date ? -1 : 1));
+  let lo = 0;
+  rows.forEach((n, i) => {
+    while (lo < i && t(rows[lo].date) < t(n.date) - 30 * DAY) lo++;
+    const prev = rows.slice(lo, i);
+    const hb = prev.map(p => p.hrv).filter(v => v != null), rb = prev.map(p => p.rhr).filter(v => v != null);
+    const hrvBase = hb.length >= 7 ? mean(hb) : null, rhrBase = rb.length >= 7 ? mean(rb) : null;
+    const parts = [];
+    if (n.hrv != null && hrvBase) parts.push([clamp(50 + (n.hrv - hrvBase) * 2.5, 0, 100), 0.45]);
+    if (n.rhr != null && rhrBase) parts.push([clamp(50 + (rhrBase - n.rhr) * 8, 0, 100), 0.35]);
+    if (!parts.length) return;
+    const sl = _slpNightScore(n);
+    if (sl != null) parts.push([sl, 0.20]);
+    const w = parts.reduce((s, p) => s + p[1], 0);
+    map.set(n.date, {
+      score: Math.round(parts.reduce((s, p) => s + p[0] * p[1], 0) / w),
+      hrvBase: hrvBase && Math.round(hrvBase), rhrBase: rhrBase && Math.round(rhrBase),
+      unwell: n.asleep >= 480 && n.hrv != null && hrvBase != null && n.hrv <= hrvBase * 0.9
+        && n.rhr != null && rhrBase != null && n.rhr >= rhrBase + 2,
+    });
+  });
+  _slpRecCache = { src: nights, map };
+  return map;
+}
+
 /* The day's own body + activity metrics, from the row dated D — the same
    calendar day the session happened on. */
 function _slpDayMetricsHTML(n) {
@@ -2549,7 +2584,7 @@ function _slpBaNap(n, night) {
     : trf('☀️ Nap only: {0}', nap)) + '</div>';
 }
 
-function _slpBaCard(n, lbl) {
+function _slpBaCard(n, lbl, rec) {
   const T = (typeof tr === 'function') ? tr : (x => x);
   if (!n || n.asleep < 60) {
     return '<div class="slp-ba-card empty"><div class="slp-ba-lbl-row"><span class="slp-ba-lbl">' + T(lbl) + '</span></div>'
@@ -2570,10 +2605,12 @@ function _slpBaCard(n, lbl) {
   const scBadge = sc != null
     ? '<span class="slp-ba-score" style="color:' + _slpScoreC(sc) + ';background:' + _slpScoreC(sc) + '22">' + T('Score') + ' ' + sc + '</span>'
     : '';
-  return '<div class="slp-ba-card"><div class="slp-ba-lbl-row"><span class="slp-ba-lbl">' + T(lbl) + '</span>' + scBadge + '</div>'
+  const recBadge = rec ? '<span class="slp-ba-score" title="' + T('Recovery: HRV and resting HR against your last 30 days') + '" style="color:' + _slpScoreC(rec.score) + ';background:' + _slpScoreC(rec.score) + '22">' + T('Recovery') + ' ' + rec.score + '</span>' : '';
+  const unwell = rec && rec.unwell ? '<div class="slp-ba-unwell">⚠️ ' + trf('Possibly unwell: long sleep, but HRV {0} ms (usually {1}) and resting HR {2} bpm (usually {3}).', n.hrv, rec.hrvBase, n.rhr, rec.rhrBase) + '</div>' : '';
+  return '<div class="slp-ba-card"><div class="slp-ba-lbl-row"><span class="slp-ba-lbl">' + T(lbl) + '</span><span>' + scBadge + recBadge + '</span></div>'
     + '<div class="slp-ba-val">' + _slpHM(n.asleep) + '<span class="slp-ba-only">' + T('night only') + '</span></div>'
     + '<div class="slp-ba-bar">' + bar + '</div>'
-    + '<div class="slp-ba-sub">' + sub + '</div>' + _slpBaNap(n, n.asleep) + '</div>';
+    + '<div class="slp-ba-sub">' + sub + '</div>' + unwell + _slpBaNap(n, n.asleep) + '</div>';
 }
 
 async function renderActivitySleep(a) {
@@ -2592,6 +2629,7 @@ async function renderActivitySleep(a) {
 
   const byDate = new Map(nights.map(n => [n.date, n]));
   const before = byDate.get(D), after = byDate.get(_slpNext(D));
+  const recMap = _slpRecoveryMap(nights);
   const bOk = before && before.asleep >= 60, aOk = after && after.asleep >= 60;
   // The day's own metrics (stress/calories/steps) live in the row dated D.
   const dayHTML = _slpDayMetricsHTML(before);
@@ -2616,7 +2654,7 @@ async function renderActivitySleep(a) {
   }
 
   const cards = (bOk || aOk || (before && before.nap > 0) || (after && after.nap > 0))
-    ? '<div class="slp-ba">' + _slpBaCard(before, 'Night before') + delta + _slpBaCard(after, 'Night after') + '</div>'
+    ? '<div class="slp-ba">' + _slpBaCard(before, 'Night before', before && recMap.get(before.date)) + delta + _slpBaCard(after, 'Night after', after && recMap.get(after.date)) + '</div>'
     : '';
 
   // Baselines from all real nights, so the insight can say "vs your usual".
