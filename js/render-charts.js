@@ -509,9 +509,39 @@ function _renderActList(q){
 }
 
 /* ── ACTIVITY DETAIL MODAL ── */
+const ACT_STAT_IC={
+  route:'<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8a3.5 3.5 0 0 0 0-7H8a3.5 3.5 0 0 1 0-7h8"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  timer:'<circle cx="12" cy="14" r="8"/><path d="M12 10v4M9 2h6"/>',
+  gauge:'<path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-5"/>',
+  rocket:'<polygon points="13 19 22 12 13 5 13 19"/><polygon points="2 19 11 12 2 5 2 19"/>',
+  mountain:'<path d="m3 20 6-12 4 7 3-5 5 10z"/>',
+  flag:'<path d="M4 21V4a6 6 0 0 1 8 0 6 6 0 0 0 8 0v9a6 6 0 0 1-8 0 6 6 0 0 0-8 0"/>',
+  cadence:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  heart:'<path d="M20.8 5.1a5 5 0 0 0-7.1 0L12 6.8l-1.7-1.7a5 5 0 1 0-7.1 7.1L12 21l8.8-8.8a5 5 0 0 0 0-7.1z"/>',
+  pulse:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  bolt:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  battery:'<rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2M6 11v2M10 11v2"/>',
+  flame:'<path d="M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 2 2 2 0 0-2 0-3 0-4z"/>',
+  effort:'<path d="M4 20V14M10 20V9M16 20V12M22 20V4"/>',
+  temp:'<path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"/>',
+  medal:'<path d="M9 3l3 5 3-5"/><circle cx="12" cy="14" r="5"/>',
+  trophy:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/>',
+  kudos:'<path d="M7 11v9H4v-9h3z"/><path d="M7 11l4-7a2 2 0 0 1 2 2v3h5a2 2 0 0 1 2 2.4l-1.2 5A2 2 0 0 1 16.8 20H7"/>',
+  chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/>',
+};
+const ACT_STAT_ICON={
+  'Distance':'route','Moving Time':'clock','Elapsed':'timer','Avg Speed':'gauge','Avg Pace':'gauge',
+  'Max Speed':'rocket','Max Pace':'rocket','Elevation':'mountain','Highest Pt':'flag','Avg Cadence':'cadence',
+  'Avg HR':'heart','Max HR':'pulse','Avg Power':'bolt','Norm Power':'bolt','Max Power':'bolt',
+  'Energy':'battery','Calories':'flame','Relative Effort':'effort','Avg Temp':'temp',
+  'PRs':'medal','Achievements':'trophy','Kudos':'kudos','Comments':'chat',
+};
 function _actStat(label, val){
   if(val===null || val===undefined || val==='' || val==='—') return '';
-  return `<div class="actd-stat"><div class="actd-stat-val">${val}</div><div class="actd-stat-lbl">${label}</div></div>`;
+  const p=ACT_STAT_IC[ACT_STAT_ICON[label]];
+  const icon=p?`<svg class="actd-stat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`:'';
+  return `<div class="actd-stat"><div class="actd-stat-val">${val}</div><div class="actd-stat-lbl">${icon}${label}</div></div>`;
 }
 
 let _actBigMap = null;

@@ -119,6 +119,7 @@
 }
 .actd-stat-val { font-size: 18px; font-weight: 800; color: var(--text); }
 .actd-stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
+.actd-stat-ic { width: 13px; height: 13px; vertical-align: -2px; margin-right: 4px; color: var(--orange); }
 
 /* Heart-rate zone pill (next to HR figures) */
 .hrz-pill {
