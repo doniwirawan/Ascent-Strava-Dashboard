@@ -1061,6 +1061,7 @@ const TR_ID = {
   'Date': 'Tanggal', 'Activity': 'Aktivitas', 'Type': 'Jenis', 'Destination': 'Tujuan', 'Regency': 'Kabupaten', 'Moving time': 'Waktu bergerak',
   'Avg HR': 'HR rata-rata', 'Max HR': 'HR maks', 'Relative effort': 'Relative effort', 'Kudos': 'Kudos', 'PRs': 'PR',
   'Sleep': 'Tidur', 'Deep': 'Dalam', 'Light': 'Ringan', 'REM': 'REM', 'Awake (min)': 'Terjaga (mnt)', 'Wake-ups': 'Terbangun',
+  'Nap': 'Tidur siang', 'Nap time': 'Jam tidur siang', 'Sleep + nap': 'Tidur + siang', '☀️ With nap': '☀️ Ada tidur siang',
   'Bedtime': 'Jam tidur', 'Woke up': 'Bangun', 'Efficiency (%)': 'Efisiensi (%)', 'Resting HR': 'HR istirahat', 'HRV (ms)': 'HRV (ms)',
   'Stress': 'Stres', 'Steps': 'Langkah', 'SpO₂ (%)': 'SpO₂ (%)',
   '{0} out': '{0} jauhnya', 'Avg pace': 'Pace rata-rata', 'Weather': 'Cuaca', 'Calories': 'Kalori',

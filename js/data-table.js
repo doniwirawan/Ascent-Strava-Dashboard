@@ -35,6 +35,9 @@ function _dtColumns(withSleep) {
   ];
   if (withSleep) cols.push(
     { key: 's_asleep', better: 1, lbl: 'Sleep', val: r => r.s && r.s.asleep ? r.s.asleep : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.asleep) : '', sleep: true, first: true },
+    { key: 's_nap', better: 0, lbl: 'Nap', val: r => r.s && r.s.nap ? r.s.nap : null, fmt: r => r.s && r.s.nap ? _dtHM(r.s.nap) : '', sleep: true },
+    { key: 's_napt', lbl: 'Nap time', val: r => r.s && r.s.napt ? r.s.napt : null, fmt: r => r.s && r.s.napt ? r.s.napt : '', sleep: true, txt: true },
+    { key: 's_total', better: 1, lbl: 'Sleep + nap', val: r => r.s && (r.s.asleep || r.s.nap) ? (r.s.asleep || 0) + (r.s.nap || 0) : null, fmt: r => r.s && (r.s.asleep || r.s.nap) ? _dtHM((r.s.asleep || 0) + (r.s.nap || 0)) : '', sleep: true },
     { key: 's_deep', better: 1, lbl: 'Deep', val: r => r.s && r.s.asleep ? r.s.deep : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.deep) : '', sleep: true },
     { key: 's_light', better: 0, lbl: 'Light', val: r => r.s && r.s.asleep ? r.s.light : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.light) : '', sleep: true },
     { key: 's_rem', better: 1, lbl: 'REM', val: r => r.s && r.s.asleep ? r.s.rem : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.rem) : '', sleep: true },
@@ -85,7 +88,7 @@ async function renderDataTable() {
     const s = byDate[date] || null; if (s) used.add(date);
     rows.push({ date, a, s });
   });
-  if (nights) nights.forEach(n => { if (n.date && !used.has(n.date) && n.asleep) rows.push({ date: n.date, a: null, s: n }); });
+  if (nights) nights.forEach(n => { if (n.date && !used.has(n.date) && (n.asleep || n.nap)) rows.push({ date: n.date, a: null, s: n }); });
   _dtRows = rows; _dtCols = _dtColumns(!!nights);
   _dtRender();
   renderDataInsights();
@@ -97,7 +100,8 @@ function _dtRender() {
   const T = typeof tr === 'function' ? tr : (x => x), TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
   const col = _dtCols.find(c => c.key === _dtSort.key) || _dtCols[0];
   const both = r => r.a && r.s && r.s.asleep; // an activity with sleep from the night before
-  const pass = { all: () => true, ride: r => !!r.a, both, rest: r => !r.a };
+  const napped = r => r.s && r.s.nap > 0;
+  const pass = { all: () => true, ride: r => !!r.a, both, rest: r => !r.a, nap: napped };
   const list = _dtRows.filter(pass[_dtFilter] || pass.all);
   const blank = v => v == null || v === '' || (typeof v === 'number' && isNaN(v));
   list.sort((x, y) => {
@@ -107,10 +111,10 @@ function _dtRender() {
     return c * _dtSort.dir || (x.date < y.date ? 1 : -1);
   });
   const hasSleep = _dtCols.some(c => c.sleep);
-  const counts = { all: _dtRows.length, ride: _dtRows.filter(r => r.a).length, both: _dtRows.filter(both).length, rest: _dtRows.filter(r => !r.a).length };
+  const counts = { all: _dtRows.length, ride: _dtRows.filter(r => r.a).length, both: _dtRows.filter(both).length, rest: _dtRows.filter(r => !r.a).length, nap: _dtRows.filter(napped).length };
   document.getElementById('dataTableBar').innerHTML =
-    ['all', 'ride'].concat(hasSleep ? ['both', 'rest'] : []).map(k => '<button type="button" class="act-reg-tag' + (k === _dtFilter ? ' on' : '') + '" data-f="' + k + '">'
-      + T({ all: 'All', ride: 'Activities', both: 'Activity + sleep', rest: 'Rest days' }[k]) + ' <b>' + counts[k] + '</b></button>').join('')
+    ['all', 'ride'].concat(hasSleep ? ['both', 'rest', 'nap'] : []).map(k => '<button type="button" class="act-reg-tag' + (k === _dtFilter ? ' on' : '') + '" data-f="' + k + '">'
+      + T({ all: 'All', ride: 'Activities', both: 'Activity + sleep', rest: 'Rest days', nap: '☀️ With nap' }[k]) + ' <b>' + counts[k] + '</b></button>').join('')
     + (hasSleep ? '' : '<span class="dt-note">' + T('Sleep columns appear for the dashboard owner.') + '</span>')
     + '<span class="dt-legend"><i class="dt-best">' + T('BEST') + '</i><i class="dt-worst">' + T('WORST') + '</i><i class="dt-max">' + T('MAX') + '</i><i class="dt-min">' + T('MIN') + '</i></span>';
   document.querySelectorAll('#dataTableBar [data-f]').forEach(b => b.onclick = () => { _dtFilter = b.dataset.f; _dtRender(); });
