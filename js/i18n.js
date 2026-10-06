@@ -637,6 +637,7 @@ const TR_ID = {
   // wind analysis
   'Wind Analysis': 'Analisis Angin',
   'headwind / tailwind / crosswind': 'angin depan / angin belakang / angin samping',
+  'Wind on an activity (activity detail)': 'Angin pada aktivitas (detail aktivitas)',
   'Headwind': 'Angin depan', 'Tailwind': 'Angin belakang', 'Crosswind': 'Angin samping',
   ' net tailwind — the wind helped your speed.': ' angin belakang neto — angin membantu kecepatan Anda.',
   ' net headwind — you were stronger than the raw speed suggests.': ' angin depan neto — Anda lebih kuat dari yang ditunjukkan kecepatan mentah.',

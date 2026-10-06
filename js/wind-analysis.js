@@ -90,7 +90,7 @@ function _windMarkup(a, w) {
     { lbl: tr('Headwind'), v: w.headPct, c: '#ef4444' },
     { lbl: tr('Tailwind'), v: w.tailPct, c: '#22c55e' },
     { lbl: tr('Crosswind'), v: w.crossPct, c: '#eab308' },
-  ].map(r => `<div class="tl-row"><span class="tl-lbl">${r.lbl}</span><span class="tl-track"><span style="width:${r.v}%;background:${r.c}"></span></span><span class="tl-pct" style="width:40px">${r.v}%</span></div>`).join('');
+  ].map(r => `<div class="tl-row"><span class="tl-lbl">${r.lbl}</span><span class="tl-track"><span style="width:${r.v}%;background:${r.c}"></span></span><span class="tl-pct" style="min-width:40px;white-space:nowrap">${r.v}%${a.distance ? ' · ' + fmtD(a.distance * r.v / 100) : ''}</span></div>`).join('');
   const net = w.netComponentKmh;
   const netTxt = net >= 0.3
     ? `<span style="color:#22c55e">≈ +${net.toFixed(1)} ${speedUnit()}</span>${tr(' net tailwind — the wind helped your speed.')}`
@@ -132,4 +132,19 @@ async function analyzeWind() {
   const w = _windAnalyze(pts, wx.speed, wx.dir);
   body.innerHTML = w ? _windMarkup(a, w) : '<div class="tr-basis-note">' + tr('Not enough GPS detail to analyse wind.') + '</div>';
   _windRunning = false;
+}
+
+/* ── Activity modal block: this ride's wind split. Route from the summary
+   polyline (no Strava call), wind from the cached Open-Meteo lookup. ── */
+async function renderActivityWind(a) {
+  const host = document.getElementById('actWind');
+  if (!host || !a.map || !a.map.summary_polyline) return;
+  const head = '<div class="actd-hrd-h">🌬️ ' + tr('Wind Analysis') + ' <span class="actd-hrd-sub">' + tr('headwind / tailwind / crosswind') + '</span></div>';
+  host.innerHTML = '<div class="actd-hrd">' + head + '<span class="ai-dots"><span></span><span></span><span></span></span></div>';
+  const pts = decodePolyline(a.map.summary_polyline);
+  const wx = await _windWeather(a);
+  if (document.getElementById('actWind') !== host) return;   // modal moved on to another activity
+  const w = wx ? _windAnalyze(pts, wx.speed, wx.dir) : null;
+  host.innerHTML = '<div class="actd-hrd">' + head + (w ? _windMarkup(a, w)
+    : '<div class="tr-basis-note">' + tr(wx ? 'Not enough GPS detail to analyse wind.' : "Couldn't load historical wind for this ride's time and place.") + '</div>') + '</div>';
 }

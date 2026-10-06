@@ -14,6 +14,7 @@ const VIEW_CARDS = [
   ['huawei',   'Only on Huawei (Activities)',        '#huaweiCard'],
   ['bulk',     'Bulk caption tools (Activities)',    '.bulk-tools'],
   ['actSleep', 'Sleep around an activity (activity detail)', '#actSleep'],
+  ['actWind',  'Wind on an activity (activity detail)', '#actWind'],
 ];
 // pages that can't be turned off: you'd lose the way back here
 const VIEW_LOCKED = ['statRow', 'settingsSection'];
