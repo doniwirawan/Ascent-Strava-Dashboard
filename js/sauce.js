@@ -467,12 +467,17 @@ async function renderActivitySauce(a) {
 }
 
 async function _spDrawActivity(a, r, host, head) {
-  const kg = athWeightKg();
-  const peaks = [5, 60, 300, 1200].filter(w => r.best[w]).map(w =>
-    `<div class="actd-stat"><div class="actd-stat-val">${r.best[w]} W</div><div class="actd-stat-lbl">${SP_LABELS[w]} · ${(r.best[w] / kg).toFixed(1)} W/kg</div></div>`).join('');
+  const kg = athWeightKg(), female = _spFemale();
+  const durs = [5, 60, 300, 1200].filter(w => r.best[w]);
+  const ranks = Object.fromEntries(durs.map(w => [w, spRank(w, r.best[w], kg, female)]));
+  const peaks = durs.map(w =>
+    `<div class="actd-stat"><div class="actd-stat-val">${r.best[w]} W</div><div class="actd-stat-lbl">${SP_LABELS[w]} · ${(r.best[w] / kg).toFixed(1)} W/kg${ranks[w] ? ' · ' + tr(ranks[w].label) : ''}</div></div>`).join('');
+  // Ride's category = its strongest duration on the Coggan profile.
+  const top = durs.map(w => ranks[w] && { w, ...ranks[w] }).filter(Boolean).sort((x, y) => y.level - x.level)[0];
   const food = spFoods(a.calories || r.kj);
   host.innerHTML = `<div class="actd-hrd">${head}
     <div class="tr-basis-note">${_spRideLine(r)}</div>
+    ${top ? `<div class="tr-basis-note" title="${tr('Coggan power profile, from estimated watts')}">🏅 ${trf('Power category: {0} (best at {1})', `<b>${tr(top.label)}</b>`, SP_LABELS[top.w])}</div>` : ''}
     <div class="actd-grid">${peaks}</div>
     ${food ? `<div class="tr-basis-note">🍽 ${trf('Burned ≈ {0}', food)}</div>` : ''}
     <div id="spWbal"></div>

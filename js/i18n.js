@@ -1200,6 +1200,7 @@ const TR_ID = {
   'W′ balance — lowest {0} kJ of {1} ({2}% left at the hardest point)': 'Saldo W′ — terendah {0} kJ dari {1} (sisa {2}% di titik terberat)',
   'road': 'road', 'gravel': 'gravel', 'MTB': 'MTB', 'cross': 'cross', 'TT': 'TT',
   'World Class': 'Kelas dunia', 'Pro': 'Pro', 'Recreational': 'Rekreasi',
+  'Power category: {0} (best at {1})': 'Kategori power: {0} (terbaik di {1})',
   '{0} from estimated power': '{0} dari power estimasi',
   'PR pace ≈ {0} W': 'tempo PR ≈ {0} W',
 };
