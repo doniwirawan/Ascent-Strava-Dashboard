@@ -35,6 +35,7 @@ function _dtColumns(withSleep) {
   ];
   if (withSleep) cols.push(
     { key: 's_asleep', better: 1, lbl: 'Sleep', val: r => r.s && r.s.asleep ? r.s.asleep : null, fmt: r => r.s && r.s.asleep ? _dtHM(r.s.asleep) : '', sleep: true, first: true },
+    { key: 's_score', better: 1, lbl: 'Sleep score', val: r => r.s && typeof _slpNightScore === 'function' ? _slpNightScore(r.s) : null, sleep: true },
     { key: 's_nap', better: 0, lbl: 'Nap', val: r => r.s && r.s.nap ? r.s.nap : null, fmt: r => r.s && r.s.nap ? _dtHM(r.s.nap) : '', sleep: true },
     { key: 's_napt', lbl: 'Nap time', val: r => r.s && r.s.napt ? r.s.napt : null, fmt: r => r.s && r.s.napt ? r.s.napt : '', sleep: true, txt: true },
     { key: 's_total', better: 1, lbl: 'Sleep + nap', val: r => r.s && (r.s.asleep || r.s.nap) ? (r.s.asleep || 0) + (r.s.nap || 0) : null, fmt: r => r.s && (r.s.asleep || r.s.nap) ? _dtHM((r.s.asleep || 0) + (r.s.nap || 0)) : '', sleep: true },
