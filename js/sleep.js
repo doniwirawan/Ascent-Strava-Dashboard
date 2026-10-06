@@ -2689,19 +2689,15 @@ async function renderReadiness() {
 
   const last = real[real.length - 1];
   const sleepScore = _slpNightScore(last);
-  const recent = real.slice(-30);
-  const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
-  const hrvBase = mean(recent.map(n => n.hrv).filter(x => x != null));
-  const rhrBase = mean(recent.map(n => n.rhr).filter(x => x != null));
-  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  // Body signals come from the per-night recovery score (HRV + RHR vs your
+  // previous 30 days, plus a little sleep); sleep alone only when it's missing.
+  const recMap = _slpRecoveryMap(nights), rec = recMap.get(last.date) || null;
+  const hrvBase = rec && rec.hrvBase;
 
-  const comps = [['sleep', sleepScore, 0.40]];
+  const comps = [rec ? ['rec', rec.score, 0.75] : ['sleep', sleepScore, 0.75]];
   let trainRec = null;
   try { const d = (typeof _trBuildSeries === 'function') ? _trBuildSeries() : null; const r = d ? _trRecovery(d) : null; if (r) trainRec = r.recovery; } catch {}
   if (trainRec != null) comps.push(['load', trainRec, 0.25]);
-  let hrvComp = null, rhrComp = null;
-  if (last.hrv != null && hrvBase) { hrvComp = Math.round(clamp(50 + (last.hrv - hrvBase) * 2.5, 0, 100)); comps.push(['hrv', hrvComp, 0.20]); }
-  if (last.rhr != null && rhrBase) { rhrComp = Math.round(clamp(50 + (rhrBase - last.rhr) * 8, 0, 100)); comps.push(['rhr', rhrComp, 0.15]); }
   const wsum = comps.reduce((s, c) => s + c[2], 0);
   const readiness = Math.round(comps.reduce((s, c) => s + c[1] * c[2], 0) / wsum);
 
@@ -2713,6 +2709,7 @@ async function renderReadiness() {
   const hrvTrend = (last.hrv != null && hrvBase) ? (last.hrv >= hrvBase ? '↑' : '↓') : '';
   const chips = [
     chip('🌙', T('Sleep'), sleepScore, _slpHM(last.asleep)),
+    rec ? chip('🔋', T('Recovery'), rec.score, '') : '',
     (last.hrv != null) ? chip('📈', 'HRV', last.hrv + hrvTrend, 'ms') : '',
     (last.rhr != null) ? chip('❤️', T('Resting HR'), last.rhr, 'bpm') : '',
     (trainRec != null) ? chip('🚴', T('Freshness'), trainRec, '') : '',
@@ -2722,14 +2719,8 @@ async function renderReadiness() {
     ? _trRingSVG(readiness / 100, band.c, 116, 12)
     : '<div class="rdy-num-fallback">' + readiness + '</div>';
 
-  // 14-night readiness sparkline (recovery signals per night: sleep + HRV + RHR).
-  const sparkVals = real.slice(-14).map(n => {
-    const p = [[_slpNightScore(n), 0.55]];
-    if (n.hrv != null && hrvBase) p.push([clamp(50 + (n.hrv - hrvBase) * 2.5, 0, 100), 0.25]);
-    if (n.rhr != null && rhrBase) p.push([clamp(50 + (rhrBase - n.rhr) * 8, 0, 100), 0.20]);
-    const w = p.reduce((s, x) => s + x[1], 0);
-    return Math.round(p.reduce((s, x) => s + x[0] * x[1], 0) / w);
-  });
+  // 14-night sparkline: each night's recovery score (sleep score if it has none).
+  const sparkVals = real.slice(-14).map(n => { const r = recMap.get(n.date); return r ? r.score : _slpNightScore(n); });
   const spark = _rdySpark(sparkVals, band.c);
 
   // Smarter suggestion: fold in how long since your last hard effort.
@@ -2754,6 +2745,7 @@ async function renderReadiness() {
     else if (readiness >= 34) note = T('Part-recovered — an easy spin or skills day beats intervals today.');
     else note = T('Low signals — a rest or very easy day will pay off more than pushing through.');
   }
+  if (rec && rec.unwell) note = '⚠️ ' + trf('Possibly unwell: long sleep, but HRV {0} ms (usually {1}) and resting HR {2} bpm (usually {3}).', last.hrv, rec.hrvBase, last.rhr, rec.rhrBase);
 
   // Only reveal it if the Overview is still the section on screen — this render
   // is async, so the user may have navigated elsewhere while sleep data loaded.
