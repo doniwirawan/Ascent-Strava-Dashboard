@@ -30,11 +30,11 @@ const _IMP_STAGE = {
 /* Column order must match the bundled snapshot / api/sleep.js consumer. */
 const _IMP_COLS = ['date','asleep','deep','light','rem','wake','nap','wakeups','bed','up','tib','eff',
   'rhr','hrv','stress','cal','steps','dist','active','floors','smin','smax','scnt',
-  'hrmax','hrmin','spo2','spo2min','hrvmin','hrvmax','mhappy','mpeace','mbad','mall'];
+  'hrmax','hrmin','spo2','spo2min','hrvmin','hrvmax','mhappy','mpeace','mbad','mall','napt'];
 
 const _IMP_NOTE = 'One row per night. A night is labelled with the date you WOKE UP. '
   + 'Minutes are integers; bed/up are local hours (bed is negative before midnight). '
-  + 'Naps are counted separately and excluded from asleep.';
+  + 'Naps are counted separately and excluded from asleep; napt lists their local clock times.';
 
 // tr() with a safe fallback (sleep-import.js loads before i18n.js; tr resolves at call time).
 const _impT = s => (typeof tr === 'function') ? tr(s) : s;
@@ -90,6 +90,19 @@ function _impWakeRuns(iv) {
   return c;
 }
 
+/* nap cells → "12:15–13:24, 13:46–14:42" (local clock; gaps ≤ 20 min merge) */
+function _impNapTimes(segs, off) {
+  if (!segs.length) return null;
+  segs.sort((a, b) => a[0] - b[0]);
+  const runs = [];
+  for (const [s, e] of segs) {
+    const l = runs[runs.length - 1];
+    if (l && s - l[1] <= 20 * 60000) l[1] = Math.max(l[1], e); else runs.push([s, e]);
+  }
+  const hm = ms => new Date(ms + off).toISOString().slice(11, 16);
+  return runs.map(([s, e]) => hm(s) + '–' + hm(e)).join(', ');
+}
+
 /* ── parse one detail JSON's text into deduped type-9 segments ── */
 function _impCollectSleep(text, segMap) {
   if (text.indexOf('PROFESSIONAL_SLEEP') === -1) return;   // skip non-sleep files fast
@@ -116,7 +129,7 @@ function _impBuildNights(segMap) {
   const nights = new Map();
   const get = d => {
     let n = nights.get(d);
-    if (!n) { n = { deep: 0, light: 0, rem: 0, wake: 0, nap: 0, wsegs: [], first: null, last: null, off: 8 * 3600000 }; nights.set(d, n); }
+    if (!n) { n = { deep: 0, light: 0, rem: 0, wake: 0, nap: 0, wsegs: [], nsegs: [], first: null, last: null, off: 8 * 3600000 }; nights.set(d, n); }
     return n;
   };
   segMap.forEach(({ st, en, stg, off }) => {
@@ -125,6 +138,7 @@ function _impBuildNights(segMap) {
     n.off = off;
     n[stg] += (en - st) / 60000;
     if (stg === 'wake') n.wsegs.push([st, en]);
+    if (stg === 'nap') n.nsegs.push([st, en]);
     if (stg !== 'nap') {
       if (n.first === null || st < n.first) n.first = st;
       if (n.last === null || en > n.last)   n.last = en;
@@ -138,6 +152,7 @@ function _impBuildNights(segMap) {
       wake: Math.round(n.wake), nap: Math.round(n.nap),
       wakeups: asleep > 0 ? _impWakeRuns(n.wsegs) : null,
       bed: null, up: null, tib: null, eff: null,
+      napt: _impNapTimes(n.nsegs, n.off),
     };
     if (n.first !== null && asleep > 0) {
       const tib = Math.round((n.last - n.first) / 60000);
@@ -208,7 +223,7 @@ function _impAssemble(nights, daily) {
     const o = {}; _IMP_COLS.forEach(c => { o[c] = null; });
     o.date = date;
     Object.keys(STAGE0).forEach(k => { o[k] = s[k] != null ? s[k] : 0; });
-    ['wakeups', 'bed', 'up', 'tib', 'eff'].forEach(k => { if (s[k] != null) o[k] = s[k]; });
+    ['wakeups', 'bed', 'up', 'tib', 'eff', 'napt'].forEach(k => { if (s[k] != null) o[k] = s[k]; });
     Object.keys(dd).forEach(k => { if (k in o && dd[k] != null) o[k] = dd[k]; });
     return _IMP_COLS.map(c => o[c]);
   });
