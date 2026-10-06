@@ -673,6 +673,8 @@ const TR_ID = {
   /* ── Sleep & Recovery section, and the remaining Training strings ── */
   'Loading sleep data…': 'Memuat data tidur…',
   // sleep before/after an activity (technical terms like Deep/REM/Eff stay English)
+  'Nap that day: {0} — {1} of sleep in total with the night': 'Tidur siang hari itu: {0} — total {1} tidur bersama tidur malam',
+  'Nap that day: {0}': 'Tidur siang hari itu: {0}',
   'Sleep around this session': 'Tidur di sekitar sesi ini', 'Night before': 'Malam sebelumnya',
   'Night after': 'Malam setelahnya', 'after': 'setelah', 'no sleep recorded': 'tidak ada data tidur',
   'Loading sleep…': 'Memuat tidur…', 'No sleep data for this date': 'Belum ada data tidur untuk tanggal ini',

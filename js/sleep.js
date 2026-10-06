@@ -2608,6 +2608,12 @@ async function renderActivitySleep(a) {
   const cards = (bOk || aOk)
     ? '<div class="slp-ba">' + _slpBaCard(before, 'Night before') + delta + _slpBaCard(after, 'Night after') + '</div>'
     : '';
+  // Daytime naps sit in the day's row (excluded from asleep) — show them so a
+  // short night with a long nap doesn't read as under-sleeping.
+  const nap = before && before.nap > 0 ? before.nap : 0;
+  const napHTML = !nap ? '' : '<div class="slp-ba-nap">☀️ ' + (bOk
+    ? trf('Nap that day: {0} — {1} of sleep in total with the night', _slpHM(nap).trim(), _slpHM(before.asleep + nap).trim())
+    : trf('Nap that day: {0}', _slpHM(nap).trim())) + '</div>';
 
   // Baselines from all real nights, so the insight can say "vs your usual".
   const realN = nights.filter(n => n.asleep >= 60);
@@ -2621,7 +2627,7 @@ async function renderActivitySleep(a) {
 
   host.innerHTML =
     '<div class="slp-ba-h">🌙 ' + T('Sleep around this session') + '</div>'
-    + cards + insight + dayHTML;
+    + cards + napHTML + insight + dayHTML;
 }
 
 /* ── DAILY READINESS ─────────────────────────────────────────────────────────
