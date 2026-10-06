@@ -2539,11 +2539,21 @@ function _slpSessionInsight(before, after, base, a) {
   return '<div class="slp-ba-insight">💡 ' + s.charAt(0).toUpperCase() + s.slice(1) + '.</div>';
 }
 
+// Naps sit in the same row (that calendar day) but are kept out of asleep —
+// spell out night vs nap vs total so the big number isn't misread.
+function _slpBaNap(n, night) {
+  if (!n || !(n.nap > 0)) return '';
+  const nap = _slpHM(n.nap).trim().replace(/^0[hj] /, '') + (n.napt ? ' (' + n.napt + ')' : '');
+  return '<div class="slp-ba-nap">' + (night
+    ? trf('🌙 Night {0} + ☀️ nap {1} = {2} total', _slpHM(night).trim(), nap, _slpHM(night + n.nap).trim())
+    : trf('☀️ Nap only: {0}', nap)) + '</div>';
+}
+
 function _slpBaCard(n, lbl) {
   const T = (typeof tr === 'function') ? tr : (x => x);
   if (!n || n.asleep < 60) {
     return '<div class="slp-ba-card empty"><div class="slp-ba-lbl-row"><span class="slp-ba-lbl">' + T(lbl) + '</span></div>'
-      + '<div class="slp-ba-val">—</div><div class="slp-ba-sub">' + T('no sleep recorded') + '</div></div>';
+      + '<div class="slp-ba-val">—</div><div class="slp-ba-sub">' + T('no night sleep recorded') + '</div>' + _slpBaNap(n, 0) + '</div>';
   }
   const st = [['deep', n.deep], ['rem', n.rem], ['light', n.light], ['wake', n.wake]];
   const tot = st.reduce((s, x) => s + (x[1] || 0), 0) || 1;
@@ -2561,9 +2571,9 @@ function _slpBaCard(n, lbl) {
     ? '<span class="slp-ba-score" style="color:' + _slpScoreC(sc) + ';background:' + _slpScoreC(sc) + '22">' + T('Score') + ' ' + sc + '</span>'
     : '';
   return '<div class="slp-ba-card"><div class="slp-ba-lbl-row"><span class="slp-ba-lbl">' + T(lbl) + '</span>' + scBadge + '</div>'
-    + '<div class="slp-ba-val">' + _slpHM(n.asleep) + '</div>'
+    + '<div class="slp-ba-val">' + _slpHM(n.asleep) + '<span class="slp-ba-only">' + T('night only') + '</span></div>'
     + '<div class="slp-ba-bar">' + bar + '</div>'
-    + '<div class="slp-ba-sub">' + sub + '</div></div>';
+    + '<div class="slp-ba-sub">' + sub + '</div>' + _slpBaNap(n, n.asleep) + '</div>';
 }
 
 async function renderActivitySleep(a) {
@@ -2605,16 +2615,9 @@ async function renderActivitySleep(a) {
       + '</span><span class="slp-ba-dl">' + T('after') + '</span></div>';
   }
 
-  const cards = (bOk || aOk)
+  const cards = (bOk || aOk || (before && before.nap > 0) || (after && after.nap > 0))
     ? '<div class="slp-ba">' + _slpBaCard(before, 'Night before') + delta + _slpBaCard(after, 'Night after') + '</div>'
     : '';
-  // Daytime naps sit in the day's row (excluded from asleep) — show them so a
-  // short night with a long nap doesn't read as under-sleeping.
-  const nap = before && before.nap > 0 ? before.nap : 0;
-  const napLen = !nap ? '' : _slpHM(nap).trim() + (before.napt ? ' (' + before.napt + ')' : '');
-  const napHTML = !nap ? '' : '<div class="slp-ba-nap">☀️ ' + (bOk
-    ? trf('Nap that day: {0} — {1} of sleep in total with the night', napLen, _slpHM(before.asleep + nap).trim())
-    : trf('Nap that day: {0}', napLen)) + '</div>';
 
   // Baselines from all real nights, so the insight can say "vs your usual".
   const realN = nights.filter(n => n.asleep >= 60);
@@ -2628,7 +2631,7 @@ async function renderActivitySleep(a) {
 
   host.innerHTML =
     '<div class="slp-ba-h">🌙 ' + T('Sleep around this session') + '</div>'
-    + cards + napHTML + insight + dayHTML;
+    + cards + insight + dayHTML;
 }
 
 /* ── DAILY READINESS ─────────────────────────────────────────────────────────
