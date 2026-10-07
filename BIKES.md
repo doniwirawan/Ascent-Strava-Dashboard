@@ -4,7 +4,7 @@ The owner's bikes, as set up in Strava (Settings → My Gear → Components).
 The dashboard reads bikes, weights and distance live from the Strava API; this
 file is the human-readable reference. No prices here — this repo is public.
 
-Last updated: 2026-09-24
+Last updated: 2026-10-07
 
 ## Mosso 735 GVL — gravel (Strava bike 17599912)
 
@@ -48,6 +48,7 @@ Strava components: 13.
 | Handlebar | Mosso alloy dropbar |
 | Pedals | Racework Duo (SPD / flat dual-side) |
 
-## Polygon Xtrada 6 (2018) — mountain bike
+## Polygon Xtrada 6 (2026) — mountain bike (Strava bike 18846049)
 
-Weight: **15.34 kg**. Not set up as a bike in Strava.
+Weight: **15.34 kg**. 29" hardtail, size L1, bought June 2026 at Rodalink Denpasar.
+No components set up in Strava yet.
