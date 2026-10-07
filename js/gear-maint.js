@@ -169,7 +169,7 @@ function gmSetThr(bikeId, comp, val, bikes) {
    and can be edited here (saved on this device). Shared tools/workshop gear is
    split across the bikes in proportion to the distance each has done. */
 const GC_KEY = 'gear_cost_v1';
-let _gcTried = false;
+const _gcTried = new Set(); // bike ids already priced from the server this page load
 function gcLoad() { try { return JSON.parse(localStorage.getItem(GC_KEY)) || { bikes: {}, tools: null }; } catch { return { bikes: {}, tools: null }; } }
 function gcSave(s) { try { localStorage.setItem(GC_KEY, JSON.stringify(s)); } catch {} }
 function gcIsOwner() { try { return localStorage.getItem('strava_athlete_id') === OWNER_ATHLETE_ID && !!CONFIG.accessToken; } catch { return false; } }
@@ -177,11 +177,11 @@ const gcRp = v => 'Rp' + Math.round(v).toLocaleString('id-ID');
 
 /* First visit on a device: fill in the owner's prices from the server. */
 async function gcOwnerDefaults(bikes) {
-  if (_gcTried || !gcIsOwner()) return false;
-  _gcTried = true;
+  if (!gcIsOwner()) return false;
   const s = gcLoad();
-  const missing = bikes.some(b => s.bikes[b.id] == null) || s.tools == null;
-  if (!missing) return false;
+  const need = bikes.filter(b => s.bikes[b.id] == null && !_gcTried.has(b.id));
+  if (!need.length && (s.tools != null || _gcTried.has('tools'))) return false;
+  need.forEach(b => _gcTried.add(b.id)); _gcTried.add('tools');
   try {
     const r = await fetch('/api/owner-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: CONFIG.accessToken }) });
     const d = r.ok ? await r.json() : null;

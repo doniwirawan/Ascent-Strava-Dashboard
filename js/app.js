@@ -52,6 +52,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   const aid = localStorage.getItem('strava_athlete_id');
   if (aid) localStorage.removeItem('strava_acts_' + aid);
   localStorage.removeItem('strava_athlete_id');
+  localStorage.removeItem('strava_bikes_v1');
   localStorage.removeItem('strava_access_token');
   localStorage.removeItem('strava_refresh_token');
   localStorage.removeItem('strava_expires_at');

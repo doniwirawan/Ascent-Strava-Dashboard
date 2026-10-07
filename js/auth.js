@@ -87,6 +87,7 @@ async function loadData(forceRefresh = false) {
           // list was drawn before the athlete (and its bikes) loaded — redraw for bike labels
           _renderActList((document.getElementById('actSearch') || {}).value || '');
           await loadHrZones();
+          _gearCache = null; // replace the list drawn before the athlete arrived
           renderGear();
         } catch {}
         return;
@@ -142,6 +143,7 @@ async function loadData(forceRefresh = false) {
 function renderAthlete(a) {
   currentAthlete = a;
   if (a.id) localStorage.setItem('strava_athlete_id', a.id);
+  if (a.bikes) { try { localStorage.setItem('strava_bikes_v1', JSON.stringify(a.bikes)); } catch {} }
   document.getElementById('av').src    = a.profile_medium||a.profile||'';
   document.getElementById('aname').textContent = a.firstname+' '+a.lastname;
   document.getElementById('badge').style.display = 'flex';

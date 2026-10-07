@@ -246,7 +246,9 @@ function _renderBikeList(el, bikes) {
 async function renderGear(){
   const el=document.getElementById('gearGrid');
   if(_gearCache){ _renderBikeList(el,_gearCache); renderGearTool(_gearCache); renderGearMaint(_gearCache); return; }
+  // the athlete's bike list (kept from the last visit) includes bikes with no rides yet
   let bikes=(currentAthlete&&currentAthlete.bikes)||[];
+  if(!bikes.length&&localStorage.getItem('strava_athlete_id')){ try{ bikes=JSON.parse(localStorage.getItem('strava_bikes_v1'))||[]; }catch{} }
   if(bikes.length){ _gearCache=bikes; _renderBikeList(el,bikes); renderGearTool(bikes); renderGearMaint(bikes); return; }
 
   // fallback: fetch each unique gear_id from activities

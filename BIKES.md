@@ -50,5 +50,16 @@ Strava components: 13.
 
 ## Polygon Xtrada 6 (2026) — mountain bike (Strava bike 18846049)
 
-Weight: **15.34 kg**. 29" hardtail, size L1, bought June 2026 at Rodalink Denpasar.
-No components set up in Strava yet.
+Weight: **15.34 kg**. 29" hardtail, size L1, bought June 2026 at Rodalink Denpasar. Stock build (Rodalink spec for item 503536).
+Strava components: 12.
+
+| Part | Component |
+|---|---|
+| Frame | Polygon ALX XC 29" alloy |
+| Fork | X-Fusion Migo 32 LO, 120mm, Boost |
+| Groupset | Shimano Deore 1x12 (RD-M6100 rear derailleur, SL-M6100 shift lever) |
+| Cassette | Shimano Deore 12-speed 10-51T |
+| Brakes | Shimano BR-MT200 hydraulic |
+| Wheels | Stock 29" alloy |
+| Tyres | WTB Trail Boss 29x2.25" |
+| Seatpost | X-Fusion Manic LC 150mm dropper |
