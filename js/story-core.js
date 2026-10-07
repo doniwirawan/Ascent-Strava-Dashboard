@@ -184,5 +184,13 @@ const LAYOUTS = [
   { id: 'sky', name: 'Sky' },
   { id: 'outline', name: 'Outline' },
   { id: 'street', name: 'Street' },
+  { id: 'photo', name: 'Photo' },
+  { id: 'polaroid', name: 'Polaroid' },
+  { id: 'cover', name: 'Cover' },
+  { id: 'numbers', name: 'Numbers' },
+  { id: 'climb', name: 'Climb' },
+  { id: 'ridge', name: 'Ridge' },
+  { id: 'receipt', name: 'Receipt' },
+  { id: 'bib', name: 'Bib' },
 
 ];
