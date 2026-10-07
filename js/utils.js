@@ -165,7 +165,12 @@ document.addEventListener('wheel', e => {
   if (row && row.scrollWidth > row.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { row.scrollLeft += e.deltaY; e.preventDefault(); }
 }, { passive: false });
 
+// Google Analytics event (gtag is loaded in index.html; a no-op if it's blocked).
+// Only names and section/template ids are sent, never activity data.
+function track(name, params) { try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch {} }
+
 function navScrollTo(id, btn) {
+  track('section_view', { section: id });
   _ALL_SECTIONS.forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
   const el=document.getElementById(id);
   if(el) el.style.display='';

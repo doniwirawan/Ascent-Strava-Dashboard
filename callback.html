@@ -57,6 +57,7 @@
 
         // Save tokens to localStorage
         localStorage.setItem('strava_access_token',  data.access_token);
+        localStorage.setItem('ga_login', '1'); // reported to Google Analytics by the app page
         localStorage.setItem('strava_refresh_token', data.refresh_token);
         localStorage.setItem('strava_expires_at',    data.expires_at);
 

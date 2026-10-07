@@ -1,6 +1,6 @@
 /* ── STORY MODAL EVENTS ── */
 function _closeStory(){ document.getElementById('storyModal').classList.remove('open'); localStorage.removeItem('story_open'); }
-document.getElementById('shareBtn').addEventListener('click', openStoryModal);
+document.getElementById('shareBtn').addEventListener('click', () => { track('story_open'); openStoryModal(); });
 document.getElementById('modalClose').addEventListener('click',  _closeStory);
 document.getElementById('modalClose2').addEventListener('click', _closeStory);
 document.getElementById('storyModal').addEventListener('click', e=>{ if(e.target===e.currentTarget) _closeStory(); });
@@ -12,6 +12,7 @@ document.getElementById('downloadBtn').addEventListener('click', ()=>{
   if (editable && wasEditing) { customEditMode = false; drawStoryCanvas(); }
   const a = document.createElement('a');
   a.download = 'strava-story.png';
+  track('story_download', { template: activeLayout });
   a.href = canvas.toDataURL('image/png');
   a.click();
   if (editable && wasEditing) { customEditMode = true; drawStoryCanvas(); }
@@ -41,6 +42,7 @@ document.getElementById('downloadBtn').addEventListener('click', ()=>{
       const file = new File([blob], 'strava-story.png', { type: 'image/png' });
       try {
         await navigator.share({ files: [file], title: 'My activity', text: 'Made with Ascent' });
+        track('story_share', { template: activeLayout });
       } catch { /* user cancelled or share failed — no-op */ }
     }, 'image/png');
   });
@@ -149,3 +151,6 @@ if('serviceWorker' in navigator){
     .then(reg => { reg.update(); setInterval(() => reg.update(), 60 * 60 * 1000); })
     .catch(() => {});
 }
+
+// a Strava connect that just completed on callback.html
+try { if (localStorage.getItem('ga_login')) { localStorage.removeItem('ga_login'); track('login', { method: 'Strava' }); } } catch {}

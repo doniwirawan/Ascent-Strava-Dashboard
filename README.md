@@ -10,7 +10,7 @@
 
 A personal Strava activity dashboard with an Instagram/TikTok-style story card generator. Built as a static single-page app — no framework, no backend.
 
-**Live demo:** https://ascent-analytics.vercel.app/
+**Live demo:** https://ascent-analytics.doniwirawan.xyz/
 
 ![Overview](images/screenshots/overview.png)
 
@@ -288,6 +288,6 @@ You may **not**:
 - sell it, or use it (in whole or in part) in any commercial or paid product or service;
 - run it as a hosted/production service offered to others;
 - use it to build or operate anything that competes with the Ascent dashboard
-  (https://ascent-analytics.vercel.app/).
+  (https://ascent-analytics.doniwirawan.xyz/).
 
 See [LICENSE](LICENSE) for the full terms. Not affiliated with Strava, Inc.

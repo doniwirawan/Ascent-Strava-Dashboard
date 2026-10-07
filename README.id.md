@@ -10,7 +10,7 @@
 
 Dashboard aktivitas Strava pribadi dengan pembuat kartu cerita (story card) bergaya Instagram/TikTok. Dibangun sebagai aplikasi satu halaman statis — tanpa framework, tanpa backend.
 
-**Demo langsung:** https://ascent-analytics.vercel.app/
+**Demo langsung:** https://ascent-analytics.doniwirawan.xyz/
 
 ![Ringkasan](images/screenshots/overview.png)
 
@@ -246,6 +246,6 @@ Anda **tidak boleh**:
 - menjualnya, atau menggunakannya (seluruhnya atau sebagian) dalam produk atau layanan komersial/berbayar apa pun;
 - menjalankannya sebagai layanan ter-hosting/produksi yang ditawarkan kepada orang lain;
 - menggunakannya untuk membangun atau mengoperasikan apa pun yang bersaing dengan dashboard Ascent
-  (https://ascent-analytics.vercel.app/).
+  (https://ascent-analytics.doniwirawan.xyz/).
 
 Lihat [LICENSE](LICENSE) untuk ketentuan lengkap. Tidak berafiliasi dengan Strava, Inc.
