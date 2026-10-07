@@ -31,14 +31,14 @@ const CP_BIKE_KG_DEFAULT = 10;
 const CP_CRR = 0.005, CP_CDA = 0.40, CP_RHO = 1.15, CP_ETA = 0.97, CP_G = 9.81;
 
 // Pure: power (W) to hold speed v (m/s) while rising at vz (m/s), total mass m.
-function cpPower(m, v, vz) {
-  return (m * CP_G * vz + CP_CRR * m * CP_G * v + 0.5 * CP_RHO * CP_CDA * v * v * v) / CP_ETA;
+function cpPower(m, v, vz, crr = CP_CRR, cda = CP_CDA) {
+  return (m * CP_G * vz + crr * m * CP_G * v + 0.5 * CP_RHO * cda * v * v * v) / CP_ETA;
 }
 
 // Pure: streams → non-overlapping steady climbing windows [{w, hr, grade, vam, kmh}].
 // A window must be ≥3% on average, moving ≥95% of the time, carry heart rate,
 // and contain no single-sample altitude jump (altimeter glitch).
-function cpPointsFromStreams(s, massKg) {
+function cpPointsFromStreams(s, massKg, kit) {
   const T = s.time, H = s.altitude, D = s.distance, M = s.moving, HR = s.heartrate;
   if (!T || !H || !D || !HR || T.length < 10) return [];
   const n = T.length;
@@ -67,7 +67,7 @@ function cpPointsFromStreams(s, massKg) {
     if (v < 1.2 || v > 12 || vz * 3600 > 1600) continue;    // > 1600 m/h VAM is pro-level
     pts.push({
       v: +v.toFixed(3), vz: +vz.toFixed(4),              // kept so watts can follow a new weight
-      w: Math.round(cpPower(massKg, v, vz)),
+      w: Math.round(cpPower(massKg, v, vz, kit ? kit.crr : undefined, kit ? kit.cda : undefined)),
       hr: Math.round((hr[j + 1] - hr[i]) / (hrN[j + 1] - hrN[i])),
       grade: +(dz / dd * 100).toFixed(1), vam: Math.round(vz * 3600), kmh: +(v * 3.6).toFixed(1),
     });
@@ -109,17 +109,18 @@ async function _cpBikeKg(gearId) {
 async function _cpPointsForRide(a) {
   const ck = 'strava_climbp_' + a.id;
   const mass = Math.round((athWeightKg() + await _cpBikeKg(a.gear_id) + CP_KIT_KG) * 10) / 10;
+  const kit = (typeof bikeKit === 'function' && bikeKit(a.gear_id)) || { crr: CP_CRR, cda: CP_CDA };   // your tyres/wheels when known
   // The cache keeps each window's speed & climb rate, so a new body weight
   // just recomputes watts — no refetch.
   try {
     const c = localStorage.getItem(ck);
-    if (c) { const o = JSON.parse(c); if (o && o.v === 3) return o.pts.map(p => ({ ...p, w: Math.round(cpPower(mass, p.v, p.vz)) })); }
+    if (c) { const o = JSON.parse(c); if (o && o.v === 3) return o.pts.map(p => ({ ...p, w: Math.round(cpPower(mass, p.v, p.vz, kit.crr, kit.cda)) })); }
   } catch {}
   let raw;
   try { raw = await api(`/activities/${a.id}/streams?keys=time,altitude,distance,moving,heartrate&key_by_type=true`); }
   catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) throw e; return null; }
   const pick = k => raw && raw[k] && raw[k].data;
-  const pts = cpPointsFromStreams({ time: pick('time'), altitude: pick('altitude'), distance: pick('distance'), moving: pick('moving'), heartrate: pick('heartrate') }, mass);
+  const pts = cpPointsFromStreams({ time: pick('time'), altitude: pick('altitude'), distance: pick('distance'), moving: pick('moving'), heartrate: pick('heartrate') }, mass, kit);
   try { localStorage.setItem(ck, JSON.stringify({ v: 3, pts })); } catch {}
   return pts;
 }
@@ -152,7 +153,7 @@ function _cpPool() {
 }
 
 // What a scan depends on: which rides are in the pool, and the body weight.
-function _cpSig() { return athWeightKg() + '|' + _cpPool().map(a => a.id).join(','); }
+function _cpSig() { return athWeightKg() + '|k' + (typeof BIKE_KIT_V !== 'undefined' ? BIKE_KIT_V : 0) + '|' + _cpPool().map(a => a.id).join(','); }
 
 // Called from renderTraining: rescan (cache-first, so only new rides are
 // fetched) when the pool or weight changed. At most once per page load, so a

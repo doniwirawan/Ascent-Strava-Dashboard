@@ -294,8 +294,13 @@ function _spEligible(a) { return a && a.id && isRide(a) && !a.trainer && a.sport
 // Per-ride analysis, cache-first. Throws on 429; null when the ride has no usable streams.
 async function spRide(a) {
   const c = spRideCache(a.id);
-  if (c && c.kgRider === athWeightKg()) return c;
   const gear = await _spGear(a);
+  const bike = { ...SP_BIKES[gear.frame] };
+  const kit = typeof bikeKit === 'function' ? bikeKit(a.gear_id) : null;   // your tyres and wheels when known
+  if (kit) Object.assign(bike, kit);
+  // rides cached before tyres/wheels were tracked used the frame defaults
+  const def = SP_BIKES[gear.frame];
+  if (c && c.kgRider === athWeightKg() && (c.crr != null ? c.crr : def.crr) === bike.crr && (c.cda != null ? c.cda : def.cda) === bike.cda) return c;
   let raw;
   try { raw = await api(`/activities/${a.id}/streams?keys=${SP_KEYS}&key_by_type=true`); }
   catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) throw e; return null; }
@@ -303,9 +308,9 @@ async function spRide(a) {
   const s = { time: pick('time'), velocity: pick('velocity_smooth'), grade: pick('grade_smooth'), altitude: pick('altitude'), moving: pick('moving'), heartrate: pick('heartrate') };
   if (!s.time || !s.velocity || s.time.length < 60) return null;
   const mass = athWeightKg() + gear.kg + SP_KIT_KG;
-  const r = spAnalyze(s, mass, SP_BIKES[gear.frame], a.average_temp != null ? a.average_temp : 27);
+  const r = spAnalyze(s, mass, bike, a.average_temp != null ? a.average_temp : 27);
   if (!r) return null;
-  r.kgRider = athWeightKg();
+  r.kgRider = athWeightKg(); r.crr = bike.crr; r.cda = bike.cda;
   try { r.w = await spPack(r._w); } catch {}
   delete r._w;
   try { localStorage.setItem('strava_sauce_' + a.id, JSON.stringify(r)); }
@@ -318,7 +323,7 @@ function _spPool() {
     .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || '')).slice(0, SP_MAX_RIDES);
 }
 function spLoadAgg() { try { const o = JSON.parse(localStorage.getItem(SP_AGG_KEY)); return o && o.v === SP_V ? o : null; } catch { return null; } }
-function _spSig() { return athWeightKg() + '|' + _spPool().map(a => a.id).join(','); }
+function _spSig() { return athWeightKg() + '|k' + (typeof BIKE_KIT_V !== 'undefined' ? BIKE_KIT_V : 0) + '|' + _spPool().map(a => a.id).join(','); }
 
 // Aggregate over every cached ride: all-time bests, CP fit, latest ride.
 function spSummary() {

@@ -19,7 +19,7 @@ Strava components: 21 (front and rear counted separately for wheels, tyres, brak
 | Groupset | Shimano GRX 820, 1x12 (rear derailleur short cage, shift levers, crankset, hydraulic brakes) |
 | Cassette | Shimano GRX 12-speed 10-45T |
 | Bottom bracket | Shimano Ultegra SM-BBR60 BSA |
-| Wheels | Hand-built: Strummer Super30 alloy rims, Strummer HR360 front hub (12x100, centerlock), Novatec Microspline rear hub, 24h |
+| Wheels | Hand-built: Strummer Super30 alloy rims (30mm deep), Strummer HR360 front hub (12x100, centerlock), Novatec Microspline rear hub, 24h |
 | Tyres | Maxxis Reaver 700x40c skinwall |
 | Rotors | Shimano Ice Tech (centerlock) |
 | Brake pads | Shimano |
@@ -41,7 +41,7 @@ Strava components: 13.
 | Frame | Camp SR3D |
 | Groupset | Sensah Empire Pro 12-speed (rear derailleur, shift levers) |
 | Crankset | Senicx PR5 |
-| Wheels | Mavic Cosmic Elite 50mm alloy |
+| Wheels | Mavic Cosmic Elite 45mm deep alloy |
 | Brake pads | Toopre Ice Tech TL-01S ceramic |
 | Tyres | Maxxis Pursuer 700x28c skinwall |
 | Saddle | Kocevlo 143mm (S/M) |

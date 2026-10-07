@@ -41,6 +41,19 @@ const athWeightKg = () => athWeightKnown() || FALLBACK_WEIGHT_KG;
 // per-activity via GPS Fix → Normalize, which persists a realistic value that
 // applyMaxFixOverrides() writes back onto max_speed. MAX_SPEED_CEILING (m/s,
 // unit-independent) is still the "abnormal" threshold used by that tool.
+// The owner's actual tyres and wheels, by Strava gear id (see BIKES.md), for the
+// power models: crr = rolling resistance, cda = drag area on the hoods (m²).
+// Estimates for the kit type, not lab values. Camp SR3D: Maxxis Pursuer 28c
+// (durable training tyre) on 45 mm deep rims, a little less drag than the road
+// default. Mosso 735 GVL: Maxxis Reaver 40c (fast semi-slick, mostly tarmac) on
+// 30 mm rims, which with the wide tyres leaves the gravel drag unchanged.
+// Other bikes keep the per-frame-type defaults.
+const BIKE_KIT = {
+  b17223820: { crr: 0.0058, cda: 0.35 },   // Camp SR3D
+  b17599912: { crr: 0.0065, cda: 0.40 },   // Mosso 735 GVL
+};
+const BIKE_KIT_V = 1;                      // bump when a value changes
+const bikeKit = gearId => BIKE_KIT[gearId] || null;
 const MAX_SPEED_CEILING = 65 / 3.6;                                       // 65 km/h
 const cleanMax = a => {
   const v = a && a.max_speed;
