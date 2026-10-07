@@ -1229,10 +1229,11 @@ const _isKomSeg = s => !!((s.athlete_segment_stats && s.athlete_segment_stats.pr
 // ── "Created by me" ─────────────────────────────────────────────────────
 // Strava's API exposes no creator on a segment (and has no "segments I made"
 // endpoint), so authorship comes from your own naming habit: the segments you
-// draw are named "A -> B". The flag button on each card overrides that guess in
-// either direction, and only those overrides are stored (per athlete, next to
-// the segment cache) so a rename keeps working.
-const _SEG_MINE_RE = /→|->|⇒|=>/;
+// draw are named "A -> B" or carry a "DW" tag (e.g. "Sepanjang Blahbatuh --DW").
+// The flag button on each card overrides that guess in either direction, and only
+// those overrides are stored (per athlete, next to the segment cache) so a rename
+// keeps working.
+const _SEG_MINE_RE = /→|->|⇒|=>|\bDW\b/;
 let _segMine = null;   // {on:Set, off:Set} — manual overrides only
 function _segMineKey(){ return 'strava_segmine_' + (localStorage.getItem('strava_athlete_id') || 'x'); }
 function _segMineOv(){
@@ -1273,7 +1274,7 @@ function toggleSegMine(id, btn){
   if(grid && typeof grid._applySeg==='function') grid._applySeg();
 }
 
-// Bulk-star every arrow-named segment. Goes by the name alone (not _isMineSeg)
+// Bulk-star every segment named like yours (arrow or DW tag). Goes by the name alone (not _isMineSeg)
 // so the manual flag overrides don't pull in segments you didn't draw. Needs
 // the profile:write scope — a 403 means the token predates it, so reconnect.
 let _segStarring = false;
@@ -1528,7 +1529,7 @@ function _renderSegGrid(el, segs){
           <option value="name">Name A–Z</option>
         </select>
         <button class="seg-scan seg-refresh-btn" id="segRefresh" title="Refetch starred segments and scan more of your rides for new segments">${ic('repeat')} Refresh</button>
-        ${_unstarredArrow?`<button class="seg-scan" id="segStarAll" title="Star every segment named &quot;A -&gt; B&quot; on Strava">${ic('star')} Star all mine (${_unstarredArrow})</button>`:''}
+        ${_unstarredArrow?`<button class="seg-scan" id="segStarAll" title="Star every segment named &quot;A -&gt; B&quot; or tagged DW on Strava">${ic('star')} Star all mine (${_unstarredArrow})</button>`:''}
       </div>
     </div>`;
 

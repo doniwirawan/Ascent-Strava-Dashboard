@@ -31,6 +31,26 @@ function aiLangLine() {
 const AI_ICON = '<svg class="ai-icon-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6l1.5 4.1 4.1 1.5-4.1 1.5L12 13.8l-1.5-4.1L6.4 8.2l4.1-1.5L12 2.6zM18.5 12l.85 2.35 2.35.85-2.35.85-.85 2.35-.85-2.35-2.35-.85 2.35-.85L18.5 12zM5.4 12.6l.75 2.05 2.05.75-2.05.75-.75 2.05-.75-2.05L4.6 15.4l2.05-.75L5.4 12.6z"/></svg>';
 
 /* Credit appended to captions written via the app, so they're identifiable. */
+/* Caption tone. 'spicy' and 'savage' roast the weakest numbers like a mate in the
+   group chat; none of them touch looks, body, or anything personal. */
+const AI_ROAST_LEVELS = ['off', 'light', 'spicy', 'savage'];
+function aiToneLine(level) {
+  const lv = level === true ? 'spicy' : level === false ? 'off' : (AI_ROAST_LEVELS.includes(level) ? level : 'spicy');
+  if (lv === 'off') return 'Keep an upbeat, motivating tone. ';
+  if (lv === 'light') return 'Be fun and witty with a light, good-natured roast of the effort. ';
+  const base = 'ROAST me in first person like a friend in the group chat who just opened my file: specific, sharp, funny. '
+    + 'Find the weakest or most ridiculous number and go after it — a slow average speed, a long "stopped_min" (café stop longer than the riding?), low cadence, a short distance, barely any elevation, a high heart rate for a gentle pace — and twist the good numbers into backhanded compliments. '
+    + 'Use exaggeration and absurd comparisons (a scooter, a pensioner on a sunday stroll, a sloth, a delivery driver), one punchline per sentence, no explaining the joke. '
+    + 'Keep the real numbers in. Never mock body, weight, looks, age, gender, race, religion or money; no slurs. ';
+  return lv === 'savage'
+    ? base + 'Go savage: merciless deadpan, brutal comic timing, mild swearing is fine (damn, hell). End the description with a one-line burn. '
+    : base + 'Spicy, not cruel: PG-13, no swearing. ';
+}
+function aiRoastSelect(id, level) {
+  const labels = { off: 'No roast', light: 'Light roast', spicy: 'Spicy roast', savage: 'Savage roast' };
+  return '<select id="' + id + '" class="ai-cap-roast-sel" aria-label="Roast level">' + AI_ROAST_LEVELS.map(l => '<option value="' + l + '"' + (l === level ? ' selected' : '') + '>' + labels[l] + '</option>').join('') + '</select>';
+}
+
 function aiCredit(desc, isAI) {
   desc = (desc || '').trim();
   if (!desc || /Ascent Analytics/.test(desc)) return desc;
@@ -239,6 +259,8 @@ function aiActivityData(a) {
     date: (a.start_date_local || a.start_date || '').slice(0, 10),
     km: +(((a.distance || 0) / 1000).toFixed(1)),
     moving_min: Math.round((a.moving_time || 0) / 60),
+    // time stopped (café, lights, photos): elapsed minus moving
+    stopped_min: a.elapsed_time && a.moving_time ? Math.max(0, Math.round((a.elapsed_time - a.moving_time) / 60)) : null,
     elev_m: Math.round(a.total_elevation_gain || 0),
     avg_kmh: a.average_speed ? +((a.average_speed * 3.6).toFixed(1)) : null,
     max_kmh: cleanMax(a) ? +((cleanMax(a) * 3.6).toFixed(1)) : null,
@@ -497,14 +519,15 @@ async function aiCaptionActivity(id) {
   const token = localStorage.getItem('strava_access_token');
   if (!token) { panel.innerHTML = '<div class="ai-cap-status err">Connect to Strava first.</div>'; return; }
 
-  const roast = document.getElementById('aiCapRoast') ? document.getElementById('aiCapRoast').checked : true;
+  const roast = (document.getElementById('aiCapRoast') || {}).value || (() => { try { return localStorage.getItem('ai_roast_level'); } catch { return null; } })() || 'spicy';
+  try { localStorage.setItem('ai_roast_level', roast); } catch {}
   panel.innerHTML = '<div class="ai-cap-loading"><span class="ai-dots"><span></span><span></span><span></span></span> ' + tr('Writing your caption…') + '</div>';
   const { provider, model, key } = aiProviderModel();
   const messages = [
     { role: 'system', content:
       'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). '
       + 'Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). '
-      + (roast ? 'Be fun and witty with a light, good-natured ROAST of the effort. ' : 'Keep an upbeat, motivating tone. ')
+      + aiToneLine(roast)
       + 'Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. '
       + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
       + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. NEVER mention, guess or hint at where I started or where I live. '
@@ -549,7 +572,35 @@ function _showAnalysis(id, text) {
   panel.innerHTML =
     '<div class="ai-analysis-head"><span class="ai-ins-icon">' + AI_ICON + '</span>' + tr('Performance analysis')
     + '<button class="btn ai-analysis-regen" type="button" onclick="aiAnalyzeActivity(\'' + id + '\',true)">' + tr('Re-analyze') + '</button></div>'
-    + '<div class="ai-analysis-body">' + aiMd(text) + '</div>';
+    + '<div class="ai-analysis-body">' + aiMd(text) + '</div>'
+    + '<div class="ai-cap-actions"><button class="btn" type="button" onclick="aiAnalysisToNote(\'' + id + '\')">' + tr('Save as private note on Strava') + '</button></div>'
+    + '<div id="aiNoteStatus" class="ai-cap-status"></div>';
+}
+
+/* Markdown analysis → plain text for Strava's private note (only the athlete sees it). */
+function _analysisPlain(md) {
+  return md.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^#+\s*/gm, '').replace(/^\s*[-*]\s+/gm, '• ').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/* Write the analysis to the activity's private note, then read it back: the
+   field isn't in Strava's documented update API, so only trust what sticks. */
+async function aiAnalysisToNote(id) {
+  const status = document.getElementById('aiNoteStatus');
+  const text = _getSavedAnalysis(id);
+  if (!text || !status) return;
+  status.className = 'ai-cap-status'; status.textContent = tr('Saving to Strava…');
+  const note = (_analysisPlain(text) + '\n\n— AI analysis by Ascent').slice(0, 2000);
+  try {
+    await apiPut('/activities/' + id, { private_note: note });
+    const back = await api('/activities/' + id);
+    if (back && typeof back.private_note === 'string' && back.private_note.slice(0, 40) === note.slice(0, 40)) {
+      status.className = 'ai-cap-status ok'; status.textContent = '✓ ' + tr('Saved as a private note — only you can see it on Strava.');
+    } else {
+      status.className = 'ai-cap-status err'; status.textContent = tr("Strava didn't keep the private note — its API may not allow writing it. The analysis stays saved here in Ascent.");
+    }
+  } catch (e) {
+    status.className = 'ai-cap-status err'; status.textContent = tr('Saving failed') + ' (' + ((e && e.message) || e) + '). ' + tr('Your login may need the activity:write permission — reconnect Strava.');
+  }
 }
 
 async function aiAnalyzeActivity(id, force) {
@@ -592,7 +643,7 @@ function aiShowCaptionPreview(id, title, desc, source, roast) {
   panel.innerHTML =
     '<div class="ai-cap-field"><label>Title</label><input id="aiCapTitle" class="ai-cap-input" maxlength="100" value="' + esc(title) + '"></div>'
     + '<div class="ai-cap-field"><label>Description</label><textarea id="aiCapDesc" class="ai-cap-input" rows="6">' + esc(desc) + '</textarea></div>'
-    + (source === 'ai' ? '<label class="ai-cap-roast"><input type="checkbox" id="aiCapRoast"' + (roast ? ' checked' : '') + '> add roast</label>' : '')
+    + (source === 'ai' ? '<label class="ai-cap-roast">' + aiRoastSelect('aiCapRoast', roast) + '</label>' : '')
     + '<div class="ai-cap-actions">'
     + '<button class="btn btn-primary" type="button" onclick="aiCaptionApply(\'' + id + '\')">Apply to Strava</button>'
     + '<button class="btn" type="button" onclick="' + regen + '">Regenerate</button>'
@@ -706,7 +757,7 @@ async function bulkRun(p, mode) {
   const ids = [...list.querySelectorAll('.bulk-cb')].filter(c => c.checked).map(c => c.value);
   if (!ids.length) { status.className = 'gr-status warn'; status.textContent = 'Select at least one activity first.'; return; }
   const what = (document.getElementById(p + 'What') || {}).value || 'both';
-  const roast = !!(document.getElementById(p + 'Roast') || {}).checked;
+  const roast = (document.getElementById(p + 'Roast') || {}).checked ? 'spicy' : 'off';
   if (!confirm('Rewrite the ' + (what === 'title' ? 'title' : 'title and description') + ' of ' + ids.length + ' activit' + (ids.length > 1 ? 'ies' : 'y') + ' on Strava' + (mode === 'ai' ? ' with AI' : ' from stats') + '?\nThis overwrites them and cannot be undone.')) return;
 
   bulkStop[p] = false; btn.dataset.running = '1'; btn.textContent = 'Stop';
@@ -727,7 +778,7 @@ async function bulkRun(p, mode) {
         const t = aiStatsTemplate(a, wx, rp); name = t.title; desc = t.desc;
       } else {
         const messages = [
-          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + (roast ? 'Be fun and witty with a light, good-natured roast. ' : 'Keep an upbeat, motivating tone. ') + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
+          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + aiToneLine(roast) + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
           { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
         ];
         const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
