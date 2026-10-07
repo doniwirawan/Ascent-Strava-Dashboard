@@ -52,7 +52,3 @@ Strava components: 13.
 
 Weight: **15.34 kg**. 29" hardtail, size L1, bought June 2026 at Rodalink Denpasar.
 No components set up in Strava yet.
-
-## Polygon Xtrada 5 (2018) — mountain bike (Strava bike 18846051)
-
-Weight: **~15 kg** (approximate). No components set up in Strava yet.
