@@ -285,7 +285,7 @@ const BIKE_TYPES = ['Road', 'Gravel', 'Mountain', 'Cyclocross', 'Time trial', 'H
 const FRAME_TYPE = { 1: 'Mountain', 2: 'Cyclocross', 3: 'Road', 4: 'Time trial', 5: 'Gravel' };
 const BT_KEY = 'bike_type_v1', BF_KEY = 'bike_frame_v1';
 const btLoad = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch { return {}; } };
-let _bfTried = false;
+const _bfTried = new Set(); // bike ids already looked up this page load
 
 function bikeType(b) {
   const o = btLoad(BT_KEY)[b.id]; if (o) return o;
@@ -300,9 +300,8 @@ const bikeTypeBadge = b => { const t = bikeType(b); return t ? ` <span class="bi
 
 /* Strava's frame_type isn't in the athlete summary — fetch each bike once. */
 async function gmFetchFrameTypes(bikes) {
-  if (_bfTried) return false;
-  _bfTried = true;
-  const cache = btLoad(BF_KEY), need = bikes.filter(b => !b.frame_type && !(b.id in cache));
+  const cache = btLoad(BF_KEY), need = bikes.filter(b => !b.frame_type && !(b.id in cache) && !_bfTried.has(b.id));
+  need.forEach(b => _bfTried.add(b.id));
   if (!need.length || typeof api !== 'function') return false;
   await Promise.all(need.map(b => api('/gear/' + b.id).then(g => { cache[b.id] = (g && g.frame_type) || 0; }).catch(() => {})));
   try { localStorage.setItem(BF_KEY, JSON.stringify(cache)); } catch {}
