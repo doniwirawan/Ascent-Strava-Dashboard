@@ -376,7 +376,7 @@ const HEAT_BANDS = [                   // ascending; `min` = rides through the c
 // is remembered across visits.
 const HEAT_UNIFORM = { color: '#FC4C02', weight: 2.2, opacity: 0.8 };
 // 'regency' = regencies (Bali) / areas (elsewhere) shaded by how many rides
-// end in each (the Activities page's map), with the routes drawn faintly on top.
+// end in each (ranked in the list under the map), with the routes drawn faintly on top.
 let heatMode = 'freq';
 try { const m = localStorage.getItem('heat_mode'); if (m === 'freq' || m === 'uniform' || m === 'regency') heatMode = m; } catch {}
 

@@ -7,9 +7,7 @@ function renderCycling() {
   const fastAvgRide = rides.reduce((a,r)=>(r.average_speed||0)>(a.average_speed||0)?r:a, rides[0]);
   const fastMax  = cleanMax(fastMaxRide);
   const fastAvg  = fastAvgRide.average_speed||0;
-  const totDist  = rides.reduce((s,r)=>s+(r.distance||0),0);
   const longRide = rides.reduce((a,r)=>(r.distance||0)>(a.distance||0)?r:a, rides[0]);
-  const avgElev  = rides.reduce((s,r)=>s+(r.total_elevation_gain||0),0)/rides.length;
 
   document.getElementById('cyclingHero').innerHTML = `
     <div class="hero-box hi">
@@ -39,37 +37,49 @@ function renderCycling() {
           ${longRide.name}</a> &nbsp;·&nbsp; ${fmtDt(longRide.start_date)} &nbsp;·&nbsp; ${fmtT(longRide.moving_time||0)}${placeTag(longRide,' &nbsp;·&nbsp; ')}
       </div>
     </div>
-    <div class="hero-box"><div class="hero-label">Total Rides</div>
-      <div class="hero-value">${rides.length}</div></div>
-    <div class="hero-box"><div class="hero-label">Total Distance</div>
-      <div class="hero-value">${fmtD(totDist)}</div></div>
-    <div class="hero-box"><div class="hero-label">Avg Elevation</div>
-      <div class="hero-value">${Math.round(avgElev)} <span class="hero-unit">m</span></div></div>
   `;
 
-  // Top 5 fastest (max) speeds
-  const top5 = [...rides].filter(r=>cleanMax(r)>0).sort((a,b)=>cleanMax(b)-cleanMax(a)).slice(0,5);
-  const top5Max = top5.length ? top5[0].max_speed : 1;
-  document.getElementById('cyclingTop5').innerHTML = top5.length ? `
-    <div class="ctop-title">Top 5 Fastest Speeds</div>
-    <div class="ctop-list">
-      ${top5.map((r,i)=>`
-        <div class="ctop-item">
-        <div class="ctop-head">
-        <a class="ctop-row" href="https://www.strava.com/activities/${r.id}" onclick="openActivityModal('${r.id}');return false;" rel="noopener">
-          <span class="ctop-rank">${i+1}</span>
-          <span class="ctop-info">
-            <span class="ctop-name">${r.name}</span>
-            <span class="ctop-meta">${fmtDt(r.start_date)} · ${fmtD(r.distance)} · avg ${fmtSpeed(r.average_speed)}</span>${placeTag(r)?`<span class="ctop-meta">${placeTag(r)}</span>`:''}
-          </span>
-          <span class="ctop-bar"><span class="ctop-bar-fill" style="width:${((r.max_speed/top5Max)*100).toFixed(0)}%"></span></span>
-          <span class="ctop-val">${kmh(r.max_speed)}<i>${speedUnit()}</i></span>
-        </a>
-        <button class="ctop-where" onclick="showSpeedSpot('${r.id}',this)" title="${tr('Where did this happen?')}" aria-label="${tr('Where did this happen?')}">${ic('pin')}</button>
-        </div>
-        <div class="spot-panel" id="spot-${r.id}"></div>
-        </div>`).join('')}
-    </div>` : '';
+  // Totals live on the Overview, climbing and records on Training, per-bike km
+  // on Gear — this page answers "how's my riding going lately?" instead.
+  const sum = list => {
+    const d = list.reduce((s,r)=>s+(r.distance||0),0), m = list.reduce((s,r)=>s+(r.moving_time||0),0);
+    return { n:list.length, d, e:list.reduce((s,r)=>s+(r.total_elevation_gain||0),0), v:m?d/m:0 };
+  };
+  const box = (label, value, sub) => `<div class="hero-box"><div class="hero-label">${label}</div><div class="hero-value">${value}</div>${sub||''}</div>`;
+
+  // last 4 weeks vs the 4 before
+  const DAY = 86400000, now = Date.now();
+  const within = (from, to) => rides.filter(r => { const t = Date.parse(r.start_date); return t >= now-from*DAY && t < now-to*DAY; });
+  const cur = sum(within(28,0)), prev = sum(within(56,28));
+  const delta = (a, b, fmt) => {
+    if (!b) return '';
+    const p = Math.round((a-b)/b*100);
+    return `<div class="hero-sub"><span style="color:${p>0?'#22c55e':p<0?'#ef4444':'var(--muted)'}">${p ? (p>0?'▲ ':'▼ ')+Math.abs(p)+'%' : tr('no change')}</span> · ${trf('was {0}', fmt(b))}</div>`;
+  };
+  const elev = m => `${Math.round(elevVal(m)).toLocaleString()} <span class="hero-unit">${elevUnit()}</span>`;
+  const spd  = v => `${kmh(v)} <span class="hero-unit">${speedUnit()}</span>`;
+  let html = `<div class="ctop-title">${tr('Last 4 weeks vs the 4 before')}</div>
+    <div class="cycling-hero cyc-grid">
+      ${box(tr('Rides'), cur.n, delta(cur.n, prev.n, x=>x))}
+      ${box(tr('Distance'), fmtD(cur.d), delta(cur.d, prev.d, fmtD))}
+      ${box(tr('Climbing'), elev(cur.e), delta(cur.e, prev.e, x=>fmtElev(x)))}
+      ${box(tr('Avg speed'), cur.v ? spd(cur.v) : '—', cur.v ? delta(cur.v, prev.v, fmtSpeed) : '')}
+    </div>`;
+
+  // per bike — average speed depends a lot on which bike it was
+  const bikes = (typeof _gearCache!=='undefined' && _gearCache) || (typeof currentAthlete!=='undefined' && currentAthlete && currentAthlete.bikes) || [];
+  const byBike = {};
+  rides.forEach(r => { if (r.gear_id) (byBike[r.gear_id] = byBike[r.gear_id] || []).push(r); });
+  const bikeBoxes = Object.entries(byBike).filter(([,l]) => l.length >= 3).sort((a,b) => b[1].length - a[1].length)
+    .map(([id, l]) => {
+      const b = bikes.find(x => String(x.id) === String(id));
+      if (!b) return '';
+      const st = sum(l);
+      return box(b.nickname||b.name||'Bike', spd(st.v),
+        `<div class="hero-sub">${trf('{0} avg ride', fmtD(st.d/st.n))} · ${Math.round(elevVal(st.e)/kmVal(st.d))} ${elevUnit()}/${distUnit()} · ${trf('{0} rides', st.n)}</div>`);
+    }).filter(Boolean);
+  if (bikeBoxes.length > 1) html += `<div class="ctop-title">${tr('By bike')}</div><div class="cycling-hero cyc-grid">${bikeBoxes.join('')}</div>`;
+  document.getElementById('cyclingForm').innerHTML = html;
 
   // Speed trend
   const last20 = [...rides].slice(0,20).reverse();
@@ -78,10 +88,8 @@ function renderCycling() {
     type:'line',
     data:{ labels:last20.map(r=>fmtDtShort(r.start_date)),
       datasets:[
-        { label:t('chMax'),  data:last20.map(r=>{const m=cleanMax(r); return m?kmh(m):null;}), spanGaps:true,
-          borderColor:'#FC4C02', backgroundColor:'rgba(252,76,2,.07)', tension:.35, fill:true, pointRadius:3, pointBackgroundColor:'#FC4C02' },
         { label:t('chAvg'),  data:last20.map(r=>kmh(r.average_speed||0)),
-          borderColor:'#555', backgroundColor:'rgba(85,85,85,.05)', tension:.35, fill:true, pointRadius:2 }
+          borderColor:'#FC4C02', backgroundColor:'rgba(252,76,2,.07)', tension:.35, fill:true, pointRadius:3, pointBackgroundColor:'#FC4C02' }
       ]
     },
     options: chartOpts(speedUnit())

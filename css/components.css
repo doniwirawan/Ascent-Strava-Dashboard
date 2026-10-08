@@ -568,13 +568,7 @@
 /* "Analyse N more" action inside the speed-zone note line */
 .spdz-btn{margin-left:8px;padding:3px 9px;font-size:.74rem;vertical-align:baseline}
 
-/* "Where did this happen?" panel under a Top-5 speed row */
-.ctop-head{position:relative}
-.ctop-where{position:absolute;top:50%;right:4px;transform:translateY(-50%);z-index:2;
-  background:none;border:none;color:var(--text);opacity:.55;cursor:pointer;padding:6px;border-radius:8px;line-height:0}
-.ctop-where svg{width:17px;height:17px}
-.ctop-where:hover{color:var(--orange);opacity:1;background:rgba(252,76,2,.12)}
-.ctop-item .ctop-row{padding-right:38px}
+/* "Where did this happen?" panel under a Best Efforts row */
 .spot-panel{display:none}
 .spot-panel.open{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;
   padding:14px;margin:0 0 8px;background:var(--surface);border:1px solid var(--border);border-radius:12px}

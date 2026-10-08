@@ -1,4 +1,4 @@
-/* ── RIDE DESTINATIONS BY REGENCY (Activities page) ──
+/* ── RIDE DESTINATIONS BY REGENCY (Heatmap page, ranked list under the map) ──
    Bali split into its 9 regencies (8 kabupaten + Kota Denpasar; OSM
    admin_level 5, simplified into data/bali-regencies.json). Each activity is
    counted in the regency containing its destination — the route point furthest
@@ -12,7 +12,7 @@
    kept in localStorage, so later points inside it match locally. Areas are
    grouped into places (state, else city, else country) — Bali, Singapore… —
    and the card shows one place at a time. */
-let _regGeo = null, _regMap = null, _regLayer = null, _regLabels = null, _regBy = null, _regGroup = '';
+let _regGeo = null, _regBy = null, _regGroup = '';
 // the place last picked on the card — kept while a sport filter hides it, and across visits
 let _regPick = ''; try { _regPick = localStorage.getItem('reg_group') || ''; } catch {}
 const _regPoint = {}, _regOf = {}, _regPiece = {}; // activity id → destination [lat, lng] / regency name / polygon piece (memoised)
@@ -200,7 +200,7 @@ function inBali(lat, lng) {
 }
 
 /* Choropleth + count labels for `by` (from _regStats) on any Leaflet map.
-   Shared by the Activities regency card and the Heatmap's Regency mode.
+   Used by the Heatmap's Regency mode.
    Returns [polygonLayer, labelLayer], both already added to `map`. */
 function regencyLayers(map, by) {
   const TF = typeof trf === 'function' ? trf : ((s, ...a) => s.replace(/\{(\d+)\}/g, (_, i) => a[i]));
@@ -275,8 +275,8 @@ async function renderRegencyMap() {
   const elsewhere = list.length - G.n;
   card.querySelector('.card-title').textContent = T(G.cc === 'id' ? 'Ride destinations by regency' : 'Destinations by area');
   card.querySelector('.chart-note').textContent = T(_regGroup === 'Bali'
-    ? "Where each ride turned around, on Bali's regencies. Loops count where they stayed. Hover or tap a regency for details."
-    : 'Where each activity turned around, by area. Loops count where they stayed. Hover or tap an area for details.');
+    ? "Where each ride turned around, on Bali's regencies. Loops count where they stayed. Tap a regency to see its rides."
+    : 'Where each activity turned around, by area. Loops count where they stayed. Tap an area to see its activities.');
   const pl = document.getElementById('regencyPlaces');
   pl.style.display = gl.length > 1 ? '' : 'none';
   pl.innerHTML = gl.map(([g, o]) => '<button type="button" class="act-reg-tag' + (g === _regGroup ? ' on' : '') + '" data-g="' + esc(g) + '">' + esc(g) + ' <b>' + o.n + '</b></button>').join('');
@@ -285,21 +285,7 @@ async function renderRegencyMap() {
     renderRegencyMap();
   });
 
-  // map (built once; restyled on re-render)
-  const el = document.getElementById('regencyMap');
-  if (!_regMap) {
-    _regMap = L.map(el, { zoomControl: true, scrollWheelZoom: false, attributionControl: false, zoomSnap: 0.25 });
-    addBasemap(_regMap);
-  }
-  if (_regLayer) _regLayer.remove();
-  if (_regLabels) _regLabels.remove();
-  [_regLayer, _regLabels] = regencyLayers(_regMap, by);
-  // Bali frames all its regencies; fetched areas only exist where you went
-  const shown = L.geoJSON({ type: 'FeatureCollection', features: _regGeo.features.filter(f => f.properties.group === _regGroup && (_regGroup === 'Bali' || by[f.properties.name].n)) });
-  const fit = () => { try { _regMap.invalidateSize(); _regMap.fitBounds(shown.getBounds(), { padding: [10, 10] }); } catch {} };
-  fit(); setTimeout(fit, 300);
-
-  // ranked list beside / under the map
+  // ranked list under the Heatmap
   const rows = inG.filter(([, s]) => s.n).sort((x, y) => y[1].n - x[1].n);
   const listEl = document.getElementById('regencyList');
   listEl.innerHTML = rows.map(([name, s]) => {

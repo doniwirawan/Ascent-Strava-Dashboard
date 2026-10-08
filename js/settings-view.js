@@ -10,7 +10,7 @@ const VIEW_CARDS = [
   ['sports',   'By-sport breakdown (Overview)',      '#sportBreakdown'],
   ['hrz',      'Heart-rate zones (Overview)',        '#ovHrz'],
   ['spdz',     'Speed zones (Overview)',             '#ovSpdz'],
-  ['regency',  'Destinations map (Activities)',      '#regencyCard'],
+  ['regency',  'Destinations list (Heatmap)',        '#regencyCard'],
   ['huawei',   'Only on Huawei (Activities)',        '#huaweiCard'],
   ['bulk',     'Bulk caption tools (Activities)',    '.bulk-tools'],
   ['actSleep', 'Sleep around an activity (activity detail)', '#actSleep'],

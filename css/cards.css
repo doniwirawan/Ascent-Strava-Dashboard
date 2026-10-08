@@ -177,6 +177,8 @@
 
 .hero-box.hi .hero-value { color: var(--orange); }
 .hero-unit { font-size: 12px; font-weight: 600; opacity: .55; }
+.hero-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.cycling-hero.cyc-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
 
 /* ── By-sport breakdown (Overview) ── */
 /* Its heading is a :first-child, so .section-title's own margin-top is zeroed —

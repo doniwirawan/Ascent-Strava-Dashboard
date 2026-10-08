@@ -580,10 +580,10 @@
     <div class="section-title">Cycling Performance</div>
     <div class="card">
       <div class="cycling-hero" id="cyclingHero"></div>
-      <div id="cyclingTop5"></div>
+      <div id="cyclingForm"></div>
       <div class="g2">
         <div>
-          <div class="card-title">Speed Trend — Last 20 Rides</div>
+          <div class="card-title">Avg Speed — Last 20 Rides</div>
           <div class="chart-wrap"><canvas id="cSpeedChart"></canvas></div>
         </div>
         <div>
@@ -765,15 +765,6 @@
       </div>
     </details>
 
-    <div class="card regency-card" id="regencyCard" style="display:none">
-      <div class="card-title">Ride destinations by regency</div>
-      <div class="chart-note">Where each ride turned around, on Bali's regencies. Loops count where they stayed. Hover or tap a regency for details.</div>
-      <div class="act-reg-tags regency-places" id="regencyPlaces" style="display:none"></div>
-      <div class="regency-body">
-        <div class="regency-map" id="regencyMap"></div>
-        <div class="regency-list" id="regencyList"></div>
-      </div>
-    </div>
     <div class="card hw-card" id="huaweiCard" style="display:none">
       <div class="card-title">Only on Huawei</div>
       <div class="chart-note">Workouts from your Huawei Health export that never reached Strava — Huawei's sync skips some modes, like Mountain climbing. Name one and send it to Strava.</div>
@@ -875,6 +866,12 @@
     <div class="section-title">Activity Heatmap</div>
     <div class="card" style="padding:0;overflow:hidden;border-radius:14px;">
       <div id="leafletMap" style="height:520px;"></div>
+    </div>
+    <div class="card regency-card" id="regencyCard" style="display:none">
+      <div class="card-title">Ride destinations by regency</div>
+      <div class="chart-note">Where each ride turned around, on Bali's regencies. Loops count where they stayed. Tap a regency to see its rides.</div>
+      <div class="act-reg-tags regency-places" id="regencyPlaces" style="display:none"></div>
+      <div class="regency-list" id="regencyList"></div>
     </div>
   </div>
 

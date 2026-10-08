@@ -966,10 +966,6 @@ body.dev .dev-tag { display: inline-block; }
 .tr-intro { padding: 13px 16px; margin-bottom: 16px; }
 .tr-intro-basis { font-size: 12.5px; line-height: 1.5; color: var(--text-2); }
 .tr-intro-basis b { color: var(--text); font-weight: 700; }
-.tr-lg { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; }
-.tr-lg-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
-.tr-lg-chip b { color: var(--text); font-weight: 700; }
-.tr-lg-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 
 /* Per-card plain-language note (sits directly under the card it explains) */
 .tr-note {
@@ -986,7 +982,7 @@ body.dev .dev-tag { display: inline-block; }
 
 /* Recovery & Next Ride */
 .tr-rv { padding: 16px; margin-bottom: 16px; }
-.tr-rv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.tr-rv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 .tr-rv-block { min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); }
 .tr-rv-lbl { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .tr-rv-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; word-break: break-word; }
@@ -994,7 +990,6 @@ body.dev .dev-tag { display: inline-block; }
 .tr-rv-rec { font-size: 13px; font-weight: 600; line-height: 1.45; }
 .tr-rv-rec strong { font-weight: 800; }
 .tr-rv-note { font-size: 11px; color: var(--muted); margin-top: 6px; }
-.tr-rv-next { font-size: 13px; color: var(--text); line-height: 1.5; }
 @media (max-width: 720px) { .tr-rv-grid { grid-template-columns: 1fr; } }
 
 @media (max-width: 640px) {
@@ -1391,9 +1386,9 @@ body.on-coach .fab-group { display: none !important; }
 .hw-status a { color: var(--orange); font-weight: 700; }
 .hw-up { flex-shrink: 0; }
 @media (max-width: 600px) { .hw-row { flex-direction: column; align-items: stretch; } }
-.regency-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px; margin-top: 10px; }
-.regency-map { height: 380px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); background: var(--surface2); }
-.regency-list { display: flex; flex-direction: column; gap: 10px; }
+.regency-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px 20px; margin-top: 10px; }
+.regency-list > .regency-sub { grid-column: 1 / -1; }
+#leafletMap .leaflet-interactive:focus { outline: none; }
 .regency-row-head { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
 .regency-n { color: var(--orange); }
 .regency-bar { height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; margin: 5px 0 3px; }
@@ -1403,7 +1398,6 @@ body.on-coach .fab-group { display: none !important; }
 .reg-pending:empty, .heat-legend .reg-pending:empty { display: none; }
 .regency-row { cursor: pointer; border-radius: 6px; padding: 4px 6px; margin: -4px -6px; }
 .regency-row:hover { background: var(--surface2); }
-.regency-map .leaflet-interactive:focus { outline: none; }
 .regency-modal-sum { font-size: 12px; color: var(--muted); margin: -4px 0 10px; }
 .regency-rides { max-height: 60vh; }
 .vil-list { max-height: 62vh; overflow-y: auto; }
@@ -1420,10 +1414,6 @@ body.on-coach .fab-group { display: none !important; }
 .leaflet-tooltip.regency-count { background: none; border: 0; box-shadow: none; color: #fff; font-weight: 800; font-size: 13px; text-shadow: 0 1px 3px rgba(0,0,0,.9); padding: 0; }
 .leaflet-tooltip.regency-count::before { display: none; }
 .leaflet-tooltip.regency-tip { background: var(--surface); color: var(--text); border: 1px solid var(--border); font-size: 12px; line-height: 1.45; }
-@media (max-width: 760px) {
-  .regency-body { grid-template-columns: 1fr; }
-  .regency-map { height: 240px; }
-}
 
 /* ── Data page — every activity + sleep night, sortable ── */
 .dt-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }

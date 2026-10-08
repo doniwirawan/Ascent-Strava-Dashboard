@@ -213,21 +213,14 @@ function _trIntroHTML(d) {
     basis = id ? 'Beban latihan diperkirakan dari <b>durasi</b> — pakai monitor detak jantung untuk angka yang lebih tajam.'
                : 'Training load is estimated from <b>duration</b> — wear a heart-rate monitor for sharper load.';
   }
-  const chip = (color, k, sub) => `<span class="tr-lg-chip"><span class="tr-lg-dot" style="background:${color}"></span><b>${k}</b> ${sub}</span>`;
-  const legend = [
-    chip('var(--orange)', id ? 'Kebugaran' : 'Fitness', 'CTL'),
-    chip('#a78bfa', id ? 'Kelelahan' : 'Fatigue', 'ATL'),
-    chip('#22c55e', id ? 'Bentuk' : 'Form', 'TSB'),
-  ].join('');
   return `<div class="card tr-intro">
     <div class="tr-intro-basis">${basis}</div>
-    <div class="tr-lg">${legend}</div>
   </div>`;
 }
 
 /* ── RECOVERY & NEXT RIDE ─────────────────────────────────────────────────────
-   Your most recent session, an estimate of when you're recovered enough for a
-   hard effort, and a suggested next workout for your current form. Recovery time
+   Your most recent session and an estimate of when you're recovered enough for
+   a hard effort (what to ride is in the recommendation card above). Recovery time
    scales with the last session's load; being fresh (positive TSB) short-circuits
    it. No power meter needed — load falls back to Relative Effort / HR / time. */
 function _trLastSession() {
@@ -244,14 +237,6 @@ function _trLastSession() {
   const endMs = startMs + (last.elapsed_time || last.moving_time || 0) * 1000;
   const hours = Math.round(Math.max(12, Math.min(96, 12 + load * 0.4)));   // 12–96h from load
   return { last, load, basis: r && r.basis, hours, recoveredAt: endMs + hours * 3600000 };
-}
-
-// Suggested next workout from current form (TSB) and whether you've recovered.
-function _trNextWorkout(tsb, recovered, id) {
-  if (!recovered) return id ? 'Istirahat atau gowes Zona-2 ringan (≤1 jam) sampai Anda pulih.' : 'Rest or an easy Zone-2 spin (≤1h) until you are recovered.';
-  if (tsb >= 5)   return id ? 'Hari yang bagus untuk interval, gowes grup keras, atau percobaan PR.' : 'Good day for intervals, a hard group ride, or a PR attempt.';
-  if (tsb >= -10) return id ? 'Gowes ketahanan atau sesi tempo yang mantap.' : 'A solid endurance ride or a tempo session.';
-  return id ? 'Tetap ringan — gowes pemulihan atau istirahat penuh.' : 'Keep it easy — a recovery ride or a full rest day.';
 }
 
 function _trRecoveryCardHTML(d) {
@@ -292,10 +277,6 @@ function _trRecoveryCardHTML(d) {
           ${lbl(id ? 'Bisa gowes keras lagi' : 'Hard ride again')}
           <div class="tr-rv-rec" style="color:${recColor}">${recLine}</div>
           <div class="tr-rv-note">${id ? 'Gowes pemulihan ringan: kapan saja.' : 'Easy recovery spin: anytime.'}</div>
-        </div>
-        <div class="tr-rv-block">
-          ${lbl(id ? 'Saran latihan berikutnya' : 'Suggested next workout')}
-          <div class="tr-rv-next">${_trNextWorkout(d.tsb, recovered, id)}</div>
         </div>
       </div>
     </div>`;
@@ -968,10 +949,12 @@ function _trRestoreAiPlan() {
   const out = document.getElementById('trAiOut');
   if (!out) return false;
   let saved; try { saved = JSON.parse(localStorage.getItem('tr_ai_plan') || 'null'); } catch {}
-  if (saved && saved.html) { out.innerHTML = saved.html; out.style.display = ''; return true; }
+  // a plan made from other numbers would contradict the tiles above it
+  if (saved && saved.html && saved.sig === _trAiSig(_trBuildSeries())) { out.innerHTML = saved.html; out.style.display = ''; return true; }
   return false;
 }
 let _trAiAutoTried = false;  // generate the AI plan at most once per session
+const _trAiSig = d => d ? [d.ctl, d.atl, d.tsb, d.ramp].map(Math.round).join('/') : '';
 
 /* ── AI recovery plan (owner-gated /api/ai, rule-based text is the fallback) ── */
 async function trainingAiRec() {
@@ -997,7 +980,7 @@ async function trainingAiRec() {
   const replyLang = window.LANG === 'id' ? 'Reply in Indonesian (Bahasa Indonesia)' : 'Reply in English';
   const messages = [
     { role: 'system', content:
-      'You are a concise endurance-cycling coach. Using ONLY the training-load numbers provided (TrainingPeaks model: CTL=fitness, ATL=fatigue, TSB=form/freshness, ramp=weekly CTL change), give a short, specific recovery-and-training recommendation for the next 3–5 days. Note overreaching risk if ramp is high or TSB very negative. Never invent data. ' + replyLang + ', short markdown, under 120 words.' },
+      'You are a concise endurance-cycling coach. Using ONLY the training-load numbers provided (TrainingPeaks model: CTL=fitness, ATL=fatigue, TSB=form/freshness, ramp=weekly CTL change), give a short, specific recovery-and-training recommendation for the next 3–5 days. The athlete already sees these numbers on screen, so do not restate or explain them — go straight to the day-by-day plan. Note overreaching risk if ramp is high or TSB very negative. Never invent data. ' + replyLang + ', short markdown, under 120 words.' },
     { role: 'user', content: 'My current training load:\n' + JSON.stringify(payload, null, 2) },
   ];
   try {
@@ -1005,7 +988,7 @@ async function trainingAiRec() {
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.text) {
       out.innerHTML = (typeof aiMd === 'function' ? aiMd(data.text) : data.text);
-      try { localStorage.setItem('tr_ai_plan', JSON.stringify({ html: out.innerHTML, ts: Date.now() })); } catch {}
+      try { localStorage.setItem('tr_ai_plan', JSON.stringify({ html: out.innerHTML, ts: Date.now(), sig: _trAiSig(d) })); } catch {}
     } else {
       // Surface the real reason (no key, out of credit, not authorized, …) plus
       // a note that the rule-based advice above still stands.

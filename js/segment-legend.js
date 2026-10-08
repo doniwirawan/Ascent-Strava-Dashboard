@@ -108,15 +108,16 @@ function _segLegendBodyHTML(){
     const link=r=>`<a class="si-name" href="https://www.strava.com/segments/${r.id}" target="_blank" rel="noopener">${r.name}</a>`;
     // the legend's Strava profile (records checked before the id was kept show the name only)
     const who=r=>r.holder_id?`<a class="ll-who" href="https://www.strava.com/athletes/${r.holder_id}" target="_blank" rel="noopener">${r.holder}</a>`:r.holder;
+    // one row per crown: your count, and — once the effort dates are known — what's
+    // left of it in 30 days if you don't ride it again. Fewest left first.
+    const crowns=mine.map(r=>r.dates&&r.dates.length?{...r,..._llRisk(r)}:r)
+      .sort((a,b)=>(a.left30??Infinity)-(b.left30??Infinity)||(b.theirs||0)-(a.theirs||0));
     html+=`<div class="si-group"><div class="si-title">You're the Local Legend · ${mine.length}</div>${mine.length
-      ? mine.map(r=>`<div class="si-row">${link(r)}<span class="si-meta"><b>${r.theirs??'?'}</b> efforts / ${LL_DAYS}d</span></div>`).join('')
+      ? crowns.map(r=>r.left30!=null
+        ? `<div class="si-row" title="${r.drop30} of your ${r.have} efforts age out in the next 30 days (${r.drop14} in 14). Ride it ${r.drop30}× in that time to hold ${r.have}.">${link(r)}<span class="si-meta">${r.have} → <b>${r.left30}</b> in 30d · last ${r.idle}d ago</span></div>`
+        : `<div class="si-row">${link(r)}<span class="si-meta"><b>${r.theirs??'?'}</b> efforts / ${LL_DAYS}d</span></div>`).join('')
       : `<div class="tr-basis-note">Not on any of the segments checked so far.</div>`}</div>`;
-    // crowns about to lose count — fewest efforts left in 30 days first
-    const risk=mine.filter(r=>r.dates&&r.dates.length).map(r=>({...r,..._llRisk(r)}))
-      .filter(r=>r.drop30>0||r.have<=3).sort((a,b)=>a.left30-b.left30||a.have-b.have).slice(0,5);
-    if(risk.length) html+=`<div class="si-group"><div class="si-title">Closest to being taken</div>${risk.map(r=>
-      `<div class="si-row" title="${r.drop30} of your ${r.have} efforts age out in the next 30 days (${r.drop14} in 14). Ride it ${r.drop30}× in that time to hold ${r.have}.">${link(r)}<span class="si-meta">${r.have} → <b>${r.left30}</b> in 30d · last ${r.idle}d ago</span></div>`).join('')}</div>`;
-    else if(mine.length && !mine.some(r=>r.dates)) html+=`<div class="tr-basis-note">Check again to see which of your crowns are closest to being taken.</div>`;
+    if(mine.length && !mine.some(r=>r.dates)) html+=`<div class="tr-basis-note">Check again to see which of your crowns are closest to being taken.</div>`;
     if(close.length) html+=`<div class="si-group"><div class="si-title">Closest to taking</div>${close.map(r=>
       `<div class="si-row">${link(r)}<span class="si-meta">${who(r)} ${r.theirs} vs you ${r.yours} · <b>+${r.gap}</b> effort${r.gap===1?'':'s'}</span></div>`).join('')}</div>`;
     if(uncounted.length) html+=`<div class="si-group"><div class="si-title">Ahead, but not counted · ${uncounted.length}</div>${uncounted.slice(0,10).map(r=>

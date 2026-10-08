@@ -262,7 +262,7 @@ const APP_ID = {
   'total': 'total', 'days in a row': 'hari berturut-turut', 'weekly regularity': 'keteraturan mingguan',
   'total kcal': 'total kkal',
   // card titles (static HTML inside sections)
-  'Speed Trend — Last 20 Rides': 'Tren Kecepatan — 20 Gowes Terakhir',
+  'Avg Speed — Last 20 Rides': 'Kecepatan Rata-rata — 20 Gowes Terakhir',
   'Ride Distance Distribution': 'Distribusi Jarak Gowes',
   'Pace Trend — Last 20 Runs': 'Tren Pace — 20 Lari Terakhir',
   'Run Distance Distribution': 'Distribusi Jarak Lari',
@@ -294,7 +294,7 @@ const APP_ID = {
   'All activities & sleep': 'Semua aktivitas & tidur',
   'Every activity with the sleep from the night before it, plus nights without an activity. Click a column header to sort; click an activity to open it.': 'Setiap aktivitas beserta tidur malam sebelumnya, ditambah malam tanpa aktivitas. Klik judul kolom untuk mengurutkan; klik aktivitas untuk membukanya.',
   'Search by name, type or destination…': 'Cari nama, jenis, atau tujuan…',
-  "Where each ride turned around, on Bali's regencies. Loops count where they stayed. Hover or tap a regency for details.": 'Titik balik tiap ride, dipetakan per kabupaten di Bali. Ride keliling dihitung di tempatnya. Arahkan kursor atau ketuk kabupaten untuk detail.',
+  "Where each ride turned around, on Bali's regencies. Loops count where they stayed. Tap a regency to see its rides.": 'Titik balik tiap ride, per kabupaten di Bali. Ride keliling dihitung di tempatnya. Ketuk kabupaten untuk melihat ride-nya.',
   'Avg Power': 'Daya Rata-rata', 'Norm Power': 'Daya Normal', 'Max Power': 'Daya Maks',
   'Energy': 'Energi', 'Relative Effort': 'Upaya Relatif', 'Avg Temp': 'Suhu Rata-rata',
   'Comments': 'Komentar',
@@ -1114,7 +1114,7 @@ const TR_ID = {
   'Regencies': 'Kabupaten', 'Home base': 'Basis',
   'Places reached': 'Tempat dijelajahi', 'across {0} districts': 'di {0} distrik', 'Regions': 'Wilayah', 'in {0} countries': 'di {0} negara',
   'Unknown area': 'Wilayah tidak diketahui', 'All places': 'Semua tempat', '{0} places · {1} districts · {2} regions': '{0} tempat · {1} distrik · {2} wilayah',
-  'Destinations by area': 'Tujuan per wilayah', 'Where each activity turned around, by area. Loops count where they stayed. Hover or tap an area for details.': 'Titik balik tiap aktivitas, per wilayah. Aktivitas keliling dihitung di tempatnya. Arahkan kursor atau ketuk wilayah untuk detail.',
+  'Destinations by area': 'Tujuan per wilayah', 'Where each activity turned around, by area. Loops count where they stayed. Tap an area to see its activities.': 'Titik balik tiap aktivitas, per wilayah. Aktivitas keliling dihitung di tempatnya. Ketuk wilayah untuk melihat aktivitasnya.',
   'Only on Huawei': 'Hanya di Huawei',
   "Workouts from your Huawei Health export that never reached Strava — Huawei's sync skips some modes, like Mountain climbing. Name one and send it to Strava.": 'Latihan dari export Huawei Health yang tidak pernah sampai ke Strava — sync Huawei melewatkan beberapa mode, seperti Mendaki gunung. Beri nama lalu kirim ke Strava.',
   'Upload to Strava': 'Upload ke Strava', 'Activity name': 'Nama aktivitas', 'GPS': 'GPS', 'no GPS': 'tanpa GPS', 'top {0}': 'puncak {0}',
@@ -1123,7 +1123,7 @@ const TR_ID = {
   'Strava is still processing — check again in a minute.': 'Strava masih memproses — cek lagi sebentar.',
   'Strava refused: upload permission missing. Disconnect, reconnect and tick "Upload your activities".': 'Strava menolak: izin upload belum ada. Putuskan, sambungkan lagi, dan centang "Upload your activities".',
   'Failed: {0}': 'Gagal: {0}',
-  'Pages': 'Halaman', 'Cards': 'Kartu', 'AI insight on each page': 'Insight AI di tiap halaman', 'Readiness (Overview)': 'Kesiapan (Ikhtisar)', 'Fun stats & places (Overview)': 'Statistik seru & tempat (Ikhtisar)', 'By-sport breakdown (Overview)': 'Rincian per olahraga (Ikhtisar)', 'Heart-rate zones (Overview)': 'Zona detak jantung (Ikhtisar)', 'Speed zones (Overview)': 'Zona kecepatan (Ikhtisar)', 'Destinations map (Activities)': 'Peta tujuan (Aktivitas)', 'Only on Huawei (Activities)': 'Hanya di Huawei (Aktivitas)', 'Bulk caption tools (Activities)': 'Alat caption massal (Aktivitas)', 'Sleep around an activity (activity detail)': 'Tidur sekitar aktivitas (detail aktivitas)',
+  'Pages': 'Halaman', 'Cards': 'Kartu', 'AI insight on each page': 'Insight AI di tiap halaman', 'Readiness (Overview)': 'Kesiapan (Ikhtisar)', 'Fun stats & places (Overview)': 'Statistik seru & tempat (Ikhtisar)', 'By-sport breakdown (Overview)': 'Rincian per olahraga (Ikhtisar)', 'Heart-rate zones (Overview)': 'Zona detak jantung (Ikhtisar)', 'Speed zones (Overview)': 'Zona kecepatan (Ikhtisar)', 'Destinations list (Heatmap)': 'Daftar tujuan (Heatmap)', 'Only on Huawei (Activities)': 'Hanya di Huawei (Aktivitas)', 'Bulk caption tools (Activities)': 'Alat caption massal (Aktivitas)', 'Sleep around an activity (activity detail)': 'Tidur sekitar aktivitas (detail aktivitas)',
   'No GPS — where was this?': 'Tanpa GPS — di mana ini?', 'Set location': 'Atur lokasi', 'Change': 'Ubah', 'e.g. Nordcom Two, Singapore': 'mis. Nordcom Two, Singapore', 'Save': 'Simpan', 'Remove': 'Hapus', 'Cancel': 'Batal', 'Looking it up…': 'Mencari…', 'Saved, but not found on the map — try adding the city or country.': 'Tersimpan, tapi tidak ketemu di peta — coba tambahkan kota atau negaranya.',
   'No conversations yet — ask something to start one.': 'Belum ada percakapan — tanyakan sesuatu untuk memulai.', 'Today': 'Hari ini', 'Yesterday': 'Kemarin', 'Previous 7 days': '7 hari terakhir', 'Previous 30 days': '30 hari terakhir', 'Older': 'Lebih lama', 'messages': 'pesan', 'Delete': 'Hapus', 'Synced to the cloud': 'Tersinkron ke cloud', 'Saved on this device — cloud sync failed': 'Tersimpan di perangkat ini — sinkron cloud gagal', 'Saved on this device': 'Tersimpan di perangkat ini', 'Syncing…': 'Menyinkronkan…', 'Saved on this device — cloud unavailable': 'Tersimpan di perangkat ini — cloud tidak tersedia',
   'Patterns in your body': 'Pola tubuhmu',
@@ -1210,6 +1210,9 @@ const TR_ID = {
   'Power category: {0} (best at {1})': 'Kategori power: {0} (terbaik di {1})',
   '{0} from estimated power': '{0} dari power estimasi',
   'PR pace ≈ {0} W': 'tempo PR ≈ {0} W',
+  // Cycling page
+  'Last 4 weeks vs the 4 before': '4 minggu terakhir vs 4 minggu sebelumnya', 'was {0}': 'sebelumnya {0}',
+  'By bike': 'Per sepeda', 'no change': 'tetap', '{0} avg ride': 'rata-rata {0}/gowes',
 };
 window.tr = function (s) {
   return (window.LANG === 'id' && TR_ID[s] != null) ? TR_ID[s] : s;
