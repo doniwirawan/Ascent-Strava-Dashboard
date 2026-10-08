@@ -390,14 +390,11 @@ function majorRoads() {
     .catch(() => { _majorRoads = null; return null; }));
 }
 
-/* Stretches of those roads you have never ridden ALONG. Each road is cut into
-   ≤25 m pieces; a piece counts as ridden when one of `tracks` passes within
-   ~25–55 m heading the same way (±35°). The direction check is what tells riding
-   a road from merely crossing it at a junction, so crossings leave no gaps.
-   A never-ridden bit under 150 m between two ridden ones is the simplified
-   Strava line cutting a bend, so it counts as ridden; leftovers under 80 m are
-   dropped. → {runs, km} */
-function unriddenRoads(roads, tracks) {
+/* "Have you ridden along this road?" A road piece counts as ridden when one of
+   `tracks` passes within ~25–55 m heading the same way (±35°). The direction
+   check is what tells riding a road from merely crossing it at a junction.
+   Shared by the Never-ridden map and the route suggester. */
+function rideCoverage(tracks) {
   const C = 0.00025, cells = new Map(), key = (i, j) => i * 1e6 + j;
   const kx = la => Math.cos(la * Math.PI / 180);
   // direction in 10° bins over 0–180° (a road has no "way round")
@@ -422,6 +419,21 @@ function unriddenRoads(roads, tracks) {
     return false;
   };
   const m = (p, q) => Math.hypot((q[0] - p[0]) * 111320, (q[1] - p[1]) * 111320 * kx(p[0]));
+  // share of the p→q road segment (checked in ≤25 m pieces) ridden along
+  const riddenShare = (p, q) => {
+    const L = m(p, q), k = Math.max(1, Math.ceil(L / 25)), bb = bin(p[0], p[1], q[0], q[1]);
+    let n = 0; for (let s = 0; s < k; s++) { const f = (s + 0.5) / k; if (near(p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f, bb)) n++; }
+    return n / k;
+  };
+  return { near, bin, m, riddenShare };
+}
+
+/* Stretches of the major roads you have never ridden along, checked in ≤25 m
+   pieces. A never-ridden bit under 150 m between two ridden ones is the
+   simplified Strava line cutting a bend, so it counts as ridden; leftovers under
+   80 m are dropped. → {runs, km} */
+function unriddenRoads(roads, tracks) {
+  const { near, bin, m } = rideCoverage(tracks);
   const runs = []; let km = 0;
   roads.forEach(p => {
     const pc = [];
@@ -606,6 +618,7 @@ function renderHeatmap(){
       L.polyline(runs,Object.assign({weight:5.4},HEAT_CASING)).addTo(map);
       L.polyline(runs,{color:'#fc4c02',weight:3.4,opacity:0.95,lineJoin:'round',lineCap:'round',interactive:false}).addTo(map);
       const n=document.querySelector('#leafletMap .hl-unr'); if(n) n.textContent=trf('{0} km of major & medium roads in Bali you have never ridden',Math.round(km).toLocaleString());
+      if(typeof _rsDraw==='function') _rsDraw();         // a suggested loop sits on top
     });
   }else if(heatMode==='regency'){
     // Regencies shaded by rides ending there; routes stay faintly on top.
@@ -637,6 +650,7 @@ function renderHeatmap(){
 
   // Invisible per-activity lines on top keep the tooltip / hover / click that
   // the merged bands can't carry.
+  if(typeof _rsPanel==='function') _rsPanel();       // route suggester shows in Never-ridden mode only
   if(heatMode!=='unridden') withAct.forEach(({a,latlngs})=>{
     const hit=L.polyline(latlngs,{color:'#FC4C02',weight:8,opacity:0,interactive:true})
       .addTo(leafletMapInst);

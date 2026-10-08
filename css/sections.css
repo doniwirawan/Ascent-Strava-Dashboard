@@ -1386,6 +1386,18 @@ body.on-coach .fab-group { display: none !important; }
 .regency-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px 20px; margin-top: 10px; }
 .regency-list > .regency-sub { grid-column: 1 / -1; }
 #leafletMap .leaflet-interactive:focus { outline: none; }
+.rs-card { margin-top: 12px; }
+.rs-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 12px 0 6px; }
+.rs-row .btn { margin-left: 6px; }
+.rs-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 8px; }
+.rs-opt { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+.rs-opt.on { border-color: rgba(252, 76, 2, .5); background: rgba(252, 76, 2, .06); }
+.rs-opt .seg-scan { align-self: flex-start; }
+.rs-t { font-size: 14px; font-weight: 800; color: var(--text); }
+.rs-d { font-size: 12px; color: var(--text-2); line-height: 1.45; }
+.rs-s { font-size: 12px; color: var(--muted); }
+.rs-s b { color: var(--text); }
+.rs-best { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #fff; background: var(--orange); border-radius: 4px; padding: 2px 6px; margin-right: 6px; vertical-align: 2px; }
 .heat-pt .leaflet-popup-content { display: flex; flex-direction: column; gap: 6px; margin: 10px 14px; font-size: 12px; }
 .heat-pt .leaflet-popup-content a { color: var(--orange); font-weight: 700; text-decoration: none; }
 .heat-pt-ll { font-variant-numeric: tabular-nums; color: var(--muted); }

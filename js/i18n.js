@@ -1214,7 +1214,10 @@ const TR_ID = {
   // Cycling page
   'Last 4 weeks vs the 4 before': '4 minggu terakhir vs 4 minggu sebelumnya', 'was {0}': 'sebelumnya {0}',
   'By bike': 'Per sepeda',
-  'Loading roads…': 'Memuat jalan…',
+  'Loading roads…': 'Memuat jalan…', 'Suggest a route': 'Sarankan rute', 'Suggest': 'Sarankan', 'Best': 'Terbaik', 'Option': 'Opsi',
+  'A loop from home and back through as many never-ridden major roads as possible. Routes are worked out from the road map; AI only names them.': 'Rute putar dari rumah dan kembali lewat sebanyak mungkin jalan besar yang belum pernah dilewati. Rute dihitung dari peta jalan; AI hanya memberi nama.',
+  'Working out routes… {0}/36': 'Menghitung rute… {0}/36', 'Naming the routes…': 'Memberi nama rute…', '{0} km never ridden': '{0} km belum dilewati',
+  'No loop found from home on the major roads.': 'Tidak ada rute putar dari rumah di jalan besar.', 'Could not work out a route right now.': 'Belum bisa menghitung rute sekarang.',
   '{0} km of major & medium roads in Bali you have never ridden': '{0} km jalan besar & sedang di Bali yang belum pernah Anda lewati',
   'Loading routes…': 'Memuat rute…', 'Could not load the routes.': 'Gagal memuat rute.', 'Never ridden': 'Belum pernah dilewati',
   '{0}% of the route': '{0}% dari rute', 'Download GPX': 'Unduh GPX',
