@@ -498,8 +498,7 @@ function heatLegend(map){
   c.onAdd=()=>{
     const d=L.DomUtil.create('div','heat-legend');
     if(heatMode==='unridden'){
-      d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:3px"></i><span class="hl-unr">'+T('Loading roads…')+'</span></span>'+
-        '<span class="hl-i"><i style="background:#fff;height:1px;opacity:.5"></i>'+T('Where you ride')+'</span>';
+      d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:3px"></i><span class="hl-unr">'+T('Loading roads…')+'</span></span>';
     }else if(heatMode==='regency'){
       d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:10px;width:14px;opacity:.6"></i>'+T(typeof areaIsRegency!=='function'||areaIsRegency()?'Rides ending in each regency':'Activities ending in each area')+'</span><span class="hl-i reg-pending"></span>';
     }else if(heatMode==='uniform'){
@@ -582,8 +581,7 @@ function renderHeatmap(){
   }
 
   if(heatMode==='unridden'){
-    // Major & medium roads you've never ridden in bold; your routes faint underneath.
-    L.polyline(tracks,{color:'#ffffff',weight:1.2,opacity:0.35,lineJoin:'round',lineCap:'round',interactive:false}).addTo(leafletMapInst);
+    // Only the major & medium roads you've never ridden — your own routes stay off.
     const map=leafletMapInst;
     map.attributionControl.addAttribution('Roads &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors');
     majorRoads().then(roads=>{
@@ -623,7 +621,7 @@ function renderHeatmap(){
 
   // Invisible per-activity lines on top keep the tooltip / hover / click that
   // the merged bands can't carry.
-  withAct.forEach(({a,latlngs})=>{
+  if(heatMode!=='unridden') withAct.forEach(({a,latlngs})=>{
     const hit=L.polyline(latlngs,{color:'#FC4C02',weight:8,opacity:0,interactive:true})
       .addTo(leafletMapInst);
     hit.bindTooltip(a.name||'Activity',{sticky:true});
