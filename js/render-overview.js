@@ -42,6 +42,9 @@ function renderAll() {
   const slpNav = document.getElementById('sleepNavLink');
   if(slpNav) slpNav.style.display = (typeof _slpIsOwner==='function' && _slpIsOwner()) ? '' : 'none';
   // Cycling purchases: personal spending from the purchase tracker — owner only too
+  // Chase routes start and finish at home — owner only
+  const crNav = document.getElementById('chaseNavLink');
+  if(crNav) crNav.style.display = (typeof _slpIsOwner==='function' && _slpIsOwner()) ? '' : 'none';
   const cbNav = document.getElementById('cyclingBuysNavLink');
   if(cbNav) cbNav.style.display = (typeof cbIsOwner==='function' && cbIsOwner()) ? '' : 'none';
 

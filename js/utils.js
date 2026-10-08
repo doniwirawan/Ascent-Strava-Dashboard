@@ -162,7 +162,7 @@ function chartOpts(unit='', legend=false) {
 
 const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','walkSection','swimSection','otherSection','trendsSection','actSection','calSection',
   'eddySection','trainingSection','sleepSection','bestSection','gearSection','heatSection',
-  'segmentsSection','gapsSection','milestonesSection','photosSection','fixSection','coachSection','settingsSection','helpSection','dataSection','cyclingBuysSection'];
+  'segmentsSection','gapsSection','milestonesSection','photosSection','fixSection','coachSection','settingsSection','helpSection','dataSection','cyclingBuysSection','chaseSection'];
 
 // True while the Overview (statRow) is the section on screen. Overview-only
 // cards that fill asynchronously must check this before unhiding themselves —
@@ -203,6 +203,7 @@ function navScrollTo(id, btn) {
   document.querySelectorAll('.nav-link').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   // Lazy-init heatmap when first shown
+  if(id==='chaseSection' && typeof renderChase==='function') renderChase();
   if(id==='heatSection'){
     if(!leafletMapInst) renderHeatmap();
     else setTimeout(()=>{try{leafletMapInst.invalidateSize();}catch{}},80);
@@ -320,6 +321,19 @@ const BASEMAP_VIEWS = [
   { id: 'relief', name: 'Relief',    invert: false, url: ESRI + 'Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',
     opts: { maxZoom: 19, attribution: 'Hillshade &copy; Esri' } },
 ];
+
+/* Right-click (long-press on phones) anywhere on a Leaflet map: a popup with the
+   point's coordinates and links to open it in Google Maps / Street View. */
+function mapPointMenu(map) {
+  map.on('contextmenu', e => {
+    const ll = e.latlng.lat.toFixed(5) + ',' + e.latlng.lng.toFixed(5);
+    L.popup({ className: 'heat-pt' }).setLatLng(e.latlng).setContent(
+      `<div class="heat-pt-ll">${ll}</div>` +
+      `<a href="https://www.google.com/maps?q=${ll}" target="_blank" rel="noopener">${tr('Google Maps')} →</a>` +
+      `<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${ll}" target="_blank" rel="noopener">${tr('Street View')} →</a>`
+    ).openOn(map);
+  });
+}
 
 /* Add the basemap to a Leaflet map. Pass {switcher:true} to also attach the
    Dark/Satellite/Terrain/Relief layer control; the pick is remembered across
