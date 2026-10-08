@@ -390,41 +390,57 @@ function majorRoads() {
     .catch(() => { _majorRoads = null; return null; }));
 }
 
-/* Stretches of those roads none of `tracks` come near (~35–65 m): a grid of the
-   cells the routes pass through, then each road segment is "ridden" when its
-   middle lands in or next to one. Runs shorter than 300 m are dropped — they're
-   mostly junction slivers where a ride crossed the road. → {runs, km} */
+/* Stretches of those roads you have never ridden ALONG. Each road is cut into
+   ≤25 m pieces; a piece counts as ridden when one of `tracks` passes within
+   ~25–55 m heading the same way (±35°). The direction check is what tells riding
+   a road from merely crossing it at a junction, so crossings leave no gaps.
+   A never-ridden bit under 150 m between two ridden ones is the simplified
+   Strava line cutting a bend, so it counts as ridden; leftovers under 80 m are
+   dropped. → {runs, km} */
 function unriddenRoads(roads, tracks) {
-  const C = 0.0003, cells = new Set(), key = (i, j) => i * 1e6 + j;
+  const C = 0.00025, cells = new Map(), key = (i, j) => i * 1e6 + j;
+  const kx = la => Math.cos(la * Math.PI / 180);
+  // direction in 10° bins over 0–180° (a road has no "way round")
+  const bin = (a, b, c, d) => { let t = Math.atan2(c - a, (d - b) * kx(a)) * 180 / Math.PI; if (t < 0) t += 180; return Math.floor(t / 10) % 18; };
   tracks.forEach(t => {
     for (let i = 1; i < t.length; i++) {
       const [a, b] = t[i - 1], [c, d] = t[i];
+      if (a === c && b === d) continue;
+      const bit = 1 << bin(a, b, c, d);
       const n = Math.max(1, Math.ceil(Math.hypot(c - a, d - b) / 0.0001));
-      for (let s = 0; s <= n; s++) cells.add(key(Math.floor((a + (c - a) * s / n) / C), Math.floor((b + (d - b) * s / n) / C)));
+      for (let s = 0; s <= n; s++) {
+        const k = key(Math.floor((a + (c - a) * s / n) / C), Math.floor((b + (d - b) * s / n) / C));
+        cells.set(k, (cells.get(k) || 0) | bit);
+      }
     }
   });
-  const near = (la, lo) => {
+  // bins within ±3 (±35°) of b, wrapping round 180°
+  const near = (la, lo, bb) => {
+    let mask = 0; for (let o = -3; o <= 3; o++) mask |= 1 << ((bb + o + 18) % 18);
     const i = Math.floor(la / C), j = Math.floor(lo / C);
-    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) if (cells.has(key(i + di, j + dj))) return true;
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) if ((cells.get(key(i + di, j + dj)) || 0) & mask) return true;
     return false;
   };
-  const m = (p, q) => Math.hypot((q[0] - p[0]) * 111320, (q[1] - p[1]) * 111320 * Math.cos(p[0] * Math.PI / 180));
+  const m = (p, q) => Math.hypot((q[0] - p[0]) * 111320, (q[1] - p[1]) * 111320 * kx(p[0]));
   const runs = []; let km = 0;
-  const flush = r => { if (r && r.len >= 300) { runs.push(r.pts); km += r.len / 1000; } };
   roads.forEach(p => {
-    let run = null;
+    const pc = [];
     for (let i = 1; i < p.length; i++) {
-      const len = m(p[i - 1], p[i]);
-      // long segments: check a few points along them, not just the middle
-      const k = Math.max(1, Math.ceil(len / 40));
-      let hit = 0;
-      for (let s = 1; s <= k; s++) { const f = (s - 0.5) / k; if (near(p[i - 1][0] + (p[i][0] - p[i - 1][0]) * f, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * f)) hit++; }
-      if (hit / k < 0.5) {
-        if (!run) run = { pts: [p[i - 1]], len: 0 };
-        run.pts.push(p[i]); run.len += len;
-      } else { flush(run); run = null; }
+      const L = m(p[i - 1], p[i]); if (!L) continue;
+      const k = Math.max(1, Math.ceil(L / 25)), bb = bin(p[i - 1][0], p[i - 1][1], p[i][0], p[i][1]);
+      const at = f => [p[i - 1][0] + (p[i][0] - p[i - 1][0]) * f, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * f];
+      for (let s = 0; s < k; s++) { const mid = at((s + 0.5) / k); pc.push({ a: at(s / k), b: at((s + 1) / k), len: L / k, r: near(mid[0], mid[1], bb) }); }
     }
-    flush(run);
+    const grp = [];
+    pc.forEach(x => { const g = grp[grp.length - 1]; if (g && g.r === x.r) { g.pcs.push(x); g.len += x.len; } else grp.push({ r: x.r, pcs: [x], len: x.len }); });
+    grp.forEach((g, i) => { if (!g.r && g.len < 150 && i > 0 && i < grp.length - 1 && grp[i - 1].r && grp[i + 1].r) g.r = true; });
+    let run = null;
+    const flush = () => { if (run && run.len >= 80) { runs.push(run.pts); km += run.len / 1000; } run = null; };
+    grp.forEach(g => {
+      if (g.r) { flush(); return; }
+      g.pcs.forEach(x => { if (!run) run = { pts: [x.a], len: 0 }; run.pts.push(x.b); run.len += x.len; });
+    });
+    flush();
   });
   return { runs, km };
 }
