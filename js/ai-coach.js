@@ -835,7 +835,6 @@ const AI_SECTION_LABEL = {
   cyclingSection:    'Cycling',
   runningSection:    'Running',
   trendsSection:     'Trends',
-  monthlySection:    'Monthly',
   bestSection:       'Best Efforts',
   milestonesSection: 'Milestones',
   rewindSection:     'Rewind',

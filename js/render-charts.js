@@ -370,65 +370,6 @@ function renderTrends() {
     },
     options: chartOpts(distUnit(),true)
   });
-
-  // Avg speed by month
-  const spd={};
-  ma.forEach(a=>{
-    if (!a.average_speed) return;
-    const d=new Date(a.start_date);
-    const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if (!spd[k]) spd[k]={sum:0,n:0};
-    spd[k].sum+=kmh(a.average_speed); spd[k].n++;
-  });
-  const skeys=Object.keys(spd).sort().slice(-10);
-  {
-    const U=speedUnit();
-    const vals=skeys.map(k=>spd[k].sum/spd[k].n);
-    const mLabel=k=>{const[y,m]=k.split('-');return new Date(+y,+m-1).toLocaleDateString('en-GB',{month:'short',year:'2-digit'});};
-    if(vals.length){
-      const overall=vals.reduce((a,b)=>a+b,0)/vals.length;
-      const fastI=vals.indexOf(Math.max(...vals)), slowI=vals.indexOf(Math.min(...vals));
-      const trend=vals[vals.length-1]-vals[0];
-      setStats('speedStats',[
-        {k:'overall avg',v:overall.toFixed(1)+' '+U},
-        {k:'fastest month',v:vals[fastI].toFixed(1)+' · '+mLabel(skeys[fastI])},
-        {k:'slowest month',v:vals[slowI].toFixed(1)+' · '+mLabel(skeys[slowI])},
-        {k:'trend',v:(trend>=0?'▲ +':'▼ ')+Math.abs(trend).toFixed(1)+' '+U,c:trend>=0?'#22c55e':'#ef4444'},
-      ]);
-    } else setStats('speedStats',[]);
-  }
-  destroyChart('speedChart');
-  charts['speedChart']=new Chart(document.getElementById('speedChart').getContext('2d'),{
-    type:'line',
-    data:{ labels:skeys.map(k=>{ const[y,m]=k.split('-'); return new Date(+y,+m-1).toLocaleDateString('en-GB',{month:'short',year:'2-digit'}); }),
-      datasets:[{ data:skeys.map(k=>+(spd[k].sum/spd[k].n).toFixed(1)),
-        borderColor:'#FC4C02', backgroundColor:'rgba(252,76,2,.07)',
-        tension:.4, fill:true, pointRadius:3, pointBackgroundColor:'#FC4C02' }]
-    },
-    options: chartOpts(speedUnit())
-  });
-
-  // Types doughnut
-  const types={};
-  acts.forEach(a=>{ types[a.type]=(types[a.type]||0)+1; });
-  const tl=Object.keys(types);
-  const pal2=['#FC4C02','#ff7a3d','#ff9e6d','#ffc09e','#555','#666','#777','#888','#999'];
-  {
-    const totalN=acts.length||1;
-    const top=[...tl].sort((a,b)=>types[b]-types[a]).slice(0,4);
-    setStats('typeStats', top.map((tp,i)=>({k:Math.round(types[tp]/totalN*100)+'% of all',v:types[tp]+' '+tp,c:pal2[tl.indexOf(tp)]||pal2[i]})));
-  }
-  destroyChart('typeChart');
-  charts['typeChart']=new Chart(document.getElementById('typeChart').getContext('2d'),{
-    type:'doughnut',
-    data:{ labels:tl,
-      datasets:[{ data:tl.map(t=>types[t]), backgroundColor:pal2, borderWidth:0 }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ position:'right', labels:{color:'#666',font:{size:11},boxWidth:10} } }
-    }
-  });
 }
 
 /* ── ACTIVITIES + BUBBLES ── */

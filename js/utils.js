@@ -161,7 +161,7 @@ function chartOpts(unit='', legend=false) {
 }
 
 const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','walkSection','swimSection','otherSection','trendsSection','actSection','calSection',
-  'eddySection','trainingSection','sleepSection','monthlySection','bestSection','gearSection','heatSection',
+  'eddySection','trainingSection','sleepSection','bestSection','gearSection','heatSection',
   'segmentsSection','gapsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','coachSection','settingsSection','helpSection','dataSection','cyclingBuysSection'];
 
 // True while the Overview (statRow) is the section on screen. Overview-only

@@ -259,7 +259,6 @@
     <button class="nav-link" onclick="navScrollTo('actSection',this)">Activities</button>
     <button class="nav-link" onclick="navScrollTo('calSection',this)">Calendar</button>
     <button class="nav-link" onclick="navScrollTo('eddySection',this)">Eddington</button>
-    <button class="nav-link" onclick="navScrollTo('monthlySection',this)">Monthly</button>
     <button class="nav-link" onclick="navScrollTo('bestSection',this)">Best Efforts</button>
     <button class="nav-link" onclick="navScrollTo('gearSection',this)">Gear</button>
     <button class="nav-link" onclick="navScrollTo('heatSection',this)">Heatmap</button>
@@ -406,10 +405,6 @@
     <button class="nav-link" onclick="navScrollTo('calSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Calendar
-    </button>
-    <button class="nav-link" onclick="navScrollTo('monthlySection',this)">
-      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
-      Monthly
     </button>
     <button class="nav-link" onclick="navScrollTo('photosSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -683,19 +678,10 @@
         <div class="chart-stats" id="yoyStats"></div>
       </div>
     </div>
-    <div class="g2" style="margin-top:12px">
-      <div class="card">
-        <div class="card-title">Avg Speed by Month (km/h)</div>
-        <div class="chart-note">Your average speed per month. A rising line usually means improving fitness or flatter routes.</div>
-        <div class="chart-wrap"><canvas id="speedChart"></canvas></div>
-        <div class="chart-stats" id="speedStats"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Activity Split</div>
-        <div class="chart-note">How your activities break down by sport type.</div>
-        <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
-        <div class="chart-stats" id="typeStats"></div>
-      </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">Month by Month</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="yearBtns"></div>
+      <div id="monthlyTable" style="overflow-x:auto;"></div>
     </div>
   </div>
 
@@ -800,15 +786,6 @@
     <div class="card eddy-tbl-card">
       <div class="card-title" id="eddyTableTitle"></div>
       <div class="eddy-tbl-wrap" id="eddyTable"></div>
-    </div>
-  </div>
-
-  <!-- MONTHLY STATS -->
-  <div id="monthlySection" style="display:none">
-    <div class="section-title">Monthly Stats</div>
-    <div class="card">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="yearBtns"></div>
-      <div id="monthlyTable" style="overflow-x:auto;"></div>
     </div>
   </div>
 
@@ -1096,11 +1073,10 @@
       <dl class="help-gloss">
         <div><dt data-i18n="h.sec.1t">Overview</dt><dd data-i18n="h.sec.1d">Headline stat cards for the selected sport — totals, averages, best efforts, kudos and achievements across your loaded activities.</dd></div>
         <div><dt data-i18n="h.sec.2t">Cycling / Running</dt><dd data-i18n="h.sec.2d">Sport-specific performance: your fastest efforts, a speed or pace trend over recent activities, and top rides/runs.</dd></div>
-        <div><dt data-i18n="h.sec.3t">Trends</dt><dd data-i18n="h.sec.3d">Distance per week and per month, plus a rolling speed/pace chart, so you can see your training direction over time.</dd></div>
+        <div><dt data-i18n="h.sec.3t">Trends</dt><dd data-i18n="h.sec.3d">Distance per week, this year against earlier years, and a month-by-month table of distance, climbing, time, speed and heart rate with the change from the month before.</dd></div>
         <div><dt data-i18n="h.sec.4t">Activities</dt><dd data-i18n="h.sec.4d">Your most recent activities as a list — click any row to open its full detail card — alongside a distance bubble chart.</dd></div>
         <div><dt data-i18n="h.sec.5t">Calendar</dt><dd data-i18n="h.sec.5d">A 12-month contribution grid: one cell per day, shaded by how many activities you did, with active-day and streak totals.</dd></div>
         <div><dt data-i18n="h.sec.6t">Eddington</dt><dd data-i18n="h.sec.6d">Your Eddington number with a chart of how many more long days you need to reach the next milestone.</dd></div>
-        <div><dt data-i18n="h.sec.7t">Monthly</dt><dd data-i18n="h.sec.7d">A month-by-month breakdown of distance, time and activity count, and a side-by-side comparison of recent months.</dd></div>
         <div><dt data-i18n="h.sec.8t">Best Efforts</dt><dd data-i18n="h.sec.8d">Your longest, fastest and biggest-climbing activities, ranked.</dd></div>
         <div><dt data-i18n="h.sec.9t">Gear</dt><dd data-i18n="h.sec.9d">Per-bike and per-shoe totals (distance and rides), pulled from the gear registered on your Strava profile.</dd></div>
         <div><dt data-i18n="h.sec.10t">Heatmap</dt><dd data-i18n="h.sec.10d">An interactive map with every route's GPS trace overlaid, so your most-ridden roads glow brightest.</dd></div>
