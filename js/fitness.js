@@ -305,6 +305,10 @@ function renderOverviewZones() {
   const sum = totals.reduce((s, v) => s + v, 0);
   if (sum <= 0) { card.style.display = 'none'; _hrzRealToken++; return; }
   card.style.display = '';
+  const modes = document.getElementById('hrzModes'), age = _hrzAge();
+  if (modes) modes.innerHTML = ['strava', 'age'].map(m => `<button type="button" class="${_hrzMode === m ? 'on' : ''}" onclick="setHrzMode('${m}')">${m === 'age' ? tr('Age') + (age ? ' ' + age : '') : 'Strava'}</button>`).join('');
+  if (_hrzMode === 'age') { renderOverviewZonesAge(set); return; }
+  document.getElementById('hrzRing').style.display = '';
   drawZoneRing(document.getElementById('hrzRing'), totals, { big: fmtTc(sum), small: tr('tracked') });
   document.getElementById('hrzLegend').innerHTML = zoneLegendHTML(totals);
   const basis = athleteHrZones ? tr('your Strava zones') : tr('estimated max HR');
@@ -342,7 +346,7 @@ async function _hrHistogram(id) {
   const raw = await api(`/activities/${id}/streams?keys=heartrate,time,moving&key_by_type=true`);
   const hr = raw.heartrate && raw.heartrate.data, t = raw.time && raw.time.data;
   const mv = raw.moving && raw.moving.data;
-  if (!hr || !t) return null;
+  if (!hr || !t) { try { localStorage.setItem(key, '{}'); } catch {} return {}; }
   const h = {};
   for (let i = 1; i < hr.length; i++) {
     if (mv && !mv[i]) continue;
@@ -356,10 +360,79 @@ async function _hrHistogram(id) {
 
 function setHrzMode(m, id) {
   _hrzMode = m; try { localStorage.setItem('hrzMode', m); } catch {}
-  const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
+  const a = id != null && (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
   if (a) renderActivityHrZones(a);
+  renderOverviewZones();
 }
 let _hrzOwnerDobTried = false; // one /api/owner-profile lookup per page load
+// The owner's birth date is kept server-side (public repo) — fetch it once and
+// keep it in this browser. → true when it was found.
+async function _hrzOwnerDob() {
+  if (!_isHrzOwner() || _hrzOwnerDobTried) return false;
+  _hrzOwnerDobTried = true;
+  try {
+    const r = await fetch('/api/owner-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: CONFIG.accessToken }) });
+    const d = r.ok ? await r.json() : null;
+    if (d && d.birthdate) { localStorage.setItem('hrzBirthDate', d.birthdate); return true; }
+  } catch {}
+  return false;
+}
+
+/* Overview card in Age mode: each activity's HR-stream histogram once fetched
+   (cached for good), else its whole moving time at its average HR.
+   "Analyse N more" fetches streams in batches — one Strava call per activity. */
+const _hrHistCached = id => { try { const c = localStorage.getItem('hrhist_' + id); return c ? JSON.parse(c) : undefined; } catch { return undefined; } };
+let _hrzAgeBusy = false;
+async function renderOverviewZonesAge(set) {
+  const token = ++_hrzRealToken;
+  const ring = document.getElementById('hrzRing'), legend = document.getElementById('hrzLegend'), note = document.getElementById('hrzNote');
+  if (!_hrzAge() && await _hrzOwnerDob()) { if (token === _hrzRealToken) renderOverviewZones(); return; }
+  if (token !== _hrzRealToken) return;
+  const age = _hrzAge();
+  if (!age) {
+    ring.style.display = 'none'; legend.innerHTML = '';
+    note.innerHTML = `${tr('Your birth date (Strava doesn’t share it) — saved in this browser only:')}
+      <input type="date" class="hrz-dob" onchange="setHrzBirthDate(this.value)">`;
+    return;
+  }
+  ring.style.display = '';
+  const max = 220 - age, lb = _ageZoneBounds(max);
+  const zoneOf = bpm => { let z = 0; while (z < 4 && bpm >= lb[z]) z++; return z; };
+  const ranges = [`<${lb[0]}`, `${lb[0]}–${lb[1]}`, `${lb[1]}–${lb[2]}`, `${lb[2]}–${lb[3]}`, `${lb[3]}+`];
+  const hrActs = set.filter(a => a.average_heartrate > 0 && a.id);
+  const draw = () => {
+    if (token !== _hrzRealToken) return;
+    const totals = [0, 0, 0, 0, 0], pending = [];
+    let streamed = 0;
+    for (const a of hrActs) {
+      const h = _hrHistCached(a.id);
+      if (h && Object.keys(h).length) { streamed++; for (const k in h) totals[zoneOf(+k)] += h[k]; }
+      else { totals[zoneOf(a.average_heartrate)] += a.moving_time || 0; if (h === undefined) pending.push(a); }
+    }
+    drawZoneRing(ring, totals, { big: fmtTc(totals.reduce((s, v) => s + v, 0)), small: tr('tracked') });
+    legend.innerHTML = zoneLegendHTML(totals, ranges);
+    note.innerHTML = trf('Max HR {0} bpm (220 − age {1}) · zones at 60/70/80/90 %', max, age) + ' · '
+      + (streamed === hrActs.length ? trf('all {0} activities from the HR stream', streamed) : trf('{0} of {1} activities from the HR stream, the rest from average HR', streamed, hrActs.length))
+      + (pending.length && !_hrzAgeBusy ? ` <button class="seg-scan spdz-btn" id="hrzAgeFetch">${trf('Analyse {0} more', Math.min(40, pending.length))}</button>` : '')
+      + ` · <a href="#" onclick="clearHrzBirthDate();return false">${tr('change birth date')}</a>`;
+    const b = document.getElementById('hrzAgeFetch');
+    if (b) b.onclick = () => fetchStreams(pending.slice(0, 40));
+  };
+  const fetchStreams = async list => {
+    _hrzAgeBusy = true; draw();
+    let i = 0, n = 0;
+    const worker = async () => {
+      while (i < list.length && token === _hrzRealToken) {
+        const a = list[i++];
+        try { await _hrHistogram(a.id); } catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) { i = list.length; return; } }
+        if (++n % 5 === 0) draw();
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, list.length) }, worker));
+    _hrzAgeBusy = false; draw();
+  };
+  draw();
+}
 function setHrzBirthDate(v, id) {
   if (!v) return;
   try { localStorage.setItem('hrzBirthDate', v); } catch {}
@@ -386,15 +459,7 @@ async function renderActivityHrZones(a) {
   if (_hrzMode === 'age' && a.id) {
     const note = document.getElementById('actHrzNote');
     if (!age) {
-      // the owner's birth date is kept server-side (public repo) — fetch it once
-      if (_isHrzOwner() && !_hrzOwnerDobTried) {
-        _hrzOwnerDobTried = true;
-        try {
-          const r = await fetch('/api/owner-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: CONFIG.accessToken }) });
-          const d = r.ok ? await r.json() : null;
-          if (d && d.birthdate) { setHrzBirthDate(d.birthdate, a.id); return; }
-        } catch {}
-      }
+      if (await _hrzOwnerDob()) { setHrzBirthDate(localStorage.getItem('hrzBirthDate'), a.id); return; }
       document.getElementById('actHrzRing').style.display = 'none';
       note.innerHTML = `${tr('Your birth date (Strava doesn’t share it) — saved in this browser only:')}
         <input type="date" class="hrz-dob" onchange="setHrzBirthDate(this.value,'${a.id}')">`;

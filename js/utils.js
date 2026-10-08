@@ -162,7 +162,7 @@ function chartOpts(unit='', legend=false) {
 
 const _ALL_SECTIONS=['statRow','cyclingSection','runningSection','walkSection','swimSection','otherSection','trendsSection','actSection','calSection',
   'eddySection','trainingSection','sleepSection','bestSection','gearSection','heatSection',
-  'segmentsSection','gapsSection','milestonesSection','rewindSection','challengesSection','photosSection','fixSection','coachSection','settingsSection','helpSection','dataSection','cyclingBuysSection'];
+  'segmentsSection','gapsSection','milestonesSection','photosSection','fixSection','coachSection','settingsSection','helpSection','dataSection','cyclingBuysSection'];
 
 // True while the Overview (statRow) is the section on screen. Overview-only
 // cards that fill asynchronously must check this before unhiding themselves —
@@ -212,7 +212,7 @@ function navScrollTo(id, btn) {
   const _empty = gid => { const e=document.getElementById(gid); return e && !e.innerHTML.trim(); };
   try {
     if(id==='gearSection' && _empty('gearGrid') && typeof renderGear==='function') renderGear();
-    if(id==='challengesSection' && _empty('challengesGrid') && typeof renderChallenges==='function') renderChallenges();
+    if(id==='milestonesSection' && _empty('challengesGrid') && typeof renderChallenges==='function') renderChallenges();
     if(id==='fixSection' && typeof renderFixSection==='function') renderFixSection();
     if(id==='gapsSection'){
       if(_empty('gapsGrid') && typeof renderGaps==='function') renderGaps();

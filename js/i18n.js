@@ -124,11 +124,11 @@ const I18N = {
     'h.sec.2t': 'Bersepeda / Lari',
     'h.sec.2d': 'Performa per olahraga: upaya tercepat Anda, tren kecepatan atau pace pada aktivitas terbaru, dan gowes/lari teratas.',
     'h.sec.3t': 'Tren',
-    'h.sec.3d': 'Jarak per minggu, tahun ini dibanding tahun-tahun sebelumnya, dan tabel per bulan berisi jarak, tanjakan, waktu, kecepatan, dan detak jantung beserta perubahannya dari bulan sebelumnya.',
+    'h.sec.3d': 'Jarak per minggu, dan tahun ini dibanding tahun-tahun sebelumnya per bulan.',
     'h.sec.4t': 'Aktivitas',
     'h.sec.4d': 'Aktivitas terbaru Anda sebagai daftar — klik baris mana pun untuk membuka kartu detail lengkapnya — di samping grafik gelembung jarak.',
     'h.sec.5t': 'Kalender',
-    'h.sec.5d': 'Grid kontribusi 12 bulan: satu sel per hari, diberi warna sesuai jumlah aktivitas, dengan total hari aktif dan rentetan.',
+    'h.sec.5d': 'Grid kontribusi 12 bulan (satu sel per hari, dengan total hari aktif dan rentetan), dan tabel per bulan berisi jarak, tanjakan, waktu, kecepatan, dan detak jantung beserta perubahannya dari bulan sebelumnya.',
     'h.sec.6t': 'Eddington',
     'h.sec.6d': 'Angka Eddington Anda dengan grafik berapa hari panjang lagi yang Anda butuhkan untuk mencapai milestone berikutnya.',
     'h.sec.7t': 'Bulanan',
@@ -1212,7 +1212,10 @@ const TR_ID = {
   'PR pace ≈ {0} W': 'tempo PR ≈ {0} W',
   // Cycling page
   'Last 4 weeks vs the 4 before': '4 minggu terakhir vs 4 minggu sebelumnya', 'was {0}': 'sebelumnya {0}',
-  'By bike': 'Per sepeda', 'no change': 'tetap', '{0} avg ride': 'rata-rata {0}/gowes',
+  'By bike': 'Per sepeda',
+  'Max HR {0} bpm (220 − age {1}) · zones at 60/70/80/90 %': 'Detak maks {0} bpm (220 − usia {1}) · zona di 60/70/80/90 %', 'Age': 'Usia', 'change birth date': 'ubah tanggal lahir',
+  'all {0} activities from the HR stream': 'semua {0} aktivitas dari stream HR',
+  '{0} of {1} activities from the HR stream, the rest from average HR': '{0} dari {1} aktivitas dari stream HR, sisanya dari HR rata-rata', 'no change': 'tetap', '{0} avg ride': 'rata-rata {0}/gowes',
 };
 window.tr = function (s) {
   return (window.LANG === 'id' && TR_ID[s] != null) ? TR_ID[s] : s;
