@@ -377,8 +377,57 @@ const HEAT_BANDS = [                   // ascending; `min` = rides through the c
 const HEAT_UNIFORM = { color: '#FC4C02', weight: 2.2, opacity: 0.8 };
 // 'regency' = regencies (Bali) / areas (elsewhere) shaded by how many rides
 // end in each (ranked in the list under the map), with the routes drawn faintly on top.
+// 'unridden' = Bali's major & medium roads (trunk → tertiary) you have never ridden.
 let heatMode = 'freq';
-try { const m = localStorage.getItem('heat_mode'); if (m === 'freq' || m === 'uniform' || m === 'regency') heatMode = m; } catch {}
+try { const m = localStorage.getItem('heat_mode'); if (m === 'freq' || m === 'uniform' || m === 'regency' || m === 'unridden') heatMode = m; } catch {}
+
+/* Bali's trunk / primary / secondary / tertiary roads (OpenStreetMap, ODbL),
+   pre-packed as encoded polylines in data/bali-major-roads.json. Loaded once. */
+let _majorRoads = null;
+function majorRoads() {
+  return _majorRoads || (_majorRoads = fetch('data/bali-major-roads.json').then(r => r.json())
+    .then(d => d.ways.map(w => decodePolyline(w[1])))
+    .catch(() => { _majorRoads = null; return null; }));
+}
+
+/* Stretches of those roads none of `tracks` come near (~35–65 m): a grid of the
+   cells the routes pass through, then each road segment is "ridden" when its
+   middle lands in or next to one. Runs shorter than 300 m are dropped — they're
+   mostly junction slivers where a ride crossed the road. → {runs, km} */
+function unriddenRoads(roads, tracks) {
+  const C = 0.0003, cells = new Set(), key = (i, j) => i * 1e6 + j;
+  tracks.forEach(t => {
+    for (let i = 1; i < t.length; i++) {
+      const [a, b] = t[i - 1], [c, d] = t[i];
+      const n = Math.max(1, Math.ceil(Math.hypot(c - a, d - b) / 0.0001));
+      for (let s = 0; s <= n; s++) cells.add(key(Math.floor((a + (c - a) * s / n) / C), Math.floor((b + (d - b) * s / n) / C)));
+    }
+  });
+  const near = (la, lo) => {
+    const i = Math.floor(la / C), j = Math.floor(lo / C);
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) if (cells.has(key(i + di, j + dj))) return true;
+    return false;
+  };
+  const m = (p, q) => Math.hypot((q[0] - p[0]) * 111320, (q[1] - p[1]) * 111320 * Math.cos(p[0] * Math.PI / 180));
+  const runs = []; let km = 0;
+  const flush = r => { if (r && r.len >= 300) { runs.push(r.pts); km += r.len / 1000; } };
+  roads.forEach(p => {
+    let run = null;
+    for (let i = 1; i < p.length; i++) {
+      const len = m(p[i - 1], p[i]);
+      // long segments: check a few points along them, not just the middle
+      const k = Math.max(1, Math.ceil(len / 40));
+      let hit = 0;
+      for (let s = 1; s <= k; s++) { const f = (s - 0.5) / k; if (near(p[i - 1][0] + (p[i][0] - p[i - 1][0]) * f, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * f)) hit++; }
+      if (hit / k < 0.5) {
+        if (!run) run = { pts: [p[i - 1]], len: 0 };
+        run.pts.push(p[i]); run.len += len;
+      } else { flush(run); run = null; }
+    }
+    flush(run);
+  });
+  return { runs, km };
+}
 
 // A dark casing drawn under every line lifts the routes off busy basemaps
 // (satellite especially) without changing their colour. Round joins/caps keep
@@ -448,7 +497,10 @@ function heatLegend(map){
   const c=L.control({position:'bottomleft'});
   c.onAdd=()=>{
     const d=L.DomUtil.create('div','heat-legend');
-    if(heatMode==='regency'){
+    if(heatMode==='unridden'){
+      d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:3px"></i><span class="hl-unr">'+T('Loading roads…')+'</span></span>'+
+        '<span class="hl-i"><i style="background:#fff;height:1px;opacity:.5"></i>'+T('Where you ride')+'</span>';
+    }else if(heatMode==='regency'){
       d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:10px;width:14px;opacity:.6"></i>'+T(typeof areaIsRegency!=='function'||areaIsRegency()?'Rides ending in each regency':'Activities ending in each area')+'</span><span class="hl-i reg-pending"></span>';
     }else if(heatMode==='uniform'){
       d.innerHTML='<span class="hl-i"><i style="background:'+HEAT_UNIFORM.color+
@@ -477,7 +529,7 @@ function heatModeControl(map){
     const d=L.DomUtil.create('div','heat-mode leaflet-bar');
     const mk=(id,label)=>'<button type="button" data-hm="'+id+'"'+
       (heatMode===id?' class="on"':'')+'>'+T(label)+'</button>';
-    d.innerHTML=mk('freq','Frequency')+mk('uniform','Uniform')+(typeof regencyLayers==='function'?mk('regency',typeof areaIsRegency!=='function'||areaIsRegency()?'Regency':'Areas'):'');
+    d.innerHTML=mk('freq','Frequency')+mk('uniform','Uniform')+(typeof regencyLayers==='function'?mk('regency',typeof areaIsRegency!=='function'||areaIsRegency()?'Regency':'Areas'):'')+mk('unridden','Never ridden');
     L.DomEvent.disableClickPropagation(d);
     d.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
       const m=b.getAttribute('data-hm');
@@ -526,10 +578,22 @@ function renderHeatmap(){
   // Dark casing under everything so the routes read clearly on any basemap.
   if(tracks.length){
     const cw=(heatMode==='freq'?HEAT_BANDS[HEAT_BANDS.length-1].weight:HEAT_UNIFORM.weight)+1.6;
-    if(heatMode!=='regency') L.polyline(tracks,Object.assign({weight:cw},HEAT_CASING)).addTo(leafletMapInst);
+    if(heatMode!=='regency'&&heatMode!=='unridden') L.polyline(tracks,Object.assign({weight:cw},HEAT_CASING)).addTo(leafletMapInst);
   }
 
-  if(heatMode==='regency'){
+  if(heatMode==='unridden'){
+    // Major & medium roads you've never ridden in bold; your routes faint underneath.
+    L.polyline(tracks,{color:'#ffffff',weight:1.2,opacity:0.35,lineJoin:'round',lineCap:'round',interactive:false}).addTo(leafletMapInst);
+    const map=leafletMapInst;
+    map.attributionControl.addAttribution('Roads &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors');
+    majorRoads().then(roads=>{
+      if(!roads || leafletMapInst!==map) return;         // re-rendered while loading
+      const {runs,km}=unriddenRoads(roads,tracks);
+      L.polyline(runs,Object.assign({weight:5.4},HEAT_CASING)).addTo(map);
+      L.polyline(runs,{color:'#fc4c02',weight:3.4,opacity:0.95,lineJoin:'round',lineCap:'round',interactive:false}).addTo(map);
+      const n=document.querySelector('#leafletMap .hl-unr'); if(n) n.textContent=trf('{0} km of major & medium roads in Bali you have never ridden',Math.round(km).toLocaleString());
+    });
+  }else if(heatMode==='regency'){
     // Regencies shaded by rides ending there; routes stay faintly on top.
     L.polyline(tracks,{color:'#ffffff',weight:1.2,opacity:0.35,lineJoin:'round',lineCap:'round',interactive:false}).addTo(leafletMapInst);
     const map=leafletMapInst, list=modeActs().filter(_regHasPoint);

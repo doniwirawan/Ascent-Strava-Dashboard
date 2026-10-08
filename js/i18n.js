@@ -1214,6 +1214,8 @@ const TR_ID = {
   // Cycling page
   'Last 4 weeks vs the 4 before': '4 minggu terakhir vs 4 minggu sebelumnya', 'was {0}': 'sebelumnya {0}',
   'By bike': 'Per sepeda',
+  'Loading roads…': 'Memuat jalan…',
+  '{0} km of major & medium roads in Bali you have never ridden': '{0} km jalan besar & sedang di Bali yang belum pernah Anda lewati',
   'Loading routes…': 'Memuat rute…', 'Could not load the routes.': 'Gagal memuat rute.', 'Never ridden': 'Belum pernah dilewati',
   '{0}% of the route': '{0}% dari rute', 'Download GPX': 'Unduh GPX',
   'Loops through roads you have never ridden, one per regency. Bold orange = never ridden, faint = roads you know. Right-click the map to open a spot in Google Maps.': 'Rute putar lewat jalan yang belum pernah Anda lewati, satu per kabupaten. Oranye tebal = belum pernah, samar = jalan yang sudah dikenal. Klik kanan peta untuk membuka titik di Google Maps.', 'Street View': 'Street View', 'Google Maps': 'Google Maps', 'All tiers done': 'Semua level tercapai',

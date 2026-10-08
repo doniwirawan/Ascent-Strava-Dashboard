@@ -480,6 +480,7 @@
   transition: background .15s, color .15s;
 }
 .heat-mode button + button { border-left: 1px solid var(--border); }
+.heat-mode button { white-space: nowrap; }
 .heat-mode button:hover { color: var(--text); }
 .heat-mode button.on { background: var(--orange); color: #fff; }
 
