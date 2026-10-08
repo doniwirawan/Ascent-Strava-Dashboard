@@ -294,6 +294,7 @@ const APP_ID = {
   'All activities & sleep': 'Semua aktivitas & tidur',
   'Every activity with the sleep from the night before it, plus nights without an activity. Click a column header to sort; click an activity to open it.': 'Setiap aktivitas beserta tidur malam sebelumnya, ditambah malam tanpa aktivitas. Klik judul kolom untuk mengurutkan; klik aktivitas untuk membukanya.',
   'Search by name, type or destination…': 'Cari nama, jenis, atau tujuan…',
+  'Right-click (or long-press) anywhere on the map to open that spot in Google Maps or Street View.': 'Klik kanan (atau tekan lama) di mana saja pada peta untuk membuka titik itu di Google Maps atau Street View.',
   "Where each ride turned around, on Bali's regencies. Loops count where they stayed. Tap a regency to see its rides.": 'Titik balik tiap ride, per kabupaten di Bali. Ride keliling dihitung di tempatnya. Ketuk kabupaten untuk melihat ride-nya.',
   'Avg Power': 'Daya Rata-rata', 'Norm Power': 'Daya Normal', 'Max Power': 'Daya Maks',
   'Energy': 'Energi', 'Relative Effort': 'Upaya Relatif', 'Avg Temp': 'Suhu Rata-rata',
@@ -1212,7 +1213,7 @@ const TR_ID = {
   'PR pace ≈ {0} W': 'tempo PR ≈ {0} W',
   // Cycling page
   'Last 4 weeks vs the 4 before': '4 minggu terakhir vs 4 minggu sebelumnya', 'was {0}': 'sebelumnya {0}',
-  'By bike': 'Per sepeda', 'All tiers done': 'Semua level tercapai',
+  'By bike': 'Per sepeda', 'Street View': 'Street View', 'Google Maps': 'Google Maps', 'All tiers done': 'Semua level tercapai',
   'Max HR {0} bpm (220 − age {1}) · zones at 60/70/80/90 %': 'Detak maks {0} bpm (220 − usia {1}) · zona di 60/70/80/90 %', 'Age': 'Usia', 'change birth date': 'ubah tanggal lahir',
   'all {0} activities from the HR stream': 'semua {0} aktivitas dari stream HR',
   '{0} of {1} activities from the HR stream, the rest from average HR': '{0} dari {1} aktivitas dari stream HR, sisanya dari HR rata-rata', 'no change': 'tetap', '{0} avg ride': 'rata-rata {0}/gowes',

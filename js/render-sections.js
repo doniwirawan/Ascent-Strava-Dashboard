@@ -508,6 +508,15 @@ function renderHeatmap(){
   addBasemap(leafletMapInst,{switcher:true});
   const keep=_heatView, map0=leafletMapInst;
   map0.on('moveend',()=>{ if(el.offsetWidth) _heatView={center:map0.getCenter(),zoom:map0.getZoom()}; });
+  // Right-click (long-press on phones): open that exact spot in Google Maps / Street View
+  map0.on('contextmenu',e=>{
+    const ll=e.latlng.lat.toFixed(5)+','+e.latlng.lng.toFixed(5);
+    L.popup({className:'heat-pt'}).setLatLng(e.latlng).setContent(
+      `<div class="heat-pt-ll">${ll}</div>`+
+      `<a href="https://www.google.com/maps?q=${ll}" target="_blank" rel="noopener">${tr('Google Maps')} →</a>`+
+      `<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${ll}" target="_blank" rel="noopener">${tr('Street View')} →</a>`
+    ).openOn(map0);
+  });
 
   const bounds=[];
   const tracks=[], withAct=[];

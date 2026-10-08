@@ -1386,6 +1386,9 @@ body.on-coach .fab-group { display: none !important; }
 .regency-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px 20px; margin-top: 10px; }
 .regency-list > .regency-sub { grid-column: 1 / -1; }
 #leafletMap .leaflet-interactive:focus { outline: none; }
+.heat-pt .leaflet-popup-content { display: flex; flex-direction: column; gap: 6px; margin: 10px 14px; font-size: 12px; }
+.heat-pt .leaflet-popup-content a { color: var(--orange); font-weight: 700; text-decoration: none; }
+.heat-pt-ll { font-variant-numeric: tabular-nums; color: var(--muted); }
 .regency-row-head { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
 .regency-n { color: var(--orange); }
 .regency-bar { height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; margin: 5px 0 3px; }
