@@ -655,24 +655,7 @@ function renderMilestones(){
   if(!set.length){ mode='all'; milestoneMode='all'; set=acts.slice(); }   // never show an empty page
   const pace = sportUsesPace();
   const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
-  const W = cap(sportWord()), Wp = cap(sportWord(true));   // "Ride"/"Rides", "Run"/"Runs", …
-
-  // longest activity streak (all activities)
-  const days=new Set(acts.map(a=>a.start_date?(a.start_date_local||a.start_date).slice(0,10):null).filter(Boolean));
-  let best=0,cur=0,d=new Date();
-  for(let i=0;i<730;i++){ const k=localDayStr(d); if(days.has(k)){cur++;best=Math.max(best,cur);}else cur=0; d.setDate(d.getDate()-1); }
-  const streak=best;
-
-  // totals for the selected mode
-  const tDist=kmVal(set.reduce((s,a)=>s+(a.distance||0),0)).toFixed(0);
-  const tElev=Math.round(elevVal(set.reduce((s,a)=>s+(a.total_elevation_gain||0),0)));
-  const tTime=set.reduce((s,a)=>s+(a.moving_time||0),0);
-  const totals=[
-    {v:set.length.toLocaleString(), l:mode==='all'?'Activities':Wp},
-    {v:Number(tDist).toLocaleString(), l:'Distance ('+distUnit()+')'},
-    {v:tElev.toLocaleString(), l:'Elevation ('+elevUnit()+')'},
-    {v:fmtT(tTime), l:'Moving Time', sub:'≈ '+fmtDays(tTime)},
-  ];
+  const W = cap(sportWord());   // "Ride", "Run", …
 
   // records within the mode
   const longest=set.reduce((m,a)=>(a.distance||0)>(m.distance||0)?a:m,set[0]||{});
@@ -714,7 +697,6 @@ function renderMilestones(){
     {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
     {icon:'clock',c:'#00cc88',label:'Longest Duration',val:longDur.moving_time?fmtT(longDur.moving_time):'—',unit:'',desc:longDur.name},
     {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
-    {icon:'flame',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
     {icon:'run',c:'#38bdf8',label:sigLabel,val:sigCount||'—',unit:sportWord(true),desc:sigDesc},
     {icon:'calendar',c:'#e879f9',label:'Biggest Month',val:bestMonth?fmtKm(bestMonth[1]):'—',unit:distUnit(),desc:bestMonthLbl},
     {icon:'kudos',c:'#4ade80',label:'Most Kudos',val:mostKudos.kudos_count||'—',unit:'kudos',desc:mostKudos.name},
@@ -726,7 +708,6 @@ function renderMilestones(){
     {icon:'gauge',c:'#4da8ff',label:'Fastest Avg',val:fastest.average_speed?kmh(fastest.average_speed).toFixed(1):'—',unit:speedUnit(),desc:fastest.name},
     {icon:'bolt',c:'#facc15',label:'Top Speed',val:topSpd.max_speed?kmh(topSpd.max_speed).toFixed(1):'—',unit:speedUnit(),desc:topSpd.name},
     {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
-    {icon:'flame',c:'#fb923c',label:'Activity Streak',val:streak||'—',unit:'days',desc:'Longest consecutive days'},
     {icon:'bike',c:'#38bdf8',label:sigLabel,val:sigCount||'—',unit:sportWord(true),desc:sigDesc},
     {icon:'calendar',c:'#e879f9',label:'Biggest Month',val:bestMonth?fmtKm(bestMonth[1]):'—',unit:distUnit(),desc:bestMonthLbl},
     {icon:'kudos',c:'#4ade80',label:'Most Kudos',val:mostKudos.kudos_count||'—',unit:'kudos',desc:mostKudos.name},
@@ -735,12 +716,9 @@ function renderMilestones(){
   ];
 
   el.innerHTML=`
-    <div class="mst-banner">
-      ${totals.map(t=>`<div class="mst-cell"><div class="mst-cv">${t.v}</div><div class="mst-cl">${t.l}</div>${t.sub?`<div class="mst-cs">${t.sub}</div>`:''}</div>`).join('')}
-    </div>
     <div class="mst-grid">
       ${records.map(r=>`<div class="mst-card">
-        <div class="mst-ic" style="--c:${r.c}">${svgIcon(r.icon)}</div>
+        <div class="mst-ic" style="--c:var(--orange)">${svgIcon(r.icon)}</div>
         <div class="mst-info">
           <div class="mst-lbl">${r.label}</div>
           <div class="mst-val">${r.val}${r.unit?`<span>${r.unit}</span>`:''}</div>
@@ -973,9 +951,7 @@ async function renderChallenges(){
         ${statCell('Moving Time',lifetimeHours.toLocaleString(),'hours','var(--text)')}
         ${divider()}
         ${statCell('Elevation',Math.round(elevVal(lifetimeElev)/1000).toLocaleString(),'k '+elevUnit(),'var(--text)')}
-        ${bigRide>0?divider()+statCell('Biggest Ride',kmDisp(bigRide).toFixed(1),distUnit(),'#4da8ff'):''}
-        ${bigClimb>0?divider()+statCell('Biggest Climb',Math.round(elevVal(bigClimb)),elevUnit(),'#4da8ff'):''}
-        ${arun?.count?divider()+statCell('Total Runs',arun.count.toLocaleString(),'activities','#00cc88'):''}
+        ${arun?.count?divider()+statCell('Total Runs',arun.count.toLocaleString(),'activities','var(--text)'):''}
       </div>
     </div>`;
   }
@@ -1012,10 +988,6 @@ async function renderChallenges(){
   }
 
   /* ── 4. ACHIEVEMENT BADGES ── */
-  function trophyIcon(color,icon){
-    return `<div class="ach-badge-icon" style="color:${color};background:radial-gradient(circle at 35% 35%,${color}55 0%,${color}18 60%,${color}08 100%);border:3px solid ${color};box-shadow:0 0 18px ${color}44,inset 0 1px 0 rgba(255,255,255,.18);">${trophySvg(icon)}</div>`;
-  }
-
   // use lifetime data where available
   const ltDist=lifetimeKm||rides.reduce((s,a)=>s+(a.distance||0),0)/1000;
   const ltElev=lifetimeElev||acts.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
@@ -1025,34 +997,41 @@ async function renderChallenges(){
   const hourOf=a=>parseInt((a.start_date_local||a.start_date||'').slice(11,13),10);
   const earlyCount=acts.filter(a=>{const h=hourOf(a);return h>=3&&h<6;}).length;
   const nightCount=acts.filter(a=>{const h=hourOf(a);return h>=21||h<3;}).length;
-  // longest consecutive-day streak (same walk as the Milestones section)
+  // longest consecutive-day streak
   const dayset=new Set(acts.map(a=>a.start_date?(a.start_date_local||a.start_date).slice(0,10):null).filter(Boolean));
   let streak=0,srun=0; const sd=new Date();
   for(let i=0;i<730;i++){const k=localDayStr(sd); if(dayset.has(k)){srun++;streak=Math.max(streak,srun);}else srun=0; sd.setDate(sd.getDate()-1);}
 
-  const badges=[
-    {icon:'crown',   name:'KOM / QOM',       val:komList.length,        unit:'segments',  color:'#ffd700', unlocked:komList.length>0},
-    {icon:'trophy',  name:'Achievements',     val:totalAch.toLocaleString(), unit:'on Strava', color:'#ffd700', unlocked:totalAch>0},
-    {icon:'bolt',    name:'Personal Records', val:totalPR.toLocaleString(),  unit:'PRs',       color:'#fc4c02', unlocked:totalPR>0},
-    {icon:'kudos',   name:'Kudos',            val:totalKudos.toLocaleString(),unit:'received', color:'#fc4c02', unlocked:totalKudos>0},
-    {icon:'globe',   name:'Century Rider',    val:biggestRide.toFixed(1),unit:'km best',   color:'#4da8ff', unlocked:biggestRide>=100},
-    {icon:'mountain',name:'Everest Climber', val:Math.round(ltElev/1000)+'k',unit:'m climbed',color:'#4da8ff',unlocked:ltElev>=8848},
-    {icon:'runner',  name:'Half Marathoner', val:longestRun.toFixed(1), unit:'km best',   color:'#00cc88', unlocked:longestRun>=21.1},
-    {icon:'bike',    name:'1,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#00cc88',unlocked:ltDist>=1000},
-    {icon:'world',   name:'Bentang Jawa',    val:biggestRide.toFixed(1),unit:'km best',color:'#f43f5e',unlocked:biggestRide>=1500}, // Java end to end in ONE activity
-    {icon:'flame',   name:'5,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#fb923c',unlocked:ltDist>=5000},
-    {icon:'world',   name:'10,000 km Club',  val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#a78bfa',unlocked:ltDist>=10000},
-    {icon:'target',  name:'100 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#fb923c',unlocked:(lifetimeRides||rides.length)>=100},
-    {icon:'medal',   name:'500 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#a78bfa',unlocked:(lifetimeRides||rides.length)>=500},
-    {icon:'world',   name:'Double Century',   val:biggestRide.toFixed(1),unit:'km best',color:'#facc15',unlocked:biggestRide>=200},
-    {icon:'runner',  name:'Marathoner',       val:longestRun.toFixed(1),unit:'km best',color:'#38bdf8',unlocked:longestRun>=42.195},
-    {icon:'mountain',name:'1,000 m Climb',    val:Math.round(bigClimb).toLocaleString(),unit:'m biggest climb',color:'#e879f9',unlocked:bigClimb>=1000},
-    {icon:'clock',   name:'100 Hours',        val:lifetimeHours.toLocaleString(),unit:'hours moved',color:'#4da8ff',unlocked:lifetimeHours>=100},
-    {icon:'flame',   name:'7-Day Streak',     val:streak,unit:'days best',color:'#ef4444',unlocked:streak>=7},
-    {icon:'sun',     name:'Early Bird',       val:earlyCount,unit:'pre-6am starts',color:'#fbbf24',unlocked:earlyCount>=10},
-    {icon:'moon',    name:'Night Owl',        val:nightCount,unit:'after-9pm starts',color:'#a78bfa',unlocked:nightCount>=10},
-    {icon:'globe',   name:'25,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#22d3ee',unlocked:ltDist>=25000},
+  // One badge per kind, with tiers: shows the highest tier reached and how far
+  // the next one is. KOMs / achievements / PRs / kudos are in the header above.
+  const rideN=lifetimeRides||rides.length;
+  const fams=[
+    {icon:'bike',    unit:'km total',         v:ltDist,       fmt:v=>Math.round(v).toLocaleString(),
+      tiers:[[1000,'1,000 km Club'],[5000,'5,000 km Club'],[10000,'10,000 km Club'],[25000,'25,000 km Club']]},
+    {icon:'globe',   unit:'km longest ride',  v:biggestRide,  fmt:v=>v.toFixed(1),
+      tiers:[[100,'Century Rider'],[200,'Double Century'],[1500,'Bentang Jawa']]},   // Java end to end in ONE activity
+    {icon:'mountain',unit:'m climbed',        v:ltElev,       fmt:v=>Math.round(v).toLocaleString(),
+      tiers:[[8848,'Everest Climber'],[44240,'5× Everest'],[88480,'10× Everest']]},
+    {icon:'mountain',unit:'m biggest climb',  v:bigClimb,     fmt:v=>Math.round(v).toLocaleString(),
+      tiers:[[1000,'1,000 m Climb'],[2000,'2,000 m Climb'],[3000,'3,000 m Climb']]},
+    {icon:'target',  unit:'rides',            v:rideN,        fmt:v=>v.toLocaleString(),
+      tiers:[[100,'100 Rides'],[500,'500 Rides'],[1000,'1,000 Rides']]},
+    {icon:'clock',   unit:'hours moved',      v:lifetimeHours,fmt:v=>v.toLocaleString(),
+      tiers:[[100,'100 Hours'],[500,'500 Hours'],[1000,'1,000 Hours']]},
+    {icon:'flame',   unit:'days in a row',    v:streak,       fmt:v=>v,
+      tiers:[[7,'7-Day Streak'],[14,'14-Day Streak'],[30,'30-Day Streak']]},
+    {icon:'sun',     unit:'pre-6am starts',   v:earlyCount,   fmt:v=>v,
+      tiers:[[10,'Early Bird'],[50,'Dawn Patrol'],[100,'Sunrise Regular']]},
+    {icon:'moon',    unit:'after-9pm starts', v:nightCount,   fmt:v=>v,
+      tiers:[[10,'Night Owl'],[50,'Night Rider'],[100,'Nocturnal']]},
   ];
+  if(longestRun>0) fams.push({icon:'runner',unit:'km longest run',v:longestRun,fmt:v=>v.toFixed(1),
+    tiers:[[21.1,'Half Marathoner'],[42.195,'Marathoner']]});
+  const badges=fams.map(f=>{
+    const got=f.tiers.filter(t=>f.v>=t[0]).length, next=f.tiers[got];
+    return { icon:f.icon, unit:f.unit, val:f.fmt(f.v), color:'#fc4c02', unlocked:got>0, tier:got, tiers:f.tiers.length,
+      name:(got?f.tiers[got-1]:f.tiers[0])[1], next:next&&{name:next[1], pct:Math.min(100,Math.round(f.v/next[0]*100))} };
+  }).sort((a,b)=>b.unlocked-a.unlocked);
 
   _trophyBadges = badges;
   _trophyAthlete = currentAthlete ? ((currentAthlete.firstname||'')+' '+(currentAthlete.lastname||'')).trim() : '';
@@ -1060,13 +1039,13 @@ async function renderChallenges(){
   html+=`<div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Badges</div>`;
   html+=`<div class="ach-grid" style="margin-bottom:20px">`;
   html+=badges.map((b,i)=>`
-    <div class="ach-badge${b.unlocked?' unlocked':''}" style="--ach-color:${b.color}">
-      ${b.unlocked?'<div class="ach-badge-bar"></div>':''}
+    <div class="ach-badge${b.unlocked?' unlocked':''}">
       ${b.unlocked?`<button class="ach-share" title="Share as image" onclick="shareTrophy(${i})" aria-label="Share ${b.name}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg></button>`:''}
-      ${trophyIcon(b.color,b.icon)}
-      <div class="ach-badge-val" style="color:${b.unlocked?b.color:'var(--muted)'}">${b.val}</div>
-      <div class="ach-badge-unit">${b.unit}</div>
-      <div class="ach-badge-name" style="color:${b.unlocked?'var(--text)':'var(--muted)'}">${b.name}</div>
+      <div class="ach-badge-icon">${trophySvg(b.icon)}</div>
+      <div class="ach-badge-name">${b.name}</div>
+      <div class="ach-badge-val">${b.val} <span class="ach-badge-unit">${b.unit}</span></div>
+      <div class="ach-tiers">${Array.from({length:b.tiers},(_,t)=>`<i class="${t<b.tier?'on':''}"></i>`).join('')}</div>
+      ${b.next?`<div class="ach-next"><div class="ach-next-bar"><span style="width:${b.next.pct}%"></span></div><div class="ach-next-lbl">${b.next.name} · ${b.next.pct}%</div></div>`:`<div class="ach-next-lbl">${tr('All tiers done')}</div>`}
     </div>`).join('');
   html+='</div>';
 

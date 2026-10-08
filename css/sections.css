@@ -26,21 +26,15 @@
   transition: border-color .2s, transform .2s;
 }
 
-.ach-badge.unlocked { border-color: var(--ach-color, var(--orange)); }
+.ach-badge.unlocked { border-color: rgba(252, 76, 2, .35); }
 .ach-badge.unlocked:hover { transform: translateY(-2px); }
-.ach-badge:not(.unlocked) { opacity: .28; }
-
-.ach-badge-bar {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--ach-color, var(--orange));
-  border-radius: 3px 3px 0 0;
-}
 
 .ach-badge-icon {
-  width: 64px; height: 64px;
+  width: 52px; height: 52px;
   border-radius: 50%;
+  color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -48,9 +42,18 @@
   flex-shrink: 0;
 }
 
-.ach-badge-val { font-size: 20px; font-weight: 800; line-height: 1; }
-.ach-badge-unit { font-size: 10px; color: var(--muted); }
-.ach-badge-name { font-size: 11px; font-weight: 700; color: var(--text); }
+.ach-badge.unlocked .ach-badge-icon { color: var(--orange); background: rgba(252, 76, 2, .1); border-color: rgba(252, 76, 2, .35); }
+.ach-badge-val { font-size: 18px; font-weight: 800; line-height: 1; color: var(--text); }
+.ach-badge-unit { font-size: 10px; font-weight: 600; color: var(--muted); }
+.ach-badge-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.ach-badge:not(.unlocked) .ach-badge-name { color: var(--muted); }
+.ach-tiers { display: flex; gap: 4px; }
+.ach-tiers i { width: 6px; height: 6px; border-radius: 50%; background: var(--surface4); }
+.ach-tiers i.on { background: var(--orange); }
+.ach-next { width: 100%; margin-top: 2px; }
+.ach-next-bar { height: 4px; background: var(--surface4); border-radius: 2px; overflow: hidden; }
+.ach-next-bar span { display: block; height: 100%; background: var(--orange); opacity: .6; }
+.ach-next-lbl { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
 /* per-badge share button */
 .ach-share {
@@ -67,7 +70,7 @@
   transition: opacity .15s, color .15s, border-color .15s;
 }
 .ach-badge.unlocked:hover .ach-share { opacity: 1; }
-.ach-share:hover { color: var(--ach-color, var(--orange)); border-color: var(--ach-color, var(--orange)); }
+.ach-share:hover { color: var(--orange); border-color: var(--orange); }
 
 /* trophy share modal */
 .trophy-share-overlay {
@@ -526,11 +529,6 @@
 .ms-switch button.active { background: var(--orange); color: #fff; }
 .ms-switch button:not(.active):hover { color: var(--text); }
 
-.mst-banner { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
-.mst-cell { background: var(--surface); padding: 20px 18px; text-align: center; }
-.mst-cv { font-size: 30px; font-weight: 900; color: var(--text); line-height: 1; letter-spacing: -1px; }
-.mst-cl { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
-.mst-cs { font-size: 11px; font-weight: 700; color: var(--orange); margin-top: 4px; }
 
 .mst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
 .mst-card { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: border-color .2s, transform .18s, box-shadow .2s; }
@@ -542,7 +540,6 @@
 .mst-val { font-size: 26px; font-weight: 900; color: var(--text); line-height: 1.1; letter-spacing: -.5px; }
 .mst-val span { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 4px; }
 .mst-sub { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 560px) { .mst-banner { grid-template-columns: repeat(2, 1fr); } }
 
 /* ── Cycling / Running / Walking / Swimming / Other — layout spacing ── */
 #cyclingSection > .card, #runningSection > .card, #walkSection > .card, #swimSection > .card, #otherSection > .card { display: flex; flex-direction: column; gap: 24px; }
