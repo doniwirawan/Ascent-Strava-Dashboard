@@ -305,6 +305,7 @@ function openVideo3d(id) {
       <div class="v3d-actions"><button type="button" class="btn btn-primary" id="v3dGo">${tr('Render video')}</button></div>
     </div>`;
   m.classList.add('open');
+  m._v3dDone = false;
   // get a head start while the style / length are being picked
   v3dPreload();
   _v3dSamplesCached(a, true).catch(() => {});
@@ -330,6 +331,7 @@ function openVideo3d(id) {
   go.onclick = async () => {
     if (_v3dBusy) { confirmStop('cancel', () => { _v3dCancel = true; go.disabled = true; msg.textContent = tr('Stopping…'); }); return; }
     _v3dBusy = true; _v3dCancel = false;
+    m.querySelectorAll('.v3d-out').forEach(x => x.remove());       // a new render replaces the last one
     go.textContent = tr('Cancel'); go.classList.remove('btn-primary'); go.classList.add('v3d-cancel'); msg.className = 'v3d-msg';
     // setup steps fill the first 8% of the bar (shimmering while they wait); frames the rest
     const barBox = bar.parentElement, SETUP = .08;
@@ -359,14 +361,19 @@ function openVideo3d(id) {
         const url = URL.createObjectURL(blob), name = 'ascent-3d-' + a.id + '.mp4';
         stage.innerHTML = `<video src="${url}" controls autoplay loop muted playsinline></video>`;
         msg.className = 'v3d-msg ok'; msg.textContent = '✓ ' + tr('Ready') + ' — ' + (blob.size / 1048576).toFixed(1) + ' MB MP4';
+        // Download / Share next to the button, which stays for another go in a new style
         const acts = m.querySelector('.v3d-actions');
-        acts.innerHTML = `<a class="btn btn-primary" href="${url}" download="${name}">${tr('Download MP4')}</a>`;
+        acts.querySelectorAll('.v3d-out').forEach(x => x.remove());
+        if (m._v3dUrl) URL.revokeObjectURL(m._v3dUrl);
+        m._v3dUrl = url;
+        acts.insertAdjacentHTML('afterbegin', `<a class="btn btn-primary v3d-out" href="${url}" download="${name}">${tr('Download MP4')}</a>`);
         const file = new File([blob], name, { type: 'video/mp4' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          const sh = document.createElement('button'); sh.type = 'button'; sh.className = 'btn'; sh.textContent = tr('Share');
+          const sh = document.createElement('button'); sh.type = 'button'; sh.className = 'btn v3d-out'; sh.textContent = tr('Share');
           sh.onclick = () => navigator.share({ files: [file], title: a.name }).catch(() => {});
-          acts.appendChild(sh);
+          acts.querySelector('.v3d-out').after(sh);
         }
+        m._v3dDone = true;
       } else { msg.textContent = tr('Cancelled.'); }
     } catch (e) {
       bar.parentElement.classList.remove('busy');
@@ -375,6 +382,11 @@ function openVideo3d(id) {
     }
     _v3dBusy = false; _v3dCancel = false;
     armed = null; clearTimeout(armedT); go.disabled = false;
-    if (go.isConnected) { go.textContent = tr('Render video'); go.classList.add('btn-primary'); go.classList.remove('v3d-cancel'); }
+    if (go.isConnected) {
+      go.classList.remove('v3d-cancel');
+      // after a finished video: a secondary "Render again" (Download is the main action now)
+      if (m._v3dDone) { go.textContent = '🔁 ' + tr('Render again'); go.classList.remove('btn-primary'); }
+      else { go.textContent = tr('Render video'); go.classList.add('btn-primary'); }
+    }
   };
 }

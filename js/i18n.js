@@ -608,6 +608,7 @@ const TR_ID = {
   'Midnight': 'Tengah Malam', 'Paper': 'Kertas', 'Topo': 'Topo',
   'Tap again to stop': 'Ketuk lagi untuk berhenti', 'Tap again to stop the render': 'Ketuk lagi untuk menghentikan pembuatan video',
   'Rendering — tap ✕ again to stop and close': 'Sedang membuat video — ketuk ✕ lagi untuk berhenti dan menutup', 'Stopping…': 'Menghentikan…',
+  'Render again': 'Buat ulang',
   'Set bike': 'Pilih sepeda', 'Change bike': 'Ganti sepeda', 'Changing the bike…': 'Mengganti sepeda…',
   'Changing the bike and rewriting the caption…': 'Mengganti sepeda dan menulis ulang caption…',
   'Bike changed — new title and caption are on Strava.': 'Sepeda diganti — judul dan caption baru sudah di Strava.',
