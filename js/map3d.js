@@ -74,6 +74,14 @@ function _m3dLoad() {
   return _m3dLib;
 }
 
+/* Warm-up: download MapLibre in the background when the browser is idle, so
+   pressing 3D (or 🎬) doesn't wait for it. Safe to call often. */
+function m3dPreload() {
+  if (window.maplibregl || _m3dLib) return;
+  const go = () => _m3dLoad().catch(() => {});
+  if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 }); else setTimeout(go, 1500);
+}
+
 // Close the 3D view in this Leaflet container (also called before the 2D map is rebuilt).
 function close3d(host) {
   if (!host || !host._m3d) return;

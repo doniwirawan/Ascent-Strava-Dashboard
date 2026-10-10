@@ -857,6 +857,7 @@ function openActivityModal(ref){
   if (window.applyI18n) window.applyI18n();
   document.getElementById('actModal').classList.add('open');
   if(hasRoute) _actBuildMap(a);
+  if(hasRoute && a.id && typeof v3dPreload==='function') v3dPreload(); // so 🎬 3D video starts quicker
   if(hasRoute && typeof aiRoutePlaces==='function') aiRoutePlaces(a).then(rp=>{
     const el=document.getElementById('actRoutePlaces'); if(el&&rp) el.textContent='🧭 '+routePlacesText(rp);
   }).catch(()=>{});

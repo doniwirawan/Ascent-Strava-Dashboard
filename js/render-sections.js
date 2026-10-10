@@ -680,6 +680,7 @@ function renderHeatmap(){
 
   if(tracks.length){ heatLegend(leafletMapInst); heatModeControl(leafletMapInst); }
   if(typeof map3dControl==='function') map3dControl(leafletMapInst, heatMode==='clean'?[]:tracks);
+  if(typeof m3dPreload==='function') m3dPreload();   // 3D opens without waiting for MapLibre
 
   // Invisible per-activity lines on top keep the tooltip / hover / click that
   // the merged bands can't carry.

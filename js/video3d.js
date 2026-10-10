@@ -38,6 +38,20 @@ const _v3dBearing = (a, b) => {
 
 /* Streams → samples [{ll, d, alt, v, hr, w}] with the home zone removed, the
    distance re-based to the first kept sample, and a light smoothing on HR/power. */
+// Streams fetched once per activity + privacy choice — started as soon as the dialog opens.
+const _v3dPre = {};
+function _v3dSamplesCached(a, hideHome) {
+  const k = a.id + ':' + (hideHome ? 1 : 0);
+  return _v3dPre[k] || (_v3dPre[k] = _v3dSamples(a, hideHome).catch(e => { delete _v3dPre[k]; throw e; }));
+}
+// Warm-up for the activity pop-up: MapLibre + the MP4 muxer, in the background.
+function v3dPreload() {
+  if (typeof m3dPreload === 'function') m3dPreload();
+  if (window.Mp4Muxer || _v3dMuxP) return;
+  const go = () => _v3dLoadMuxer().catch(() => {});
+  if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 5000 }); else setTimeout(go, 2000);
+}
+
 async function _v3dSamples(a, hideHome) {
   const raw = await api(`/activities/${a.id}/streams?keys=latlng,distance,altitude,velocity_smooth,heartrate,watts&key_by_type=true`);
   const g = k => raw[k] && raw[k].data;
@@ -156,7 +170,7 @@ function _v3dOutro(c, st) {
 /* ── the render ── */
 async function _v3dRender(a, opts, ui) {
   ui.step(tr('Fetching your ride’s data…'), .01);
-  const S = await _v3dSamples(a, opts.hideHome);
+  const S = await _v3dSamplesCached(a, opts.hideHome);
   if (!S) throw new Error(tr('This activity has no GPS stream to fly over.'));
   ui.step(tr('Loading the 3D engine…'), .03);
   await Promise.all([_m3dLoad(), _v3dLoadMuxer()]);
@@ -291,6 +305,9 @@ function openVideo3d(id) {
       <div class="v3d-actions"><button type="button" class="btn btn-primary" id="v3dGo">${tr('Render video')}</button></div>
     </div>`;
   m.classList.add('open');
+  // get a head start while the style / length are being picked
+  v3dPreload();
+  _v3dSamplesCached(a, true).catch(() => {});
   const msg = m.querySelector('.v3d-msg'), bar = m.querySelector('.v3d-bar i'), go = m.querySelector('#v3dGo'), stage = m.querySelector('.v3d-stage');
   const close = () => { if (_v3dBusy) _v3dCancel = true; m.classList.remove('open'); };
   m.querySelector('.v3d-x').onclick = close;
