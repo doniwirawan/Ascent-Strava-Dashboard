@@ -390,10 +390,37 @@ function renderActivities() {
     const km  = kmVal(a.distance||0);
     const pct = (a.distance||0)/(maxDist||1);
     const sz  = Math.max(28, Math.min(90, 28 + pct*62));
-    return `<div class="bubble" style="width:${sz}px;height:${sz}px;cursor:pointer" title="${a.name} — ${km.toFixed(1)} ${distUnit()}" onclick="openActivityModal(${i})">
-      ${sz>40 ? `<span>${km.toFixed(0)}</span>` : ''}
+    return `<div class="bubble" data-sz="${sz}" style="width:${sz}px;height:${sz}px;cursor:pointer" title="${a.name} — ${km.toFixed(1)} ${distUnit()}" onclick="openActivityModal(${i})">
+      <span${sz>40?'':' hidden'}>${km.toFixed(0)}</span>
     </div>`;
   }).join('');
+  _fitBubbles();
+  if (!wrap._fitObs && window.ResizeObserver) {   // refit on resize, and once the hidden section is shown
+    let t; wrap._fitObs = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(_fitBubbles, 120); });
+    wrap._fitObs.observe(document.getElementById('actList'));
+  }
+}
+
+/* Scale the bubbles so they fill the card beside the (taller) activity list
+   instead of leaving its bottom half empty. Stacked (phone) layout: normal size. */
+function _fitBubbles() {
+  const wrap = document.getElementById('bubbleWrap'), list = document.getElementById('actList');
+  const bs = wrap ? [...wrap.querySelectorAll('.bubble')] : [];
+  if (!bs.length || !wrap.offsetWidth) return;
+  const card = wrap.closest('.card'), left = list && list.closest('.card');
+  const apply = s => bs.forEach(b => {
+    const z = Math.round(+b.dataset.sz * s);
+    b.style.width = b.style.height = z + 'px';
+    const sp = b.firstElementChild; sp.hidden = z <= 40; sp.style.fontSize = Math.max(9, Math.round(9 * Math.min(s, 1.8))) + 'px';
+  });
+  const contentH = () => { const f = bs[0].offsetTop, l = bs.reduce((m, b) => Math.max(m, b.offsetTop + b.offsetHeight), 0); return l - f; };
+  apply(1);
+  if (!left || left.offsetTop !== card.offsetTop) return;          // stacked: leave as is
+  const room = left.offsetHeight - (card.offsetHeight - wrap.offsetHeight) - 24;
+  if (room <= contentH()) return;
+  let lo = 1, hi = 2.6;                                             // largest scale that still fits
+  for (let i = 0; i < 12; i++) { const m = (lo + hi) / 2; apply(m); if (contentH() <= room) lo = m; else hi = m; }
+  apply(lo);
 }
 
 // Bike picker in the activity pop-up (rides with an id) — see actSetBike in ai-coach.js.
