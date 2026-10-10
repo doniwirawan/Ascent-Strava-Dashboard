@@ -38,7 +38,7 @@ function chaseAiCard() {
       <button class="btn btn-primary" id="caiGo" onclick="chaseAiGo()">${tr('Generate')}</button>
     </div>
     <div class="cai-opts">
-      <div class="cai-seg" role="radiogroup" aria-label="${tr('Route mode')}">${CAI_MODES.map(([id, ic, name]) =>
+      <div class="cai-seg" id="caiModes" role="radiogroup" aria-label="${tr('Route mode')}">${CAI_MODES.map(([id, ic, name]) =>
         `<button type="button" role="radio" aria-checked="${_caiMode === id}" class="${_caiMode === id ? 'on' : ''}" onclick="chaseAiMode('${id}')">${ic} ${tr(name)}</button>`).join('')}</div>
       <label class="cai-se">${tr('Start')} <input id="caiStart" placeholder="${_caiEsc(tr('Usual start (home)'))}"></label>
       <label class="cai-se">${tr('End')} <input id="caiEnd" placeholder="${_caiEsc(tr('Same as start'))}"></label>
@@ -55,7 +55,7 @@ function chaseAiCard() {
 
 function chaseAiMode(m) {
   _caiMode = m; try { localStorage.setItem('cai_mode', m); } catch {}
-  document.querySelectorAll('.cai-seg button').forEach((b, i) => { const on = CAI_MODES[i][0] === m; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+  document.querySelectorAll('#caiModes button').forEach((b, i) => { const on = CAI_MODES[i][0] === m; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
 }
 
 // 1) request → plan, via the AI. Only the words go out.
