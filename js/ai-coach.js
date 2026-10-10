@@ -844,6 +844,47 @@ async function bulkRun(p, mode) {
   setTimeout(() => { if (bar) bar.style.width = '0%'; }, 1500);
 }
 
+/* Bike picker in the activity pop-up. The owner goes through the server, which
+   also rewrites an AI caption + private note for the new bike right away; anyone
+   else just sets the bike. */
+async function actSetBike(id, sel) {
+  const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
+  const status = document.getElementById('actBikeStatus');
+  const gear_id = sel.value, prev = a ? a.gear_id : null;
+  if (!a || !gear_id || gear_id === prev) return;
+  const say = (cls, t) => { if (status) { status.className = 'ai-cap-status ' + cls; status.textContent = t; } };
+  sel.disabled = true;
+  try {
+    if (_isAiOwner()) {
+      const ai = /AI-written by Ascent/.test(a.description || '');
+      say('', ai ? tr('Changing the bike and rewriting the caption…') : tr('Changing the bike…'));
+      const r = await fetch('/api/ai-chats', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: localStorage.getItem('strava_access_token'), action: 'set-bike', id, gear_id }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) throw new Error(d.detail || d.error || r.status);
+      a.gear_id = gear_id;
+      if (d.name) a.name = d.name;
+      if (d.description != null) a.description = d.description;
+      const t = document.getElementById('actModalTitle'); if (t && d.name) t.textContent = d.name;
+      _aiStoreP = null; aiStoreLoad(); // the server saved the new caption + analysis
+      if (/^(re-)?captioned/.test(d.result || '')) say('ok', '✓ ' + tr('Bike changed — new caption and private note are on Strava.'));
+      else if (/^failed/.test(d.result || '')) say('err', tr('Bike changed, but the caption couldn’t be rewritten:') + ' ' + d.result.replace(/^failed:\s*/, ''));
+      else say('ok', '✓ ' + tr('Bike changed on Strava.'));
+    } else {
+      say('', tr('Changing the bike…'));
+      await apiPut('/activities/' + id, { gear_id });
+      a.gear_id = gear_id;
+      say('ok', '✓ ' + tr('Bike changed on Strava.'));
+    }
+    aiSyncCache();
+    if (typeof _renderActList === 'function') _renderActList((document.getElementById('actSearch') || {}).value || '');
+  } catch (e) {
+    sel.value = prev || '';
+    say('err', tr('Couldn’t change the bike') + ' (' + ((e && e.message) || e) + '). ' + tr('Your login may need the activity:write permission — reconnect Strava.'));
+  }
+  sel.disabled = false;
+}
+
 /* Settings → Auto-caption webhook (owner only): is it subscribed, does the server
    hold a token that can write, and what happened to the latest events. */
 async function aiWebhookStatus() {

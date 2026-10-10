@@ -215,8 +215,8 @@ async function captionRecord(id, rec) {
 }
 
 // → a short outcome for the webhook_events log
-async function processActivity(activityId, isUpdate, updates) {
-  const token = await ownerAccessToken();
+async function processActivity(activityId, isUpdate, updates, userToken) {
+  const token = userToken || await ownerAccessToken();
   if (!token) return 'skipped: no owner token with write access — log in to the dashboard once';
   const ar = await fetch(STRAVA + '/activities/' + activityId, { headers: { Authorization: 'Bearer ' + token } });
   if (!ar.ok) return 'failed: could not read the activity (' + ar.status + ')';
@@ -292,3 +292,7 @@ module.exports = async (req, res) => {
   // Ack immediately so Strava doesn't retry (it requires a 200 within ~2s).
   res.status(200).json({ ok: true });
 };
+
+// for the activity pop-up's bike picker (api/ai-chats.js action 'set-bike')
+module.exports.processActivity = processActivity;
+module.exports.captionRecord = captionRecord;

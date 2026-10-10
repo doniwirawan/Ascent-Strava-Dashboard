@@ -396,6 +396,18 @@ function renderActivities() {
   }).join('');
 }
 
+// Bike picker in the activity pop-up (rides with an id) — see actSetBike in ai-coach.js.
+function actBikeSelect(a){
+  if(!a.id || !isRide(a) || typeof actSetBike!=='function') return actBikePill(a);
+  const bikes=((typeof _gearCache!=='undefined'&&_gearCache)||(currentAthlete&&currentAthlete.bikes)||[]).filter(b=>!b.retired||String(b.id)===String(a.gear_id));
+  if(!bikes.length) return actBikePill(a);
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  return `<select class="type-pill bike-pill bike-select" aria-label="${tr('Bike')}" onchange="actSetBike('${a.id}',this)">`
+    + (a.gear_id?'':`<option value="" selected>🚲 ${tr('Set bike')}</option>`)
+    + bikes.map(b=>`<option value="${esc(b.id)}"${String(b.id)===String(a.gear_id)?' selected':''}>🚲 ${esc(b.nickname||b.name)}</option>`).join('')
+    + `</select>`;
+}
+
 // Pill naming the bike an activity was ridden on (its Strava nickname or name).
 function actBikePill(a){
   if(!a.gear_id || !isRide(a)) return '';
@@ -763,10 +775,11 @@ function openActivityModal(ref){
   document.getElementById('actModalBody').innerHTML=`
     ${hasRoute?'<div class="actd-map" id="actMapBig"></div>':''}
     <div class="actd-head">
-      <span class="type-pill ${ride?'ride':''}">${a.sport_type||a.type}</span>${actBikePill(a)}
+      <span class="type-pill ${ride?'ride':''}">${a.sport_type||a.type}</span>${actBikeSelect(a)}
       <span class="actd-date">${dateStr} · ${timeStr}</span>
       ${badges}
     </div>
+    <div id="actBikeStatus" class="ai-cap-status"></div>
     ${loc?`<div class="actd-loc">📍 ${loc}</div>`:''}
     ${hasRoute?'<div class="actd-loc" id="actRoutePlaces"></div>':''}
     ${!hasRoute && a.id && typeof renderManualPlace==='function' ? '<div class="actd-loc" id="actManualPlace"></div>' : ''}

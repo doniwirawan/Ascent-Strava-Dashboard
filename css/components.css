@@ -173,6 +173,9 @@
 
 .type-pill.ride { color: var(--orange); background: var(--orange-dim); }
 .type-pill.bike-pill { color: var(--text-2); letter-spacing: 0; }
+/* bike picker in the activity pop-up — a pill that opens a list */
+select.type-pill.bike-select { font-family: inherit; border: 1px solid var(--border); cursor: pointer; padding: 1px 4px; font-size: 11px; color: var(--text); }
+select.type-pill.bike-select:disabled { opacity: .6; cursor: wait; }
 
 /* Contain Leaflet's internal z-index (panes/controls up to ~1000) so a map can
    never paint above the mobile sidebar drawer or modals */
