@@ -178,24 +178,34 @@ const gcRp = v => 'Rp' + Math.round(v).toLocaleString('id-ID');
 /* First visit on a device: fill in the owner's prices from the server. */
 async function gcOwnerDefaults(bikes) {
   if (!gcIsOwner()) return false;
+  // Once per page load. A server price replaces the local one unless it was edited
+  // here by hand (s.srv remembers what the server last said), so an upgrade added
+  // to OWNER_GEAR_COSTS shows up without clearing this device.
+  if (_gcTried.has('all')) return false;
+  _gcTried.add('all');
   const s = gcLoad();
-  const need = bikes.filter(b => s.bikes[b.id] == null && !_gcTried.has(b.id));
-  if (!need.length && (s.tools != null || _gcTried.has('tools'))) return false;
-  need.forEach(b => _gcTried.add(b.id)); _gcTried.add('tools');
+  const first = !s.srv;                 // before this existed, prices only ever came from the server
+  s.srv = s.srv || { bikes: {} };
   try {
     const r = await fetch('/api/owner-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: CONFIG.accessToken }) });
     const d = r.ok ? await r.json() : null;
     const gc = d && d.gear_costs;
     if (!gc) return false;
+    let changed = false;
     bikes.forEach(b => {
-      if (s.bikes[b.id] != null) return;
       const name = ((b.nickname || '') + ' ' + (b.name || '')).toLowerCase();
       const k = Object.keys(gc.bikes || {}).find(k => name.includes(k.toLowerCase()));
-      if (k) s.bikes[b.id] = gc.bikes[k];
+      if (!k) return;
+      const cur = s.bikes[b.id], prev = first ? cur : s.srv.bikes[b.id];
+      if (cur == null || cur === prev) { if (cur !== gc.bikes[k]) changed = true; s.bikes[b.id] = gc.bikes[k]; }
+      s.srv.bikes[b.id] = gc.bikes[k];
     });
-    if (s.tools == null && gc.tools != null) s.tools = gc.tools;
+    if (gc.tools != null) {
+      if (s.tools == null || s.tools === (first ? s.tools : s.srv.tools)) { if (s.tools !== gc.tools) changed = true; s.tools = gc.tools; }
+      s.srv.tools = gc.tools;
+    }
     gcSave(s);
-    return true;
+    return changed;
   } catch { return false; }
 }
 

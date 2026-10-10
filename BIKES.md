@@ -40,7 +40,7 @@ Strava components: 13.
 |---|---|
 | Frame | Camp SR3D |
 | Groupset | Sensah Empire Pro 12-speed (rear derailleur, shift levers) |
-| Crankset | Senicx PR5 |
+| Crankset | Senicx PR5 — *being replaced (ordered 2026-10-10, not fitted yet):* ThinkRider alloy 165 mm crank with **ThinkRider PP6 power meter**, chainrings Goldix Aero 50T + Shimano 105 FC-R7100 34T (BCD 110×4) |
 | Wheels | Mavic Cosmic Elite 45mm deep alloy |
 | Brake pads | Toopre Ice Tech TL-01S ceramic |
 | Tyres | Maxxis Pursuer 700x28c skinwall |
