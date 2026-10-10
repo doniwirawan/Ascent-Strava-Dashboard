@@ -393,6 +393,8 @@ function openVideo3d(id) {
         if (m._v3dUrl) URL.revokeObjectURL(m._v3dUrl);
         m._v3dUrl = url;
         acts.insertAdjacentHTML('afterbegin', `<a class="btn btn-primary v3d-out" href="${url}" download="${name}">${tr('Download MP4')}</a>`);
+        // save it straight away; the button stays for another copy (some phones ask first)
+        try { acts.querySelector('a.v3d-out').click(); msg.textContent += ' · ' + tr('downloaded'); } catch {}
         const file = new File([blob], name, { type: 'video/mp4' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           const sh = document.createElement('button'); sh.type = 'button'; sh.className = 'btn v3d-out'; sh.textContent = tr('Share');

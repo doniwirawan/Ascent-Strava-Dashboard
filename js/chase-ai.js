@@ -84,9 +84,29 @@ async function _caiGraph() {
 }
 
 // 3) home → places (→ home), never-ridden roads cheap, repeats expensive
+// Stops in riding order: nearest-next from home (no zigzag); one way ends at the
+// named place furthest from home (the destination).
+function _caiOrder(stops, loop) {
+  const home = _rsHome(); if (!home || stops.length < 2) return stops;
+  const d = (a, b) => Math.hypot(a[0] - b[0], (a[1] - b[1]) * Math.cos(a[0] * Math.PI / 180));
+  let last = null;
+  if (!loop) {
+    const named = stops.filter(s => s.named);
+    last = (named.length ? named : stops).reduce((m, s) => d(home, [s.lat, s.lng]) > d(home, [m.lat, m.lng]) ? s : m);
+  }
+  const rest = stops.filter(s => s !== last), out = [];
+  let cur = home;
+  while (rest.length) {
+    let k = 0; rest.forEach((s, i) => { if (d(cur, [s.lat, s.lng]) < d(cur, [rest[k].lat, rest[k].lng])) k = i; });
+    const s = rest.splice(k, 1)[0]; out.push(s); cur = [s.lat, s.lng];
+  }
+  return last ? out.concat(last) : out;
+}
+
 function _caiRoute(g, stops, loop) {
   const home = _rsHome(); if (!home) return null;
   const h0 = _rsNearest(g, home[0], home[1]); if (h0 < 0) return null;
+  stops = _caiOrder(stops, loop);
   const nodes = stops.map(s => _rsNearest(g, s.lat, s.lng)).filter(n => n >= 0);
   const seq = loop ? [...nodes, h0] : nodes;
   const used = new Map(), path = []; let cur = h0;
@@ -131,6 +151,7 @@ async function chaseAiGo() {
       stops = await _caiGeocode(plan.places, n => say(trf('Finding {0} on the map…', n.split(',')[0])));
       if (!stops.length) throw new Error(tr('Couldn’t find those places on the map — try naming a town or landmark.'));
       say(tr('Working out the route…'));
+      stops = _caiOrder(stops, plan.loop);              // the order the route takes (and the map numbers)
       route = _caiRoute(g, stops, plan.loop);
       // too long for the asked distance? drop places the AI added for the theme (never
       // ones you named), one at a time, keeping whichever leaves the closest fit
@@ -142,7 +163,7 @@ async function chaseAiGo() {
           if (r2 && (!best || Math.abs(r2.total - plan.km * 1000) < Math.abs(best.r.total - plan.km * 1000))) best = { r: r2, rest };
         });
         if (!best) break;
-        route = best.r; stops = best.rest;
+        route = best.r; stops = _caiOrder(best.rest, plan.loop);
       }
     } else if (plan.km) {
       say(tr('Working out the route…'));

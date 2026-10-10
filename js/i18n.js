@@ -617,6 +617,7 @@ const TR_ID = {
   'Say where you want to go or how far — e.g. "60 km loop via Tabanan".': 'Sebutkan mau ke mana atau seberapa jauh — misalnya "loop 60 km lewat Tabanan".',
   'No route found on the major roads for that — try another place.': 'Tidak ada rute di jalan utama untuk itu — coba tempat lain.',
   'asked for {0} km — the places set the distance': 'diminta {0} km — jaraknya mengikuti tempat yang dilewati',
+  'downloaded': 'sudah diunduh',
   'Set bike': 'Pilih sepeda', 'Change bike': 'Ganti sepeda', 'Changing the bike…': 'Mengganti sepeda…',
   'Changing the bike and rewriting the caption…': 'Mengganti sepeda dan menulis ulang caption…',
   'Bike changed — new title and caption are on Strava.': 'Sepeda diganti — judul dan caption baru sudah di Strava.',
