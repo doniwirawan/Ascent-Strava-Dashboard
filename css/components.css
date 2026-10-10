@@ -607,3 +607,6 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
   height: 100dvh !important; z-index: 10000; border-radius: 0 !important; margin: 0 !important; }
 .leaflet-container:fullscreen { width: 100vw !important; height: 100vh !important; border-radius: 0 !important; }
 body.map-fs-open { overflow: hidden; }
+
+/* "Road & place names" overlay in grey, so its road lines never look like routes */
+.map-labels-tiles { filter: grayscale(1) contrast(1.15); opacity: .85; }

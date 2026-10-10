@@ -402,7 +402,8 @@ function addBasemap(map, extra) {
   active.addTo(map);
   applyInvert(start);
   map._bmView = start;                    // PNG export renders the view on screen
-  const labels = L.layerGroup(BASEMAP_LABELS.map(u => L.tileLayer(u, { maxZoom: 19, attribution: 'Labels &copy; Esri' })));
+  // grey: Esri draws the roads peach/yellow, which read like the heatmap's own colours
+  const labels = L.layerGroup(BASEMAP_LABELS.map(u => L.tileLayer(u, { maxZoom: 19, className: 'map-labels-tiles', attribution: 'Labels &copy; Esri' })));
   let labelsOn = false; try { labelsOn = localStorage.getItem('map_labels') === '1'; } catch {}
   if (labelsOn) labels.addTo(map);
   L.control.layers(layers, { [T('Road & place names')]: labels }, { position: 'topright' }).addTo(map);
