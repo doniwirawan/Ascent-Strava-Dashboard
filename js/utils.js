@@ -321,7 +321,48 @@ const BASEMAP_VIEWS = [
     opts: { maxZoom: 19, attribution: '&copy; Esri' } },
   { id: 'relief', name: 'Relief',    invert: false, url: ESRI + 'Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',
     opts: { maxZoom: 19, attribution: 'Hillshade &copy; Esri' } },
+  // the plain OSM map, undimmed: shop, warung, temple and landmark names
+  { id: 'streets', name: 'Streets', invert: false, url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' } },
 ];
+
+/* "Road & place names" overlay for any view (on top of Satellite especially):
+   Esri's key-free reference tiles — road lines + names, and towns/villages. */
+const BASEMAP_LABELS = [
+  ESRI + 'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+  ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+];
+
+/* ⛶ button that makes a Leaflet map fill the screen: the Fullscreen API where it
+   exists, else (iPhone Safari) a fixed full-window overlay. The map re-measures
+   itself either way. Safe to call again after the map is rebuilt in place. */
+function mapFullscreen(map) {
+  const el = map.getContainer();
+  const isFs = () => document.fullscreenElement === el || el.classList.contains('map-fs');
+  const c = L.control({ position: 'topright' });
+  c.onAdd = () => {
+    const b = L.DomUtil.create('a', 'leaflet-bar map-fs-btn');
+    b.href = '#'; b.setAttribute('role', 'button');
+    const paint = () => { b.textContent = isFs() ? '✕' : '⛶'; b.title = isFs() ? tr('Exit full screen') : tr('Full screen'); };
+    paint();
+    L.DomEvent.disableClickPropagation(b);
+    L.DomEvent.on(b, 'click', e => {
+      L.DomEvent.preventDefault(e);
+      if (isFs()) {
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        el.classList.remove('map-fs'); document.body.classList.remove('map-fs-open');
+      } else if (el.requestFullscreen) {
+        el.requestFullscreen().catch(() => { el.classList.add('map-fs'); document.body.classList.add('map-fs-open'); });
+      } else { el.classList.add('map-fs'); document.body.classList.add('map-fs-open'); }
+      setTimeout(() => { paint(); try { map.invalidateSize(); } catch {} }, 150);
+    });
+    const onChange = () => { paint(); setTimeout(() => { try { map.invalidateSize(); } catch {} }, 150); };
+    document.addEventListener('fullscreenchange', onChange);
+    map.on('unload', () => document.removeEventListener('fullscreenchange', onChange));
+    return b;
+  };
+  c.addTo(map);
+}
 
 /* Right-click (long-press on phones) anywhere on a Leaflet map: a popup with the
    point's coordinates and links to open it in Google Maps / Street View. */
@@ -361,7 +402,13 @@ function addBasemap(map, extra) {
   active.addTo(map);
   applyInvert(start);
   map._bmView = start;                    // PNG export renders the view on screen
-  L.control.layers(layers, null, { position: 'topright' }).addTo(map);
+  const labels = L.layerGroup(BASEMAP_LABELS.map(u => L.tileLayer(u, { maxZoom: 19, attribution: 'Labels &copy; Esri' })));
+  let labelsOn = false; try { labelsOn = localStorage.getItem('map_labels') === '1'; } catch {}
+  if (labelsOn) labels.addTo(map);
+  L.control.layers(layers, { [T('Road & place names')]: labels }, { position: 'topright' }).addTo(map);
+  map.on('overlayadd overlayremove', e => {
+    if (e.layer === labels) try { localStorage.setItem('map_labels', e.type === 'overlayadd' ? '1' : '0'); } catch {}
+  });
   map.on('baselayerchange', e => {
     const v = byLayer.get(e.layer);
     if (!v) return;

@@ -598,3 +598,12 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 .best-card .spot-panel.open{grid-template-columns:1fr;padding:10px;margin:6px 0}
 .best-card .spot-map{height:160px}
 .best-card:not(.show-all) .best-extra + .spot-panel{display:none}
+
+/* Map full-screen button + the no-Fullscreen-API fallback (mapFullscreen in utils.js) */
+.map-fs-btn { display: flex !important; align-items: center; justify-content: center; width: 34px; height: 34px;
+  background: #fff; color: #222 !important; font-size: 18px; line-height: 1; text-decoration: none; cursor: pointer; }
+.map-fs-btn:hover { background: #f2f2f2; }
+.leaflet-container.map-fs { position: fixed !important; inset: 0; width: 100vw !important; height: 100vh !important;
+  height: 100dvh !important; z-index: 10000; border-radius: 0 !important; margin: 0 !important; }
+.leaflet-container:fullscreen { width: 100vw !important; height: 100vh !important; border-radius: 0 !important; }
+body.map-fs-open { overflow: hidden; }

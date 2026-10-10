@@ -597,6 +597,7 @@ function renderHeatmap(){
 
   leafletMapInst=L.map(el,{zoomControl:true,scrollWheelZoom:true,center:[-8.34,115.09],zoom:12});
   addBasemap(leafletMapInst,{switcher:true});
+  mapFullscreen(leafletMapInst);
   const keep=_heatView, map0=leafletMapInst;
   map0.on('moveend',()=>{ if(el.offsetWidth) _heatView={center:map0.getCenter(),zoom:map0.getZoom()}; });
   mapPointMenu(map0);
