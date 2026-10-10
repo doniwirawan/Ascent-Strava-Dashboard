@@ -91,17 +91,19 @@ const _caiRefreshHistory = () => { const h = document.getElementById('caiHistory
 
 // rename in place (no browser dialog): the title becomes an input; Enter / leaving saves
 function chaseAiRename(i) {
-  const row = document.querySelector(`.cai-hrow[data-i="${i}"] .cai-hmain b`); if (!row) return;
+  const btn = document.querySelector(`.cai-hrow[data-i="${i}"] .cai-hmain`); if (!btn) return;
   const list = _caiSaved(), o = list[i]; if (!o) return;
+  // the input replaces the whole row button — inside a <button>, Space would "click" it
   const inp = document.createElement('input'); inp.className = 'cai-hname'; inp.value = o.title; inp.maxLength = 80;
-  row.replaceWith(inp); inp.focus(); inp.select();
-  inp.onclick = e => e.stopPropagation();
+  btn.replaceWith(inp); inp.focus(); inp.select();
+  let finished = false;
   const done = save => {
-    if (save && inp.value.trim()) { o.title = inp.value.trim(); _caiSave(list); if (_caiPick === i) chaseAiShow(i, list); }
-    _caiRefreshHistory();
+    if (finished) return; finished = true;
+    if (save && inp.value.trim()) { o.title = inp.value.trim(); _caiSave(list); }
+    if (_caiPick === i) chaseAiShow(i); else _caiRefreshHistory();
   };
   inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); done(true); } if (e.key === 'Escape') done(false); };
-  inp.onblur = () => done(true);
+  inp.onblur = () => setTimeout(() => done(true), 0);
 }
 
 // load a route's request and options back into the form, to tweak and generate again
