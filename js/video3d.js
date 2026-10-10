@@ -155,8 +155,10 @@ function _v3dOutro(c, st) {
 
 /* ── the render ── */
 async function _v3dRender(a, opts, ui) {
+  ui.step(tr('Fetching your ride’s data…'), .01);
   const S = await _v3dSamples(a, opts.hideHome);
   if (!S) throw new Error(tr('This activity has no GPS stream to fly over.'));
+  ui.step(tr('Loading the 3D engine…'), .03);
   await Promise.all([_m3dLoad(), _v3dLoadMuxer()]);
   if (typeof VideoEncoder === 'undefined') throw new Error(tr('This browser can’t encode video — use Chrome or Edge on a laptop or Android.'));
 
@@ -191,6 +193,7 @@ async function _v3dRender(a, opts, ui) {
       terrain: { source: 'dem', exaggeration: 1.5 } },
   });
   const idle = (ms = 4000) => new Promise(res => { let done = false; const fin = () => { if (!done) { done = true; res(); } }; map.once('idle', fin); setTimeout(fin, ms); map.triggerRepaint(); });
+  ui.step(tr('Loading satellite imagery and terrain…'), .05);
   await new Promise(res => map.once('load', res));
 
   try { return await _v3dFrames(); } finally { try { map.remove(); } catch {} box.remove(); }
@@ -198,7 +201,6 @@ async function _v3dRender(a, opts, ui) {
   async function _v3dFrames() {
   const out = document.createElement('canvas'); out.width = V3D_W; out.height = V3D_H;
   const c = out.getContext('2d');
-  ui.preview(out);
 
   let encErr = null;
   const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: V3D_W, height: V3D_H }, fastStart: 'in-memory' });
@@ -253,6 +255,7 @@ async function _v3dRender(a, opts, ui) {
       phase = f >= nIntro + nRide + nPull ? 'outro' : 'ride';
       if (phase === 'outro') fade = Math.min(1, (f - nIntro - nRide - nPull) / 12);
     }
+    if (f === 0) ui.step(tr('Loading the first view…'), .07);
     await idle(f === 0 ? 15000 : 4000);
     c.drawImage(map.getCanvas(), 0, 0, V3D_W, V3D_H);
     if (phase !== 'outro' && f >= nIntro) {             // rider dot
@@ -264,6 +267,7 @@ async function _v3dRender(a, opts, ui) {
     const vf = new VideoFrame(out, { timestamp: Math.round(f * 1e6 / V3D_FPS), duration: Math.round(1e6 / V3D_FPS) });
     enc.encode(vf, { keyFrame: f % (V3D_FPS * 2) === 0 }); vf.close();
     if (enc.encodeQueueSize > 8) await new Promise(r => setTimeout(r, 20));
+    if (f === 0) ui.preview(out);                        // show the canvas once it has a picture
     ui.progress((f + 1) / N);
   }
   await enc.flush(); enc.close();
@@ -298,17 +302,29 @@ function openVideo3d(id) {
   go.onclick = async () => {
     if (_v3dBusy) { _v3dCancel = true; return; }
     _v3dBusy = true; _v3dCancel = false;
-    go.textContent = tr('Cancel'); msg.className = 'v3d-msg'; msg.textContent = tr('Loading the 3D map and your ride…');
-    const t0 = Date.now();
+    go.textContent = tr('Cancel'); msg.className = 'v3d-msg';
+    // setup steps fill the first 8% of the bar (shimmering while they wait); frames the rest
+    const barBox = bar.parentElement, SETUP = .08;
+    barBox.classList.add('busy');
+    stage.innerHTML = '<div class="v3d-wait"><span class="v3d-spin"></span><span class="v3d-wait-t"></span></div>';
+    let t0 = 0;
     try {
       const blob = await _v3dRender(a, { secs: +m.querySelector('#v3dSecs').value, hideHome: m.querySelector('#v3dHome').checked }, {
-        preview: cv => { stage.innerHTML = ''; stage.appendChild(cv); },
-        progress: p => {
+        step: (label, p) => {
           bar.style.width = (p * 100).toFixed(1) + '%';
+          msg.textContent = label;
+          const w = stage.querySelector('.v3d-wait-t'); if (w) w.textContent = label;
+        },
+        preview: cv => { barBox.classList.remove('busy'); stage.innerHTML = ''; stage.appendChild(cv); },
+        progress: p => {
+          if (!t0) t0 = Date.now();                       // ETA from the frames only, not the setup
+          const tot = SETUP + p * (1 - SETUP);
+          bar.style.width = (tot * 100).toFixed(1) + '%';
           const el = (Date.now() - t0) / 1000, left = p > .03 ? el / p - el : 0;
-          msg.textContent = trf('Rendering… {0}%', Math.round(p * 100)) + (left ? ' · ' + trf('about {0} left', left > 90 ? Math.round(left / 60) + ' min' : Math.round(left) + ' s') : '') + ' — ' + tr('keep this tab open');
+          msg.textContent = trf('Rendering… {0}%', Math.round(tot * 100)) + (left ? ' · ' + trf('about {0} left', left > 90 ? Math.round(left / 60) + ' min' : Math.round(left) + ' s') : '') + ' — ' + tr('keep this tab open');
         },
       });
+      barBox.classList.remove('busy');
       if (blob) {
         const url = URL.createObjectURL(blob), name = 'ascent-3d-' + a.id + '.mp4';
         stage.innerHTML = `<video src="${url}" controls autoplay loop muted playsinline></video>`;
@@ -323,6 +339,8 @@ function openVideo3d(id) {
         }
       } else { msg.textContent = tr('Cancelled.'); }
     } catch (e) {
+      bar.parentElement.classList.remove('busy');
+      if (stage.querySelector('.v3d-wait')) stage.innerHTML = '<div class="v3d-ph">⚠️</div>';
       msg.className = 'v3d-msg err'; msg.textContent = (e && e.message) || String(e);
     }
     _v3dBusy = false; _v3dCancel = false;

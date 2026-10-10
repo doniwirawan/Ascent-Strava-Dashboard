@@ -603,6 +603,8 @@ const TR_ID = {
   'Max power': 'Power maks', 'Highest Avg Power': 'Power Rata-rata Tertinggi', 'Highest Normalized Power': 'Normalized Power Tertinggi',
   'Highest Max Power': 'Power Maks Tertinggi', 'Most Energy': 'Energi Terbanyak', 'Most Power per Heartbeat': 'Power per Detak Tertinggi',
   'Least Power per Heartbeat': 'Power per Detak Terendah', 'normalized power ÷ avg HR': 'normalized power ÷ HR rata-rata',
+  'Fetching your ride’s data…': 'Mengambil data ride kamu…', 'Loading the 3D engine…': 'Memuat mesin 3D…',
+  'Loading satellite imagery and terrain…': 'Memuat citra satelit dan medan…', 'Loading the first view…': 'Memuat tampilan pertama…',
   'Set bike': 'Pilih sepeda', 'Change bike': 'Ganti sepeda', 'Changing the bike…': 'Mengganti sepeda…',
   'Changing the bike and rewriting the caption…': 'Mengganti sepeda dan menulis ulang caption…',
   'Bike changed — new title and caption are on Strava.': 'Sepeda diganti — judul dan caption baru sudah di Strava.',
