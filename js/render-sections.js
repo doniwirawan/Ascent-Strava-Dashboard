@@ -391,7 +391,7 @@ const HEAT_UNIFORM = { color: '#FC4C02', weight: 2.2, opacity: 0.8 };
 // end in each (ranked in the list under the map), with the routes drawn faintly on top.
 // 'unridden' = Bali's major & medium roads (trunk → tertiary) you have never ridden.
 let heatMode = 'freq';
-try { const m = localStorage.getItem('heat_mode'); if (m === 'freq' || m === 'uniform' || m === 'regency' || m === 'unridden') heatMode = m; } catch {}
+try { const m = localStorage.getItem('heat_mode'); if (m === 'freq' || m === 'uniform' || m === 'regency' || m === 'unridden' || m === 'clean') heatMode = m; } catch {}
 
 /* Bali's trunk / primary / secondary / tertiary roads (OpenStreetMap, ODbL),
    pre-packed as encoded polylines in data/bali-major-roads.json. Loaded once. */
@@ -537,7 +537,9 @@ function heatLegend(map){
   const c=L.control({position:'bottomleft'});
   c.onAdd=()=>{
     const d=L.DomUtil.create('div','heat-legend');
-    if(heatMode==='unridden'){
+    if(heatMode==='clean'){
+      d.innerHTML='<span class="hl-i">'+T('Map and names only — your routes are hidden')+'</span>';
+    }else if(heatMode==='unridden'){
       d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:3px"></i><span class="hl-unr">'+T('Loading roads…')+'</span></span>';
     }else if(heatMode==='regency'){
       d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:10px;width:14px;opacity:.6"></i>'+T(typeof areaIsRegency!=='function'||areaIsRegency()?'Rides ending in each regency':'Activities ending in each area')+'</span><span class="hl-i reg-pending"></span>';
@@ -568,7 +570,7 @@ function heatModeControl(map){
     const d=L.DomUtil.create('div','heat-mode leaflet-bar');
     const mk=(id,label)=>'<button type="button" data-hm="'+id+'"'+
       (heatMode===id?' class="on"':'')+'>'+T(label)+'</button>';
-    d.innerHTML=mk('freq','Frequency')+mk('uniform','Uniform')+(typeof regencyLayers==='function'?mk('regency',typeof areaIsRegency!=='function'||areaIsRegency()?'Regency':'Areas'):'')+mk('unridden','Never ridden');
+    d.innerHTML=mk('freq','Frequency')+mk('uniform','Uniform')+(typeof regencyLayers==='function'?mk('regency',typeof areaIsRegency!=='function'||areaIsRegency()?'Regency':'Areas'):'')+mk('unridden','Never ridden')+mk('clean','Clean');
     L.DomEvent.disableClickPropagation(d);
     d.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
       const m=b.getAttribute('data-hm');
@@ -618,10 +620,14 @@ function renderHeatmap(){
   // Dark casing under everything so the routes read clearly on any basemap.
   if(tracks.length){
     const cw=(heatMode==='freq'?HEAT_BANDS[HEAT_BANDS.length-1].weight:HEAT_UNIFORM.weight)+1.6;
-    if(heatMode!=='regency'&&heatMode!=='unridden') L.polyline(tracks,Object.assign({weight:cw},HEAT_CASING)).addTo(leafletMapInst);
+    if(heatMode!=='regency'&&heatMode!=='unridden'&&heatMode!=='clean') L.polyline(tracks,Object.assign({weight:cw},HEAT_CASING)).addTo(leafletMapInst);
   }
 
-  if(heatMode==='unridden'){
+  if(heatMode==='clean'){
+    // Just the map: no routes, with the road & place names switched on
+    const lb=leafletMapInst._labels;
+    if(lb && !leafletMapInst.hasLayer(lb)) lb.addTo(leafletMapInst);
+  }else if(heatMode==='unridden'){
     // Only the major & medium roads you've never ridden — your own routes stay off.
     const map=leafletMapInst;
     map.attributionControl.addAttribution('Roads &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors');
@@ -664,7 +670,7 @@ function renderHeatmap(){
   // Invisible per-activity lines on top keep the tooltip / hover / click that
   // the merged bands can't carry.
   if(typeof _rsPanel==='function') _rsPanel();       // route suggester shows in Never-ridden mode only
-  if(heatMode!=='unridden') withAct.forEach(({a,latlngs})=>{
+  if(heatMode!=='unridden'&&heatMode!=='clean') withAct.forEach(({a,latlngs})=>{
     const hit=L.polyline(latlngs,{color:'#FC4C02',weight:8,opacity:0,interactive:true})
       .addTo(leafletMapInst);
     hit.bindTooltip(a.name||'Activity',{sticky:true});

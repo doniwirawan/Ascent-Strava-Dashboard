@@ -406,6 +406,7 @@ function addBasemap(map, extra) {
   const labels = L.layerGroup(BASEMAP_LABELS.map(u => L.tileLayer(u, { maxZoom: 19, className: 'map-labels-tiles', attribution: 'Labels &copy; Esri' })));
   let labelsOn = false; try { labelsOn = localStorage.getItem('map_labels') === '1'; } catch {}
   if (labelsOn) labels.addTo(map);
+  map._labels = labels;                   // the heatmap's Clean mode turns it on
   L.control.layers(layers, { [T('Road & place names')]: labels }, { position: 'topright' }).addTo(map);
   map.on('overlayadd overlayremove', e => {
     if (e.layer === labels) try { localStorage.setItem('map_labels', e.type === 'overlayadd' ? '1' : '0'); } catch {}
