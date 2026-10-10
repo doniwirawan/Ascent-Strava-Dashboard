@@ -207,7 +207,7 @@ body.logged-out main { display: none !important; }
 .lp-more-name { font-size: 19px; font-weight: 800; letter-spacing: -.3px; }
 .lp-more-desc { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 8px 0 0; }
 .lp-more-actions { display: flex; flex-direction: column; gap: 10px; flex: 0 0 auto; }
-@media (max-width: 620px) { .lp-more-actions { flex-direction: row; flex-wrap: wrap; } }
+@media (max-width: 620px) { .lp-more-actions { flex-direction: row; flex-wrap: wrap; flex: 1 1 100%; min-width: 0; } .lp-more-actions .lp-os-btn { flex: 1 1 auto; justify-content: center; } }
 
 .lp-cta { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 48px 24px; margin: 64px 0 36px; }
 .lp-cta h2 { font-size: clamp(22px, 4vw, 32px); font-weight: 800; letter-spacing: -.8px; margin: 0 0 20px; }
