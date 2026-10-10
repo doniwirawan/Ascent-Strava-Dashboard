@@ -160,7 +160,7 @@ async function generateNote(data) {
   return { analysis, note: (analysis + '\n\n— AI analysis by Ascent').slice(0, 2000) };
 }
 
-async function generateCaption(a, token) {
+async function generateCaption(a, token, withNote = true) {
   if (!(process.env.DEEPSEEK_API_KEY || '').trim()) return null;
   const data = {
     type: a.sport_type || a.type,
@@ -189,7 +189,7 @@ async function generateCaption(a, token) {
       'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ROAST me in first person like a friend in the group chat who just opened my file: specific, sharp, funny, PG-13. Find the weakest or most ridiculous number (slow average, long stopped time, low cadence, short distance, barely any climbing) and go after it; twist the good numbers into backhanded compliments; absurd comparisons, one punchline per sentence. Never mock body, weight, looks, age, gender, race, religion or money; no slurs. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Stopped time is NOT a café, coffee, food, nap or any other stop — I never told you why I stopped, so never say or joke about where or why (just roast the minutes). Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nWrite my new title and description.' },
   ];
-  const [text, nt] = await Promise.all([deepseek(messages, 400), generateNote(data).catch(() => null)]);
+  const [text, nt] = await Promise.all([deepseek(messages, 400), withNote ? generateNote(data).catch(() => null) : null]);
   // always state the destination in the description: "📍 Kintamani, Bangli · 46 km out".
   // Never the start — that's home.
   const caption = text && rp && rp.furthest_place
@@ -214,8 +214,11 @@ async function captionRecord(id, rec) {
   } catch { return null; }
 }
 
-// → a short outcome for the webhook_events log
-async function processActivity(activityId, isUpdate, updates, userToken) {
+// → a short outcome for the webhook_events log. A new activity gets title +
+// description + private note; a re-caption (bike change) rewrites only the title
+// and description and leaves the private note as it is.
+async function processActivity(activityId, isUpdate, updates, userToken, captionOnly) {
+  const withNote = !isUpdate && !captionOnly;
   const token = userToken || await ownerAccessToken();
   if (!token) return 'skipped: no owner token with write access — log in to the dashboard once';
   const ar = await fetch(STRAVA + '/activities/' + activityId, { headers: { Authorization: 'Bearer ' + token } });
@@ -235,7 +238,7 @@ async function processActivity(activityId, isUpdate, updates, userToken) {
       if (!recent || !/AI-written by Ascent/.test(act.description || '')) return 'skipped: not a recent AI-captioned activity';
     }
   }
-  const { text, note, analysis } = (await generateCaption(act, token)) || {};
+  const { text, note, analysis } = (await generateCaption(act, token, withNote)) || {};
   if (!text) return 'failed: AI returned nothing (DeepSeek key/credit?)';
   const lines = text.trim().split('\n');
   const name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100);
@@ -251,10 +254,11 @@ async function processActivity(activityId, isUpdate, updates, userToken) {
   let noteOk = !!note && r.ok;
   if (!r.ok && note) r = await put({ name, description });
   if (!r.ok) return 'failed: Strava refused the update (' + r.status + ')';
+  if (note && !noteOk) noteOk = (await put({ private_note: note })).ok; // one more go on its own
   await captionRecord(activityId, { gear_id: act.gear_id, name });
   // so the dashboard shows it when the activity is opened
   await saveActivityAi(activityId, { caption_title: name, caption_desc: description, ...(analysis ? { analysis } : {}) });
-  return (isUpdate ? 're-captioned' : 'captioned') + (noteOk ? ' + private note' : ' (no private note)') + ': ' + name;
+  return (withNote ? 'captioned' + (noteOk ? ' + private note' : ' (private note failed)') : 're-captioned (private note kept)') + ': ' + name;
 }
 
 module.exports = async (req, res) => {

@@ -600,8 +600,24 @@ async function renderActivityAnalysis(a) {
       if (m && document.getElementById('actAnalysisPanel') === panel) { aiStoreSave(a.id, { analysis: m[1].trim() }); _showAnalysis(a.id, m[1].trim()); }
     } catch {}
   }
-  const cap = document.getElementById('actAiPanel');
-  if (rec.caption_title && rec.caption_title !== a.name && cap && !cap.innerHTML) aiShowCaptionPreview(a.id, rec.caption_title, rec.caption_desc || '', 'ai');
+  // a saved caption that differs from this (possibly stale, cached) title: if
+  // Strava already has it (the webhook wrote it), just catch the cache up;
+  // otherwise it was never applied — offer it again
+  if (rec.caption_title && rec.caption_title !== a.name) {
+    let cur = null;
+    try { cur = await api('/activities/' + a.id); } catch {}
+    if (document.getElementById('actAnalysisPanel') !== panel) return;
+    if (cur && cur.name === rec.caption_title) {
+      a.name = cur.name; a.description = cur.description; if (cur.gear_id) a.gear_id = cur.gear_id;
+      const t = document.getElementById('actModalTitle'); if (t) t.textContent = cur.name;
+      const bs = document.querySelector('.actd-bike-select'); if (bs && cur.gear_id) bs.value = cur.gear_id;
+      aiSyncCache();
+      if (typeof _renderActList === 'function') _renderActList((document.getElementById('actSearch') || {}).value || '');
+    } else if (!cur || cur.name !== rec.caption_title) {
+      const cap = document.getElementById('actAiPanel');
+      if (cap && !cap.innerHTML) aiShowCaptionPreview(a.id, rec.caption_title, rec.caption_desc || '', 'ai');
+    }
+  }
 }
 
 function _showAnalysis(id, text) {
@@ -845,7 +861,8 @@ async function bulkRun(p, mode) {
 }
 
 /* Bike picker in the activity pop-up. The owner goes through the server, which
-   also rewrites an AI caption + private note for the new bike right away; anyone
+   also rewrites an AI title + caption for the new bike right away (the private
+   note stays as it is); anyone
    else just sets the bike. */
 async function actSetBike(id, sel) {
   const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
@@ -867,7 +884,7 @@ async function actSetBike(id, sel) {
       if (d.description != null) a.description = d.description;
       const t = document.getElementById('actModalTitle'); if (t && d.name) t.textContent = d.name;
       _aiStoreP = null; aiStoreLoad(); // the server saved the new caption + analysis
-      if (/^(re-)?captioned/.test(d.result || '')) say('ok', '✓ ' + tr('Bike changed — new caption and private note are on Strava.'));
+      if (/^(re-)?captioned/.test(d.result || '')) say('ok', '✓ ' + tr('Bike changed — new title and caption are on Strava.'));
       else if (/^failed/.test(d.result || '')) say('err', tr('Bike changed, but the caption couldn’t be rewritten:') + ' ' + d.result.replace(/^failed:\s*/, ''));
       else say('ok', '✓ ' + tr('Bike changed on Strava.'));
     } else {

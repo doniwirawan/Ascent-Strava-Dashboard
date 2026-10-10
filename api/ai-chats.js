@@ -19,8 +19,8 @@
 // And the auto-caption webhook's health, for Settings:
 // POST { token, action: 'webhook-status' } → { subscription, token: {saved_at, write}, events: [...] }
 //
-// Bike picker in the activity pop-up — sets the bike, then re-captions straight
-// away (title, description, private note) if the caption is AI-written:
+// Bike picker in the activity pop-up — sets the bike, then rewrites the title and
+// description straight away (private note left as is) if the caption is AI-written:
 // POST { token, action: 'set-bike', id, gear_id } → { ok, result, name, description }
 //
 // Required env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OWNER_ATHLETE_ID.
@@ -44,7 +44,7 @@ async function setBike(token, id, gear_id) {
   let result = 'bike changed';
   if (aiWritten) {
     const done = await logEvent('bike-picker', id);
-    result = await processActivity(id, false, null, token).catch(e => 'failed: ' + ((e && e.message) || e));
+    result = await processActivity(id, false, null, token, true).catch(e => 'failed: ' + ((e && e.message) || e));
     await done(result);
   }
   const after = await (await fetch(STRAVA, { headers: H })).json().catch(() => ({}));

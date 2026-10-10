@@ -398,13 +398,13 @@ function renderActivities() {
 
 // Bike picker in the activity pop-up (rides with an id) — see actSetBike in ai-coach.js.
 function actBikeSelect(a){
-  if(!a.id || !isRide(a) || typeof actSetBike!=='function') return actBikePill(a);
+  if(!a.id || !isRide(a) || typeof actSetBike!=='function') return '';
   const bikes=((typeof _gearCache!=='undefined'&&_gearCache)||(currentAthlete&&currentAthlete.bikes)||[]).filter(b=>!b.retired||String(b.id)===String(a.gear_id));
-  if(!bikes.length) return actBikePill(a);
+  if(!bikes.length) return '';
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-  return `<select class="type-pill bike-pill bike-select" aria-label="${tr('Bike')}" onchange="actSetBike('${a.id}',this)">`
+  return `<select class="btn actd-bike-select" title="${tr('Change bike')}" aria-label="${tr('Change bike')}" onchange="actSetBike('${a.id}',this)">`
     + (a.gear_id?'':`<option value="" selected>🚲 ${tr('Set bike')}</option>`)
-    + bikes.map(b=>`<option value="${esc(b.id)}"${String(b.id)===String(a.gear_id)?' selected':''}>🚲 ${esc(b.nickname||b.name)}</option>`).join('')
+    + bikes.map(b=>`<option value="${esc(b.id)}"${String(b.id)===String(a.gear_id)?' selected':''}>🚲 ${tr('Bike')}: ${esc(b.nickname||b.name)}</option>`).join('')
     + `</select>`;
 }
 
@@ -775,11 +775,10 @@ function openActivityModal(ref){
   document.getElementById('actModalBody').innerHTML=`
     ${hasRoute?'<div class="actd-map" id="actMapBig"></div>':''}
     <div class="actd-head">
-      <span class="type-pill ${ride?'ride':''}">${a.sport_type||a.type}</span>${actBikeSelect(a)}
+      <span class="type-pill ${ride?'ride':''}">${a.sport_type||a.type}</span>${actBikePill(a)}
       <span class="actd-date">${dateStr} · ${timeStr}</span>
       ${badges}
     </div>
-    <div id="actBikeStatus" class="ai-cap-status"></div>
     ${loc?`<div class="actd-loc">📍 ${loc}</div>`:''}
     ${hasRoute?'<div class="actd-loc" id="actRoutePlaces"></div>':''}
     ${!hasRoute && a.id && typeof renderManualPlace==='function' ? '<div class="actd-loc" id="actManualPlace"></div>' : ''}
@@ -791,12 +790,14 @@ function openActivityModal(ref){
     ${ride && a.id ? '<div id="actSauce"></div>' : ''}
     ${ride && hasRoute && !a.trainer ? '<div id="actWind"></div>' : ''}
     ${a.id ? `<div class="actd-actions">
+      ${actBikeSelect(a)}
       <button class="btn actd-ai-btn" type="button" onclick="aiAnalyzeActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} Analyze performance</button>
       <button class="btn actd-ai-btn" type="button" onclick="aiCaptionActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} AI title &amp; description</button>
       <button class="btn actd-stats-btn" type="button" onclick="aiStatsCaption('${a.id}')">Stats title &amp; description</button>
       <button class="btn actd-stats-btn" type="button" onclick="openStatsImage('${a.id}')">Stats image</button>
       <a class="btn btn-primary actd-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener">View on Strava ↗</a>
     </div>
+    <div id="actBikeStatus" class="ai-cap-status"></div>
     <div id="actAnalysisPanel" class="ai-analysis-panel"></div>
     <div id="actAiPanel" class="ai-cap-panel"></div>` : ''}
   `;
