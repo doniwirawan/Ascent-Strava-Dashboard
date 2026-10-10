@@ -19,8 +19,26 @@ const CHASE_AI_LS = 'chase_ai_v2';
 let _caiBusy = false, _caiMap = null, _caiPick = 0, _caiLast = null;
 let _caiMode = 'new', _caiLine = 'uniform';
 try { _caiMode = localStorage.getItem('cai_mode') || 'new'; _caiLine = localStorage.getItem('cai_line') || 'uniform'; } catch {}
-const _caiSaved = () => { try { return JSON.parse(localStorage.getItem(CHASE_AI_LS) || '[]'); } catch { return []; } };
-const _caiSave = list => { try { localStorage.setItem(CHASE_AI_LS, JSON.stringify(list.slice(0, 6))); } catch {} };
+/* History: every generated route (up to 50), kept in this browser. Points are
+   stored as an encoded polyline and the never-ridden flags as a 0/1 string, so
+   50 long routes stay well inside localStorage. */
+const CAI_MAX = 50;
+function _caiEnc(pts) {
+  let out = '', pl = 0, pn = 0;
+  const e = v => { v = v < 0 ? ~(v << 1) : v << 1; let s = ''; while (v >= 0x20) { s += String.fromCharCode((0x20 | (v & 0x1f)) + 63); v >>= 5; } return s + String.fromCharCode(v + 63); };
+  pts.forEach(([a, o]) => { const A = Math.round(a * 1e5), O = Math.round(o * 1e5); out += e(A - pl) + e(O - pn); pl = A; pn = O; });
+  return out;
+}
+const _caiUnpack = o => {
+  if (o.pe && !o.pts) o.pts = decodePolyline(o.pe);
+  if (typeof o.nwf === 'string') o.nwf = [...o.nwf].map(Number);
+  return o;
+};
+const _caiSaved = () => { try { return (JSON.parse(localStorage.getItem(CHASE_AI_LS) || '[]') || []).map(_caiUnpack); } catch { return []; } };
+const _caiSave = list => {
+  const packed = list.slice(0, CAI_MAX).map(o => { const { pts, nwf, ...rest } = o; return Object.assign(rest, { pe: o.pe || _caiEnc(pts || []), nwf: Array.isArray(nwf) ? nwf.join('') : (nwf || '') }); });
+  for (let n = packed.length; n > 0; n--) { try { localStorage.setItem(CHASE_AI_LS, JSON.stringify(packed.slice(0, n))); return; } catch {} } // full → drop the oldest
+};
 const _caiEsc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const CAI_MODES = [['new', '🆕', 'New roads'], ['any', '🛣️', 'Any roads'], ['fast', '⚡', 'Fastest']];
 const CAI_REGENCIES = ['Badung', 'Bangli', 'Buleleng', 'Denpasar', 'Gianyar', 'Jembrana', 'Karangasem', 'Klungkung', 'Tabanan'];
@@ -48,9 +66,61 @@ function chaseAiCard() {
       `<button type="button" class="year-btn" onclick="chaseAiRegency('${r}')">${r}</button>`).join('')}</div>
     <div class="cai-status" id="caiStatus"></div>
     <div id="caiResult"></div>
-    ${saved.length ? `<div class="cai-saved"><span>${tr('Recent')}:</span>${saved.map((r, i) =>
-      `<button type="button" class="year-btn" onclick="chaseAiShow(${i})">${_caiEsc(r.title)} · ${r.km} km</button>`).join('')}</div>` : ''}
+    <div id="caiHistory">${_caiHistoryHTML(saved)}</div>
   </div>`;
+}
+
+function _caiHistoryHTML(saved) {
+  if (!saved.length) return '';
+  const when = t => t ? new Date(t).toLocaleDateString(window.LANG === 'id' ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'short' }) : '';
+  const mode = id => { const m = CAI_MODES.find(x => x[0] === id); return m ? m[1] : ''; };
+  return `<details class="cai-hist" ${saved.length ? 'open' : ''}><summary>${tr('History')} · ${saved.length}</summary>
+    ${saved.map((r, i) => `<div class="cai-hrow${i === _caiPick ? ' on' : ''}" data-i="${i}">
+      <button type="button" class="cai-hmain" onclick="chaseAiShow(${i})">
+        <b>${_caiEsc(r.title)}</b>
+        <span>${mode(r.mode)} ${r.km} km · ${r.nwKm} km ${tr('new')}${r.elev ? ' · ↑' + r.elev.climb + ' m' : ''} · ${r.loop ? tr('loop') : tr('one way')} · ${when(r.at)}</span>
+      </button>
+      <div class="cai-hact">
+        <button type="button" title="${tr('Rename')}" onclick="chaseAiRename(${i})">✏️</button>
+        ${r.request && !/^regency:/.test(r.request) ? `<button type="button" title="${tr('Edit the request and generate again')}" onclick="chaseAiEdit(${i})">🔁</button>` : ''}
+        <button type="button" title="${tr('Delete')}" onclick="chaseAiDelete(${i}, this)">🗑</button>
+      </div>
+    </div>`).join('')}</details>`;
+}
+const _caiRefreshHistory = () => { const h = document.getElementById('caiHistory'); if (h) h.innerHTML = _caiHistoryHTML(_caiSaved()); };
+
+// rename in place (no browser dialog): the title becomes an input; Enter / leaving saves
+function chaseAiRename(i) {
+  const row = document.querySelector(`.cai-hrow[data-i="${i}"] .cai-hmain b`); if (!row) return;
+  const list = _caiSaved(), o = list[i]; if (!o) return;
+  const inp = document.createElement('input'); inp.className = 'cai-hname'; inp.value = o.title; inp.maxLength = 80;
+  row.replaceWith(inp); inp.focus(); inp.select();
+  inp.onclick = e => e.stopPropagation();
+  const done = save => {
+    if (save && inp.value.trim()) { o.title = inp.value.trim(); _caiSave(list); if (_caiPick === i) chaseAiShow(i, list); }
+    _caiRefreshHistory();
+  };
+  inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); done(true); } if (e.key === 'Escape') done(false); };
+  inp.onblur = () => done(true);
+}
+
+// load a route's request and options back into the form, to tweak and generate again
+function chaseAiEdit(i) {
+  const o = _caiSaved()[i]; if (!o) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  set('caiText', o.request); set('caiStart', o.startTxt); set('caiEnd', o.endTxt);
+  if (o.mode) chaseAiMode(o.mode);
+  const t = document.getElementById('caiText'); if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'center' }); t.focus(); }
+  const st = document.getElementById('caiStatus'); if (st) { st.className = 'cai-status'; st.textContent = tr('Change the request or options, then Generate — the new route is added to the history.'); }
+}
+
+// delete takes a second tap (within 3 s)
+function chaseAiDelete(i, btn) {
+  if (btn.dataset.arm !== '1') { btn.dataset.arm = '1'; btn.textContent = tr('Delete?'); setTimeout(() => { if (btn.isConnected) { btn.dataset.arm = ''; btn.textContent = '🗑'; } }, 3000); return; }
+  const list = _caiSaved(); list.splice(i, 1); _caiSave(list);
+  if (_caiPick === i) { _caiPick = 0; const box = document.getElementById('caiResult'); if (box) box.innerHTML = ''; if (list.length) chaseAiShow(0, list); }
+  else if (_caiPick > i) _caiPick--;
+  _caiRefreshHistory();
 }
 
 function chaseAiMode(m) {
@@ -244,7 +314,8 @@ async function _caiBuild(req) {
     const r2 = _caiRoute(g, start, stops, end, 'any');
     if (r2 && r2.total < route.total * 0.95) { route = r2; direct = true; }
   }
-  const o = Object.assign(route, { stops, request: req.text, km: Math.round(route.total / 1000), nwKm: Math.round(route.nw / 1000), wantKm: req.km,
+  const o = Object.assign(route, { startTxt: (document.getElementById('caiStart') || {}).value || '', endTxt: (document.getElementById('caiEnd') || {}).value || '',
+    stops, request: req.text, km: Math.round(route.total / 1000), nwKm: Math.round(route.nw / 1000), wantKm: req.km,
     loop: !!end && end === start, mode: req.mode, startName, endName, plan: req.plan, at: Date.now() });
   o.over = !!(max && route.total > max);
   o.direct = direct;
@@ -254,7 +325,7 @@ async function _caiBuild(req) {
   const nm = req.title ? null : await _caiName(o);
   o.title = req.title || (nm && nm.title) || stops.map(s => s.name).join(' · ') || trf('{0} km loop', o.km);
   o.desc = req.desc || (nm && nm.desc) || req.summary || '';
-  const list = [o].concat(_caiSaved().filter(x => !(x.request === o.request && x.mode === o.mode)));
+  const list = [o].concat(_caiSaved());
   _caiSave(list);
   const st = document.getElementById('caiStatus'); if (st) st.textContent = '';
   chaseAiShow(0, list);
@@ -317,8 +388,20 @@ async function chaseAiRegency(name) {
     if (pts.length < 3) throw new Error(trf('No never-ridden major roads left in {0} — nice!', name));
     const ang = p => Math.atan2(p[0] - ends.start[0], (p[1] - ends.start[1]) * Math.cos(ends.start[0] * Math.PI / 180));
     pts.sort((a, b) => ang(a) - ang(b));
-    const stops = [0.2, 0.5, 0.8].map(q => { const p = pts[Math.min(pts.length - 1, Math.floor(q * pts.length))]; return { lat: p[0], lng: p[1], named: true, name }; });
-    await _caiBuild({ text: 'regency:' + name, plan: null, stops, km: null, mode: 'new', ends, summary: '' });
+    // keep it near a usual ride: use the new roads nearest the start first, and
+    // shrink to nearer ones until the loop is ≤ ~110 km (or there's nothing nearer)
+    const byNear = pts.slice().sort((a, b) => _caiD(ends.start, a) - _caiD(ends.start, b));
+    let pool = byNear, best = null;
+    for (let k = 0; k < 4 && pool.length >= 3; k++) {
+      const sub = pool.slice().sort((a, b) => ang(a) - ang(b));
+      const stops = [0.2, 0.5, 0.8].map(q => { const p = sub[Math.min(sub.length - 1, Math.floor(q * sub.length))]; return { lat: p[0], lng: p[1], named: true, name }; });
+      const r = _caiRoute(g, ends.start, _caiOrder(stops, ends.start, false), ends.end, 'new');
+      if (r && (!best || r.total < best.r.total)) best = { r, stops };
+      if (r && r.total <= 110000) break;
+      pool = byNear.slice(0, Math.max(3, Math.floor(pool.length / 2)));
+    }
+    if (!best) throw new Error(tr('No route found on the major roads for that — try another place.'));
+    await _caiBuild({ text: 'regency:' + name, plan: null, stops: best.stops, km: null, mode: 'new', ends, summary: '' });
   } catch (e) {
     _caiFail(_caiEsc((e && e.message) || tr('Could not work out a route right now.')));
   }
@@ -330,6 +413,7 @@ function chaseAiLine(v) { _caiLine = v; try { localStorage.setItem('cai_line', v
 function chaseAiShow(i, list) {
   const o = (list || _caiSaved())[i]; if (!o) return;
   _caiPick = i;
+  _caiRefreshHistory();
   const box = document.getElementById('caiResult'); if (!box) return;
   const over = o.over && o.wantKm
     ? `<div class="cai-warn">${trf('Over your {0} km max: {1} km. The places you named need that much.', o.wantKm, o.km)}${o.loop && o.plan ? ` <button type="button" class="btn" onclick="chaseAiGo(true)">${tr('Make it one way')}</button>` : ''}</div>` : '';
