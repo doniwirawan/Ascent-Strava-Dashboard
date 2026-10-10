@@ -533,6 +533,7 @@ function _actBuildMap(a){
   try{
     const m=L.map(el,{zoomControl:true,scrollWheelZoom:true,attributionControl:false});
     addBasemap(m,{switcher:true});
+    if(typeof mapPointMenu==='function') mapPointMenu(m); // right-click → coordinates, Google Maps, Street View
     const line=L.polyline(coords,{color:'#FC4C02',weight:4,opacity:.95}).addTo(m);
     L.circleMarker(coords[0],{radius:6,color:'#22c55e',fillColor:'#22c55e',fillOpacity:1,weight:0}).addTo(m);
     L.circleMarker(coords[coords.length-1],{radius:6,color:'#ef4444',fillColor:'#ef4444',fillOpacity:1,weight:0}).addTo(m);
