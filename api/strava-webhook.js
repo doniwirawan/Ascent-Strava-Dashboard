@@ -144,14 +144,15 @@ async function deepseek(messages, max_tokens) {
 
 // Coach read for the private note (only the athlete sees it) — same brief as the
 // dashboard's "Performance analysis", as plain text since Strava shows no markdown.
+// Always Bahasa Indonesia (titles/captions are always English).
 // Returns { note, analysis } — the analysis (no sign-off) is kept for the dashboard.
 async function generateNote(data) {
   const text = await deepseek([
     { role: 'system', content:
       'You are an expert cycling and running coach. Analyse ONE activity using ONLY the numbers provided — never invent data. '
-      + 'Address the athlete directly as "you". Always write in English. '
-      + 'Plain text, no markdown: a one-line verdict, then "Strengths:" with 2–3 lines starting "• ", '
-      + '"Work on:" with 2–3 lines starting "• ", and one concrete "Next time:" tip. Reference the real stats (speed, HR, power, elevation). Weather, if present, is an approximate estimate — treat it as uncertain. '
+      + 'Address the athlete directly as "kamu". Always write entirely in natural Bahasa Indonesia (keep numbers, units and place names unchanged) — the private note is always Indonesian, even though captions are English. '
+      + 'Plain text, no markdown: a one-line "Kesimpulan:", then "Kelebihan:" with 2–3 lines starting "• ", '
+      + '"Perlu diperbaiki:" with 2–3 lines starting "• ", and one concrete "Lain kali:" tip. Reference the real stats (speed, HR, power, elevation). Weather, if present, is an approximate estimate — treat it as uncertain. '
       + 'Never mention where the athlete started or lives. Keep it under ~160 words. No preamble.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nAnalyse my performance.' },
   ], 450);

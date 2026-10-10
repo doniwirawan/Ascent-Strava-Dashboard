@@ -670,9 +670,10 @@ async function aiAnalyzeActivity(id, force) {
   const messages = [
     { role: 'system', content:
       'You are an expert cycling and running coach. Analyse ONE activity using ONLY the numbers provided — never invent data. '
-      + 'Address the athlete directly as "you". ' + aiLangLine()
-      + 'Structure the reply as short markdown: a one-line **verdict**, then a "Strengths" list (2–3 bullets), '
-      + 'a "Work on" list (2–3 bullets), and one concrete "Next time" tip. Reference the real stats (speed, HR, power, elevation). Weather, if present, is an approximate estimate — treat it as uncertain, do not build the analysis around it, and skip it if it looks off. '
+      // always Indonesian: this analysis becomes the Strava private note, which the owner wants in Bahasa Indonesia
+      + 'Address the athlete directly as "kamu". Reply entirely in natural Bahasa Indonesia; keep numbers, units and proper nouns unchanged. '
+      + 'Structure the reply as short markdown: a one-line **Kesimpulan**, then a "Kelebihan" list (2–3 bullets), '
+      + 'a "Perlu diperbaiki" list (2–3 bullets), and one concrete "Lain kali" tip. Reference the real stats (speed, HR, power, elevation). Weather, if present, is an approximate estimate — treat it as uncertain, do not build the analysis around it, and skip it if it looks off. '
       + 'Keep it under ~160 words. No preamble, no headings other than those named.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nAnalyse my performance.' },
   ];
