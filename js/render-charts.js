@@ -1073,6 +1073,34 @@ function _drawStreamOverlay(wrap,head,s,cfg,xs,xMax){
   });
 }
 
+/* Calendar day tapped: one activity opens straight away; several get a small
+   pop-up listing them (tap one to open it). */
+function calDayOpen(k, cell) {
+  const list = modeActs().filter(a => (a.start_date_local || a.start_date || '').slice(0, 10) === k);
+  document.querySelectorAll('.cal-pop').forEach(p => p.remove());
+  if (!list.length) return;
+  if (list.length === 1) { openActivityModal(String(list[0].id)); return; }
+  const pop = document.createElement('div');
+  pop.className = 'cal-pop';
+  const date = new Date(k + 'T00:00:00Z').toLocaleDateString(window.LANG === 'id' ? 'id-ID' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  pop.innerHTML = `<div class="cal-pop-head">${date}<button type="button" class="cal-pop-x" aria-label="${tr('Close')}">✕</button></div>`
+    + list.map(a => `<button type="button" class="cal-pop-row" data-id="${a.id}">
+        <span class="cal-pop-name">${esc(a.name || 'Activity')}</span>
+        <span class="cal-pop-meta">${esc(String(a.sport_type || a.type).replace(/([a-z])([A-Z])/g, '$1 $2'))} · ${fmtD(a.distance || 0)} · ${fmtT(a.moving_time || 0)}</span>
+      </button>`).join('');
+  document.body.appendChild(pop);
+  const r = cell.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  pop.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + window.scrollX + 'px';
+  pop.style.top = (r.bottom + 8 + h > window.innerHeight ? r.top - h - 8 : r.bottom + 8) + window.scrollY + 'px';
+  const close = () => { pop.remove(); document.removeEventListener('mousedown', out, true); document.removeEventListener('keydown', esc2); };
+  const out = e => { if (!pop.contains(e.target) && e.target !== cell) close(); };
+  const esc2 = e => { if (e.key === 'Escape') close(); };
+  setTimeout(() => { document.addEventListener('mousedown', out, true); document.addEventListener('keydown', esc2); }, 0);
+  pop.querySelector('.cal-pop-x').onclick = close;
+  pop.querySelectorAll('.cal-pop-row').forEach(b => b.onclick = () => { close(); openActivityModal(b.dataset.id); });
+}
+
 /* ── CALENDAR — contribution graph (last 12 months) ── */
 function renderCalendar() {
   const day={}; // 'YYYY-MM-DD' -> {n, dist}
@@ -1111,7 +1139,7 @@ function renderCalendar() {
   const grid=weeks.map(w=>`<div class="cal2-week">${w.map(c=>{
     if(!c) return '<span class="cal2-cell empty"></span>';
     const t=`${c.k} · ${c.n} ${c.n===1?'activity':'activities'}${c.dist?' · '+fmtD(c.dist):''}`;
-    return `<span class="cal-cell cal2-cell ${lvl(c.n)}" title="${t}"></span>`;
+    return `<span class="cal-cell cal2-cell ${lvl(c.n)}" title="${t}"${c.n?` role="button" tabindex="0" onclick="calDayOpen('${c.k}',this)" onkeydown="if(event.key==='Enter'){event.preventDefault();calDayOpen('${c.k}',this);}"`:''}></span>`;
   }).join('')}</div>`).join('');
 
   document.getElementById('calGrid').innerHTML=`

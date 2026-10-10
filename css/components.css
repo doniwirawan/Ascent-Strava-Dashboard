@@ -646,3 +646,14 @@ body.map-fs-open { overflow: hidden; }
 /* direction chevrons along a route (routeArrows in utils.js) */
 .route-arrow { background: none; border: 0; pointer-events: none; }
 .route-arrow svg { display: block; filter: drop-shadow(0 0 1px rgba(0,0,0,.6)); }
+
+/* calendar: tappable days + the several-activities pop-up (calDayOpen) */
+.cal2-cell[role="button"] { cursor: pointer; }
+.cal2-cell[role="button"]:hover { outline: 2px solid var(--orange); outline-offset: 1px; }
+.cal-pop { position: absolute; z-index: 2500; width: 300px; max-width: calc(100vw - 16px); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.5); padding: 8px; }
+.cal-pop-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: var(--text); padding: 4px 6px 8px; }
+.cal-pop-x { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; }
+.cal-pop-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; background: var(--surface2); border: 1px solid transparent; border-radius: 8px; padding: 8px 10px; margin-top: 4px; cursor: pointer; color: var(--text); font: inherit; }
+.cal-pop-row:hover { border-color: var(--orange); }
+.cal-pop-name { font-size: 13px; font-weight: 700; }
+.cal-pop-meta { font-size: 11px; color: var(--muted); }

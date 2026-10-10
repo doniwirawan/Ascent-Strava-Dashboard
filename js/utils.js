@@ -340,8 +340,8 @@ function routeArrows(map, latlngs, o) {
   o = o || {};
   const every = o.every || 110, color = o.color || '#fff', g = L.layerGroup().addTo(map);
   const pts = (latlngs || []).map(p => L.latLng(p));
-  const icon = deg => L.divIcon({ className: 'route-arrow', iconSize: [14, 14], iconAnchor: [7, 7],
-    html: `<svg viewBox="0 0 14 14" width="14" height="14" style="transform:rotate(${deg}deg)"><path d="M3 2 L12 7 L3 12 L5.6 7 Z" fill="${color}" stroke="rgba(0,0,0,.6)" stroke-width="1" stroke-linejoin="round"/></svg>` });
+  const icon = deg => L.divIcon({ className: 'route-arrow', iconSize: [18, 18], iconAnchor: [9, 9],
+    html: `<svg viewBox="0 0 14 14" width="18" height="18" style="transform:rotate(${deg}deg)"><path d="M3 2 L12 7 L3 12 L5.6 7 Z" fill="${color}" stroke="rgba(0,0,0,.6)" stroke-width="1" stroke-linejoin="round"/></svg>` });
   const draw = () => {
     g.clearLayers();
     if (pts.length < 2 || !map._loaded) return;
