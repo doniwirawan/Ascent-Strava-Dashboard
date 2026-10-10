@@ -618,6 +618,8 @@ async function renderActivityAnalysis(a) {
     if (document.getElementById('actAnalysisPanel') !== panel) return;
     if (cur && cur.name === rec.caption_title) {
       a.name = cur.name; a.description = cur.description; if (cur.gear_id) a.gear_id = cur.gear_id;
+      // a bike change makes Strava re-estimate power — take its fresh figures too
+      ['average_watts', 'weighted_average_watts', 'kilojoules', 'device_watts'].forEach(k => { if (cur[k] != null) a[k] = cur[k]; });
       const t = document.getElementById('actModalTitle'); if (t) t.textContent = cur.name;
       const bs = document.querySelector('.actd-bike-select'); if (bs && cur.gear_id) bs.value = cur.gear_id;
       aiSyncCache();
