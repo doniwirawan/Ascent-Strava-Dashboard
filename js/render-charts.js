@@ -382,8 +382,8 @@ function renderActivities() {
   _renderActList(document.getElementById('actSearch') ? document.getElementById('actSearch').value : '');
   if (typeof renderRegencyMap === 'function') renderRegencyMap();
 
-  // Bubbles — sample 60 activities
-  const sample = src.slice(0,60);
+  // Bubbles — up to 150 activities, sized by _fitBubbles to fill the card (60 when stacked)
+  const sample = src.slice(0,150);
   const maxDist = Math.max(...sample.map(a=>a.distance||0));
   const wrap = document.getElementById('bubbleWrap');
   wrap.innerHTML = sample.map((a,i)=>{
@@ -414,13 +414,16 @@ function _fitBubbles() {
     const sp = b.firstElementChild; sp.hidden = z <= 40; sp.style.fontSize = Math.max(9, Math.round(9 * Math.min(s, 1.8))) + 'px';
   });
   const contentH = () => { const f = bs[0].offsetTop, l = bs.reduce((m, b) => Math.max(m, b.offsetTop + b.offsetHeight), 0); return l - f; };
+  const stacked = !left || left.offsetTop !== card.offsetTop;
+  bs.forEach((b, i) => { b.style.display = stacked && i >= 60 ? 'none' : ''; });
   apply(1);
-  if (!left || left.offsetTop !== card.offsetTop) return;          // stacked: leave as is
+  if (stacked) return;                                              // phone: the first 60 at normal size
   const room = left.offsetHeight - (card.offsetHeight - wrap.offsetHeight) - 24;
-  if (room <= contentH()) return;
-  let lo = 1, hi = 2.6;                                             // largest scale that still fits
-  for (let i = 0; i < 12; i++) { const m = (lo + hi) / 2; apply(m); if (contentH() <= room) lo = m; else hi = m; }
+  let lo = 0.45, hi = 2.6;                                          // largest scale that still fits
+  for (let i = 0; i < 14; i++) { const m = (lo + hi) / 2; apply(m); if (contentH() <= room) lo = m; else hi = m; }
   apply(lo);
+  // still too many at the smallest size: drop the oldest until it fits
+  for (let i = bs.length - 1; i > 0 && contentH() > room; i--) bs[i].style.display = 'none';
 }
 
 // Bike picker in the activity pop-up (rides with an id) — see actSetBike in ai-coach.js.
@@ -826,6 +829,7 @@ function openActivityModal(ref){
     <div class="actd-sleep" id="actSleep"></div>
     ${a.id ? '<div class="actd-streams" id="actStreams"></div>' : ''}
     ${a.average_heartrate ? '<div class="actd-hrz" id="actHrz"></div>' : ''}
+    ${a.device_watts === true && a.id ? '<div class="actd-hrz" id="actPwz"></div>' : ''}
     ${a.average_heartrate ? '<div id="actHrd"></div>' : ''}
     ${ride && a.id ? '<div id="actSauce"></div>' : ''}
     ${ride && hasRoute && !a.trainer ? '<div id="actWind"></div>' : ''}
@@ -850,6 +854,7 @@ function openActivityModal(ref){
   }).catch(()=>{});
   if(!hasRoute && typeof renderManualPlace==='function') renderManualPlace(a);
   if(a.average_heartrate) renderActivityHrZones(a);
+  if(a.device_watts === true && a.id && typeof renderActivityPowerZones==='function') renderActivityPowerZones(a);
   if(a.id) renderActivityStreams(a);
   if(a.id && typeof renderActivityAnalysis==='function') renderActivityAnalysis(a);
   if(typeof renderActivitySleep==='function') renderActivitySleep(a);

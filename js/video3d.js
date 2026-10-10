@@ -100,7 +100,7 @@ function _v3dHud(c, st) {
   const s = cur.s, tiles = [
     ['SPEED', s.v != null ? (s.v * 3.6).toFixed(1) : '—', 'km/h', '#fc4c02'],
     ['HEART RATE', s.hr != null ? Math.round(s.hr) : '—', 'bpm', '#ef4444'],
-    power ? ['POWER', s.w != null ? Math.round(s.w) : '—', 'W', '#facc15'] : ['ELEVATION', s.alt != null ? Math.round(s.alt) : '—', 'm', '#60a5fa'],
+    power ? ['POWER', s.w != null ? Math.round(s.w) : '—', 'W', '#facc15'] : ['ELEVATION', s.alt != null ? Math.max(0, Math.round(s.alt)) : '—', 'm', '#60a5fa'], // GPS dips below sea level on the coast
   ];
   const tw = (W - 72 - 2 * 16) / 3, ty = H - 380;
   tiles.forEach(([lbl, val, unit, col], k) => {

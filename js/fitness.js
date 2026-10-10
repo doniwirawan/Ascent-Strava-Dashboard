@@ -823,6 +823,38 @@ function powerZoneFor(watts, ftp) {
   return POWER_ZONES.length - 1;
 }
 
+// The activity pop-up's "Power Zones" ring (power-meter rides only), from the cached streams.
+async function renderActivityPowerZones(a) {
+  const box = document.getElementById('actPwz');
+  const ftp = (typeof estimateFtp === 'function') && estimateFtp();
+  if (!box || !ftp || !(ftp.value > 0)) { if (box) box.style.display = 'none'; return; }
+  box.innerHTML = `<div class="hrz-title">${tr('Power Zones')}</div>
+    <div class="hrz-body"><canvas class="hrz-ring" id="actPwzRing"></canvas><div class="hrz-legend" id="actPwzLegend"></div></div>
+    <div class="hrz-note" id="actPwzNote">${tr('Loading zones…')}</div>`;
+  const store = _pwzLoad();
+  let h = store.acts[a.id];
+  if (!h) {
+    let st = null; try { st = await _getActivityStreams(a.id); } catch {}
+    h = st && _pwzHist(st, a.moving_time);
+    if (h) { store.acts[a.id] = h; _pwzSave(); }
+  }
+  const ring = document.getElementById('actPwzRing');
+  if (!ring) return;                                     // pop-up closed meanwhile
+  if (!h) { box.style.display = 'none'; return; }
+  const F = ftp.value, totals = POWER_ZONES.map(() => 0);
+  for (const b in h) totals[powerZoneFor(+b * 10 + 5, F)] += h[b];
+  const sum = totals.reduce((s, v) => s + v, 0), peak = Math.max(...totals) || 1;
+  drawZoneRing(ring, totals, { big: fmtTc(sum), small: tr('moving') }, 168, POWER_ZONES.map(z => z.color));
+  document.getElementById('actPwzLegend').innerHTML = POWER_ZONES.map((z, i) => {
+    const lo = i ? Math.round(POWER_ZONES[i - 1].hi * F) : 0, hi = z.hi === Infinity ? null : Math.round(z.hi * F), v = totals[i];
+    return `<div class="hrz-row"><span class="hrz-dot" style="background:${z.color}"></span>
+      <span class="hrz-name">Z${i + 1} · ${z.name} <span class="hrz-range">${hi == null ? lo + '+' : lo + '–' + hi} W</span></span>
+      <span class="hrz-bar"><span style="width:${Math.round(v / peak * 100)}%;background:${z.color}"></span></span>
+      <span class="hrz-time">${v ? fmtT(v) : '—'}</span><span class="hrz-pct">${v && sum ? Math.round(v / sum * 100) + '%' : ''}</span></div>`;
+  }).join('');
+  document.getElementById('actPwzNote').textContent = trf('Zones from FTP {0} W', F);
+}
+
 function renderOverviewPowerZones() {
   const card = document.getElementById('pwzCard');
   if (!card) return;
