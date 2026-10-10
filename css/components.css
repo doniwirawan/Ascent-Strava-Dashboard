@@ -668,3 +668,7 @@ body.map-fs-open { overflow: hidden; }
 
 /* 3D view: map style picker */
 .map3d-theme { background: rgba(20,20,20,.82); color: #eee; border: 0; border-radius: 6px; padding: 5px 8px; font: 600 12px/1.2 inherit; cursor: pointer; }
+
+/* 3D video: the button turns into a grey, two-tap Cancel while rendering */
+.v3d-cancel { background: var(--surface2); color: var(--text-2); border: 1px solid var(--border); }
+.v3d-cancel:hover { border-color: #fca5a5; color: #fca5a5; }

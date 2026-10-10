@@ -309,13 +309,28 @@ function openVideo3d(id) {
   v3dPreload();
   _v3dSamplesCached(a, true).catch(() => {});
   const msg = m.querySelector('.v3d-msg'), bar = m.querySelector('.v3d-bar i'), go = m.querySelector('#v3dGo'), stage = m.querySelector('.v3d-stage');
-  const close = () => { if (_v3dBusy) _v3dCancel = true; m.classList.remove('open'); };
+  // Stopping a render throws minutes of work away, so it takes a second tap (within 3 s).
+  let armed = null, armedT = 0;
+  const confirmStop = (label, onStop) => {
+    clearTimeout(armedT);
+    if (armed === label) { armed = null; onStop(); return; }
+    armed = label;
+    const prev = msg.textContent, prevCls = msg.className;
+    msg.className = 'v3d-msg err';
+    msg.textContent = label === 'close' ? tr('Rendering — tap ✕ again to stop and close') : tr('Tap again to stop the render');
+    if (label !== 'close') go.textContent = tr('Tap again to stop');
+    armedT = setTimeout(() => { armed = null; if (_v3dBusy) { msg.className = prevCls; msg.textContent = prev; go.textContent = tr('Cancel'); } }, 3000);
+  };
+  const close = () => {
+    if (_v3dBusy) { confirmStop('close', () => { _v3dCancel = true; m.classList.remove('open'); }); return; }
+    m.classList.remove('open');
+  };
   m.querySelector('.v3d-x').onclick = close;
   m.onclick = e => { if (e.target === m) close(); };
   go.onclick = async () => {
-    if (_v3dBusy) { _v3dCancel = true; return; }
+    if (_v3dBusy) { confirmStop('cancel', () => { _v3dCancel = true; go.disabled = true; msg.textContent = tr('Stopping…'); }); return; }
     _v3dBusy = true; _v3dCancel = false;
-    go.textContent = tr('Cancel'); msg.className = 'v3d-msg';
+    go.textContent = tr('Cancel'); go.classList.remove('btn-primary'); go.classList.add('v3d-cancel'); msg.className = 'v3d-msg';
     // setup steps fill the first 8% of the bar (shimmering while they wait); frames the rest
     const barBox = bar.parentElement, SETUP = .08;
     barBox.classList.add('busy');
@@ -359,6 +374,7 @@ function openVideo3d(id) {
       msg.className = 'v3d-msg err'; msg.textContent = (e && e.message) || String(e);
     }
     _v3dBusy = false; _v3dCancel = false;
-    if (go.isConnected) go.textContent = tr('Render video');
+    armed = null; clearTimeout(armedT); go.disabled = false;
+    if (go.isConnected) { go.textContent = tr('Render video'); go.classList.add('btn-primary'); go.classList.remove('v3d-cancel'); }
   };
 }
