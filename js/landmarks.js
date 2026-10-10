@@ -134,15 +134,15 @@ function loadBaliPlaces() {
 }
 /* Changes when either list changes, so stored destinations get re-tagged once.
    null until the big list is loaded (don't stamp a curated-only result). */
-function landmarkVersion() { return _baliPlaces ? BALI_LANDMARKS.length + '.' + _baliPlaces.v : null; }
+function landmarkVersion() { return _baliPlaces ? BALI_LANDMARKS.length + '.' + _baliPlaces.v + '.nofood' : null; }
 
-const FOOD_R = 150; // a cafe/restaurant only counts if you turned around right at it
 const _lmM = (lat, lng, lat2, lng2) => { const x = (lng2 - lng) * Math.cos(lat * Math.PI / 180), y = lat2 - lat; return Math.sqrt(x * x + y * y) * 111320; };
 
 /* Where did the ride turn around? Priority: the hand-picked list above, then OSM
    natural/public places (beach, waterfall, peak, lake, monument, square), then
-   OSM attractions/viewpoints, then cafes/restaurants within FOOD_R. Within a
-   tier, the place the point is relatively closest to (distance / radius). */
+   OSM attractions/viewpoints. Within a tier, the place the point is relatively
+   closest to (distance / radius). Cafes/restaurants are never used: passing within
+   a stone's throw of one (Bali is full of them) doesn't mean you stopped there. */
 function nearestLandmark(lat, lng) {
   if (!_baliPlaces && typeof window === 'undefined') loadBaliPlaces();
   const pick = (list, get) => { let best = null, score = 1;
@@ -150,8 +150,7 @@ function nearestLandmark(lat, lng) {
     return best; };
   const n = pick(BALI_LANDMARKS, l => [l.n, l.lat, l.lng, l.r])
     || (_baliPlaces && pick(_baliPlaces.landmarks.filter(l => l[4] === 1), l => l))
-    || (_baliPlaces && pick(_baliPlaces.landmarks.filter(l => l[4] === 2), l => l))
-    || (_baliPlaces && pick(_baliPlaces.food, f => [f[0], f[1], f[2], FOOD_R]));
+    || (_baliPlaces && pick(_baliPlaces.landmarks.filter(l => l[4] === 2), l => l));
   return n ? { n } : null;
 }
 

@@ -1,29 +1,34 @@
 // Strava webhook: when the owner uploads a NEW activity, auto-generate an AI
-// title + description (from the real stats, with a light roast) and apply it.
+// title + description (from the real stats, with a light roast) and a coach
+// analysis as the private note, and apply them.
 //
 //   GET  = Strava's subscription-validation handshake (echo hub.challenge)
 //   POST = activity/athlete events. We act only on activity "create" for the
 //          owner, ack instantly (<2s, as Strava requires), then do the AI work
 //          in the background via waitUntil so Strava never retry-storms.
 //
-// Required env: STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, OWNER_REFRESH_TOKEN
-//   (the owner's Strava refresh token), OWNER_ATHLETE_ID, DEEPSEEK_API_KEY,
+// Required env: STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, OWNER_ATHLETE_ID,
+//   SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (owner's refresh token, saved on
+//   login — see api/_owner-token.js; OWNER_REFRESH_TOKEN env as fallback), DEEPSEEK_API_KEY,
 //   STRAVA_WEBHOOK_VERIFY_TOKEN. Optional: AUTO_CAPTION=off to disable.
 const { waitUntil } = require('@vercel/functions');
 const STRAVA = 'https://www.strava.com/api/v3';
 const { nearestLandmark } = require('../js/landmarks.js');
+const { sb, getOwnerRefreshToken, saveOwnerRefreshToken } = require('./_owner-token.js');
 
 async function ownerAccessToken() {
   const client_id = (process.env.STRAVA_CLIENT_ID || '').replace(/\s+/g, '');
   const client_secret = (process.env.STRAVA_CLIENT_SECRET || '').replace(/\s+/g, '');
-  const refresh_token = (process.env.OWNER_REFRESH_TOKEN || '').replace(/\s+/g, '');
+  const refresh_token = await getOwnerRefreshToken();
   if (!client_id || !client_secret || !refresh_token) return null;
   const r = await fetch('https://www.strava.com/oauth/token', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ client_id, client_secret, grant_type: 'refresh_token', refresh_token }),
   });
   if (!r.ok) return null;
-  return (await r.json()).access_token || null;
+  const d = await r.json();
+  if (d.refresh_token && d.refresh_token !== refresh_token) await saveOwnerRefreshToken(d.refresh_token);
+  return d.access_token || null;
 }
 
 const WMO = { 0: 'clear sky', 1: 'mainly clear', 2: 'partly cloudy', 3: 'overcast', 45: 'fog', 48: 'fog', 51: 'light drizzle', 53: 'drizzle', 55: 'heavy drizzle', 61: 'light rain', 63: 'rain', 65: 'heavy rain', 71: 'light snow', 73: 'snow', 75: 'heavy snow', 80: 'light showers', 81: 'showers', 82: 'heavy showers', 95: 'thunderstorm', 96: 'thunderstorm with hail', 99: 'thunderstorm with hail' };
@@ -125,9 +130,35 @@ async function bikeInfo(a, token) {
   return type ? type.toLowerCase() + ' bike' : undefined;
 }
 
-async function generateCaption(a, token) {
+async function deepseek(messages, max_tokens) {
   const KEY = (process.env.DEEPSEEK_API_KEY || '').replace(/\s+/g, '');
   if (!KEY) return null;
+  const r = await fetch('https://api.deepseek.com/chat/completions', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + KEY },
+    body: JSON.stringify({ model: 'deepseek-chat', messages, max_tokens, temperature: 0.7 }),
+  });
+  if (!r.ok) return null;
+  const d = await r.json();
+  return (d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || null;
+}
+
+// Coach read for the private note (only the athlete sees it) — same brief as the
+// dashboard's "Performance analysis", as plain text since Strava shows no markdown.
+async function generateNote(data) {
+  const text = await deepseek([
+    { role: 'system', content:
+      'You are an expert cycling and running coach. Analyse ONE activity using ONLY the numbers provided — never invent data. '
+      + 'Address the athlete directly as "you". Always write in English. '
+      + 'Plain text, no markdown: a one-line verdict, then "Strengths:" with 2–3 lines starting "• ", '
+      + '"Work on:" with 2–3 lines starting "• ", and one concrete "Next time:" tip. Reference the real stats (speed, HR, power, elevation). Weather, if present, is an approximate estimate — treat it as uncertain. '
+      + 'Never mention where the athlete started or lives. Keep it under ~160 words. No preamble.' },
+    { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nAnalyse my performance.' },
+  ], 450);
+  return text ? (text.replace(/\*\*(.+?)\*\*/g, '$1').trim() + '\n\n— AI analysis by Ascent').slice(0, 2000) : null;
+}
+
+async function generateCaption(a, token) {
+  if (!(process.env.DEEPSEEK_API_KEY || '').trim()) return null;
   const data = {
     type: a.sport_type || a.type,
     km: +(((a.distance || 0) / 1000).toFixed(1)),
@@ -150,41 +181,60 @@ async function generateCaption(a, token) {
   if (rp && rp.furthest_place) Object.assign(data, { furthest_landmark: rp.furthest_landmark, furthest_place: rp.furthest_place, furthest_km_from_start: rp.furthest_km_from_start });
   const messages = [
     { role: 'system', content:
-      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ROAST me in first person like a friend in the group chat who just opened my file: specific, sharp, funny, PG-13. Find the weakest or most ridiculous number (slow average, long stopped time, low cadence, short distance, barely any climbing) and go after it; twist the good numbers into backhanded compliments; absurd comparisons, one punchline per sentence. Never mock body, weight, looks, age, gender, race, religion or money; no slurs. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
+      'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ROAST me in first person like a friend in the group chat who just opened my file: specific, sharp, funny, PG-13. Find the weakest or most ridiculous number (slow average, long stopped time, low cadence, short distance, barely any climbing) and go after it; twist the good numbers into backhanded compliments; absurd comparisons, one punchline per sentence. Never mock body, weight, looks, age, gender, race, religion or money; no slurs. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Stopped time is NOT a café, coffee, food, nap or any other stop — I never told you why I stopped, so never say or joke about where or why (just roast the minutes). Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nWrite my new title and description.' },
   ];
-  const r = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + KEY },
-    body: JSON.stringify({ model: 'deepseek-chat', messages, max_tokens: 400, temperature: 0.7 }),
-  });
-  if (!r.ok) return null;
-  const d = await r.json();
-  const text = (d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || null;
+  const [text, note] = await Promise.all([deepseek(messages, 400), generateNote(data).catch(() => null)]);
   // always state the destination in the description: "📍 Kintamani, Bangli · 46 km out".
   // Never the start — that's home.
-  if (text && rp && rp.furthest_place) {
-    return text.trim() + '\n\n📍 ' + (rp.furthest_landmark || rp.furthest_place) + ' · ' + rp.furthest_km_from_start + ' km out';
-  }
-  return text;
+  const caption = text && rp && rp.furthest_place
+    ? text.trim() + '\n\n📍 ' + (rp.furthest_landmark || rp.furthest_place) + ' · ' + rp.furthest_km_from_start + ' km out'
+    : text;
+  return { text: caption, note };
 }
 
-async function processActivity(activityId) {
+// Which bike each auto-caption was written for (Supabase auto_captions), so
+// changing the bike afterwards re-captions it — unless I've renamed it myself.
+async function captionRecord(id, rec) {
+  const s = sb(); if (!s) return null;
+  const url = s.url.replace(/owner_tokens$/, 'auto_captions');
+  try {
+    if (rec) {
+      await fetch(url + '?on_conflict=activity_id', { method: 'POST', headers: { ...s.H, Prefer: 'resolution=merge-duplicates' },
+        body: JSON.stringify({ activity_id: String(id), gear_id: rec.gear_id || null, name: rec.name, updated_at: new Date().toISOString() }) });
+      return null;
+    }
+    const r = await fetch(url + '?activity_id=eq.' + encodeURIComponent(id) + '&select=gear_id,name', { headers: s.H });
+    return r.ok ? ((await r.json())[0] || null) : null;
+  } catch { return null; }
+}
+
+async function processActivity(activityId, isUpdate) {
   const token = await ownerAccessToken();
   if (!token) return;
   const ar = await fetch(STRAVA + '/activities/' + activityId, { headers: { Authorization: 'Bearer ' + token } });
   if (!ar.ok) return;
   const act = await ar.json();
-  const text = await generateCaption(act, token);
+  if (isUpdate) {
+    // our own PUT fires an update too — only act when the bike really changed
+    const rec = await captionRecord(activityId);
+    if (!rec || (rec.gear_id || null) === (act.gear_id || null) || rec.name !== act.name) return;
+  }
+  const { text, note } = (await generateCaption(act, token)) || {};
   if (!text) return;
   const lines = text.trim().split('\n');
   const name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100);
   let description = lines.join('\n').trim();
   if (!name) return;
   if (description) description += '\n\n— AI-written by Ascent Analytics';
-  await fetch(STRAVA + '/activities/' + activityId, {
+  const put = body => fetch(STRAVA + '/activities/' + activityId, {
     method: 'PUT', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, description }),
+    body: JSON.stringify(body),
   });
+  // private_note isn't in Strava's documented update API — if it's refused, still save the caption
+  const r = await put(note ? { name, description, private_note: note } : { name, description });
+  if (!r.ok && note) await put({ name, description });
+  await captionRecord(activityId, { gear_id: act.gear_id, name });
 }
 
 module.exports = async (req, res) => {
@@ -207,11 +257,12 @@ module.exports = async (req, res) => {
 
   const owner = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
   const enabled = (process.env.AUTO_CAPTION || 'on').toLowerCase() !== 'off';
-  // Only auto-caption a brand-new activity from the owner. We never act on
-  // "update" events, so our own PUT can't trigger a loop.
-  if (enabled && body.object_type === 'activity' && body.aspect_type === 'create'
+  // Auto-caption a brand-new activity from the owner; on "update", re-caption
+  // only if the bike changed since (processActivity checks, so our own PUT can't loop).
+  if (enabled && body.object_type === 'activity' && ['create', 'update'].includes(body.aspect_type)
       && (!owner || String(body.owner_id) === owner)) {
-    waitUntil(processActivity(body.object_id).catch(() => {}));
+    if (body.aspect_type === 'update') console.log('strava update event', body.object_id, JSON.stringify(body.updates || {}));
+    waitUntil(processActivity(body.object_id, body.aspect_type === 'update').catch(() => {}));
   }
 
   // Ack immediately so Strava doesn't retry (it requires a 200 within ~2s).

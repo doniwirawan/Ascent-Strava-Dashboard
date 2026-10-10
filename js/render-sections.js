@@ -243,13 +243,25 @@ function _renderBikeList(el, bikes) {
   if (window.applyI18n) window.applyI18n();
 }
 
+// The athlete profile's bike distances lag behind (a new ride can take a day to
+// show), which froze the maintenance odometers — /gear/{id} is always current.
+async function _refreshGearDist(bikes){
+  if(!localStorage.getItem('strava_access_token')) return;
+  const live=await Promise.all(bikes.filter(b=>!b.retired).map(b=>api(`/gear/${b.id}`).catch(()=>null)));
+  let changed=false;
+  live.forEach(g=>{ const b=g&&bikes.find(x=>x.id===g.id); if(b&&g.distance>(b.distance||0)){ b.distance=g.distance; changed=true; } });
+  if(!changed||_gearCache!==bikes) return;
+  try{ localStorage.setItem('strava_bikes_v1',JSON.stringify(bikes)); }catch{}
+  _renderBikeList(document.getElementById('gearGrid'),bikes); renderGearTool(bikes); renderGearMaint(bikes);
+}
+
 async function renderGear(){
   const el=document.getElementById('gearGrid');
   if(_gearCache){ _renderBikeList(el,_gearCache); renderGearTool(_gearCache); renderGearMaint(_gearCache); return; }
   // the athlete's bike list (kept from the last visit) includes bikes with no rides yet
   let bikes=(currentAthlete&&currentAthlete.bikes)||[];
   if(!bikes.length&&localStorage.getItem('strava_athlete_id')){ try{ bikes=JSON.parse(localStorage.getItem('strava_bikes_v1'))||[]; }catch{} }
-  if(bikes.length){ _gearCache=bikes; _renderBikeList(el,bikes); renderGearTool(bikes); renderGearMaint(bikes); return; }
+  if(bikes.length){ _gearCache=bikes; _renderBikeList(el,bikes); renderGearTool(bikes); renderGearMaint(bikes); _refreshGearDist(bikes); return; }
 
   // fallback: fetch each unique gear_id from activities
   const gearIds=[...new Set(acts.map(a=>a.gear_id).filter(Boolean))];

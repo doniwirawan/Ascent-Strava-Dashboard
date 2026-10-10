@@ -1,6 +1,22 @@
 // Server-side Strava OAuth token exchange & refresh.
 // Keeps STRAVA_CLIENT_SECRET on the server (Vercel env) so it never ships to
 // the browser. The client POSTs { code } (initial auth) or { refresh_token }.
+// When the token belongs to the owner, its refresh token is also saved for the
+// auto-caption webhook (api/_owner-token.js).
+const { waitUntil } = require('@vercel/functions');
+const { saveOwnerRefreshToken } = require('./_owner-token.js');
+
+async function rememberOwner(data) {
+  const owner = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
+  if (!owner || !data.refresh_token) return;
+  let id = data.athlete && data.athlete.id;
+  if (!id && data.access_token) {
+    const r = await fetch('https://www.strava.com/api/v3/athlete', { headers: { Authorization: 'Bearer ' + data.access_token } });
+    if (r.ok) id = (await r.json()).id;
+  }
+  if (String(id) === owner) await saveOwnerRefreshToken(data.refresh_token);
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method_not_allowed' });
@@ -33,6 +49,7 @@ module.exports = async (req, res) => {
     const data = await r.json();
     // never echo our credentials back
     if (data && typeof data === 'object') { delete data.client_id; delete data.client_secret; }
+    if (r.ok && data) waitUntil(rememberOwner(data).catch(() => {}));
     res.status(r.status).json(data);
   } catch (e) {
     res.status(502).json({ error: 'upstream_error', detail: String(e && e.message || e) });
