@@ -18,16 +18,17 @@ async function renderChase() {
       if (!r.ok) throw new Error(r.status);
       _crData = await r.json();
     } catch (e) {
-      body.innerHTML = '<div class="card" style="padding:24px;color:var(--muted)">' + tr('Could not load the routes.') + '</div>';
+      body.innerHTML = _crAi() + '<div class="card" style="padding:24px;color:var(--muted)">' + tr('Could not load the routes.') + '</div>';
+      _crAiRestore();
       return;
     }
   }
   const routes = _crData.routes || [];
-  if (!routes.length) { body.innerHTML = ''; return; }
+  if (!routes.length) { body.innerHTML = _crAi(); _crAiRestore(); return; }
   const cur = routes.find(r => r.id === _crPick) || routes[0];
   _crPick = cur.id;
 
-  body.innerHTML = `
+  body.innerHTML = _crAi() + `
     <div class="card">
       <div class="chart-note">${tr('Loops through roads you have never ridden, one per regency. Bold orange = never ridden, faint = roads you know. Right-click the map to open a spot in Google Maps.')}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0">${routes.map(r =>
@@ -59,6 +60,19 @@ async function renderChase() {
   const b = L.latLngBounds(cur.pts);
   const fit = () => { try { _crMap.invalidateSize(); _crMap.fitBounds(b, { padding: [20, 20] }); } catch {} };
   fit(); setTimeout(fit, 300);
+  _crAiRestore();
+}
+
+// the AI route generator card (js/chase-ai.js) sits on top; keep its request and result across re-renders
+let _crAiText = '', _crAiShown = false;
+function _crAi() {
+  const t = document.getElementById('caiText'); if (t) _crAiText = t.value;
+  _crAiShown = !!document.querySelector('#caiResult #caiMap') || _crAiShown;
+  return typeof chaseAiCard === 'function' ? chaseAiCard() : '';
+}
+function _crAiRestore() {
+  const t = document.getElementById('caiText'); if (t && _crAiText) t.value = _crAiText;
+  if (_crAiShown && typeof chaseAiShow === 'function') chaseAiShow(typeof _caiPick !== 'undefined' ? _caiPick : 0);
 }
 
 function chasePick(id) {
