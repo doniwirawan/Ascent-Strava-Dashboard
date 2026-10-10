@@ -597,6 +597,7 @@ const TR_ID = {
   'This activity has no GPS stream to fly over.': 'Aktivitas ini tidak punya data GPS untuk dijadikan video.',
   'This browser can’t encode video — use Chrome or Edge on a laptop or Android.': 'Browser ini tidak bisa membuat video — pakai Chrome atau Edge di laptop atau Android.',
   'This browser can’t encode H.264 video.': 'Browser ini tidak bisa membuat video H.264.',
+  'Time in Power Zones': 'Waktu di Zona Power', 'Zones from FTP {0} W · {1} of {2} power-meter rides analysed': 'Zona dari FTP {0} W · {1} dari {2} ride power meter dianalisis',
   'Set bike': 'Pilih sepeda', 'Change bike': 'Ganti sepeda', 'Changing the bike…': 'Mengganti sepeda…',
   'Changing the bike and rewriting the caption…': 'Mengganti sepeda dan menulis ulang caption…',
   'Bike changed — new title and caption are on Strava.': 'Sepeda diganti — judul dan caption baru sudah di Strava.',

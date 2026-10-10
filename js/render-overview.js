@@ -7,7 +7,7 @@ function renderAll() {
 
   // Render each section in isolation so one failing section can never blank
   // out the others (or abort navScrollTo at the end).
-  [renderStats, renderReadiness, renderWhoopOverview, renderOverviewInsights, renderSportBreakdown, renderOverviewZones, renderOverviewSpeedZones, renderCycling, renderRunning, renderWalking, renderSwimming, renderOtherSports, renderTrends, renderActivities,
+  [renderStats, renderReadiness, renderWhoopOverview, renderOverviewInsights, renderSportBreakdown, renderOverviewZones, renderOverviewSpeedZones, renderOverviewPowerZones, renderCycling, renderRunning, renderWalking, renderSwimming, renderOtherSports, renderTrends, renderActivities,
    renderCalendar, renderEddington, renderTraining, renderSleep, renderMonthly, renderBestEfforts,
    renderMilestones, renderRewind, renderPhotos].forEach(fn => {
     try { fn(); } catch (e) { console.error('render failed:', fn.name, e); }

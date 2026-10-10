@@ -777,6 +777,99 @@ function renderOverviewSpeedZones() {
   };
 }
 
+/* ── TIME IN POWER ZONES ─────────────────────────────────────────────────────
+   Coggan's 7 zones as % of FTP (estimateFtp — from power-meter rides once there
+   are some). Only rides with a real power meter count (device_watts) — Strava's
+   estimated watts are a guess, so the card stays hidden until there are any.
+   Each ride's watts stream is cached as seconds per 10 W bucket, not per zone,
+   so a new FTP re-zones everything without refetching. */
+const POWER_ZONES = [
+  { name: 'Active Recovery', hi: 0.55, color: '#94a3b8' },
+  { name: 'Endurance',       hi: 0.75, color: '#3b82f6' },
+  { name: 'Tempo',           hi: 0.90, color: '#22c55e' },
+  { name: 'Threshold',       hi: 1.05, color: '#eab308' },
+  { name: 'VO₂max',          hi: 1.20, color: '#f97316' },
+  { name: 'Anaerobic',       hi: 1.50, color: '#ef4444' },
+  { name: 'Neuromuscular',   hi: Infinity, color: '#a855f7' },
+];
+const _PWZ_V = 1;
+const _pwzKey = () => 'strava_pwz_' + (localStorage.getItem('strava_athlete_id') || 'x');
+let _pwzStore = null;
+function _pwzLoad() {
+  if (_pwzStore) return _pwzStore;
+  try { const o = JSON.parse(localStorage.getItem(_pwzKey()) || 'null'); if (o && o.v === _PWZ_V && o.acts) _pwzStore = o; } catch {}
+  return _pwzStore || (_pwzStore = { v: _PWZ_V, acts: {} });
+}
+function _pwzSave() { try { localStorage.setItem(_pwzKey(), JSON.stringify(_pwzLoad())); } catch {} }
+const _pwzRide = a => isRide(a) && a.device_watts === true && a.moving_time > 0;
+
+// One ride's (downsampled) streams → {bucket: seconds}, moving samples only, scaled to moving time.
+function _pwzHist(streams, movingTime) {
+  const w = streams && streams.series && streams.series.watts && streams.series.watts.data;
+  const v = streams && streams.series && streams.series.speed && streams.series.speed.data;
+  if (!w || !w.length || !movingTime) return null;
+  const idx = [];
+  for (let i = 0; i < w.length; i++) if (w[i] != null && !isNaN(w[i]) && (!v || v[i] == null || v[i] >= 0.5)) idx.push(i);
+  if (!idx.length) return null;
+  const per = movingTime / idx.length, h = {};
+  idx.forEach(i => { const b = Math.floor(Math.max(0, w[i]) / 10); h[b] = (h[b] || 0) + per; });
+  for (const k in h) h[k] = Math.round(h[k]);
+  return h;
+}
+
+function powerZoneFor(watts, ftp) {
+  const f = watts / ftp;
+  for (let i = 0; i < POWER_ZONES.length; i++) if (f < POWER_ZONES[i].hi) return i;
+  return POWER_ZONES.length - 1;
+}
+
+function renderOverviewPowerZones() {
+  const card = document.getElementById('pwzCard');
+  if (!card) return;
+  const set = ((typeof modeActs === 'function') ? modeActs() : (typeof acts !== 'undefined' ? acts : [])).filter(_pwzRide);
+  const ftp = (typeof estimateFtp === 'function') && estimateFtp();
+  if (!set.length || !ftp || !(ftp.value > 0)) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  const F = ftp.value, store = _pwzLoad();
+  const totals = POWER_ZONES.map(() => 0), missing = [];
+  let have = 0;
+  set.forEach(a => {
+    const h = store.acts[a.id];
+    if (!h) { missing.push(a); return; }
+    have++;
+    for (const b in h) totals[powerZoneFor(+b * 10 + 5, F)] += h[b];
+  });
+  const sum = totals.reduce((s, v) => s + v, 0), peak = Math.max(...totals) || 1;
+  drawZoneRing(document.getElementById('pwzRing'), totals, { big: sum ? fmtTc(sum) : '—', small: tr('moving') }, 220, POWER_ZONES.map(z => z.color));
+  document.getElementById('pwzLegend').innerHTML = POWER_ZONES.map((z, i) => {
+    const lo = i ? Math.round(POWER_ZONES[i - 1].hi * F) : 0, hi = z.hi === Infinity ? null : Math.round(z.hi * F);
+    const v = totals[i];
+    return `<div class="hrz-row">
+      <span class="hrz-dot" style="background:${z.color}"></span>
+      <span class="hrz-name">Z${i + 1} · ${z.name} <span class="hrz-range">${hi == null ? lo + '+' : lo + '–' + hi} W</span></span>
+      <span class="hrz-bar"><span style="width:${Math.round(v / peak * 100)}%;background:${z.color}"></span></span>
+      <span class="hrz-time">${v ? fmtT(v) : '—'}</span>
+      <span class="hrz-pct">${v && sum ? Math.round(v / sum * 100) + '%' : ''}</span>
+    </div>`;
+  }).join('');
+  const note = document.getElementById('pwzNote');
+  note.innerHTML = trf('Zones from FTP {0} W · {1} of {2} power-meter rides analysed', F, have, have + missing.length)
+    + (missing.length ? ` <button class="seg-scan spdz-btn" id="pwzFetch">${trf('Analyse {0} more', missing.length)}</button>` : '');
+  const btn = document.getElementById('pwzFetch');
+  if (btn) btn.onclick = async () => {
+    btn.disabled = true;
+    let n = 0;
+    for (const a of missing.slice(0, 100)) {
+      btn.textContent = trf('Analysing… {0}/{1}', n, Math.min(100, missing.length));
+      let st; try { st = await _getActivityStreams(a.id); } catch { break; }
+      const h = st && _pwzHist(st, a.moving_time);
+      if (h) store.acts[a.id] = h;
+      if (++n % 10 === 0) _pwzSave();
+    }
+    _pwzSave(); renderOverviewPowerZones();
+  };
+}
+
 /* ── WHERE A PEAK HAPPENED ───────────────────────────────────────────────────
    A top-speed or highest-HR row only says how much. This finds the moment: the
    point on the ride where that peak occurred, how far in it was, the clock
