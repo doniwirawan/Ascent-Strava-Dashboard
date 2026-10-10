@@ -174,7 +174,9 @@
 .type-pill.ride { color: var(--orange); background: var(--orange-dim); }
 .type-pill.bike-pill { color: var(--text-2); letter-spacing: 0; }
 /* "Change bike" picker in the activity pop-up's action row — a button that opens a list */
-select.actd-bike-select { font-family: inherit; cursor: pointer; appearance: auto; }
+select.actd-bike-select { font-family: inherit; cursor: pointer; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+select.actd-bike-select:hover { border-color: var(--border-hover); background: var(--surface2); }
+select.actd-bike-select option { background: var(--surface); color: var(--text); }
 select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 
 /* Contain Leaflet's internal z-index (panes/controls up to ~1000) so a map can
