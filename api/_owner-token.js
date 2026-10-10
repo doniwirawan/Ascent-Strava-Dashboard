@@ -44,4 +44,23 @@ async function saveActivityAi(activity_id, fields) {
   } catch { return false; }
 }
 
-module.exports = { sb, getOwnerRefreshToken, saveOwnerRefreshToken, saveActivityAi };
+// webhook_events: one row per owner event — logEvent() inserts it, the returned
+// function records the outcome (see Settings → Auto-caption webhook).
+async function logEvent(aspect, activity_id) {
+  const s = sb();
+  const url = s && s.url.replace(/owner_tokens$/, 'webhook_events');
+  let id = null;
+  if (url) {
+    try {
+      const r = await fetch(url, { method: 'POST', headers: { ...s.H, Prefer: 'return=representation' },
+        body: JSON.stringify({ aspect, activity_id: String(activity_id), result: 'processing…' }) });
+      if (r.ok) id = ((await r.json())[0] || {}).id;
+    } catch {}
+  }
+  return async result => {
+    if (!id) return;
+    try { await fetch(url + '?id=eq.' + id, { method: 'PATCH', headers: { ...s.H, Prefer: 'return=minimal' }, body: JSON.stringify({ result: String(result).slice(0, 300) }) }); } catch {}
+  };
+}
+
+module.exports = { sb, getOwnerRefreshToken, saveOwnerRefreshToken, saveActivityAi, logEvent };

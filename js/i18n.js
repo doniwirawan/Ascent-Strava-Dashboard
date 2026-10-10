@@ -585,6 +585,13 @@ const TR_ID = {
   'Chain': 'Rantai', 'Tires': 'Ban', 'Brake pads': 'Kampas rem', 'Wax / Lube': 'Wax / Pelumas',
   'Not tracked': 'Tidak dilacak', 'not tracked': 'tidak dilacak', 'Overdue': 'Terlambat',
   'Due soon': 'Segera', 'OK': 'OK', 'Set up': 'Atur', 'every': 'setiap',
+  'Checking…': 'Memeriksa…', 'Could not check the webhook — try again.': 'Gagal memeriksa webhook — coba lagi.',
+  'Working': 'Berfungsi', 'Not working': 'Tidak berfungsi',
+  'Strava sends new activities here': 'Strava mengirim aktivitas baru ke sini', 'No Strava webhook subscription': 'Tidak ada langganan webhook Strava',
+  'Can write to your Strava (token saved {0})': 'Bisa menulis ke Strava kamu (token disimpan {0})',
+  'The saved token can’t write — log out and back in, and keep “upload your activities” ticked': 'Token tersimpan tidak bisa menulis — keluar lalu masuk lagi, dan biarkan “upload your activities” dicentang',
+  'No token saved yet — log out and back in once': 'Belum ada token tersimpan — keluar lalu masuk lagi sekali',
+  'Latest events': 'Event terbaru', 'No events logged yet.': 'Belum ada event tercatat.',
   'Log again': 'Catat lagi', 'Log service': 'Catat servis', 'Stop tracking': 'Berhenti melacak',
   'Strava has no service data — log a service to start tracking. Saved on this device.': 'Strava tidak punya data servis — catat servis untuk mulai melacak. Disimpan di perangkat ini.',
   // HR / speed zones (fitness.js). Zone + band names stay English on purpose.

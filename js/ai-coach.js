@@ -739,7 +739,7 @@ async function aiCaptionApply(id) {
     const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
     if (a) { a.name = title.trim(); a.description = tagged; }
     aiSyncCache();
-    if (src !== 'stats') aiStoreSave(id, { caption_title: title.trim(), caption_desc: desc });
+    aiStoreSave(id, { caption_title: title.trim(), caption_desc: desc }); // what's on Strava now — no stale preview on reopen
     const t = document.getElementById('actModalTitle'); if (t) t.textContent = title.trim();
     if (status) { status.className = 'ai-cap-status ok'; status.textContent = '✓ Updated on Strava.'; }
   } catch (e) {
@@ -842,6 +842,36 @@ async function bulkRun(p, mode) {
   status.className = 'gr-status ' + (fail && !ok ? 'err' : 'ok');
   status.textContent = (bulkStop[p] ? 'Stopped. ' : 'Done. ') + 'Updated ' + ok + (fail ? ', ' + fail + ' failed' : '') + '.';
   setTimeout(() => { if (bar) bar.style.width = '0%'; }, 1500);
+}
+
+/* Settings → Auto-caption webhook (owner only): is it subscribed, does the server
+   hold a token that can write, and what happened to the latest events. */
+async function aiWebhookStatus() {
+  const card = document.getElementById('webhookCard'), out = document.getElementById('webhookStatus');
+  if (!card || !out || !_isAiOwner()) return;
+  card.style.display = '';
+  const token = localStorage.getItem('strava_access_token');
+  if (!token) return;
+  out.className = 'ai-test-result'; out.textContent = tr('Checking…');
+  let d;
+  try {
+    const r = await fetch('/api/ai-chats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'webhook-status' }) });
+    d = r.ok ? await r.json() : null;
+  } catch {}
+  if (!d) { out.className = 'ai-test-result err'; out.textContent = tr('Could not check the webhook — try again.'); return; }
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const line = (ok, text) => '<div>' + (ok ? '✅ ' : '❌ ') + text + '</div>';
+  const when = t => t ? new Date(t).toLocaleString() : '';
+  const working = d.subscription && d.token.write;
+  out.className = 'ai-test-result ' + (working ? 'ok' : 'err');
+  out.innerHTML = '<b>' + (working ? tr('Working') : tr('Not working')) + '</b>'
+    + line(!!d.subscription, d.subscription ? tr('Strava sends new activities here') : tr('No Strava webhook subscription'))
+    + line(d.token.write, d.token.write ? trf('Can write to your Strava (token saved {0})', when(d.token.saved_at))
+      : d.token.saved_at ? tr('The saved token can’t write — log out and back in, and keep “upload your activities” ticked')
+      : tr('No token saved yet — log out and back in once'))
+    + (d.events.length ? '<div style="margin-top:8px;color:var(--muted);font-weight:400">' + tr('Latest events') + ':</div>'
+      + d.events.map(e => '<div style="font-weight:400;color:var(--muted)">' + esc(when(e.at)) + ' · ' + esc(e.aspect) + ' · <a href="https://www.strava.com/activities/' + esc(e.activity_id) + '" target="_blank" rel="noopener">' + esc(e.activity_id) + '</a> — ' + esc(e.result) + '</div>').join('')
+      : '<div style="margin-top:8px;color:var(--muted);font-weight:400">' + tr('No events logged yet.') + '</div>');
 }
 
 /* Verify the selected provider works (no tokens spent). Reused by the Test

@@ -16,8 +16,44 @@
 // POST { token, action: 'act-list' }          → { rows: [{activity_id, analysis, caption_title, caption_desc}] }
 // POST { token, action: 'act-save', id, analysis?, caption_title?, caption_desc? } → { ok }
 //
+// And the auto-caption webhook's health, for Settings:
+// POST { token, action: 'webhook-status' } → { subscription, token: {saved_at, write}, events: [...] }
+//
 // Required env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OWNER_ATHLETE_ID.
-const { saveActivityAi } = require('./_owner-token.js');
+const { saveActivityAi, getOwnerRefreshToken, saveOwnerRefreshToken } = require('./_owner-token.js');
+
+// Is the webhook set up and able to act? Subscription (Strava), the saved owner
+// token and whether it can write, and the latest logged events.
+async function webhookStatus(url, H) {
+  const cid = (process.env.STRAVA_CLIENT_ID || '').replace(/\s+/g, '');
+  const sec = (process.env.STRAVA_CLIENT_SECRET || '').replace(/\s+/g, '');
+  const out = { subscription: null, token: { saved_at: null, write: null }, events: [] };
+  try {
+    const r = await fetch('https://www.strava.com/api/v3/push_subscriptions?client_id=' + cid + '&client_secret=' + sec);
+    const subs = r.ok ? await r.json() : [];
+    out.subscription = subs[0] ? { id: subs[0].id, callback_url: subs[0].callback_url } : false;
+  } catch {}
+  try {
+    const r = await fetch(url + '/rest/v1/owner_tokens?id=eq.strava&select=updated_at', { headers: H });
+    const row = r.ok ? (await r.json())[0] : null;
+    out.token.saved_at = row ? row.updated_at : null;
+  } catch {}
+  const rt = await getOwnerRefreshToken();
+  if (rt) {
+    try {
+      const r = await fetch('https://www.strava.com/oauth/token', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: cid, client_secret: sec, grant_type: 'refresh_token', refresh_token: rt }) });
+      const d = r.ok ? await r.json() : null;
+      if (d && d.refresh_token && d.refresh_token !== rt) await saveOwnerRefreshToken(d.refresh_token);
+      out.token.write = d ? /activity:write/.test(d.scope || '') : false;
+    } catch {}
+  }
+  try {
+    const r = await fetch(url + '/rest/v1/webhook_events?select=at,aspect,activity_id,result&order=at.desc&limit=10', { headers: H });
+    if (r.ok) out.events = await r.json();
+  } catch {}
+  return out;
+}
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'method_not_allowed' }); return; }
@@ -26,7 +62,7 @@ module.exports = async (req, res) => {
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
   const { token, action } = body;
-  if (!token || !['list', 'save', 'delete', 'act-list', 'act-save'].includes(action)) { res.status(400).json({ error: 'bad_request' }); return; }
+  if (!token || !['list', 'save', 'delete', 'act-list', 'act-save', 'webhook-status'].includes(action)) { res.status(400).json({ error: 'bad_request' }); return; }
 
   // Gate to the owner: a valid Strava token that resolves to OWNER_ATHLETE_ID.
   let athleteId = null;
@@ -49,6 +85,11 @@ module.exports = async (req, res) => {
   const table = url + '/rest/v1/ai_chats';
   const mine = 'athlete_id=eq.' + encodeURIComponent(owner);
   try {
+    if (action === 'webhook-status') {
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.status(200).json(await webhookStatus(url, H));
+      return;
+    }
     if (action === 'act-list') {
       const r = await fetch(url + '/rest/v1/activity_ai?select=activity_id,analysis,caption_title,caption_desc', { headers: H });
       if (!r.ok) throw new Error('supabase ' + r.status);

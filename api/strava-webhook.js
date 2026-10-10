@@ -14,7 +14,7 @@
 const { waitUntil } = require('@vercel/functions');
 const STRAVA = 'https://www.strava.com/api/v3';
 const { nearestLandmark } = require('../js/landmarks.js');
-const { sb, getOwnerRefreshToken, saveOwnerRefreshToken, saveActivityAi } = require('./_owner-token.js');
+const { sb, getOwnerRefreshToken, saveOwnerRefreshToken, saveActivityAi, logEvent } = require('./_owner-token.js');
 
 async function ownerAccessToken() {
   const client_id = (process.env.STRAVA_CLIENT_ID || '').replace(/\s+/g, '');
@@ -214,34 +214,47 @@ async function captionRecord(id, rec) {
   } catch { return null; }
 }
 
-async function processActivity(activityId, isUpdate) {
+// → a short outcome for the webhook_events log
+async function processActivity(activityId, isUpdate, updates) {
   const token = await ownerAccessToken();
-  if (!token) return;
+  if (!token) return 'skipped: no owner token with write access — log in to the dashboard once';
   const ar = await fetch(STRAVA + '/activities/' + activityId, { headers: { Authorization: 'Bearer ' + token } });
-  if (!ar.ok) return;
+  if (!ar.ok) return 'failed: could not read the activity (' + ar.status + ')';
   const act = await ar.json();
   if (isUpdate) {
     // our own PUT fires an update too — only act when the bike really changed
     const rec = await captionRecord(activityId);
-    if (!rec || (rec.gear_id || null) === (act.gear_id || null) || rec.name !== act.name) return;
+    if (rec) {
+      if (rec.name !== act.name) return 'skipped: title was renamed by hand';
+      if ((rec.gear_id || null) === (act.gear_id || null)) return 'skipped: bike unchanged';
+    } else {
+      // captioned before this log existed, or from the dashboard: re-caption a recent
+      // AI-written ride once (then the record above takes over) — never a manual rename
+      const recent = Date.now() - new Date(act.start_date).getTime() < 2 * 86400000;
+      if (updates && updates.title) return 'skipped: title change';
+      if (!recent || !/AI-written by Ascent/.test(act.description || '')) return 'skipped: not a recent AI-captioned activity';
+    }
   }
   const { text, note, analysis } = (await generateCaption(act, token)) || {};
-  if (!text) return;
+  if (!text) return 'failed: AI returned nothing (DeepSeek key/credit?)';
   const lines = text.trim().split('\n');
   const name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100);
   let description = lines.join('\n').trim();
-  if (!name) return;
+  if (!name) return 'failed: AI returned no title';
   if (description) description += '\n\n— AI-written by Ascent Analytics';
   const put = body => fetch(STRAVA + '/activities/' + activityId, {
     method: 'PUT', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   // private_note isn't in Strava's documented update API — if it's refused, still save the caption
-  const r = await put(note ? { name, description, private_note: note } : { name, description });
-  if (!r.ok && note) await put({ name, description });
+  let r = await put(note ? { name, description, private_note: note } : { name, description });
+  let noteOk = !!note && r.ok;
+  if (!r.ok && note) r = await put({ name, description });
+  if (!r.ok) return 'failed: Strava refused the update (' + r.status + ')';
   await captionRecord(activityId, { gear_id: act.gear_id, name });
   // so the dashboard shows it when the activity is opened
   await saveActivityAi(activityId, { caption_title: name, caption_desc: description, ...(analysis ? { analysis } : {}) });
+  return (isUpdate ? 're-captioned' : 'captioned') + (noteOk ? ' + private note' : ' (no private note)') + ': ' + name;
 }
 
 module.exports = async (req, res) => {
@@ -269,7 +282,11 @@ module.exports = async (req, res) => {
   if (enabled && body.object_type === 'activity' && ['create', 'update'].includes(body.aspect_type)
       && (!owner || String(body.owner_id) === owner)) {
     if (body.aspect_type === 'update') console.log('strava update event', body.object_id, JSON.stringify(body.updates || {}));
-    waitUntil(processActivity(body.object_id, body.aspect_type === 'update').catch(() => {}));
+    waitUntil((async () => {
+      const done = await logEvent(body.aspect_type, body.object_id);
+      await done(await processActivity(body.object_id, body.aspect_type === 'update', body.updates)
+        .catch(e => 'failed: ' + ((e && e.message) || e)));
+    })());
   }
 
   // Ack immediately so Strava doesn't retry (it requires a 200 within ~2s).
