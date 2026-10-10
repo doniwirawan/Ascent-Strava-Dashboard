@@ -14,7 +14,7 @@
 const { waitUntil } = require('@vercel/functions');
 const STRAVA = 'https://www.strava.com/api/v3';
 const { nearestLandmark } = require('../js/landmarks.js');
-const { sb, getOwnerRefreshToken, saveOwnerRefreshToken } = require('./_owner-token.js');
+const { sb, getOwnerRefreshToken, saveOwnerRefreshToken, saveActivityAi } = require('./_owner-token.js');
 
 async function ownerAccessToken() {
   const client_id = (process.env.STRAVA_CLIENT_ID || '').replace(/\s+/g, '');
@@ -144,6 +144,7 @@ async function deepseek(messages, max_tokens) {
 
 // Coach read for the private note (only the athlete sees it) — same brief as the
 // dashboard's "Performance analysis", as plain text since Strava shows no markdown.
+// Returns { note, analysis } — the analysis (no sign-off) is kept for the dashboard.
 async function generateNote(data) {
   const text = await deepseek([
     { role: 'system', content:
@@ -154,7 +155,9 @@ async function generateNote(data) {
       + 'Never mention where the athlete started or lives. Keep it under ~160 words. No preamble.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nAnalyse my performance.' },
   ], 450);
-  return text ? (text.replace(/\*\*(.+?)\*\*/g, '$1').trim() + '\n\n— AI analysis by Ascent').slice(0, 2000) : null;
+  if (!text) return null;
+  const analysis = text.replace(/\*\*(.+?)\*\*/g, '$1').trim();
+  return { analysis, note: (analysis + '\n\n— AI analysis by Ascent').slice(0, 2000) };
 }
 
 async function generateCaption(a, token) {
@@ -169,6 +172,8 @@ async function generateCaption(a, token) {
     max_kmh: a.max_speed ? +((a.max_speed * 3.6).toFixed(1)) : null,
     avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     avg_watts: a.average_watts ? Math.round(a.average_watts) : null,
+    watts_source: a.average_watts ? (a.device_watts === true ? 'power meter' : 'Strava estimate (no power meter)') : undefined,
+    np_watts: a.device_watts === true && a.weighted_average_watts ? Math.round(a.weighted_average_watts) : undefined,
     // Strava stores run/walk cadence per leg — double it for steps/min
     avg_cadence: a.average_cadence ? (/ride/i.test(a.sport_type || a.type || '') ? Math.round(a.average_cadence) + ' rpm' : Math.round(a.average_cadence * 2) + ' spm') : null,
     prs: a.pr_count || 0,
@@ -184,13 +189,13 @@ async function generateCaption(a, token) {
       'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ROAST me in first person like a friend in the group chat who just opened my file: specific, sharp, funny, PG-13. Find the weakest or most ridiculous number (slow average, long stopped time, low cadence, short distance, barely any climbing) and go after it; twist the good numbers into backhanded compliments; absurd comparisons, one punchline per sentence. Never mock body, weight, looks, age, gender, race, religion or money; no slurs. If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present, weave the conditions in naturally (the heat, rain, wind). Base everything ONLY on the real numbers provided — never invent. Stopped time is NOT a café, coffee, food, nap or any other stop — I never told you why I stopped, so never say or joke about where or why (just roast the minutes). Weave in 2–4 key stats naturally. Title: punchy, under 60 characters. Description: 2–4 short sentences. Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(data) + '\n\nWrite my new title and description.' },
   ];
-  const [text, note] = await Promise.all([deepseek(messages, 400), generateNote(data).catch(() => null)]);
+  const [text, nt] = await Promise.all([deepseek(messages, 400), generateNote(data).catch(() => null)]);
   // always state the destination in the description: "📍 Kintamani, Bangli · 46 km out".
   // Never the start — that's home.
   const caption = text && rp && rp.furthest_place
     ? text.trim() + '\n\n📍 ' + (rp.furthest_landmark || rp.furthest_place) + ' · ' + rp.furthest_km_from_start + ' km out'
     : text;
-  return { text: caption, note };
+  return { text: caption, note: nt && nt.note, analysis: nt && nt.analysis };
 }
 
 // Which bike each auto-caption was written for (Supabase auto_captions), so
@@ -220,7 +225,7 @@ async function processActivity(activityId, isUpdate) {
     const rec = await captionRecord(activityId);
     if (!rec || (rec.gear_id || null) === (act.gear_id || null) || rec.name !== act.name) return;
   }
-  const { text, note } = (await generateCaption(act, token)) || {};
+  const { text, note, analysis } = (await generateCaption(act, token)) || {};
   if (!text) return;
   const lines = text.trim().split('\n');
   const name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100);
@@ -235,6 +240,8 @@ async function processActivity(activityId, isUpdate) {
   const r = await put(note ? { name, description, private_note: note } : { name, description });
   if (!r.ok && note) await put({ name, description });
   await captionRecord(activityId, { gear_id: act.gear_id, name });
+  // so the dashboard shows it when the activity is opened
+  await saveActivityAi(activityId, { caption_title: name, caption_desc: description, ...(analysis ? { analysis } : {}) });
 }
 
 module.exports = async (req, res) => {

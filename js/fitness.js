@@ -320,7 +320,9 @@ function renderOverviewZones() {
 
 /* Two zone bases for the activity modal:
    • Strava — your Strava zones, exact time-in-zone from /activities/{id}/zones.
-   • Age    — 220 − age max HR, zones at 60/70/80/90 %. Strava's API doesn't
+   • Age    — max HR 211 − 0.64 × age (Nes et al. 2013, HUNT Fitness Study:
+     measured in 3,320 healthy adults; the old 220 − age misjudges it by ~10 bpm
+     at either end of the age range), zones at 60/70/80/90 %. Strava's API doesn't
      expose birth date, so it's asked for once and kept in this browser only
      (the repo is public). Time-in-zone comes from the HR stream, counting only
      moving samples; the per-bpm histogram is cached so a new age needs no refetch. */
@@ -335,6 +337,9 @@ function _hrzAge() {
   if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) age--;
   return age > 5 && age < 110 ? age : null;
 }
+
+// Age-predicted max HR — Nes et al. 2013 (see the mode note below).
+const _ageMaxHr = age => Math.round(211 - 0.64 * age);
 
 // Zone lower bounds in bpm for Z2..Z5 (Z1 is everything under Z2).
 const _ageZoneBounds = max => [0.6, 0.7, 0.8, 0.9].map(f => Math.round(f * max));
@@ -396,7 +401,7 @@ async function renderOverviewZonesAge(set) {
     return;
   }
   ring.style.display = '';
-  const max = 220 - age, lb = _ageZoneBounds(max);
+  const max = _ageMaxHr(age), lb = _ageZoneBounds(max);
   const zoneOf = bpm => { let z = 0; while (z < 4 && bpm >= lb[z]) z++; return z; };
   const ranges = [`<${lb[0]}`, `${lb[0]}–${lb[1]}`, `${lb[1]}–${lb[2]}`, `${lb[2]}–${lb[3]}`, `${lb[3]}+`];
   const hrActs = set.filter(a => a.average_heartrate > 0 && a.id);
@@ -411,7 +416,7 @@ async function renderOverviewZonesAge(set) {
     }
     drawZoneRing(ring, totals, { big: fmtTc(totals.reduce((s, v) => s + v, 0)), small: tr('tracked') });
     legend.innerHTML = zoneLegendHTML(totals, ranges);
-    note.innerHTML = trf('Max HR {0} bpm (220 − age {1}) · zones at 60/70/80/90 %', max, age) + ' · '
+    note.innerHTML = trf('Max HR {0} bpm (211 − 0.64 × age {1}) · zones at 60/70/80/90 %', max, age) + ' · '
       + (streamed === hrActs.length ? trf('all {0} activities from the HR stream', streamed) : trf('{0} of {1} activities from the HR stream, the rest from average HR', streamed, hrActs.length))
       + (pending.length && !_hrzAgeBusy ? ` <button class="seg-scan spdz-btn" id="hrzAgeFetch">${trf('Analyse {0} more', Math.min(40, pending.length))}</button>` : '')
       + ` · <a href="#" onclick="clearHrzBirthDate();return false">${tr('change birth date')}</a>`;
@@ -470,14 +475,14 @@ async function renderActivityHrZones(a) {
     const ring = document.getElementById('actHrzRing');
     if (!ring) return;
     if (!h || !Object.keys(h).length) { note.textContent = tr('No heart-rate stream for this activity.'); return; }
-    const max = 220 - age, lb = _ageZoneBounds(max);
+    const max = _ageMaxHr(age), lb = _ageZoneBounds(max);
     const totals = [0, 0, 0, 0, 0];
     for (const k in h) { let z = 0; while (z < 4 && +k >= lb[z]) z++; totals[z] += h[k]; }
     const ranges = [`<${lb[0]}`, `${lb[0]}–${lb[1]}`, `${lb[1]}–${lb[2]}`, `${lb[2]}–${lb[3]}`, `${lb[3]}+`];
     const sum = totals.reduce((s, v) => s + v, 0);
     drawZoneRing(ring, totals, { big: fmtTc(sum), small: tr('moving') }, 168);
     document.getElementById('actHrzLegend').innerHTML = zoneLegendHTML(totals, ranges);
-    note.innerHTML = trf('Max HR {0} bpm (220 − age {1}) · zones at 60/70/80/90 % · from the HR stream', max, age)
+    note.innerHTML = trf('Max HR {0} bpm (211 − 0.64 × age {1}) · zones at 60/70/80/90 % · from the HR stream', max, age)
       + ` · <a href="#" onclick="clearHrzBirthDate('${a.id}');return false">${tr('change birth date')}</a>`;
     return;
   }
@@ -501,17 +506,14 @@ async function renderActivityHrZones(a) {
 
 /* ── FTP ESTIMATION ──
    1) Strava's set FTP if present.
-   2) Best sustained ride effort: 0.95 × the highest weighted-average (or average)
+   2) Power meter: best sustained ride effort: 0.95 × the highest weighted-average (or average)
       watts over rides ≥ 20 min — a rough 20-min-test → FTP proxy.
-   3) Body weight: ~2.5 W/kg, a recreational-cyclist baseline.
+   3) No meter: the climb + HR estimate (js/climb-ftp.js).
+   4) Body weight: ~2.5 W/kg, a recreational-cyclist baseline.
    Returns {value, estimated, basis} or null. */
 function estimateFtp() {
   const ath = (typeof currentAthlete !== 'undefined' && currentAthlete) || {};
   if (ath.ftp) return { value: Math.round(ath.ftp), estimated: false, basis: 'strava' };
-
-  // Without a power meter: climbing physics + heart rate (js/climb-ftp.js)
-  const climb = (typeof climbFtp === 'function') && climbFtp();
-  if (climb) return { value: climb, estimated: true, basis: 'climb' };
 
   if (typeof acts !== 'undefined' && acts.length) {
     let best = 0;
@@ -523,6 +525,11 @@ function estimateFtp() {
     }
     if (best > 0) return { value: Math.round(best * 0.95), estimated: true, basis: 'power' };
   }
+
+  // Without a power meter: climbing physics + heart rate (js/climb-ftp.js).
+  // A measured effort above wins as soon as there is one.
+  const climb = (typeof climbFtp === 'function') && climbFtp();
+  if (climb) return { value: climb, estimated: true, basis: 'climb' };
 
   const kg = (typeof athWeightKnown === 'function') ? athWeightKnown() : ath.weight;
   if (kg) return { value: Math.round(kg * 2.5), estimated: true, basis: 'weight' };
@@ -538,13 +545,6 @@ function estimateVo2max() {
   const weight = (typeof athWeightKg === 'function') ? athWeightKg() : 0;
   if (!weight || typeof acts === 'undefined' || !acts.length) return null;
   const vo2FromPower = watts => 10.8 * (watts / weight) + 7;
-
-  // Without a meter, the climb line read at max HR (js/climb-ftp.js).
-  const pMax = (typeof climbPmax === 'function') && climbPmax();
-  if (pMax) {
-    const v = vo2FromPower(pMax);
-    if (v >= 25 && v <= 90) return { value: Math.round(v), method: 'climb' };
-  }
 
   // Steady rides (≥20 min) with both power and heart rate. Real meters only —
   // Strava's estimated watts barely move with HR, so the fit reads nonsense.
@@ -568,6 +568,13 @@ function estimateVo2max() {
       const v = vo2FromPower(pAtMax);
       if (v >= 25 && v <= 90) return { value: Math.round(v), method: 'power-hr' };
     }
+  }
+
+  // Not enough power-meter rides yet: the climb line read at max HR (js/climb-ftp.js).
+  const pMax = (typeof climbPmax === 'function') && climbPmax();
+  if (pMax) {
+    const v = vo2FromPower(pMax);
+    if (v >= 25 && v <= 90) return { value: Math.round(v), method: 'climb' };
   }
 
   // Fallback: from FTP (FTP ≈ 75% of power at VO2max).

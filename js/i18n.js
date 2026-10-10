@@ -220,7 +220,7 @@ const APP_ID = {
   'Speed then': 'Kecepatan saat itu', 'Heart rate then': 'Detak jantung saat itu',
   'No heart-rate stream for this activity.': 'Tidak ada data detak jantung untuk aktivitas ini.',
   'Your birth date (Strava doesn’t share it) — saved in this browser only:': 'Tanggal lahir Anda (Strava tidak membagikannya) — hanya disimpan di browser ini:',
-  'Max HR {0} bpm (220 − age {1}) · zones at 60/70/80/90 % · from the HR stream': 'Detak maks {0} bpm (220 − usia {1}) · zona di 60/70/80/90 % · dari data detak jantung',
+  'Max HR {0} bpm (211 − 0.64 × age {1}) · zones at 60/70/80/90 % · from the HR stream': 'Detak maks {0} bpm (211 − 0,64 × usia {1}) · zona di 60/70/80/90 % · dari data detak jantung',
   '10 s before': '10 dtk sebelumnya',
   'Clock time': 'Waktu',
   'Segment': 'Segmen',
@@ -1222,7 +1222,7 @@ const TR_ID = {
   'Loading routes…': 'Memuat rute…', 'Could not load the routes.': 'Gagal memuat rute.', 'Never ridden': 'Belum pernah dilewati',
   '{0}% of the route': '{0}% dari rute', 'Download GPX': 'Unduh GPX',
   'Loops through roads you have never ridden, one per regency. Bold orange = never ridden, faint = roads you know. Right-click the map to open a spot in Google Maps.': 'Rute putar lewat jalan yang belum pernah Anda lewati, satu per kabupaten. Oranye tebal = belum pernah, samar = jalan yang sudah dikenal. Klik kanan peta untuk membuka titik di Google Maps.', 'Street View': 'Street View', 'Google Maps': 'Google Maps', 'All tiers done': 'Semua level tercapai',
-  'Max HR {0} bpm (220 − age {1}) · zones at 60/70/80/90 %': 'Detak maks {0} bpm (220 − usia {1}) · zona di 60/70/80/90 %', 'Age': 'Usia', 'change birth date': 'ubah tanggal lahir',
+  'Max HR {0} bpm (211 − 0.64 × age {1}) · zones at 60/70/80/90 %': 'Detak maks {0} bpm (211 − 0,64 × usia {1}) · zona di 60/70/80/90 %', 'Age': 'Usia', 'change birth date': 'ubah tanggal lahir',
   'all {0} activities from the HR stream': 'semua {0} aktivitas dari stream HR',
   '{0} of {1} activities from the HR stream, the rest from average HR': '{0} dari {1} aktivitas dari stream HR, sisanya dari HR rata-rata', 'no change': 'tetap', '{0} avg ride': 'rata-rata {0}/gowes',
 };

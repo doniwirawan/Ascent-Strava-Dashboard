@@ -31,4 +31,17 @@ async function saveOwnerRefreshToken(refresh_token) {
   } catch {}
 }
 
-module.exports = { sb, getOwnerRefreshToken, saveOwnerRefreshToken };
+// Upsert AI output for one activity into activity_ai (see api/activity-ai.js).
+async function saveActivityAi(activity_id, fields) {
+  const s = sb();
+  if (!s) return false;
+  try {
+    const r = await fetch(s.url.replace(/owner_tokens$/, 'activity_ai') + '?on_conflict=activity_id', {
+      method: 'POST', headers: { ...s.H, Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ activity_id: String(activity_id), ...fields, updated_at: new Date().toISOString() }),
+    });
+    return r.ok;
+  } catch { return false; }
+}
+
+module.exports = { sb, getOwnerRefreshToken, saveOwnerRefreshToken, saveActivityAi };

@@ -9,6 +9,8 @@ const { saveOwnerRefreshToken } = require('./_owner-token.js');
 async function rememberOwner(data) {
   const owner = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
   if (!owner || !data.refresh_token) return;
+  // a refresh reports its scope — a read-only token can't caption, so don't let it replace a good one
+  if (data.scope && !/activity:write/.test(data.scope)) return;
   let id = data.athlete && data.athlete.id;
   if (!id && data.access_token) {
     const r = await fetch('https://www.strava.com/api/v3/athlete', { headers: { Authorization: 'Bearer ' + data.access_token } });

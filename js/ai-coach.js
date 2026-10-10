@@ -266,6 +266,7 @@ function aiActivityData(a) {
     max_kmh: cleanMax(a) ? +((cleanMax(a) * 3.6).toFixed(1)) : null,
     avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     avg_watts: a.average_watts ? Math.round(a.average_watts) : null,
+    watts_source: a.average_watts ? (a.device_watts === true ? 'power meter' : 'Strava estimate (no power meter)') : undefined,
     // Strava stores run/walk cadence per leg — double it for steps/min
     avg_cadence: a.average_cadence ? (ride ? Math.round(a.average_cadence) + ' rpm' : Math.round(a.average_cadence * 2) + ' spm') : null,
     kj: a.kilojoules ? Math.round(a.kilojoules) : null,
@@ -543,6 +544,7 @@ async function aiCaptionActivity(id) {
     const title = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '');
     const desc = lines.join('\n').replace(/^\s+/, '').trim();
     aiShowCaptionPreview(id, title, aiWithLocation(desc, a), 'ai', roast);
+    aiStoreSave(id, { caption_title: title, caption_desc: aiWithLocation(desc, a) });
   } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error — try again.</div>'; }
 }
 
@@ -552,18 +554,54 @@ async function aiCaptionActivity(id) {
    (Supabase) cache — so it's always there when you reopen the activity. */
 const _analysisKey = id => 'ai_analysis_' + id;
 
+/* The owner's AI output is also kept server-side (api/activity-ai.js → Supabase
+   activity_ai), incl. what the auto-caption webhook wrote, so it survives a
+   Strava refresh and shows on every device. Loaded once per page. */
+let _aiStore = {}, _aiStoreP = null;
+function aiStoreLoad() {
+  if (_aiStoreP) return _aiStoreP;
+  const token = localStorage.getItem('strava_access_token');
+  if (!token) return Promise.resolve(_aiStore);
+  return (_aiStoreP = fetch('/api/activity-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'list' }) })
+    .then(r => r.ok ? r.json() : { rows: [] })
+    .then(d => { (d.rows || []).forEach(x => { _aiStore[x.activity_id] = x; }); return _aiStore; })
+    .catch(() => { _aiStoreP = null; return _aiStore; }));
+}
+const _isAiOwner = () => typeof OWNER_ATHLETE_ID !== 'undefined' && String(localStorage.getItem('strava_athlete_id')) === String(OWNER_ATHLETE_ID);
+function aiStoreSave(id, fields) {
+  _aiStore[id] = Object.assign(_aiStore[id] || { activity_id: String(id) }, fields);
+  const token = localStorage.getItem('strava_access_token');
+  if (token) fetch('/api/activity-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'save', id, ...fields }) }).catch(() => {});
+}
+
 function _getSavedAnalysis(id) {
   try { const c = localStorage.getItem(_analysisKey(id)); if (c) return c; } catch {}
   const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
-  return (a && a.ai_analysis) || null;
+  return (a && a.ai_analysis) || (_aiStore[id] && _aiStore[id].analysis) || null;
 }
 
-/* Called when the modal opens — shows a saved analysis if one exists, else nothing. */
-function renderActivityAnalysis(a) {
+/* Called when the modal opens — shows the saved analysis, and a saved AI caption
+   that was never applied to Strava, if there are any. */
+async function renderActivityAnalysis(a) {
   const panel = document.getElementById('actAnalysisPanel');
   if (!panel) return;
   const saved = _getSavedAnalysis(a.id);
   if (saved) _showAnalysis(a.id, saved); else panel.innerHTML = '';
+  await aiStoreLoad();
+  if (document.getElementById('actAnalysisPanel') !== panel) return; // modal moved on
+  const rec = _aiStore[a.id] || {};
+  if (!saved && rec.analysis) _showAnalysis(a.id, rec.analysis);
+  // nothing saved, but the private note on Strava holds one of our analyses
+  // (e.g. written before the store existed) — show it and keep it
+  if (!saved && !rec.analysis && _isAiOwner()) {
+    try {
+      const d = await api('/activities/' + a.id);
+      const m = d && typeof d.private_note === 'string' && d.private_note.match(/^([\s\S]+?)\s*— AI analysis by Ascent\s*$/);
+      if (m && document.getElementById('actAnalysisPanel') === panel) { aiStoreSave(a.id, { analysis: m[1].trim() }); _showAnalysis(a.id, m[1].trim()); }
+    } catch {}
+  }
+  const cap = document.getElementById('actAiPanel');
+  if (rec.caption_title && rec.caption_title !== a.name && cap && !cap.innerHTML) aiShowCaptionPreview(a.id, rec.caption_title, rec.caption_desc || '', 'ai');
 }
 
 function _showAnalysis(id, text) {
@@ -628,7 +666,7 @@ async function aiAnalyzeActivity(id, force) {
     if (!r.ok || !data.text) { panel.innerHTML = '<div class="ai-cap-status err">' + aiErrorMessage(data, r.status) + '</div>'; return; }
     const text = data.text.trim();
     try { localStorage.setItem(_analysisKey(id), text); } catch {}
-    a.ai_analysis = text; aiSyncCache();
+    a.ai_analysis = text; aiSyncCache(); aiStoreSave(id, { analysis: text });
     _showAnalysis(id, text);
   } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error — try again.</div>'; }
 }
@@ -701,6 +739,7 @@ async function aiCaptionApply(id) {
     const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
     if (a) { a.name = title.trim(); a.description = tagged; }
     aiSyncCache();
+    if (src !== 'stats') aiStoreSave(id, { caption_title: title.trim(), caption_desc: desc });
     const t = document.getElementById('actModalTitle'); if (t) t.textContent = title.trim();
     if (status) { status.className = 'ai-cap-status ok'; status.textContent = '✓ Updated on Strava.'; }
   } catch (e) {
