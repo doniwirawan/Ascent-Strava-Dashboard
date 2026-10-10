@@ -281,6 +281,7 @@ function _gapPaint(el, gaps) {
       const m = L.map(t, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false });
       addBasemap(m);
       const line = L.polyline(x.pts, { color: '#FC4C02', weight: 5, opacity: .95 }).addTo(m);
+      if (typeof routeArrows === 'function') setTimeout(() => { try { routeArrows(m, x.pts, { every: 70 }); } catch {} }, 350);
       L.circleMarker(x.pts[0], { radius: 5, color: '#4ade80', fillColor: '#4ade80', fillOpacity: 1, weight: 0 }).addTo(m);
       L.circleMarker(x.pts[x.pts.length - 1], { radius: 5, color: '#FC4C02', fillColor: '#FC4C02', fillOpacity: 1, weight: 0 }).addTo(m);
       m.fitBounds(line.getBounds(), { padding: [16, 16] });

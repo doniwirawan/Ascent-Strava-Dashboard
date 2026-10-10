@@ -1545,6 +1545,7 @@ function _initSegMapEl(mapEl){
       addBasemap(m);
       const line=L.polyline(coords,{color:'#FC4C02',weight:3,opacity:.95}).addTo(m);
       L.circleMarker(coords[0],{radius:5,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m);
+      if(typeof routeArrows==='function') setTimeout(()=>{ try{ routeArrows(m,coords,{every:55}); }catch{} },350);
       L.circleMarker(coords[coords.length-1],{radius:5,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m);
       m.fitBounds(line.getBounds(),SEG_FIT);
       segMaps.push({m,line});
@@ -1815,6 +1816,7 @@ async function openSegMap(id){
     addBasemap(m);
     const line=L.polyline(coords,{color:'#FC4C02',weight:4,opacity:.95}).addTo(m);
     L.circleMarker(coords[0],{radius:6,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m).bindTooltip('Start');
+    if(typeof routeArrows==='function') setTimeout(()=>{ try{ routeArrows(m,coords,{every:80}); }catch{} },300);
     L.circleMarker(coords[coords.length-1],{radius:6,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m).bindTooltip('Finish');
     _segBigMap=m;
     setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[30,30]});}catch{}},250);

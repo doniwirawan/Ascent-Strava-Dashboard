@@ -333,6 +333,39 @@ const BASEMAP_LABELS = [
   ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
 ];
 
+/* Direction arrows along a route: a small chevron every `every` screen pixels,
+   pointing the way it was ridden. Re-laid out on zoom/pan so they never crowd or
+   thin out, and only drawn in (and just around) the visible area. → layerGroup */
+function routeArrows(map, latlngs, o) {
+  o = o || {};
+  const every = o.every || 110, color = o.color || '#fff', g = L.layerGroup().addTo(map);
+  const pts = (latlngs || []).map(p => L.latLng(p));
+  const icon = deg => L.divIcon({ className: 'route-arrow', iconSize: [14, 14], iconAnchor: [7, 7],
+    html: `<svg viewBox="0 0 14 14" width="14" height="14" style="transform:rotate(${deg}deg)"><path d="M3 2 L12 7 L3 12 L5.6 7 Z" fill="${color}" stroke="rgba(0,0,0,.6)" stroke-width="1" stroke-linejoin="round"/></svg>` });
+  const draw = () => {
+    g.clearLayers();
+    if (pts.length < 2 || !map._loaded) return;
+    const view = map.getBounds().pad(0.15);
+    let rem = every / 2, n = 0;                      // distance (px) to the next arrow
+    let a = map.latLngToLayerPoint(pts[0]);
+    for (let i = 1; i < pts.length && n < 400; i++) {
+      const b = map.latLngToLayerPoint(pts[i]), len = a.distanceTo(b);
+      let pos = 0;
+      while (len - pos >= rem) {
+        pos += rem; rem = every;
+        const t = pos / len, p = L.point(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t), ll = map.layerPointToLatLng(p);
+        if (view.contains(ll)) { L.marker(ll, { icon: icon(Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI), interactive: false, keyboard: false }).addTo(g); n++; }
+      }
+      rem -= len - pos;
+      a = b;
+    }
+  };
+  map.on('zoomend moveend', draw);
+  if (map._loaded) draw(); else map.whenReady(draw);
+  g.redraw = draw;
+  return g;
+}
+
 /* ⛶ button that makes a Leaflet map fill the screen: the Fullscreen API where it
    exists, else (iPhone Safari) a fixed full-window overlay. The map re-measures
    itself either way. Safe to call again after the map is rebuilt in place. */

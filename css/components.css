@@ -642,3 +642,7 @@ body.map-fs-open { overflow: hidden; }
 .v3d-msg.ok { color: #4ade80; font-weight: 600; }
 .v3d-msg.err { color: #fca5a5; }
 .v3d-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* direction chevrons along a route (routeArrows in utils.js) */
+.route-arrow { background: none; border: 0; pointer-events: none; }
+.route-arrow svg { display: block; filter: drop-shadow(0 0 1px rgba(0,0,0,.6)); }
