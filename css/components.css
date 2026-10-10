@@ -210,11 +210,13 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 .cal2-stats { display: flex; flex-wrap: wrap; gap: 18px 26px; margin-bottom: 18px; font-size: 13px; color: var(--muted); }
 .cal2-stats b { color: var(--text); font-size: 19px; font-weight: 800; margin-right: 5px; }
 .cal2-scroll { overflow-x: auto; padding-bottom: 6px; }
-.cal2-months { display: flex; margin-bottom: 5px; }
-.cal2-m { width: 16px; flex: 0 0 16px; font-size: 9px; font-weight: 700; letter-spacing: .04em; color: var(--muted); white-space: nowrap; }
+.cal2-months { display: flex; gap: 3px; margin-bottom: 5px; }
+/* weeks share the full card width; squares grow with it (min 11px → scrolls on phones) */
+.cal2-m { flex: 1 1 0; min-width: 11px; font-size: 9px; font-weight: 700; letter-spacing: .04em; color: var(--muted); white-space: nowrap; overflow: visible; }
 .cal2-grid { display: flex; gap: 3px; }
-.cal2-week { display: flex; flex-direction: column; gap: 3px; }
+.cal2-week { display: flex; flex-direction: column; gap: 3px; flex: 1 1 0; min-width: 11px; }
 .cal2-cell { width: 13px; height: 13px; border-radius: 3px; aspect-ratio: auto; }
+.cal2-week .cal2-cell { width: 100%; height: auto; aspect-ratio: 1; }
 .cal2-cell.empty { background: transparent; }
 .cal2-legend { display: flex; align-items: center; gap: 4px; margin-top: 16px; font-size: 11px; color: var(--muted); }
 .cal2-legend .cal2-cell { display: inline-block; }
