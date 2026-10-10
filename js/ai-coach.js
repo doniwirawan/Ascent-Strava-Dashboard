@@ -541,7 +541,14 @@ async function aiCaptionActivity(id) {
   try {
     const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
     const data = await r.json().catch(() => ({}));
-    if (!r.ok || !data.text) { panel.innerHTML = '<div class="ai-cap-status err">' + aiErrorMessage(data, r.status) + '</div>'; return; }
+    if (!r.ok || !data.text) {
+      // AI unavailable (no credit, provider down…) — offer the stats caption instead
+      const why = aiErrorMessage(data, r.status);
+      await aiStatsCaption(id);
+      const st = document.getElementById('aiCapStatus');
+      if (st) { st.className = 'ai-cap-status err'; st.innerHTML = tr('AI unavailable — showing the stats caption instead.') + ' ' + why; }
+      return;
+    }
     const lines = data.text.trim().split('\n');
     const title = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '');
     const desc = lines.join('\n').replace(/^\s+/, '').trim();

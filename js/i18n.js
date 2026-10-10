@@ -585,6 +585,7 @@ const TR_ID = {
   'Chain': 'Rantai', 'Tires': 'Ban', 'Brake pads': 'Kampas rem', 'Wax / Lube': 'Wax / Pelumas',
   'Not tracked': 'Tidak dilacak', 'not tracked': 'tidak dilacak', 'Overdue': 'Terlambat',
   'Due soon': 'Segera', 'OK': 'OK', 'Set up': 'Atur', 'every': 'setiap',
+  'AI unavailable — showing the stats caption instead.': 'AI tidak tersedia — memakai caption statistik.',
   'Set bike': 'Pilih sepeda', 'Change bike': 'Ganti sepeda', 'Changing the bike…': 'Mengganti sepeda…',
   'Changing the bike and rewriting the caption…': 'Mengganti sepeda dan menulis ulang caption…',
   'Bike changed — new title and caption are on Strava.': 'Sepeda diganti — judul dan caption baru sudah di Strava.',

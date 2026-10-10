@@ -161,8 +161,36 @@ async function generateNote(data) {
   return { analysis, note: (analysis + '\n\n— AI analysis by Ascent').slice(0, 2000) };
 }
 
+// No AI (out of credit, no key, provider down): the dashboard's "Stats title &
+// description" template (aiStatsTemplate in js/ai-coach.js), in km.
+function statsCaption(a, wx, rp) {
+  const ride = /ride/i.test(a.sport_type || a.type || '');
+  const when = a.start_date_local || a.start_date || '';
+  const h = parseInt(when.slice(11, 13) || '0', 10) || 0;
+  const tod = h < 11 ? 'Morning' : h < 15 ? 'Afternoon' : h < 19 ? 'Evening' : 'Night';
+  const type = String(a.sport_type || a.type || 'Activity').replace(/([a-z])([A-Z])/g, '$1 $2');
+  const km = m => (m / 1000).toFixed(1) + ' km';
+  const hms = s => { const hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60); return hh ? hh + 'h ' + String(mm).padStart(2, '0') + 'm' : mm + 'm'; };
+  const title = (tod + ' ' + type + ' · ' + km(a.distance || 0) + (a.total_elevation_gain > 100 ? ' · ' + Math.round(a.total_elevation_gain) + ' m' : '')).slice(0, 100);
+  const L = ['Distance: ' + km(a.distance || 0)];
+  if (rp && rp.furthest_place) L.push('Destination: ' + (rp.furthest_landmark || rp.furthest_place) + ' (' + rp.furthest_km_from_start + ' km out)');
+  if (a.moving_time) L.push('Time: ' + hms(a.moving_time));
+  if (a.total_elevation_gain) L.push('Elevation: ' + Math.round(a.total_elevation_gain) + ' m');
+  if (a.average_speed) L.push(ride ? 'Avg speed: ' + (a.average_speed * 3.6).toFixed(1) + ' km/h'
+    : 'Avg pace: ' + (s => Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0'))(1000 / a.average_speed) + ' /km');
+  if (a.max_speed && ride) L.push('Max speed: ' + (a.max_speed * 3.6).toFixed(1) + ' km/h');
+  if (a.average_heartrate) L.push('Avg HR: ' + Math.round(a.average_heartrate) + ' bpm');
+  if (a.average_watts) L.push('Avg power: ' + Math.round(a.average_watts) + ' W' + (a.device_watts === true ? '' : ' (est.)'));
+  if (a.average_cadence) L.push('Cadence: ' + (ride ? Math.round(a.average_cadence) + ' rpm' : Math.round(a.average_cadence * 2) + ' spm'));
+  if (a.kilojoules) L.push('Energy: ' + Math.round(a.kilojoules).toLocaleString('en') + ' kJ');
+  if (wx && (wx.temp_c != null || wx.condition)) {
+    L.push('Weather: ' + [wx.temp_c != null ? wx.temp_c + '°C' : '', wx.condition || ''].filter(Boolean).join(', ')
+      + (wx.wind_kmh ? ', wind ' + wx.wind_kmh + ' km/h' : ''));
+  }
+  return title + '\n\n' + L.join('\n');
+}
+
 async function generateCaption(a, token, withNote = true) {
-  if (!(process.env.DEEPSEEK_API_KEY || '').trim()) return null;
   const data = {
     type: a.sport_type || a.type,
     km: +(((a.distance || 0) / 1000).toFixed(1)),
@@ -195,7 +223,8 @@ async function generateCaption(a, token, withNote = true) {
   const [text, nt] = await Promise.all([deepseek(messages, 400), withNote ? generateNote(data).catch(() => null) : null]);
   // always state the destination in the description: "📍 Kintamani, Bangli · 46 km out".
   // Never the start — that's home.
-  const caption = text && rp && rp.furthest_place
+  if (!text) return { text: statsCaption(a, wx, rp), stats: true }; // AI unavailable → stats caption, no note
+  const caption = rp && rp.furthest_place
     ? text.trim() + '\n\n📍 ' + (rp.furthest_landmark || rp.furthest_place) + ' · ' + rp.furthest_km_from_start + ' km out'
     : text;
   return { text: caption, note: nt && nt.note, analysis: nt && nt.analysis };
@@ -241,13 +270,13 @@ async function processActivity(activityId, isUpdate, updates, userToken, caption
       if (!recent || !/AI-written by Ascent/.test(act.description || '')) return 'skipped: not a recent AI-captioned activity';
     }
   }
-  const { text, note, analysis } = (await generateCaption(act, token, withNote)) || {};
-  if (!text) return 'failed: AI returned nothing (DeepSeek key/credit?)';
+  const { text, note, analysis, stats } = (await generateCaption(act, token, withNote)) || {};
+  if (!text) return 'failed: no caption could be built';
   const lines = text.trim().split('\n');
   const name = (lines.shift() || '').replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 100);
   let description = lines.join('\n').trim();
   if (!name) return 'failed: AI returned no title';
-  if (description) description += '\n\n— AI-written by Ascent Analytics';
+  if (description) description += stats ? '\n\n— by Ascent Analytics' : '\n\n— AI-written by Ascent Analytics';
   const put = body => fetch(STRAVA + '/activities/' + activityId, {
     method: 'PUT', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -261,6 +290,7 @@ async function processActivity(activityId, isUpdate, updates, userToken, caption
   await captionRecord(activityId, { gear_id: act.gear_id, name });
   // so the dashboard shows it when the activity is opened
   await saveActivityAi(activityId, { caption_title: name, caption_desc: description, ...(analysis ? { analysis } : {}) });
+  if (stats) return 'stats caption (AI unavailable — out of credit or down; no private note): ' + name;
   return (withNote ? 'captioned' + (noteOk ? ' + private note' : ' (private note failed)') : 're-captioned (private note kept)') + ': ' + name;
 }
 
