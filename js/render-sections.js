@@ -591,6 +591,7 @@ let _heatView=null;
 function renderHeatmap(){
   if(!window.L){setTimeout(renderHeatmap,300);return;}
   const el=document.getElementById('leafletMap');
+  if(typeof close3d==='function') close3d(el);
   if(leafletMapInst){ leafletMapInst.remove();leafletMapInst=null; }
   // Hidden (e.g. the sport changed from another page): a 0×0 map fits to
   // nothing and lands at maxZoom on one spot. Drop it; navScrollTo rebuilds
@@ -666,6 +667,7 @@ function renderHeatmap(){
   }
 
   if(tracks.length){ heatLegend(leafletMapInst); heatModeControl(leafletMapInst); }
+  if(typeof map3dControl==='function') map3dControl(leafletMapInst, heatMode==='clean'?[]:tracks);
 
   // Invisible per-activity lines on top keep the tooltip / hover / click that
   // the merged bands can't carry.

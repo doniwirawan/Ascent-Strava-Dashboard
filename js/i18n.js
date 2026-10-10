@@ -588,6 +588,8 @@ const TR_ID = {
   'AI unavailable — showing the stats caption instead.': 'AI tidak tersedia — memakai caption statistik.',
   'Road & place names': 'Nama jalan & tempat', 'Streets': 'Jalan', 'Full screen': 'Layar penuh', 'Exit full screen': 'Keluar layar penuh',
   'Clean': 'Bersih', 'Map and names only — your routes are hidden': 'Hanya peta dan nama — rute kamu disembunyikan',
+  '3D view': 'Tampilan 3D', 'Back to 2D': 'Kembali ke 2D', 'Loading 3D…': 'Memuat 3D…', 'Right-drag or two fingers to tilt and turn': 'Seret kanan atau dua jari untuk memiringkan dan memutar',
+  'Couldn’t load the 3D map — check your connection and try again.': 'Gagal memuat peta 3D — cek koneksi lalu coba lagi.',
   'Set bike': 'Pilih sepeda', 'Change bike': 'Ganti sepeda', 'Changing the bike…': 'Mengganti sepeda…',
   'Changing the bike and rewriting the caption…': 'Mengganti sepeda dan menulis ulang caption…',
   'Bike changed — new title and caption are on Strava.': 'Sepeda diganti — judul dan caption baru sudah di Strava.',

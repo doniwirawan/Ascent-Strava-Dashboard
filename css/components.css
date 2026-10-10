@@ -610,3 +610,14 @@ body.map-fs-open { overflow: hidden; }
 
 /* "Road & place names" overlay in grey, so its road lines never look like routes */
 .map-labels-tiles { filter: grayscale(1) contrast(1.15); opacity: .85; }
+
+/* 3D view over the heatmap (js/map3d.js) */
+.map-3d-btn { font-size: 12px; font-weight: 800; }
+.map3d { position: absolute; inset: 0; z-index: 1000; background: #0b0d10; cursor: grab; }
+.map3d-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 16px; }
+.map3d > .map3d-close { position: absolute; top: 10px; left: 10px; z-index: 2; }
+.map3d-bar { position: absolute; top: 10px; left: 10px; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: calc(100% - 70px); }
+.map3d-close { background: #fff; color: #222; border: 0; border-radius: 6px; padding: 6px 10px; font: 700 12px/1.2 inherit; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.map3d-chk { background: rgba(20,20,20,.82); color: #eee; border-radius: 6px; padding: 5px 9px; font-size: 12px; display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.map3d-hint { background: rgba(20,20,20,.7); color: #bbb; border-radius: 6px; padding: 5px 9px; font-size: 11px; }
+@media (max-width: 600px) { .map3d-hint { display: none; } }
