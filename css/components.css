@@ -665,3 +665,6 @@ body.map-fs-open { overflow: hidden; }
 .v3d-spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(255,255,255,.12); border-top-color: var(--orange); animation: v3dSpin .8s linear infinite; }
 @keyframes v3dSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .v3d-bar.busy, .v3d-spin { animation-duration: 3s; } }
+
+/* 3D view: map style picker */
+.map3d-theme { background: rgba(20,20,20,.82); color: #eee; border: 0; border-radius: 6px; padding: 5px 8px; font: 600 12px/1.2 inherit; cursor: pointer; }

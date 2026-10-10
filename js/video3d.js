@@ -174,23 +174,18 @@ async function _v3dRender(a, opts, ui) {
   document.body.appendChild(box);
   const route = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: S.map(s => [s.ll[1], s.ll[0]]) } };
   const step = Math.max(1, Math.floor(S.length / 3000));
+  const th = m3dBase(opts.theme || m3dThemeId()), T = th.t;
   const map = new maplibregl.Map({
     container: box, pixelRatio: 2, preserveDrawingBuffer: true, interactive: false, attributionControl: false, fadeDuration: 0,
     center: [S[0].ll[1], S[0].ll[0]], zoom: 13, pitch: 60,
-    style: { version: 8,
-      sources: {
-        sat: { type: 'raster', tiles: [M3D_ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 19 },
-        dem: { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 15, encoding: 'terrarium' },
+    style: Object.assign({ version: 8,
+      sources: Object.assign(th.sources, {
         all: { type: 'geojson', data: route },
         done: { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } } },
-      },
-      layers: [
-        { id: 'sat', type: 'raster', source: 'sat' },
-        { id: 'all', type: 'line', source: 'all', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#fff', 'line-width': 2.2, 'line-opacity': .45 } },
-        { id: 'done-case', type: 'line', source: 'done', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#000', 'line-width': 7, 'line-opacity': .35 } },
-        { id: 'done', type: 'line', source: 'done', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#fc4c02', 'line-width': 4.5 } },
-      ],
-      terrain: { source: 'dem', exaggeration: 1.5 } },
+      }),
+      layers: th.layers.concat([
+        { id: 'all', type: 'line', source: 'all', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': T.ghost, 'line-width': 2.2, 'line-opacity': .45 } },
+      ], m3dRouteLayers(T, 'done', 4.5)) }, th.extra),
   });
   const idle = (ms = 4000) => new Promise(res => { let done = false; const fin = () => { if (!done) { done = true; res(); } }; map.once('idle', fin); setTimeout(fin, ms); map.triggerRepaint(); });
   ui.step(tr('Loading satellite imagery and terrain…'), .05);
@@ -260,8 +255,8 @@ async function _v3dRender(a, opts, ui) {
     c.drawImage(map.getCanvas(), 0, 0, V3D_W, V3D_H);
     if (phase !== 'outro' && f >= nIntro) {             // rider dot
       const at = _v3dAt(S, cur.dist).ll, pt = map.project([at[1], at[0]]);
-      c.beginPath(); c.arc(pt.x * 2, pt.y * 2, 13, 0, 7); c.fillStyle = 'rgba(252,76,2,.35)'; c.fill();
-      c.beginPath(); c.arc(pt.x * 2, pt.y * 2, 8, 0, 7); c.fillStyle = '#fff'; c.fill(); c.lineWidth = 4; c.strokeStyle = '#fc4c02'; c.stroke();
+      c.beginPath(); c.arc(pt.x * 2, pt.y * 2, 13, 0, 7); c.globalAlpha = .35; c.fillStyle = T.route; c.fill(); c.globalAlpha = 1;
+      c.beginPath(); c.arc(pt.x * 2, pt.y * 2, 8, 0, 7); c.fillStyle = '#fff'; c.fill(); c.lineWidth = 4; c.strokeStyle = T.route; c.stroke();
     }
     _v3dHud(c, { a, S, cur, total, prof, phase, fade, power, dest });
     const vf = new VideoFrame(out, { timestamp: Math.round(f * 1e6 / V3D_FPS), duration: Math.round(1e6 / V3D_FPS) });
@@ -287,6 +282,7 @@ function openVideo3d(id) {
       <div class="v3d-head"><b>🎬 ${tr('3D flyover video')}</b><button type="button" class="v3d-x" aria-label="${tr('Close')}">✕</button></div>
       <div class="v3d-stage"><div class="v3d-ph">${tr('A 9:16 video for Reels & Story: the camera flies your route in 3D with live speed, heart rate and power.')}</div></div>
       <div class="v3d-opts">
+        <label>${tr('Map style')} <select id="v3dTheme">${Object.keys(M3D_THEMES).map(k => `<option value="${k}"${k === m3dThemeId() ? ' selected' : ''}>${tr(M3D_THEMES[k].name)}</option>`).join('')}</select></label>
         <label>${tr('Length')} <select id="v3dSecs"><option value="15">15 s</option><option value="30" selected>30 s</option><option value="45">45 s</option></select></label>
         <label><input type="checkbox" id="v3dHome" checked> ${tr('Hide 500 m around the start (home)')}</label>
       </div>
@@ -309,7 +305,9 @@ function openVideo3d(id) {
     stage.innerHTML = '<div class="v3d-wait"><span class="v3d-spin"></span><span class="v3d-wait-t"></span></div>';
     let t0 = 0;
     try {
-      const blob = await _v3dRender(a, { secs: +m.querySelector('#v3dSecs').value, hideHome: m.querySelector('#v3dHome').checked }, {
+      const theme = m.querySelector('#v3dTheme').value;
+      try { localStorage.setItem('m3d_theme', theme); } catch {}
+      const blob = await _v3dRender(a, { secs: +m.querySelector('#v3dSecs').value, hideHome: m.querySelector('#v3dHome').checked, theme }, {
         step: (label, p) => {
           bar.style.width = (p * 100).toFixed(1) + '%';
           msg.textContent = label;
