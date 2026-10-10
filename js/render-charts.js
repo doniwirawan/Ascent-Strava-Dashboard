@@ -417,8 +417,12 @@ function _fitBubbles() {
   const stacked = !left || left.offsetTop !== card.offsetTop;
   bs.forEach((b, i) => { b.style.display = stacked && i >= 60 ? 'none' : ''; });
   apply(1);
-  if (stacked) return;                                              // phone: the first 60 at normal size
-  const room = left.offsetHeight - (card.offsetHeight - wrap.offsetHeight) - 24;
+  if (stacked) { wrap.style.height = wrap.style.overflow = ''; return; } // phone: the first 60 at normal size
+  // collapse the bubbles first so the row's height is the activity list's own,
+  // then pin the bubble area to what's left of it
+  wrap.style.overflow = 'hidden'; wrap.style.height = '0px';
+  const room = Math.max(160, left.getBoundingClientRect().bottom - wrap.getBoundingClientRect().top - 24);
+  wrap.style.height = room + 'px';
   let lo = 0.45, hi = 2.6;                                          // largest scale that still fits
   for (let i = 0; i < 14; i++) { const m = (lo + hi) / 2; apply(m); if (contentH() <= room) lo = m; else hi = m; }
   apply(lo);
