@@ -10,7 +10,14 @@
 // POST { token, action: 'save', chat }        → { ok } — upsert one conversation
 // POST { token, action: 'delete', id }        → { ok }
 //
+// Also the saved AI output per activity (activity_ai: performance analysis + last
+// AI caption, written here by the dashboard and by api/strava-webhook.js) — kept in
+// this function because the Hobby plan caps the project at 12 functions:
+// POST { token, action: 'act-list' }          → { rows: [{activity_id, analysis, caption_title, caption_desc}] }
+// POST { token, action: 'act-save', id, analysis?, caption_title?, caption_desc? } → { ok }
+//
 // Required env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OWNER_ATHLETE_ID.
+const { saveActivityAi } = require('./_owner-token.js');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'method_not_allowed' }); return; }
@@ -19,7 +26,7 @@ module.exports = async (req, res) => {
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
   const { token, action } = body;
-  if (!token || !['list', 'save', 'delete'].includes(action)) { res.status(400).json({ error: 'bad_request' }); return; }
+  if (!token || !['list', 'save', 'delete', 'act-list', 'act-save'].includes(action)) { res.status(400).json({ error: 'bad_request' }); return; }
 
   // Gate to the owner: a valid Strava token that resolves to OWNER_ATHLETE_ID.
   let athleteId = null;
@@ -42,6 +49,22 @@ module.exports = async (req, res) => {
   const table = url + '/rest/v1/ai_chats';
   const mine = 'athlete_id=eq.' + encodeURIComponent(owner);
   try {
+    if (action === 'act-list') {
+      const r = await fetch(url + '/rest/v1/activity_ai?select=activity_id,analysis,caption_title,caption_desc', { headers: H });
+      if (!r.ok) throw new Error('supabase ' + r.status);
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.status(200).json({ rows: await r.json() });
+      return;
+    }
+    if (action === 'act-save') {
+      const id = String(body.id || '').replace(/\D/g, '');
+      const fields = {};
+      ['analysis', 'caption_title', 'caption_desc'].forEach(k => { if (typeof body[k] === 'string') fields[k] = body[k].slice(0, 5000); });
+      if (!id || !Object.keys(fields).length) { res.status(400).json({ error: 'bad_request', need: ['id', 'analysis|caption_title|caption_desc'] }); return; }
+      if (!(await saveActivityAi(id, fields))) throw new Error('supabase write failed');
+      res.status(200).json({ ok: true });
+      return;
+    }
     if (action === 'list') {
       const r = await fetch(table + '?' + mine + '&select=id,title,ts,messages&order=ts.desc&limit=500', { headers: H });
       if (!r.ok) throw new Error('supabase ' + r.status);

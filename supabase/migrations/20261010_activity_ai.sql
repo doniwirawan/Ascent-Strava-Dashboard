@@ -1,6 +1,6 @@
 -- AI output per activity (performance analysis + last AI caption), so it's there
 -- whenever the activity is reopened — on any device, and after a Strava refresh
--- replaces the cached activity list. Written by the dashboard (api/activity-ai.js)
+-- replaces the cached activity list. Written by the dashboard (api/ai-chats.js)
 -- and by the auto-caption webhook (api/strava-webhook.js).
 CREATE TABLE IF NOT EXISTS activity_ai (
   activity_id   text PRIMARY KEY,

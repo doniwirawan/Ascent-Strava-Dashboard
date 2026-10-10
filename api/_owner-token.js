@@ -31,7 +31,7 @@ async function saveOwnerRefreshToken(refresh_token) {
   } catch {}
 }
 
-// Upsert AI output for one activity into activity_ai (see api/activity-ai.js).
+// Upsert AI output for one activity into activity_ai (see api/ai-chats.js).
 async function saveActivityAi(activity_id, fields) {
   const s = sb();
   if (!s) return false;

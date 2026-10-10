@@ -554,7 +554,7 @@ async function aiCaptionActivity(id) {
    (Supabase) cache — so it's always there when you reopen the activity. */
 const _analysisKey = id => 'ai_analysis_' + id;
 
-/* The owner's AI output is also kept server-side (api/activity-ai.js → Supabase
+/* The owner's AI output is also kept server-side (api/ai-chats.js → Supabase
    activity_ai), incl. what the auto-caption webhook wrote, so it survives a
    Strava refresh and shows on every device. Loaded once per page. */
 let _aiStore = {}, _aiStoreP = null;
@@ -562,7 +562,7 @@ function aiStoreLoad() {
   if (_aiStoreP) return _aiStoreP;
   const token = localStorage.getItem('strava_access_token');
   if (!token) return Promise.resolve(_aiStore);
-  return (_aiStoreP = fetch('/api/activity-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'list' }) })
+  return (_aiStoreP = fetch('/api/ai-chats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'act-list' }) })
     .then(r => r.ok ? r.json() : { rows: [] })
     .then(d => { (d.rows || []).forEach(x => { _aiStore[x.activity_id] = x; }); return _aiStore; })
     .catch(() => { _aiStoreP = null; return _aiStore; }));
@@ -571,7 +571,7 @@ const _isAiOwner = () => typeof OWNER_ATHLETE_ID !== 'undefined' && String(local
 function aiStoreSave(id, fields) {
   _aiStore[id] = Object.assign(_aiStore[id] || { activity_id: String(id) }, fields);
   const token = localStorage.getItem('strava_access_token');
-  if (token) fetch('/api/activity-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'save', id, ...fields }) }).catch(() => {});
+  if (token) fetch('/api/ai-chats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'act-save', id, ...fields }) }).catch(() => {});
 }
 
 function _getSavedAnalysis(id) {
