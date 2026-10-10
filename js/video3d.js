@@ -103,7 +103,8 @@ function _v3dHud(c, st) {
   if (y <= 120) c.fillText(line, 36, y);
   c.fillStyle = 'rgba(255,255,255,.75)'; c.font = `600 20px ${F}`;
   const when = new Date(a.start_date_local || a.start_date);
-  c.fillText(when.toLocaleDateString(window.LANG === 'id' ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) + (dest ? '  ·  📍 ' + dest : ''), 36, y + 50);
+  c.fillText(when.toLocaleDateString('en-GB', { // the video is English throughout, like the title
+     day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) + (dest ? '  ·  📍 ' + dest : ''), 36, y + 50);
 
   if (phase === 'outro') return _v3dOutro(c, st);
 
@@ -177,6 +178,21 @@ async function _v3dRender(a, opts, ui) {
   if (typeof VideoEncoder === 'undefined') throw new Error(tr('This browser can’t encode video — use Chrome or Edge on a laptop or Android.'));
 
   const total = S[S.length - 1].d;
+  // Pace the flight by how fast the ride actually went: slower up climbs, quicker
+  // on flats and descents, still exactly opts.secs long. Progress u blends moving
+  // time (70%) with distance (30%) so a crawl up a wall doesn't eat the video;
+  // stops add no time (Δd≈0). distAt(p) inverts it: share of the ride → metres.
+  const PACE = 0.7, cumT = [0];
+  for (let i = 1; i < S.length; i++) cumT.push(cumT[i - 1] + (S[i].d - S[i - 1].d) / Math.max(1.5, S[i].v || 6));
+  const Tt = cumT[cumT.length - 1] || 1;
+  const U = S.map((s, i) => PACE * cumT[i] / Tt + (1 - PACE) * (total ? s.d / total : 0));
+  const distAt = p => {
+    if (p <= 0) return 0; if (p >= 1) return total;
+    let lo = 0, hi = U.length - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (U[mid] <= p) lo = mid; else hi = mid; }
+    const t = U[hi] > U[lo] ? (p - U[lo]) / (U[hi] - U[lo]) : 0;
+    return S[lo].d + (S[hi].d - S[lo].d) * t;
+  };
   const power = S.some(s => s.w != null);
   const alts = S.map(s => s.alt).filter(x => x != null);
   const prof = alts.length > 10 ? (() => { const n = 160, pts = []; for (let k = 0; k < n; k++) pts.push(_v3dAt(S, total * k / (n - 1)).s.alt ?? alts[0]); return { pts, lo: Math.min(...pts), hi: Math.max(...pts) }; })() : null;
@@ -251,7 +267,7 @@ async function _v3dRender(a, opts, ui) {
         zoom: ov.zoom + (FOLLOW_Z - ov.zoom) * t, pitch: 45 + 15 * t, bearing: lerpAng(0, bearing, t), padding: { top: 0, bottom: 0, left: 0, right: 0 } });
       fade = t;
     } else if (f < nIntro + nRide) {                     // follow the route
-      const p = (f - nIntro) / Math.max(1, nRide - 1), dist = total * p;
+      const p = (f - nIntro) / Math.max(1, nRide - 1), dist = distAt(p);
       const k = setDone(dist), ahead = _v3dAt(S, Math.min(total, dist + LOOK));
       if (_v3dHav(k.ll, ahead.ll) > 30) bearing = lerpAng(bearing, _v3dBearing(k.ll, ahead.ll), .06);
       map.jumpTo({ center: [k.ll[1], k.ll[0]], zoom: FOLLOW_Z, pitch: 60, bearing });
@@ -294,9 +310,12 @@ function openVideo3d(id) {
   if (!m) { m = document.createElement('div'); m.id = 'v3dModal'; m.className = 'v3d-modal'; document.body.appendChild(m); }
   m.innerHTML = `<div class="v3d-box">
       <div class="v3d-head"><b>🎬 ${tr('3D flyover video')}</b><button type="button" class="v3d-x" aria-label="${tr('Close')}">✕</button></div>
-      <div class="v3d-stage"><div class="v3d-ph">${tr('A 9:16 video for Reels & Story: the camera flies your route in 3D with live speed, heart rate and power.')}</div></div>
+      <div class="v3d-stage"><div class="v3d-ph v3d-ph-style" style="background-image:url(images/3d-styles/${m3dThemeId()}.jpg)"><span>${tr('A 9:16 video for Reels & Story: the camera flies your route in 3D with live speed, heart rate and power.')}</span></div></div>
       <div class="v3d-opts">
-        <label>${tr('Map style')} <select id="v3dTheme">${Object.keys(M3D_THEMES).map(k => `<option value="${k}"${k === m3dThemeId() ? ' selected' : ''}>${tr(M3D_THEMES[k].name)}</option>`).join('')}</select></label>
+        <div class="v3d-styles" role="radiogroup" aria-label="${tr('Map style')}">${Object.keys(M3D_THEMES).map(k =>
+          `<button type="button" role="radio" class="v3d-style${k === m3dThemeId() ? ' on' : ''}" data-theme="${k}" aria-checked="${k === m3dThemeId()}">
+             <img src="images/3d-styles/${k}.jpg" alt="" loading="lazy"><span>${tr(M3D_THEMES[k].name)}</span></button>`).join('')}</div>
+        <select id="v3dTheme" hidden>${Object.keys(M3D_THEMES).map(k => `<option value="${k}"${k === m3dThemeId() ? ' selected' : ''}>${k}</option>`).join('')}</select>
         <label>${tr('Length')} <select id="v3dSecs"><option value="15">15 s</option><option value="30" selected>30 s</option><option value="45">45 s</option></select></label>
         <label><input type="checkbox" id="v3dHome" checked> ${tr('Hide 500 m around the start (home)')}</label>
       </div>
@@ -306,6 +325,13 @@ function openVideo3d(id) {
     </div>`;
   m.classList.add('open');
   m._v3dDone = false;
+  // picking a style: highlight the card; before any render, the stage previews it
+  m.querySelectorAll('.v3d-style').forEach(b => b.onclick = () => {
+    if (_v3dBusy) return;
+    m.querySelectorAll('.v3d-style').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b); });
+    m.querySelector('#v3dTheme').value = b.dataset.theme;
+    const ph = m.querySelector('.v3d-ph-style'); if (ph) ph.style.backgroundImage = `url(images/3d-styles/${b.dataset.theme}.jpg)`;
+  });
   // get a head start while the style / length are being picked
   v3dPreload();
   _v3dSamplesCached(a, true).catch(() => {});
