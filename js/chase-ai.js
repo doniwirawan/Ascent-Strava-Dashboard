@@ -238,9 +238,16 @@ async function _caiBuild(req) {
     route = best.r; stops = _caiOrder(best.rest, start, oneWayToStop);
   }
   if (!route) throw new Error(tr('No route found on the major roads for that — try another place.'));
+  // still over the max while chasing new roads? the most direct roads may fit (or get closer)
+  let direct = false;
+  if (max && route.total > max && req.mode === 'new') {
+    const r2 = _caiRoute(g, start, stops, end, 'any');
+    if (r2 && r2.total < route.total * 0.95) { route = r2; direct = true; }
+  }
   const o = Object.assign(route, { stops, request: req.text, km: Math.round(route.total / 1000), nwKm: Math.round(route.nw / 1000), wantKm: req.km,
     loop: !!end && end === start, mode: req.mode, startName, endName, plan: req.plan, at: Date.now() });
   o.over = !!(max && route.total > max);
+  o.direct = direct;
   _caiSay(tr('Measuring the climbing…'));
   o.elev = await _caiElevation(o.pts);
   _caiSay(tr('Naming the route…'));
@@ -303,15 +310,14 @@ async function chaseAiRegency(name) {
     const f = geo && geo.features.find(x => x.properties.name === name);
     if (!f) throw new Error(tr('Could not work out a route right now.'));
     const ends = await _caiEnds(true);
-    // never-ridden stretches inside the regency, split into two halves by direction
-    // from the start so the loop goes out one way and back the other
+    // never-ridden stretches inside the regency; the loop calls at three of them,
+    // spread by direction from the start, so it goes out one way and back another
     const pts = [];
     g.E.forEach(E => { if (!E.nw) return; const la = (g.lat[E.u] + g.lat[E.v]) / 2, lo = (g.lng[E.u] + g.lng[E.v]) / 2; if (_regContains(f.geometry, lo, la)) pts.push([la, lo, E.L]); });
     if (pts.length < 3) throw new Error(trf('No never-ridden major roads left in {0} — nice!', name));
     const ang = p => Math.atan2(p[0] - ends.start[0], (p[1] - ends.start[1]) * Math.cos(ends.start[0] * Math.PI / 180));
     pts.sort((a, b) => ang(a) - ang(b));
-    const half = (a) => { const w = a.reduce((s, p) => s + p[2], 0); return { lat: a.reduce((s, p) => s + p[0] * p[2], 0) / w, lng: a.reduce((s, p) => s + p[1] * p[2], 0) / w, named: true, name }; };
-    const mid = pts.length >> 1, stops = [half(pts.slice(0, mid)), half(pts.slice(mid))];
+    const stops = [0.2, 0.5, 0.8].map(q => { const p = pts[Math.min(pts.length - 1, Math.floor(q * pts.length))]; return { lat: p[0], lng: p[1], named: true, name }; });
     await _caiBuild({ text: 'regency:' + name, plan: null, stops, km: null, mode: 'new', ends, summary: '' });
   } catch (e) {
     _caiFail(_caiEsc((e && e.message) || tr('Could not work out a route right now.')));
@@ -338,7 +344,7 @@ function chaseAiShow(i, list) {
         <button class="btn cai-gpx" onclick="chaseAiGpx()">⬇ GPX</button>
       </div>
     </div>
-    ${over}
+    ${over}${o.direct ? `<div class="hero-sub" style="margin:-4px 0 10px">${tr('Took the most direct roads to stay near your max.')}</div>` : ''}
     <div class="cycling-hero cyc-grid">
       <div class="hero-box hi"><div class="hero-label">${tr('Distance')}</div><div class="hero-value">${o.km} <span class="hero-unit">km</span></div>${ends || `<div class="hero-sub">${modeName[1]} ${tr(modeName[2])} · ${o.loop ? tr('loop') : tr('one way')}</div>`}</div>
       <div class="hero-box"><div class="hero-label">${tr('Never ridden')}</div><div class="hero-value">${o.nwKm} <span class="hero-unit">km</span></div>

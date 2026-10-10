@@ -626,6 +626,7 @@ const TR_ID = {
   'Over your {0} km max: {1} km. The places you named need that much.': 'Lewat dari maks {0} km kamu: {1} km. Tempat yang kamu sebut memang butuh sejauh itu.',
   'Couldn’t find “{0}” on the map.': '“{0}” tidak ketemu di peta.', 'No usual start found in your rides — type a start place.': 'Start biasa tidak ditemukan dari ride kamu — ketik tempat start.',
   'No never-ridden major roads left in {0} — nice!': 'Tidak ada lagi jalan utama yang belum pernah dilewati di {0} — mantap!',
+  'Took the most direct roads to stay near your max.': 'Pakai jalan paling langsung supaya dekat dengan batas maksimal kamu.',
   'Set bike': 'Pilih sepeda', 'Change bike': 'Ganti sepeda', 'Changing the bike…': 'Mengganti sepeda…',
   'Changing the bike and rewriting the caption…': 'Mengganti sepeda dan menulis ulang caption…',
   'Bike changed — new title and caption are on Strava.': 'Sepeda diganti — judul dan caption baru sudah di Strava.',
