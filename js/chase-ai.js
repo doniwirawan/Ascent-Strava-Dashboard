@@ -41,27 +41,31 @@ async function _caiPlan(text) {
   const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: CONFIG.accessToken, provider, model, key, messages: [
     { role: 'system', content: 'You plan road-cycling rides in Bali, Indonesia, from a request. The ride starts and ends at the rider\'s home (you never know where that is — never guess or mention it). '
       + 'Turn the request into the places to ride through, in riding order: real, mappable Bali places (villages, towns, landmarks, temples, beaches, lakes) that are on or next to a proper road. '
-      + 'If the request only describes a theme (climbing, coast, rice fields, waterfalls, lakes, quiet roads…), choose 1–3 well-known places in Bali that fit it. If it names places, use those (fix spelling). '
+      + 'If the request only describes a theme (climbing, coast, rice fields, waterfalls, lakes, quiet roads…), add 1–3 well-known places in Bali that fit it, close to each other; when a distance is given, add at most 2. If it names places, use those (fix spelling). Never add a place just as a starting point. '
+      + 'named = true only for places the rider actually asked for; false for ones you added for the theme. '
       + 'km = requested total distance as a number, or null. loop = false only if the rider clearly wants one way. '
-      + 'Reply ONLY with JSON: {"km": number|null, "loop": true|false, "places": ["Place, Regency", …], "summary": "one short sentence describing the plan"}. Max 4 places.' },
+      + 'Reply ONLY with JSON: {"km": number|null, "loop": true|false, "places": [{"name": "Place, Regency", "named": true|false}, …], "summary": "one short sentence describing the plan"}. Max 4 places.' },
     { role: 'user', content: text },
   ] }) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok || !d.text) throw new Error((typeof aiErrorMessage === 'function' ? aiErrorMessage(d, r.status) : 'AI error').replace(/<[^>]+>/g, ''));
   const j = JSON.parse(String(d.text).replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
-  return { km: +j.km > 0 ? Math.min(300, +j.km) : null, loop: j.loop !== false, places: (Array.isArray(j.places) ? j.places : []).slice(0, 4).map(String), summary: String(j.summary || '') };
+  const places = (Array.isArray(j.places) ? j.places : []).slice(0, 4)
+    .map(p => typeof p === 'string' ? { name: p, named: true } : { name: String(p.name || ''), named: p.named !== false }).filter(p => p.name);
+  return { km: +j.km > 0 ? Math.min(300, +j.km) : null, loop: j.loop !== false, places, summary: String(j.summary || '') };
 }
 
 // 2) place names → coordinates (Nominatim, bounded to Bali, ≤ 1 request/s)
-async function _caiGeocode(names, onStep) {
+async function _caiGeocode(places, onStep) {
   const out = [];
-  for (const n of names) {
+  for (const pl of places) {
+    const n = pl.name;
     onStep(n);
     try {
       const q = /bali/i.test(n) ? n : n + ', Bali';
       const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&bounded=1&viewbox=114.40,-8.04,115.75,-8.90&q=' + encodeURIComponent(q), { headers: { Accept: 'application/json' } });
       const j = r.ok ? await r.json() : [];
-      if (j[0]) out.push({ name: n.split(',')[0], lat: +j[0].lat, lng: +j[0].lon });
+      if (j[0]) out.push({ name: n.split(',')[0], lat: +j[0].lat, lng: +j[0].lon, named: pl.named });
     } catch {}
     await new Promise(res => setTimeout(res, 1100));
   }
@@ -96,6 +100,20 @@ function _caiRoute(g, stops, loop) {
   return { pts, nwf, total, nw };
 }
 
+// Title + one line for the result, from facts only (no home, no coordinates).
+async function _caiName(o) {
+  try {
+    const { provider, model, key } = typeof aiProviderModel === 'function' ? aiProviderModel() : { provider: 'deepseek' };
+    const facts = { request: o.request, kind: o.loop ? 'loop (back to the start)' : 'one way', total_km: o.km, never_ridden_km: o.nwKm, asked_km: o.wantKm || null, through: (o.stops || []).map(s => s.name) };
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: CONFIG.accessToken, provider, model, key, messages: [
+      { role: 'system', content: 'You name a planned road-cycling ride in Bali. Give a short catchy title (max 6 words) and one sentence on why it is worth riding, using only the facts given (say "loop" only if kind is a loop). Never mention where the ride starts. ' + (window.LANG === 'id' ? 'Reply in Indonesian.' : 'Reply in English.') + ' Reply ONLY with JSON: {"title":"…","desc":"…"}' },
+      { role: 'user', content: JSON.stringify(facts) },
+    ] }) });
+    const d = await r.json();
+    return JSON.parse(String(d.text || '').replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+  } catch { return null; }
+}
+
 async function chaseAiGo() {
   if (_caiBusy) return;
   const text = (document.getElementById('caiText').value || '').trim();
@@ -114,16 +132,29 @@ async function chaseAiGo() {
       if (!stops.length) throw new Error(tr('Couldn’t find those places on the map — try naming a town or landmark.'));
       say(tr('Working out the route…'));
       route = _caiRoute(g, stops, plan.loop);
+      // too long for the asked distance? drop places the AI added for the theme (never
+      // ones you named), one at a time, keeping whichever leaves the closest fit
+      while (route && plan.km && route.total > plan.km * 1250 && stops.some(s => !s.named)) {
+        let best = null;
+        stops.forEach((s, k) => {
+          if (s.named) return;
+          const rest = stops.filter((_, x) => x !== k), r2 = rest.length ? _caiRoute(g, rest, plan.loop) : null;
+          if (r2 && (!best || Math.abs(r2.total - plan.km * 1000) < Math.abs(best.r.total - plan.km * 1000))) best = { r: r2, rest };
+        });
+        if (!best) break;
+        route = best.r; stops = best.rest;
+      }
     } else if (plan.km) {
+      say(tr('Working out the route…'));
       const opts = await _rsSuggest(plan.km);      // no places: the best never-ridden loop of that length
       route = opts[0] || null;
     } else throw new Error(tr('Say where you want to go or how far — e.g. "60 km loop via Tabanan".'));
     if (!route) throw new Error(tr('No route found on the major roads for that — try another place.'));
     const o = Object.assign(route, { stops, request: text, summary: plan.summary, km: Math.round(route.total / 1000), nwKm: Math.round(route.nw / 1000), wantKm: plan.km, loop: plan.loop });
     say(tr('Naming the route…'));
-    const names = typeof _rsAiNames === 'function' ? await _rsAiNames([o]) : null;
-    o.title = (names && names[0] && names[0].title) || stops.map(s => s.name).join(' · ') || trf('{0} km loop', o.km);
-    o.desc = (names && names[0] && names[0].desc) || plan.summary;
+    const nm = await _caiName(o);
+    o.title = (nm && nm.title) || stops.map(s => s.name).join(' · ') || trf('{0} km loop', o.km);
+    o.desc = (nm && nm.desc) || plan.summary;
     const list = [o].concat(_caiSaved().filter(x => x.request !== text));
     _caiSave(list);
     st.textContent = '';
