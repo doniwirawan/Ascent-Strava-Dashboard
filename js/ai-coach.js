@@ -1106,7 +1106,11 @@ function aiChartData(sec) {
   return out.join('\n').slice(0, 2600);
 }
 
-async function aiSectionInsight(sectionId, tries = 0) {
+/* Insights are cheap on purpose: a saved one is shown straight from localStorage
+   (no call); it's only rewritten when the page's numbers changed AND it's over
+   AI_INS_MAX_AGE old — or when ↻ is tapped. One per page × sport × language. */
+const AI_INS_MAX_AGE = 7 * 86400000;
+async function aiSectionInsight(sectionId, tries = 0, force = false) {
   const label = AI_SECTION_LABEL[sectionId];
   if (!label || aiInsightOff || (typeof isViewOff === 'function' && isViewOff('ai'))) return; // off in Settings → no call
   if (typeof acts === 'undefined' || !acts.length) return;
@@ -1132,7 +1136,13 @@ async function aiSectionInsight(sectionId, tries = 0) {
   const drop = () => { if (el.id === 'ovAiInsight') el.style.display = 'none'; else el.remove(); };
   // Same guard as the Readiness card: this runs async (retries + model call), so
   // the Overview's own container must stay hidden if the user has moved on.
-  const render = txt => { el.style.display = (el.id === 'ovAiInsight' && typeof isOverviewVisible === 'function' && !isOverviewVisible()) ? 'none' : ''; el.innerHTML = '<span class="ai-ins-icon">' + AI_ICON + '</span><div class="ai-ins-text">' + txt + '</div>'; };
+  const render = (txt, done) => {
+    el.style.display = (el.id === 'ovAiInsight' && typeof isOverviewVisible === 'function' && !isOverviewVisible()) ? 'none' : '';
+    el.innerHTML = '<span class="ai-ins-icon">' + AI_ICON + '</span><div class="ai-ins-text">' + txt + '</div>'
+      + (done ? '<button type="button" class="ai-ins-refresh" title="' + tr('New insight') + '" aria-label="' + tr('New insight') + '">↻</button>' : '');
+    const b = el.querySelector('.ai-ins-refresh');
+    if (b) b.onclick = () => aiSectionInsight(sectionId, 0, true);
+  };
 
   // Build context from what's on the page: visible text + chart data + any
   // per-section computed extras (for map/calendar pages with no on-screen text).
@@ -1152,15 +1162,18 @@ async function aiSectionInsight(sectionId, tries = 0) {
   const stillLoading = /^\s*(Loading|Memuat)/i.test(screen)
     || [...sec.querySelectorAll('.ai-dots, .spin')].some(n => !n.closest('.ai-insight'));
   if (combined.length < 30 || stillLoading) {
-    if (tries < 8) { render('<span class="ai-dots"><span></span><span></span><span></span></span>'); setTimeout(() => aiSectionInsight(sectionId, tries + 1), 500); }
+    if (tries < 8) { render('<span class="ai-dots"><span></span><span></span><span></span></span>'); setTimeout(() => aiSectionInsight(sectionId, tries + 1, force), 500); }
     else drop();
     return;
   }
   // Cache per language: the displayed numbers are identical in EN and ID, so
   // without the language in the key a cached English insight would keep showing
   // after switching to Indonesian (and vice-versa).
-  const key = 'ai_ins_' + sectionId + '_' + (window.LANG || 'en'), sig = aiHash(combined);
-  try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.sig === sig && c.text) { render(aiMd(c.text)); return; } } catch {}
+  const sport = typeof milestoneMode !== 'undefined' && milestoneMode ? milestoneMode : 'all';
+  const key = 'ai_ins_' + sectionId + '_' + sport + '_' + (window.LANG || 'en'), sig = aiHash(combined);
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(key) || 'null'); } catch {}
+  if (!force && cached && cached.text && (cached.sig === sig || Date.now() - (cached.at || 0) < AI_INS_MAX_AGE)) { render(aiMd(cached.text), true); return; }
 
   const token = localStorage.getItem('strava_access_token');
   if (!token) { drop(); return; }
@@ -1175,9 +1188,10 @@ async function aiSectionInsight(sectionId, tries = 0) {
   try {
     const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key: apiKey }) });
     const data = await r.json().catch(() => ({}));
-    if (r.ok && data.text) { localStorage.setItem(key, JSON.stringify({ sig, text: data.text })); render(aiMd(data.text)); }
+    if (r.ok && data.text) { try { localStorage.setItem(key, JSON.stringify({ sig, text: data.text, at: Date.now() })); } catch {} render(aiMd(data.text), true); }
+    else if (cached && cached.text) render(aiMd(cached.text), true);   // keep the old one rather than nothing
     else { if (data.error === 'provider_not_configured' || data.error === 'not_authorized') aiInsightOff = true; drop(); }
-  } catch { drop(); }
+  } catch { if (cached && cached.text) render(aiMd(cached.text), true); else drop(); }
 }
 
 /* A signature of the current activity data — changes when a new activity

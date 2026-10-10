@@ -167,6 +167,11 @@ function renderBestEfforts(){
     {title:'Highest Heart Rate',key:'max_heartrate',spot:'hr',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.max_heartrate||0)-(a.max_heartrate||0)},
     {title:'Highest Avg Heart Rate',key:'average_heartrate',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.average_heartrate||0)-(a.average_heartrate||0)},
     {title:'Highest Suffer Score',key:'suffer_score',fmt:a=>Math.round(a),sort:(a,b)=>(b.suffer_score||0)-(a.suffer_score||0)},
+    // power — measured only (device_watts): Strava's estimated watts would rank guesses
+    {title:'Highest Avg Power',key:'average_watts',fmt:a=>Math.round(a)+' W',sort:(a,b)=>(b.average_watts||0)-(a.average_watts||0),valid:a=>a.device_watts===true},
+    {title:'Highest Normalized Power',key:'weighted_average_watts',fmt:a=>Math.round(a)+' W',sort:(a,b)=>(b.weighted_average_watts||0)-(a.weighted_average_watts||0),valid:a=>a.device_watts===true},
+    {title:'Highest Max Power',key:'max_watts',spot:'power',fmt:a=>Math.round(a)+' W',sort:(a,b)=>(b.max_watts||0)-(a.max_watts||0),valid:a=>a.device_watts===true},
+    {title:'Most Energy',key:'kilojoules',fmt:a=>Math.round(a).toLocaleString()+' kJ',sort:(a,b)=>(b.kilojoules||0)-(a.kilojoules||0),valid:a=>a.device_watts===true},
   ];
   const el=document.getElementById('bestGrid');
   const src=modeActs();
@@ -194,6 +199,13 @@ function renderBestEfforts(){
       valid:a=>a.average_speed>0 && a.average_heartrate>0,
       score:a=>a.average_speed*60/a.average_heartrate,
       fmt:a=>`${(a.average_speed*60/a.average_heartrate).toFixed(2)} m/beat`,
+    },
+    {
+      // Power per heartbeat (NP ÷ avg HR) — measured power only. Rising over time = fitter.
+      hi:'Most Power per Heartbeat', lo:'Least Power per Heartbeat', sub:'normalized power ÷ avg HR',
+      valid:a=>a.device_watts===true && (a.weighted_average_watts||a.average_watts)>0 && a.average_heartrate>0,
+      score:a=>(a.weighted_average_watts||a.average_watts)/a.average_heartrate,
+      fmt:a=>`${((a.weighted_average_watts||a.average_watts)/a.average_heartrate).toFixed(2)} W/bpm`,
     },
   ];
   const composite=COMBOS.flatMap(c=>{

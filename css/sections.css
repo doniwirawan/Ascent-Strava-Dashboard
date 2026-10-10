@@ -1604,3 +1604,8 @@ body.on-coach .fab-group { display: none !important; }
 .evt-t small { font-size: 10px; color: var(--muted); }
 .evt-tips { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-2); line-height: 1.55; }
 .evt-tips li { margin-bottom: 4px; }
+
+/* ↻ on an AI page insight: ask for a fresh one (otherwise it's reused for a week) */
+.ai-insight { position: relative; }
+.ai-ins-refresh { margin-left: auto; align-self: flex-start; background: none; border: 0; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; padding: 2px 4px; opacity: .6; }
+.ai-ins-refresh:hover { opacity: 1; color: var(--orange); }

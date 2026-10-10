@@ -910,16 +910,18 @@ function renderOverviewPowerZones() {
 
    Only the resolved point is cached, not the streams it came from — one small
    record per activity instead of a second copy of the whole track. */
-const _spotKey = (id, kind) => 'strava_spot_' + (kind === 'hr' ? 'hr_' : '') + id;
+const _spotKey = (id, kind) => 'strava_spot_' + (kind === 'hr' ? 'hr_' : kind === 'power' ? 'pw_' : '') + id;
 
 async function _peakSpot(a, kind) {
   try { const c = JSON.parse(localStorage.getItem(_spotKey(a.id, kind)) || 'null'); if (c && c.v === 3) return c; } catch {}
   let raw;
-  try { raw = await api(`/activities/${a.id}/streams?keys=velocity_smooth,heartrate,latlng,distance,time&key_by_type=true`); }
+  try { raw = await api(`/activities/${a.id}/streams?keys=velocity_smooth,heartrate,latlng,distance,time${kind === 'power' ? ',watts' : ''}&key_by_type=true`); }
   catch { return null; }
   const spd = raw.velocity_smooth && raw.velocity_smooth.data;
   const hr = raw.heartrate && raw.heartrate.data;
-  const v = kind === 'hr' ? hr : spd, other = kind === 'hr' ? spd : hr;
+  const pw = raw.watts && raw.watts.data;
+  // the peak series, and the other number shown "then" (power: heart rate, plus speed below)
+  const v = kind === 'hr' ? hr : kind === 'power' ? pw : spd, other = kind === 'hr' ? spd : hr;
   const ll = raw.latlng && raw.latlng.data;
   if (!v || !ll || !v.length) return null;
   // Locate the RAW peak, so the panel agrees with the figure on the row. For
@@ -930,7 +932,7 @@ async function _peakSpot(a, kind) {
   for (let i = 0; i < v.length; i++) if (v[i] != null && v[i] > bv && ll[i]) { bv = v[i]; bi = i; }
   if (bi < 0) return null;
   let suspect = false;
-  if (kind !== 'hr' && typeof fixSpeedSpikes === 'function') {
+  if (kind !== 'hr' && kind !== 'power' && typeof fixSpeedSpikes === 'function') {
     const isOwner = localStorage.getItem('strava_athlete_id') === OWNER_ATHLETE_ID;
     const clean = fixSpeedSpikes(v, isOwner ? { ceiling: MAX_SPEED_CEILING } : { k: 6 }).data;
     suspect = clean[bi] != null && clean[bi] < bv * 0.9;
@@ -940,7 +942,7 @@ async function _peakSpot(a, kind) {
   // Speed ~10 s before the peak: velocity_smooth ramps into a spike over a few
   // samples, so the sample right before it is already inflated.
   let before = null;
-  if (kind !== 'hr') {
+  if (kind !== 'hr' && kind !== 'power') {
     let pi = Math.max(0, bi - 10);
     if (time && time[bi] != null) { pi = bi; while (pi > 0 && time[bi] - time[pi] < 10) pi--; }
     while (pi > 0 && v[pi] == null) pi--;
@@ -948,6 +950,7 @@ async function _peakSpot(a, kind) {
   }
   const spot = {
     v: 3, val: bv, before, other: other && other[bi] != null ? other[bi] : null,
+    spd: kind === 'power' && spd && spd[bi] != null ? spd[bi] : null,
     lat: ll[bi][0], lng: ll[bi][1], suspect,
     at: dist && dist[bi] != null ? dist[bi] : null,
     t: time && time[bi] != null ? time[bi] : null,
@@ -995,10 +998,11 @@ async function showSpeedSpot(actId, btn, kind, panelId) {
   panel.innerHTML = `
     <div class="spot-map" id="map-${pid}"></div>
     <div class="spot-facts">
-      <div class="spot-big">${kind === 'hr' ? Math.round(spot.val) + '<i>bpm</i>' : kmh(spot.val) + `<i>${speedUnit()}</i>`}</div>
+      <div class="spot-big">${kind === 'hr' ? Math.round(spot.val) + '<i>bpm</i>' : kind === 'power' ? Math.round(spot.val) + '<i>W</i>' : kmh(spot.val) + `<i>${speedUnit()}</i>`}</div>
       ${spot.suspect ? `<div class="spot-warn">${tr('Looks like a GPS spike — the pin is where Strava recorded it')}</div>` : ''}
       <div class="spot-rows">
         ${spot.before != null ? `<div><span>${tr('10 s before')}</span><b>${kmh(spot.before)} ${speedUnit()}</b></div>` : ''}
+        ${spot.spd != null ? `<div><span>${tr('Speed then')}</span><b>${kmh(spot.spd)} ${speedUnit()}</b></div>` : ''}
         ${spot.other != null ? (kind === 'hr'
             ? `<div><span>${tr('Speed then')}</span><b>${kmh(spot.other)} ${speedUnit()}</b></div>`
             : `<div><span>${tr('Heart rate then')}</span><b>${Math.round(spot.other)} bpm</b></div>`) : ''}

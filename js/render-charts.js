@@ -584,12 +584,12 @@ function _actBuildMap(a){
    the scale are the 5th/95th percentile of moving speed, so stops and a single
    top-speed moment don't flatten everything else into one colour. */
 let _actMapMode = localStorage.getItem('actMapMode')==='speed' ? 'speed' : 'route';
-const _actSpeedTracks = {}; // id → {pts:[[lat,lng,v,hr,raw]], lo, hi} — in memory only, streams are large
+const _actSpeedTracks = {}; // id → {pts:[[lat,lng,v,hr,raw,watts]], lo, hi} — in memory only, streams are large
 
 async function _actSpeedTrack(id){
   if(_actSpeedTracks[id]) return _actSpeedTracks[id];
   let raw;
-  try { raw = await api(`/activities/${id}/streams?keys=latlng,velocity_smooth,heartrate,distance,time&key_by_type=true`); }
+  try { raw = await api(`/activities/${id}/streams?keys=latlng,velocity_smooth,heartrate,distance,time,watts&key_by_type=true`); }
   catch { return null; }
   const ll = raw.latlng && raw.latlng.data;
   let v = raw.velocity_smooth && raw.velocity_smooth.data;
@@ -604,7 +604,8 @@ async function _actSpeedTrack(id){
   const d = raw.distance && raw.distance.data, t = raw.time && raw.time.data;
   const rs = i => { if(!d||!t||i<1) return null; const dt=t[i]-t[i-1]; return dt>0&&dt<=5 ? (d[i]-d[i-1])/dt : null; };
   const pts=[];
-  for(let i=0;i<ll.length;i++) if(ll[i] && v[i]!=null) pts.push([ll[i][0],ll[i][1],v[i],hr?hr[i]:null,rs(i)]);
+  const w = raw.watts && raw.watts.data;
+  for(let i=0;i<ll.length;i++) if(ll[i] && v[i]!=null) pts.push([ll[i][0],ll[i][1],v[i],hr?hr[i]:null,rs(i),w?w[i]:null]);
   if(pts.length<2) return null;
   const mv = pts.map(p=>p[2]).filter(x=>x>1).sort((x,y)=>x-y);
   const q = f => mv.length ? mv[Math.min(mv.length-1, Math.floor(f*mv.length))] : 0;
@@ -715,10 +716,12 @@ function _actMapModeControl(m,a,line){
   peakCtl.onAdd=()=>{
     const row=L.DomUtil.create('div','map-peaks');
     row.innerHTML=`<button type="button" class="speed-peak-btn" data-k="speed">⚡ ${T('Top speed')}</button>`
-      +(a.has_heartrate?`<button type="button" class="speed-peak-btn" data-k="hr">❤ ${T('Max HR')}</button>`:'');
+      +(a.has_heartrate?`<button type="button" class="speed-peak-btn" data-k="hr">❤ ${T('Max HR')}</button>`:'')
+      +(a.device_watts===true?`<button type="button" class="speed-peak-btn" data-k="power">💪 ${T('Max power')}</button>`:'');
     L.DomEvent.disableClickPropagation(row);
     row.querySelectorAll('button').forEach(b=>b.onclick=()=>b.dataset.k==='hr'
       ? peak('hr',3,'❤',v=>Math.round(v)+' bpm')
+      : b.dataset.k==='power' ? peak('power',5,'💪',v=>Math.round(v)+' W')
       : peak('speed',2,'⚡',v=>kmh(v)+' '+speedUnit()));
     return row;
   };
