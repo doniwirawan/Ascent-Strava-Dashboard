@@ -49,7 +49,10 @@ function fixSpeedSpikes(speeds, opts){
   if(good.length<2) return {data:out, fixed:0};
   const med = _gfMedian(good);
   const mad = _gfMedian(good.map(v=>Math.abs(v-med)));
-  const thr = med + k*(mad || med*0.5 || 1);
+  // With a hard ceiling (the owner) and no explicit k, trust everything under it:
+  // the median+k·MAD cut sits near ~47 km/h for a typical ride and was clipping
+  // real descents (a true 56 km/h peak showed as 52.8 at the wrong spot).
+  const thr = (ceiling && opts.k==null) ? Infinity : med + k*(mad || med*0.5 || 1);
   const bad = v => !(v>0) || !isFinite(v) || (ceiling && v>ceiling) || v>thr;
   let fixed=0;
   for(let i=0;i<out.length;i++){

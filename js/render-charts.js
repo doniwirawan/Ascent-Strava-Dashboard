@@ -549,12 +549,12 @@ function _actBuildMap(a){
    the scale are the 5th/95th percentile of moving speed, so stops and a single
    top-speed moment don't flatten everything else into one colour. */
 let _actMapMode = localStorage.getItem('actMapMode')==='speed' ? 'speed' : 'route';
-const _actSpeedTracks = {}; // id → {pts:[[lat,lng,v,hr]], lo, hi} — in memory only, streams are large
+const _actSpeedTracks = {}; // id → {pts:[[lat,lng,v,hr,raw]], lo, hi} — in memory only, streams are large
 
 async function _actSpeedTrack(id){
   if(_actSpeedTracks[id]) return _actSpeedTracks[id];
   let raw;
-  try { raw = await api(`/activities/${id}/streams?keys=latlng,velocity_smooth,heartrate&key_by_type=true`); }
+  try { raw = await api(`/activities/${id}/streams?keys=latlng,velocity_smooth,heartrate,distance,time&key_by_type=true`); }
   catch { return null; }
   const ll = raw.latlng && raw.latlng.data;
   let v = raw.velocity_smooth && raw.velocity_smooth.data;
@@ -564,8 +564,12 @@ async function _actSpeedTrack(id){
     v = fixSpeedSpikes(v, isOwner?{ceiling:MAX_SPEED_CEILING}:{k:6}).data;
   }
   const hr = raw.heartrate && raw.heartrate.data;
+  // unsmoothed speed per sample (Δdistance/Δtime): what Strava's max_speed is
+  // measured from — velocity_smooth shaves a few km/h off short peaks
+  const d = raw.distance && raw.distance.data, t = raw.time && raw.time.data;
+  const rs = i => { if(!d||!t||i<1) return null; const dt=t[i]-t[i-1]; return dt>0&&dt<=5 ? (d[i]-d[i-1])/dt : null; };
   const pts=[];
-  for(let i=0;i<ll.length;i++) if(ll[i] && v[i]!=null) pts.push([ll[i][0],ll[i][1],v[i],hr?hr[i]:null]);
+  for(let i=0;i<ll.length;i++) if(ll[i] && v[i]!=null) pts.push([ll[i][0],ll[i][1],v[i],hr?hr[i]:null,rs(i)]);
   if(pts.length<2) return null;
   const mv = pts.map(p=>p[2]).filter(x=>x>1).sort((x,y)=>x-y);
   const q = f => mv.length ? mv[Math.min(mv.length-1, Math.floor(f*mv.length))] : 0;
@@ -655,12 +659,20 @@ function _actMapModeControl(m,a,line){
   const peak=async(key,idx,icon,label)=>{
     const trk=await _actSpeedTrack(a.id); const pts=trk&&trk.pts; if(!pts) return;
     let k=-1; pts.forEach((p,i)=>{ if(p[idx]!=null && (k<0 || p[idx]>pts[k][idx])) k=i; });
+    let val=k<0?null:pts[k][idx];
+    if(key==='speed'){
+      // pin the raw-speed peak (ignoring GPS spikes above Strava's own max) and show
+      // the same top speed as the stats card, not the smoothed stream's lower peak
+      const top=cleanMax(a), cap=top?top*1.05:MAX_SPEED_CEILING;
+      let r=-1; pts.forEach((p,i)=>{ if(p[4]!=null && p[4]<=cap && (r<0 || p[4]>pts[r][4])) r=i; });
+      if(r>=0){ k=r; val=top && Math.abs(pts[r][4]-top)<=top*0.15 ? top : pts[r][4]; }
+    }
     if(k<0) return;
     let into=0; for(let i=1;i<=k;i++) into+=aiHaversine(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1])*1000;
     const at=[pts[k][0],pts[k][1]];
     if(pins[key]) m.removeLayer(pins[key]);
     pins[key]=L.marker(at,{keyboard:false,zIndexOffset:1000,icon:L.divIcon({className:'speed-peak-pin pin-'+key,iconSize:[30,30],iconAnchor:[15,15],html:icon})})
-      .bindTooltip(`<b>${label(pts[k][idx])}</b> · ${fmtD(into)} ${T('into the ride')}`,{permanent:true,direction:'top',offset:[0,-16],className:'speed-peak-tip tip-'+key})
+      .bindTooltip(`<b>${label(val)}</b> · ${fmtD(into)} ${T('into the ride')}`,{permanent:true,direction:'top',offset:[0,-16],className:'speed-peak-tip tip-'+key})
       .addTo(m);
     m.flyTo(at,Math.max(m.getZoom(),16),{duration:.8});
   };
@@ -849,7 +861,7 @@ function _downsample(arr,target){
 function _compactStreams(raw){
   const N=200;
   const dist = raw.distance && raw.distance.data;
-  const out = { v:2, x: dist ? _downsample(dist,N) : null, series:{} };
+  const out = { v:3, x: dist ? _downsample(dist,N) : null, series:{} }; // v3: descents no longer clipped
   const map = { speed:'velocity_smooth', hr:'heartrate', cadence:'cadence', watts:'watts', altitude:'altitude', temp:'temp' };
   const isOwner = localStorage.getItem('strava_athlete_id')===OWNER_ATHLETE_ID;
   for(const k in map){
@@ -871,7 +883,7 @@ function _compactStreams(raw){
 // localStorage-first; only hits Strava the first time an activity is opened
 async function _getActivityStreams(id){
   const key=_streamLsKey(id);
-  try { const c=localStorage.getItem(key); if(c){ const o=JSON.parse(c); if(o&&o.v===2) return o; } } catch {}
+  try { const c=localStorage.getItem(key); if(c){ const o=JSON.parse(c); if(o&&o.v===3) return o; } } catch {}
   let raw;
   try { raw = await api(`/activities/${id}/streams?keys=${STREAM_KEYS}&key_by_type=true`); }
   catch { return null; }
