@@ -85,22 +85,14 @@ function bySport(list) {
     .sort((x, y) => y.distance_km - x.distance_km);
 }
 
-module.exports = async (req, res) => {
-  const origin = req.headers.origin || '';
-  if (ALLOWED_ORIGINS.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'content-type');
-  res.setHeader('Vary', 'Origin');
-
-  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
-  if (req.method !== 'GET') { res.status(405).json({ error: 'method_not_allowed' }); return; }
-
+// Read the owner's cache and compute the public payload. Returns { status, body };
+// shared with api/card.js so the README card shows exactly what this API exposes.
+async function loadStats() {
   const url = (process.env.SUPABASE_URL || '').replace(/\s+/g, '').replace(/\/$/, '');
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').replace(/\s+/g, '');
   const owner = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
   if (!url || !key || !owner) {
-    res.status(500).json({ error: 'not_configured', need: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OWNER_ATHLETE_ID'] });
-    return;
+    return { status: 500, body: { error: 'not_configured', need: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OWNER_ATHLETE_ID'] } };
   }
 
   let row;
@@ -109,27 +101,22 @@ module.exports = async (req, res) => {
       url + '/rest/v1/strava_cache?id=eq.' + encodeURIComponent(owner) + '&select=activities,synced_at',
       { headers: { apikey: key, Authorization: 'Bearer ' + key } }
     );
-    if (!r.ok) { res.status(502).json({ error: 'upstream_error', status: r.status }); return; }
+    if (!r.ok) return { status: 502, body: { error: 'upstream_error', status: r.status } };
     row = (await r.json())[0];
   } catch (e) {
-    res.status(502).json({ error: 'upstream_error', detail: String((e && e.message) || e) });
-    return;
+    return { status: 502, body: { error: 'upstream_error', detail: String((e && e.message) || e) } };
   }
 
   const acts = (row && Array.isArray(row.activities) ? row.activities : [])
     .filter(a => a && (a.start_date_local || a.start_date));
-  if (!acts.length) { res.status(200).json({ error: 'no_data', synced_at: (row && row.synced_at) || null }); return; }
+  if (!acts.length) return { status: 200, body: { error: 'no_data', synced_at: (row && row.synced_at) || null } };
 
   const now = Date.now();
   const since = days => acts.filter(a => now - new Date(a.start_date_local || a.start_date).getTime() <= days * 86400000);
   const year = String(new Date().getFullYear());
   const ytd = acts.filter(a => (a.start_date_local || a.start_date).startsWith(year));
 
-  // Serve from Vercel's CDN for 10 min, and keep serving a stale copy for an
-  // hour while it revalidates — so traffic on doniwirawan.xyz can't run up
-  // Supabase requests, and stays comfortably inside both free tiers.
-  res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=3600');
-  res.status(200).json({
+  return { status: 200, body: {
     athlete_id: +owner,
     synced_at: row.synced_at || null,        // when the dashboard last refreshed the cache
     generated_at: new Date().toISOString(),
@@ -146,5 +133,25 @@ module.exports = async (req, res) => {
     bests: bests(acts),
     by_month: byMonth(acts),
     by_sport: bySport(acts),
-  });
+  } };
+}
+
+module.exports = async (req, res) => {
+  const origin = req.headers.origin || '';
+  if (ALLOWED_ORIGINS.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'content-type');
+  res.setHeader('Vary', 'Origin');
+
+  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+  if (req.method !== 'GET') { res.status(405).json({ error: 'method_not_allowed' }); return; }
+
+  const { status, body } = await loadStats();
+  // Serve from Vercel's CDN for 10 min, and keep serving a stale copy for an
+  // hour while it revalidates — so traffic on doniwirawan.xyz can't run up
+  // Supabase requests, and stays comfortably inside both free tiers.
+  if (status === 200 && !body.error) res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=3600');
+  res.status(status).json(body);
 };
+
+module.exports.loadStats = loadStats;
