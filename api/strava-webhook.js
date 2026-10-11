@@ -14,22 +14,7 @@
 const { waitUntil } = require('@vercel/functions');
 const STRAVA = 'https://www.strava.com/api/v3';
 const { nearestLandmark } = require('../js/landmarks.js');
-const { sb, getOwnerRefreshToken, saveOwnerRefreshToken, saveActivityAi, logEvent } = require('./_owner-token.js');
-
-async function ownerAccessToken() {
-  const client_id = (process.env.STRAVA_CLIENT_ID || '').replace(/\s+/g, '');
-  const client_secret = (process.env.STRAVA_CLIENT_SECRET || '').replace(/\s+/g, '');
-  const refresh_token = await getOwnerRefreshToken();
-  if (!client_id || !client_secret || !refresh_token) return null;
-  const r = await fetch('https://www.strava.com/oauth/token', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ client_id, client_secret, grant_type: 'refresh_token', refresh_token }),
-  });
-  if (!r.ok) return null;
-  const d = await r.json();
-  if (d.refresh_token && d.refresh_token !== refresh_token) await saveOwnerRefreshToken(d.refresh_token);
-  return d.access_token || null;
-}
+const { sb, ownerAccessToken, saveActivityAi, logEvent } = require('./_owner-token.js');
 
 const WMO = { 0: 'clear sky', 1: 'mainly clear', 2: 'partly cloudy', 3: 'overcast', 45: 'fog', 48: 'fog', 51: 'light drizzle', 53: 'drizzle', 55: 'heavy drizzle', 61: 'light rain', 63: 'rain', 65: 'heavy rain', 71: 'light snow', 73: 'snow', 75: 'heavy snow', 80: 'light showers', 81: 'showers', 82: 'heavy showers', 95: 'thunderstorm', 96: 'thunderstorm with hail', 99: 'thunderstorm with hail' };
 

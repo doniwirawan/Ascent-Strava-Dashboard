@@ -31,6 +31,22 @@ async function saveOwnerRefreshToken(refresh_token) {
   } catch {}
 }
 
+// A fresh owner access token (saves the refresh token if Strava rotated it).
+async function ownerAccessToken() {
+  const client_id = (process.env.STRAVA_CLIENT_ID || '').replace(/\s+/g, '');
+  const client_secret = (process.env.STRAVA_CLIENT_SECRET || '').replace(/\s+/g, '');
+  const refresh_token = await getOwnerRefreshToken();
+  if (!client_id || !client_secret || !refresh_token) return null;
+  const r = await fetch('https://www.strava.com/oauth/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id, client_secret, grant_type: 'refresh_token', refresh_token }),
+  });
+  if (!r.ok) return null;
+  const d = await r.json();
+  if (d.refresh_token && d.refresh_token !== refresh_token) await saveOwnerRefreshToken(d.refresh_token);
+  return d.access_token || null;
+}
+
 // Upsert AI output for one activity into activity_ai (see api/ai-chats.js).
 async function saveActivityAi(activity_id, fields) {
   const s = sb();
@@ -63,4 +79,4 @@ async function logEvent(aspect, activity_id) {
   };
 }
 
-module.exports = { sb, getOwnerRefreshToken, saveOwnerRefreshToken, saveActivityAi, logEvent };
+module.exports = { sb, getOwnerRefreshToken, saveOwnerRefreshToken, ownerAccessToken, saveActivityAi, logEvent };

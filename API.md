@@ -65,6 +65,18 @@ activities**, not the full career. So `totals` means "over the last 200 activiti
 time" in the UI. `ytd`, `last_30_days` and `last_7_days` are exact as long as the
 window covers them, which it does at normal riding volume.
 
+### Extra fields
+
+| Field | What it is |
+|---|---|
+| `calendar` | `{ from, to, days: [{ date, km }] }` — km per day for the last 53 weeks (days without activity omitted) |
+| `streak` | `{ weeks, best_weeks, active_days_this_year }` — weeks in a row (Mon–Sun) with an activity |
+| `fitness` | `{ ctl, atl, tsb, ramp, form, last_90_days: [{ date, ctl, tsb }] }` — same model as the dashboard's Training section, minus estimated power |
+| `latest_ride` | `{ name, sport, date, distance_km, elevation_m, moving_minutes, avg_kmh, avg_hr }` |
+| `bikes` | `[{ name, distance_km }]` — active bikes, all-time km from Strava. `null` if Strava is unreachable |
+| `all_time` | `{ rides, distance_km, elevation_m, moving_hours, longest_ride_km, biggest_climb_m }` from Strava's athlete stats. `null` if unreachable |
+| `fun` | `{ babi_guling_this_year, kcal_this_year, everests, around_the_earth_pct, days_in_the_saddle, basis }` — `basis` is `all_time` or `sample` |
+
 ### Errors
 
 | Response | Meaning |
@@ -85,8 +97,23 @@ the fetch pairs nicely.
 
 ### Privacy
 
-Deliberately **numbers only**. No activity names, dates, route polylines, or start
-coordinates are ever returned, so nothing reveals where the rides happen.
+No route polylines or coordinates are ever returned, so nothing reveals where the
+rides start. Dates appear only as km-per-day in `calendar` and the latest ride's
+date; the only activity name is `latest_ride.name`, the auto-caption, which names
+the destination and never the start.
+
+---
+
+## `GET /api/card` — SVG cards
+
+Image cards built from the same data, for READMEs or any `<img>`. All 495×195.
+
+```
+/api/card?type=summary|calendar|latest|fitness|bikes|fun&theme=dark|light
+/api/card?type=summary&period=ytd|30d|7d|all
+```
+
+Cached for an hour (`max-age=3600`), which GitHub's image proxy honours.
 
 ---
 
