@@ -183,6 +183,9 @@ function fun(s, t) {
 }
 
 const TYPES = { summary, calendar, latest, fitness, bikes, fun };
+// Only these need Strava itself; the rest skip it so a cold start answers inside
+// the few seconds GitHub's image proxy waits.
+const NEEDS_STRAVA = new Set([bikes, fun]);
 
 function errorCard(t, msg) {
   return frame(t, 'Riding stats', '', `<text x="25" y="70" class="s">Unavailable — ${esc(msg)}</text>`, 100);
@@ -194,7 +197,7 @@ module.exports = async (req, res) => {
   const t = THEMES[q.theme] || THEMES.dark;
 
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-  const { status, body } = await loadStats();
+  const { status, body } = await loadStats({ strava: NEEDS_STRAVA.has(draw) });
   if (status !== 200 || body.error) {
     // Short cache so a paused Supabase project recovers quickly in the README.
     res.setHeader('Cache-Control', 'public, s-maxage=60');

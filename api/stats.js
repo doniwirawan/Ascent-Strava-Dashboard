@@ -212,7 +212,8 @@ function fun(list, allTime) {
 
 // Read the owner's cache and compute the public payload. Returns { status, body };
 // shared with api/card.js so the README card shows exactly what this API exposes.
-async function loadStats() {
+// strava:false skips the Strava calls (bikes, all_time) for a faster response.
+async function loadStats({ strava = true } = {}) {
   const url = (process.env.SUPABASE_URL || '').replace(/\s+/g, '').replace(/\/$/, '');
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').replace(/\s+/g, '');
   const owner = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
@@ -240,7 +241,7 @@ async function loadStats() {
   const since = days => acts.filter(a => now - new Date(a.start_date_local || a.start_date).getTime() <= days * 86400000);
   const year = String(new Date().getFullYear());
   const ytd = acts.filter(a => (a.start_date_local || a.start_date).startsWith(year));
-  const extras = await stravaExtras(owner);
+  const extras = strava ? await stravaExtras(owner) : null;
 
   return { status: 200, body: {
     athlete_id: +owner,
