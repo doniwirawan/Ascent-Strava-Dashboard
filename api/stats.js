@@ -210,6 +210,8 @@ function fun(list, allTime) {
   };
 }
 
+let rowMemo = { at: 0, data: null };
+
 // Read the owner's cache and compute the public payload. Returns { status, body };
 // shared with api/card.js so the README card shows exactly what this API exposes.
 // strava:false skips the Strava calls (bikes, all_time) for a faster response.
@@ -221,14 +223,17 @@ async function loadStats({ strava = true } = {}) {
     return { status: 500, body: { error: 'not_configured', need: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OWNER_ATHLETE_ID'] } };
   }
 
-  let row;
-  try {
+  // The row is large (every cached activity), so keep it for 5 minutes per warm
+  // instance — six cards × two themes would otherwise each download it.
+  let row = rowMemo.data && Date.now() - rowMemo.at < 300000 ? rowMemo.data : null;
+  if (!row) try {
     const r = await fetch(
       url + '/rest/v1/strava_cache?id=eq.' + encodeURIComponent(owner) + '&select=activities,synced_at',
       { headers: { apikey: key, Authorization: 'Bearer ' + key } }
     );
     if (!r.ok) return { status: 502, body: { error: 'upstream_error', status: r.status } };
     row = (await r.json())[0];
+    if (row) rowMemo = { at: Date.now(), data: row };
   } catch (e) {
     return { status: 502, body: { error: 'upstream_error', detail: String((e && e.message) || e) } };
   }
