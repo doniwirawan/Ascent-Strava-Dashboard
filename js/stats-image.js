@@ -215,27 +215,33 @@ async function _siMap(ctx, segs, box, styleId, pad) {
   return { X, Y };
 }
 
-async function drawStatsImage(canvas, a, wx, style) {
+/* `theme` (optional, from the social post): { accent, bg: [top, bottom], light }.
+   Without it the image keeps its own dark/orange look. */
+async function drawStatsImage(canvas, a, wx, style, theme) {
   canvas.width = SI_W; canvas.height = SI_H;
   const ctx = canvas.getContext('2d'), P = 72;
+  const th = theme || {}, ACC = th.accent || SI_ORANGE, L = !!th.light;
+  const hex = parseInt(ACC.replace('#', ''), 16), accA = al => 'rgba(' + (hex >> 16 & 255) + ',' + (hex >> 8 & 255) + ',' + (hex & 255) + ',' + al + ')';
+  const C = { title: L ? '#141414' : '#ffffff', place: L ? '#2a2a2a' : '#e8e8e8', date: L ? '#6a6a6a' : '#9a9a9a',
+    label: L ? '#7a7a7a' : '#8a8a8a', foot: L ? '#8a8a8a' : '#6a6a6a', rule: L ? 'rgba(0,0,0,.1)' : 'rgba(255,255,255,.08)' };
 
   // background
   const bg = ctx.createLinearGradient(0, 0, 0, SI_H);
-  bg.addColorStop(0, '#1a1a1c'); bg.addColorStop(1, '#0c0c0d');
+  bg.addColorStop(0, (th.bg || [])[0] || '#1a1a1c'); bg.addColorStop(1, (th.bg || [])[1] || '#0c0c0d');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, SI_W, SI_H);
-  ctx.fillStyle = SI_ORANGE; ctx.fillRect(0, 0, SI_W, 10);
+  ctx.fillStyle = ACC; ctx.fillRect(0, 0, SI_W, 10);
 
   // header: sport + date (day only — never a clock time)
   const when = a.start_date_local || a.start_date;
   const date = when ? new Date(when).toLocaleDateString(window.LANG === 'id' ? 'id-ID' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
   const sport = tr(String(a.sport_type || a.type || 'Activity').replace(/([a-z])([A-Z])/g, '$1 $2')).toUpperCase();
   ctx.textBaseline = 'alphabetic';
-  ctx.font = '700 30px ' + SI_FONT; ctx.fillStyle = SI_ORANGE; ctx.fillText(sport, P, 100);
-  ctx.font = '500 30px ' + SI_FONT; ctx.fillStyle = '#9a9a9a';
+  ctx.font = '700 30px ' + SI_FONT; ctx.fillStyle = ACC; ctx.fillText(sport, P, 100);
+  ctx.font = '500 30px ' + SI_FONT; ctx.fillStyle = C.date;
   ctx.textAlign = 'right'; ctx.fillText(date, SI_W - P, 100); ctx.textAlign = 'left';
 
   // title
-  ctx.font = '800 64px ' + SI_FONT; ctx.fillStyle = '#ffffff';
+  ctx.font = '800 64px ' + SI_FONT; ctx.fillStyle = C.title;
   const lines = _siWrap(ctx, a.name || 'Activity', SI_W - P * 2, 2);
   let y = 190;
   lines.forEach(l => { ctx.fillText(l, P, y); y += 74; });
@@ -245,10 +251,10 @@ async function drawStatsImage(canvas, a, wx, style) {
   const rp = a.route_places;
   const placeLine = rp && rp.furthest_place ? destName(rp) + '  ·  ' + kmOut(rp.furthest_km_from_start) : '';
   if (placeLine) {
-    _siPin(ctx, P + 14, y - 20, 30, SI_ORANGE);
+    _siPin(ctx, P + 14, y - 20, 30, ACC);
     let fs = 34;
     do { ctx.font = '600 ' + fs + 'px ' + SI_FONT; } while (ctx.measureText(placeLine).width > SI_W - P * 2 - 44 && --fs > 22);
-    ctx.fillStyle = '#e8e8e8';
+    ctx.fillStyle = C.place;
     ctx.fillText(_siWrap(ctx, placeLine, SI_W - P * 2 - 44, 1)[0], P + 44, y);
     y += 30;
   }
@@ -260,7 +266,7 @@ async function drawStatsImage(canvas, a, wx, style) {
   if (proj) {
     const { X, Y } = proj;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    [[22, 'rgba(252,76,2,.22)'], [12, 'rgba(252,76,2,.35)'], [7, SI_ORANGE]].forEach(([lw, col]) => {
+    [[22, accA(.22)], [12, accA(.35)], [7, ACC]].forEach(([lw, col]) => {
       ctx.strokeStyle = col; ctx.lineWidth = lw;
       segs.forEach(s => { ctx.beginPath(); s.forEach((p, i) => i ? ctx.lineTo(X(p), Y(p)) : ctx.moveTo(X(p), Y(p))); ctx.stroke(); });
     });
@@ -273,18 +279,18 @@ async function drawStatsImage(canvas, a, wx, style) {
 
   // stats grid (3 columns)
   const stats = _siStats(a, wx), cols = 3, cw = (SI_W - P * 2) / cols, rh = 130;
-  ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(P, statsTop - 20, SI_W - P * 2, 2);
+  ctx.fillStyle = C.rule; ctx.fillRect(P, statsTop - 20, SI_W - P * 2, 2);
   stats.forEach(([lbl, val, icon], i) => {
     const cx = P + (i % cols) * cw, cy = statsTop + 30 + Math.floor(i / cols) * rh;
-    ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = '#8a8a8a'; ctx.fillText(tr(lbl).toUpperCase(), cx, cy);
+    ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = C.label; ctx.fillText(tr(lbl).toUpperCase(), cx, cy);
     let tx = cx;
     if (icon) { _siWeatherIcon(ctx, icon, cx + 24, cy + 38, 50); tx = cx + 58; }
-    ctx.font = '800 ' + (val.length > 12 ? 36 : 48) + 'px ' + SI_FONT; ctx.fillStyle = '#ffffff';
+    ctx.font = '800 ' + (val.length > 12 ? 36 : 48) + 'px ' + SI_FONT; ctx.fillStyle = C.title;
     ctx.fillText(_siWrap(ctx, val, cw - 20 - (tx - cx), 1)[0], tx, cy + 56);
   });
 
   // footer
-  ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = '#6a6a6a';
+  ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = C.foot;
   ctx.fillText('ASCENT ANALYTICS', P, SI_H - 50);
   ctx.textAlign = 'right'; ctx.fillText('ascent-analytics.doniwirawan.xyz', SI_W - P, SI_H - 50); ctx.textAlign = 'left';
 }

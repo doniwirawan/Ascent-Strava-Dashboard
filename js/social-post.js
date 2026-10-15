@@ -293,7 +293,7 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
   const ctx = cv.getContext('2d'), P = 80, id = lang === 'id';
   if (s.type === 'summary') {
     let style = 'sat'; try { style = _siStyle(localStorage.getItem('si_style')).id; } catch {}
-    await drawStatsImage(cv, a, wx, style);
+    await drawStatsImage(cv, a, wx, style, _spTheme());
     if (n > 1) { // page number in a pill over the top-right corner
       ctx.font = '700 28px ' + SI_FONT; const t = (i + 1) + '/' + n, w = ctx.measureText(t).width + 36;
       ctx.fillStyle = 'rgba(0,0,0,.55)'; _spRoundRect(ctx, SP_W - 72 - w, 22, w, 46, 23);
