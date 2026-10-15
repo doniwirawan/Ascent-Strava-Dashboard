@@ -860,6 +860,14 @@ body.dev .dev-tag { display: inline-block; }
 .sp-thumb { flex: 0 0 auto; }
 .sp-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
 .sp-seg .si-style { padding: 10px 8px; font-size: 14px; }
+.sp-slides.story .sp-slide canvas { aspect-ratio: 9 / 16; }
+.sp-slides.story .sp-slide { flex-basis: 200px; }
+.sp-page-n { align-self: center; padding: 0 4px; }
+.sp-slide-dl:disabled { opacity: .3; cursor: default; }
+.sp-photo-btns { display: flex; gap: 6px; }
+.sp-photo-btns .btn { flex: 1; min-height: 38px; padding: 6px 8px; font-size: 12px; }
+.sp-photo-btns .sp-ph-auto { flex: 0 0 40px; }
+.si-themes { justify-content: center; margin: 0 0 12px; }
 .sp-themes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .sp-swatch { position: relative; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border); padding: 0; cursor: pointer; overflow: hidden; flex: 0 0 auto; }
 .sp-swatch.active { border-color: var(--text); box-shadow: 0 0 0 2px var(--orange); }
@@ -883,6 +891,7 @@ body.dev .dev-tag { display: inline-block; }
 .sp-bar .sp-close { flex: 0 0 44px; }
 @media (max-width: 600px) {
   .sp-slide { flex-basis: 78vw; }
+  .sp-slides.story .sp-slide { flex-basis: 62vw; }
   .ai-cap-input, .sp-slide .ai-cap-input { font-size: 16px; } /* iOS zooms into smaller inputs */
   .sp-slide-dl { width: 40px; height: 40px; font-size: 16px; }
   .sp-slide-bar { font-size: 13px; }

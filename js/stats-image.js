@@ -304,30 +304,49 @@ async function openStatsImage(id) {
   try { if (typeof aiRoutePlaces === 'function') await aiRoutePlaces(a); } catch {}
   let wx = null; try { if (typeof aiWeather === 'function') wx = await aiWeather(a); } catch {}
   let style = 'sat'; try { style = _siStyle(localStorage.getItem('si_style')).id; } catch {}
+  // colour themes are shared with the social post (js/social-post.js)
+  const themes = typeof SP_THEMES !== 'undefined' ? SP_THEMES : [];
+  let theme = null; try { theme = themes.find(t => t.id === localStorage.getItem('si_theme')) || null; } catch {}
   const cv = document.createElement('canvas');
-  await drawStatsImage(cv, a, wx, style);
+  await drawStatsImage(cv, a, wx, style, theme);
   panel._siCanvas = cv;
   panel.innerHTML = '<img class="si-preview" id="siPreview" alt="Stats image preview" src="' + cv.toDataURL('image/png') + '">'
     + '<div class="si-styles" role="group" aria-label="' + tr('Map style') + '">'
     + SI_STYLES.map(s => '<button type="button" class="si-style' + (s.id === style ? ' active' : '') + '" data-style="' + s.id + '">' + tr(s.name) + '</button>').join('')
     + '</div>'
+    + (themes.length ? '<div class="sp-themes si-themes" role="group" aria-label="' + tr('Theme') + '">'
+      + themes.map(t => '<button type="button" class="sp-swatch' + (t.id === ((theme && theme.id) || 'strava') ? ' active' : '') + '" data-theme="' + t.id + '" title="' + t.name + '" aria-label="' + t.name + '" style="background:linear-gradient(135deg,' + t.bg[0] + ' 50%,' + t.accent + ' 50%)"></button>').join('')
+      + '</div>' : '')
     + '<div class="ai-cap-actions">'
     + '<button class="btn btn-primary" type="button" onclick="shareStatsImage(\'' + a.id + '\')">' + tr('Share') + '</button>'
     + '<button class="btn" type="button" onclick="downloadStatsImage(\'' + a.id + '\')">' + tr('Download') + '</button>'
     + '<button class="btn" type="button" onclick="document.getElementById(\'actAiPanel\').innerHTML=\'\'">' + tr('Close') + '</button></div>'
     + '<div class="ai-cap-status" id="siStatus">' + tr('Strava doesn\'t let apps attach photos, so share it to the Strava app or download it and add it to the activity there.') + '</div>';
-  // switch map style: redraw in place and remember the pick
+  // switch map style or colour theme: redraw in place and remember the pick
+  let seq = 0;
+  const redraw = async () => {
+    const my = ++seq, img = document.getElementById('siPreview');
+    if (img) img.style.opacity = '.4';
+    const c = document.createElement('canvas');
+    await drawStatsImage(c, a, wx, style, theme);
+    if (my !== seq) return; // another pick came in meanwhile
+    panel._siCanvas = c;
+    if (img) { img.src = c.toDataURL('image/png'); img.style.opacity = ''; }
+  };
   panel.querySelectorAll('.si-style').forEach(b => {
-    b.onclick = async () => {
-      const id = b.dataset.style, img = document.getElementById('siPreview');
+    b.onclick = () => {
+      style = b.dataset.style;
       panel.querySelectorAll('.si-style').forEach(x => x.classList.toggle('active', x === b));
-      try { localStorage.setItem('si_style', id); } catch {}
-      if (img) img.style.opacity = '.4';
-      const c = document.createElement('canvas');
-      await drawStatsImage(c, a, wx, id);
-      if (!b.classList.contains('active')) return; // another style was picked meanwhile
-      panel._siCanvas = c;
-      if (img) { img.src = c.toDataURL('image/png'); img.style.opacity = ''; }
+      try { localStorage.setItem('si_style', style); } catch {}
+      redraw();
+    };
+  });
+  panel.querySelectorAll('.si-themes .sp-swatch').forEach(b => {
+    b.onclick = () => {
+      theme = themes.find(t => t.id === b.dataset.theme) || null;
+      panel.querySelectorAll('.si-themes .sp-swatch').forEach(x => x.classList.toggle('active', x === b));
+      try { localStorage.setItem('si_theme', b.dataset.theme); } catch {}
+      redraw();
     };
   });
 }

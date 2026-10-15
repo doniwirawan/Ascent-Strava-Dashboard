@@ -14,6 +14,8 @@ let _spPhotos = [];   // ImageBitmap[] of the photos picked, in order
 let _spPagePhoto = {}; // page index → its own photo (replaced on that page), or null = no photo
 let _sp = null;       // { a, slides, wx } of the open post
 const SP_W = 1080, SP_H = 1350, SP_MAX_PAGES = 10;
+// page height: Instagram post 4:5, or story 9:16 (keeps clear of the story UI at top and bottom)
+const _spH = () => _sp && _sp.format === 'story' ? 1920 : SP_H;
 
 /* ── Progression: how this activity compares to the same sport before it ── */
 function _spKind(a) {
@@ -289,15 +291,25 @@ function _spTextBlock(ctx, items, x, bottom, w) {
 }
 
 async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
-  cv.width = SP_W; cv.height = SP_H;
+  const H = _spH(), story = H > SP_H, TOP = story ? 260 : 100;
+  cv.width = SP_W; cv.height = H;
   const ctx = cv.getContext('2d'), P = 80, id = lang === 'id';
   if (s.type === 'summary') {
     let style = 'sat'; try { style = _siStyle(localStorage.getItem('si_style')).id; } catch {}
-    await drawStatsImage(cv, a, wx, style, _spTheme());
+    const T = _spTheme(); let oy = 0;
+    if (story) { // the 4:5 card centred on a full-height theme background
+      const c2 = document.createElement('canvas');
+      await drawStatsImage(c2, a, wx, style, T);
+      cv.width = SP_W; cv.height = H;
+      const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, T.bg[0]); g.addColorStop(1, T.bg[1]);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, SP_W, H);
+      oy = (H - SI_H) / 2; ctx.drawImage(c2, 0, oy);
+      ctx.fillStyle = T.accent; ctx.fillRect(0, 0, SP_W, 10);
+    } else await drawStatsImage(cv, a, wx, style, T);
     if (n > 1) { // page number in a pill over the top-right corner
       ctx.font = '700 28px ' + SI_FONT; const t = (i + 1) + '/' + n, w = ctx.measureText(t).width + 36;
-      ctx.fillStyle = 'rgba(0,0,0,.55)'; _spRoundRect(ctx, SP_W - 72 - w, 22, w, 46, 23);
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, SP_W - 72 - w / 2, 46);
+      ctx.fillStyle = 'rgba(0,0,0,.55)'; _spRoundRect(ctx, SP_W - 72 - w, oy + 22, w, 46, 23);
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, SP_W - 72 - w / 2, oy + 46);
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     }
     return;
@@ -307,19 +319,19 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
     card: photo ? 'rgba(0,0,0,.45)' : T.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.06)' };
   // background: the photo (cover-fit) or the theme card with the route behind
   if (photo) {
-    const sc = Math.max(SP_W / photo.width, SP_H / photo.height);
-    ctx.drawImage(photo, (SP_W - photo.width * sc) / 2, (SP_H - photo.height * sc) / 2, photo.width * sc, photo.height * sc);
+    const sc = Math.max(SP_W / photo.width, H / photo.height);
+    ctx.drawImage(photo, (SP_W - photo.width * sc) / 2, (H - photo.height * sc) / 2, photo.width * sc, photo.height * sc);
     const top = ctx.createLinearGradient(0, 0, 0, 300);
     top.addColorStop(0, 'rgba(0,0,0,.55)'); top.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = top; ctx.fillRect(0, 0, SP_W, 300);
-    const bot = ctx.createLinearGradient(0, SP_H * (s.type === 'photo' ? 0.65 : 0.3), 0, SP_H);
+    const bot = ctx.createLinearGradient(0, H * (s.type === 'photo' ? 0.65 : 0.3), 0, H);
     bot.addColorStop(0, 'rgba(0,0,0,0)'); bot.addColorStop(1, 'rgba(0,0,0,.88)');
-    ctx.fillStyle = bot; ctx.fillRect(0, 0, SP_W, SP_H);
+    ctx.fillStyle = bot; ctx.fillRect(0, 0, SP_W, H);
   } else {
-    const bg = ctx.createLinearGradient(0, 0, 0, SP_H);
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
     bg.addColorStop(0, T.bg[0]); bg.addColorStop(1, T.bg[1]);
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, SP_W, SP_H);
-    if (s.type !== 'cover') _spRouteDecor(ctx, a, A, s.type === 'photo' ? 0.55 : 0.12, false, 760, 260);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, SP_W, H);
+    if (s.type !== 'cover') _spRouteDecor(ctx, a, A, s.type === 'photo' ? 0.55 : 0.12, false, 760, TOP + 160);
   }
   ctx.fillStyle = A; ctx.fillRect(0, 0, SP_W, 10);
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
@@ -330,12 +342,12 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
   const date = when ? new Date(when).toLocaleDateString(id ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
   ctx.font = '700 30px ' + SI_FONT; ctx.fillStyle = A;
   const sport = _spSport(a, id).toUpperCase();
-  ctx.fillText(sport, P, 100);
+  ctx.fillText(sport, P, TOP);
   ctx.font = '500 30px ' + SI_FONT; ctx.fillStyle = C.muted;
-  ctx.fillText('  ·  ' + date, P + ctx.measureText(sport).width + 4, 100);
-  if (n > 1) { ctx.textAlign = 'right'; ctx.fillText((i + 1) + '/' + n, SP_W - P, 100); ctx.textAlign = 'left'; }
+  ctx.fillText('  ·  ' + date, P + ctx.measureText(sport).width + 4, TOP);
+  if (n > 1) { ctx.textAlign = 'right'; ctx.fillText((i + 1) + '/' + n, SP_W - P, TOP); ctx.textAlign = 'left'; }
 
-  const W = SP_W - P * 2, bottom = SP_H - 110;
+  const W = SP_W - P * 2, bottom = H - (story ? 300 : 110), FOOT = H - (story ? 230 : 50);
   const title = (fs, max) => ({ text: s.title, font: '800 ' + fs + 'px ' + SI_FONT, color: C.fg, lh: fs * 1.12, max: max || 3, gap: 18 });
   const body = fs => ({ text: s.text, font: '500 ' + fs + 'px ' + SI_FONT, color: C.sub, lh: fs * 1.35, max: 4 });
   const rp = a.route_places;
@@ -374,11 +386,11 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
       ctx.font = '600 32px ' + SI_FONT; ctx.fillStyle = photo ? '#fff' : A; ctx.fillText(_siWrap(ctx, place, W - 44, 1)[0], P + 40, y + 36);
     } });
     let y = bottom - parts.reduce((t, x) => t + x.h, 0);
-    if (!photo) { const box = Math.min(620, y - 190); if (box > 200) _spRouteDecor(ctx, a, A, 1, true, box, 150); }
+    if (!photo) { const box = Math.min(story ? 760 : 620, y - TOP - 90); if (box > 200) _spRouteDecor(ctx, a, A, 1, true, box, TOP + 50 + (story ? (y - TOP - 90 - box) / 2 : 0)); }
     parts.forEach(x => { x.draw(y); y += x.h; });
     if (n > 1) { // nudge people to swipe
       ctx.save(); ctx.shadowBlur = 0; ctx.font = '800 26px ' + SI_FONT; ctx.fillStyle = photo ? '#fff' : A; ctx.textAlign = 'right';
-      ctx.fillText((id ? 'GESER' : 'SWIPE') + '  →', SP_W - P, SP_H - 50); ctx.restore();
+      ctx.fillText((id ? 'GESER' : 'SWIPE') + '  →', SP_W - P, FOOT); ctx.restore();
     }
   } else if (s.type === 'stats') {
     const nums = _spNumbers(a, socialProgress(a), id), keys = (s.stats || []).filter(k => nums[k]);
@@ -413,14 +425,14 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
   }
   ctx.shadowBlur = 0;
   ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = dark ? 'rgba(255,255,255,.5)' : 'rgba(20,20,20,.45)';
-  ctx.fillText('ASCENT ANALYTICS', P, SP_H - 50);
+  ctx.fillText('ASCENT ANALYTICS', P, FOOT);
 }
 
 /* ── UI ── */
 const _spStateKey = id => 'sp_state_' + id;
 function _spPrefs() {
   let p = {}; try { p = JSON.parse(localStorage.getItem('sp_prefs') || '{}') || {}; } catch {}
-  return Object.assign({ lang: window.LANG === 'id' ? 'id' : 'en', tone: 'light', stats: true, progress: true, tags: true, pages: 5, theme: 'strava', accent: null }, p);
+  return Object.assign({ lang: window.LANG === 'id' ? 'id' : 'en', tone: 'light', stats: true, progress: true, tags: true, pages: 5, theme: 'strava', accent: null, format: 'post' }, p);
 }
 function _spOpts() {
   const v = id => document.getElementById(id) || {};
@@ -449,7 +461,7 @@ function openSocialPost(id) {
   _spPhotos = []; _spPagePhoto = {};
   const p = _spPrefs();
   let saved = null; try { saved = JSON.parse(localStorage.getItem(_spStateKey(id)) || 'null'); } catch {}
-  _sp = { a, slides: saved && saved.slides || [], lang: saved && saved.lang || p.lang, wx: null, theme: p.theme, accent: p.accent };
+  _sp = { a, slides: saved && saved.slides || [], lang: saved && saved.lang || p.lang, wx: null, theme: p.theme, accent: p.accent, format: p.format };
   const chk = (id, on, label) => '<label class="sp-chk"><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + '> ' + tr(label) + '</label>';
   const lang = _sp.lang;
   panel.innerHTML =
@@ -459,6 +471,9 @@ function openSocialPost(id) {
     + '<div class="sp-lang sp-seg" role="group" aria-label="' + tr('Language') + '">'
     + '<button type="button" class="si-style' + (lang === 'en' ? ' active' : '') + '" data-lang="en">English</button>'
     + '<button type="button" class="si-style' + (lang === 'id' ? ' active' : '') + '" data-lang="id">Bahasa Indonesia</button></div>'
+    + '<div class="sp-format sp-seg" role="group" aria-label="' + tr('Size') + '">'
+    + '<button type="button" class="si-style' + (_sp.format !== 'story' ? ' active' : '') + '" data-format="post">' + tr('Post') + ' 4:5</button>'
+    + '<button type="button" class="si-style' + (_sp.format === 'story' ? ' active' : '') + '" data-format="story">' + tr('Story') + ' 9:16</button></div>'
     + '<div class="sp-themes" role="group" aria-label="' + tr('Theme') + '">'
     + SP_THEMES.map(t => '<button type="button" class="sp-swatch' + (t.id === _sp.theme && !_sp.accent ? ' active' : '') + '" data-theme="' + t.id + '" title="' + t.name + '" aria-label="' + t.name + '" style="background:linear-gradient(135deg,' + t.bg[0] + ' 50%,' + t.accent + ' 50%)"></button>').join('')
     + '<label class="sp-swatch sp-custom' + (_sp.accent ? ' active' : '') + '" title="' + tr('Your own colour') + '"' + (_sp.accent ? ' style="background:' + _sp.accent + '"' : '') + '><input type="color" id="spAccent" value="' + (_sp.accent || _spTheme().accent) + '" aria-label="' + tr('Your own colour') + '"></label></div>'
@@ -484,6 +499,12 @@ function openSocialPost(id) {
   const $ = s => document.getElementById(s);
   $('spText').value = (saved && saved.caption) || '';
   $('spText').oninput = _spSaveState;
+  // post / story size: redraw only
+  panel.querySelectorAll('.sp-format .si-style').forEach(b => b.onclick = () => {
+    _sp.format = b.dataset.format; _spSavePrefs({ format: _sp.format });
+    panel.querySelectorAll('.sp-format .si-style').forEach(x => x.classList.toggle('active', x === b));
+    _spRenderSlides();
+  });
   // theme / own colour: redraw the pages, no new AI call
   const markTheme = () => panel.querySelectorAll('.sp-swatch').forEach(b => b.classList.toggle('active', b.classList.contains('sp-custom') ? !!_sp.accent : b.dataset.theme === _sp.theme && !_sp.accent));
   panel.querySelectorAll('.sp-swatch[data-theme]').forEach(b => b.onclick = () => {
@@ -574,17 +595,22 @@ function _spPhotoFor(i) {
 
 async function _spRenderSlides() {
   const box = document.getElementById('spSlides'); if (!box || !_sp) return;
+  box.classList.toggle('story', _sp.format === 'story');
   const { a, slides } = _sp;
   if (_sp.wx === null) { try { _sp.wx = (typeof aiWeather === 'function' && await aiWeather(a)) || false; } catch { _sp.wx = false; } }
   const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const heroNums = _spNumbers(a, socialProgress(a), _sp.lang === 'id');
   const btn = (cls, icon, label) => '<button type="button" class="sp-slide-dl ' + cls + '" aria-label="' + label + '" title="' + label + '">' + icon + '</button>';
-  box.innerHTML = slides.map((s, i) => '<div class="sp-slide" data-i="' + i + '"><div class="sp-slide-bar"><span>' + trf('Page {0}', i + 1) + '</span><span class="sp-slide-btns">'
-    + (s.type === 'summary' ? '' : '<input type="file" accept="image/*" hidden class="sp-slide-file">'
-      + btn('sp-ph-set', '🖼', tr('Replace photo on this page'))
-      + (_spPhotoFor(i) ? btn('sp-ph-none', '✕', tr('No photo on this page')) : '')
-      + (i in _spPagePhoto ? btn('sp-ph-auto', '↺', tr('Back to the photo order')) : ''))
-    + btn('sp-dl', '⬇', trf('Download page {0}', i + 1)) + '</span></div><canvas' + (s.type === 'summary' ? '' : ' class="sp-pickable" title="' + tr('Replace photo on this page') + '"') + '></canvas>'
+  box.innerHTML = slides.map((s, i) => '<div class="sp-slide" data-i="' + i + '"><div class="sp-slide-bar">'
+    + '<span class="sp-slide-btns">' + btn('sp-mv-l', '‹', tr('Move left')).replace('<button', '<button' + (i ? '' : ' disabled'))
+    + '<span class="sp-page-n">' + trf('Page {0}', i + 1) + '</span>'
+    + btn('sp-mv-r', '›', tr('Move right')).replace('<button', '<button' + (i < slides.length - 1 ? '' : ' disabled')) + '</span>'
+    + btn('sp-dl', '⬇', trf('Download page {0}', i + 1)) + '</div>'
+    + '<canvas' + (s.type === 'summary' ? '' : ' class="sp-pickable" title="' + tr('Replace photo on this page') + '"') + '></canvas>'
+    + (s.type === 'summary' ? '' : '<div class="sp-photo-btns"><input type="file" accept="image/*" hidden class="sp-slide-file">'
+      + '<button type="button" class="btn sp-ph-set">🖼 ' + tr(_spPhotoFor(i) ? 'Change photo' : 'Add photo') + '</button>'
+      + (_spPhotoFor(i) ? '<button type="button" class="btn sp-ph-none" title="' + tr('No photo on this page') + '">' + tr('Remove') + '</button>' : '')
+      + (i in _spPagePhoto ? '<button type="button" class="btn sp-ph-auto" title="' + tr('Back to the photo order') + '">↺</button>' : '') + '</div>')
     + (s.type === 'summary' ? '<div class="sp-slide-note">' + tr('Route & stats card') + '</div>'
       : '<input class="ai-cap-input" data-f="title" value="' + esc(s.title) + '" placeholder="' + tr('Title') + '">'
         + (s.type === 'cover' ? '<input class="ai-cap-input" data-f="badge" value="' + esc(s.badge) + '" placeholder="' + tr('Badge (optional), e.g. Longest ride in 4 months') + '">'
@@ -599,6 +625,8 @@ async function _spRenderSlides() {
     const draw = () => _spDrawSlide(cv, a, _sp.slides[i], i, _sp.slides.length, _spPhotoFor(i), _sp.wx || null, _sp.lang);
     draw();
     el.querySelector('.sp-dl').onclick = async () => { const f = await _spFile(cv, i); if (f) _spDownload([f]); };
+    el.querySelector('.sp-mv-l').onclick = () => _spMove(i, i - 1);
+    el.querySelector('.sp-mv-r').onclick = () => _spMove(i, i + 1);
     const fi = el.querySelector('.sp-slide-file');
     if (fi) {
       const pick = () => fi.click();
@@ -619,6 +647,16 @@ async function _spRenderSlides() {
       clearTimeout(tm); tm = setTimeout(draw, 250);
     });
   });
+}
+
+/* Swap two pages (their own photos travel with them). */
+function _spMove(i, j) {
+  if (!_sp || j < 0 || j >= _sp.slides.length) return;
+  const sl = _sp.slides; [sl[i], sl[j]] = [sl[j], sl[i]];
+  const pi = i in _spPagePhoto, pj = j in _spPagePhoto, vi = _spPagePhoto[i], vj = _spPagePhoto[j];
+  delete _spPagePhoto[i]; delete _spPagePhoto[j];
+  if (pi) _spPagePhoto[j] = vi; if (pj) _spPagePhoto[i] = vj;
+  _spSaveState(); _spRenderSlides();
 }
 
 /* Numbered so the pages stay in order: activity-123-01-of-05.jpg */
