@@ -1281,6 +1281,16 @@ const TR_ID = {
   'Loops through roads you have never ridden, one per regency. Bold orange = never ridden, faint = roads you know. Right-click the map to open a spot in Google Maps.': 'Rute putar lewat jalan yang belum pernah Anda lewati, satu per kabupaten. Oranye tebal = belum pernah, samar = jalan yang sudah dikenal. Klik kanan peta untuk membuka titik di Google Maps.', 'Street View': 'Street View', 'Google Maps': 'Google Maps', 'All tiers done': 'Semua level tercapai',
   'Max HR {0} bpm (211 − 0.64 × age {1}) · zones at 60/70/80/90 %': 'Detak maks {0} bpm (211 − 0,64 × usia {1}) · zona di 60/70/80/90 %', 'Age': 'Usia', 'change birth date': 'ubah tanggal lahir',
   'all {0} activities from the HR stream': 'semua {0} aktivitas dari stream HR',
+  'Social post': 'Postingan sosmed', 'Add photos': 'Tambah foto', 'Language': 'Bahasa',
+  'Performance numbers': 'Angka performa', 'My progression': 'Progres saya', 'Hashtags': 'Hashtag',
+  'Anything to mention? e.g. with friends, flat tyre, first time up this climb (optional)': 'Ada yang mau diceritakan? mis. bareng teman, ban bocor, pertama kali naik tanjakan ini (opsional)',
+  'Write with AI': 'Tulis dengan AI', 'Caption': 'Caption', 'Copy caption': 'Salin caption', 'Title': 'Judul', 'Text': 'Teks', 'Route & stats card': 'Kartu rute & statistik', 'Download all': 'Unduh semua', 'Page {0}': 'Halaman {0}', 'Download page {0}': 'Unduh halaman {0}', 'Downloading {0} pages': 'Mengunduh {0} halaman', "Sharing isn't supported in this browser — downloading {0} pages": 'Browser ini tidak mendukung berbagi — mengunduh {0} halaman', 'If only one arrives, allow multiple downloads for this site.': 'Jika hanya satu yang masuk, izinkan unduhan ganda untuk situs ini.',
+  'Writing your {0}-page post…': 'Menulis postingan {0} halaman…', '{0} photo(s) won’t fit — add more pages and write again.': '{0} foto tidak muat — tambah halaman lalu tulis ulang.',
+  'Without AI': 'Tanpa AI', 
+  'AI unavailable — wrote it from your stats instead.': 'AI tidak tersedia — ditulis dari statistik Anda.',
+  'Copied.': 'Disalin.', 'Couldn’t copy — select the text and copy it by hand.': 'Gagal menyalin — pilih teksnya dan salin manual.',
+  'Caption copied — paste it if the app didn’t keep it.': 'Caption disalin — tempel jika aplikasinya tidak menyimpannya.',
+  'caption copied.': 'caption disalin.',
   '{0} of {1} activities from the HR stream, the rest from average HR': '{0} dari {1} aktivitas dari stream HR, sisanya dari HR rata-rata', 'no change': 'tetap', '{0} avg ride': 'rata-rata {0}/gowes',
 };
 window.tr = function (s) {

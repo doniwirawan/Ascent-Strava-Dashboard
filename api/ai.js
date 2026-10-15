@@ -15,7 +15,8 @@ const PROVIDERS = {
   anthropic:  { base: 'https://api.anthropic.com/v1/messages',            keyEnv: 'ANTHROPIC_API_KEY',  model: 'claude-haiku-4-5',          shape: 'anthropic' },
 };
 
-const MAX_TOKENS = 800; // hard output cap so a request can't run up the bill
+const MAX_TOKENS = 800;   // default output cap so a request can't run up the bill
+const MAX_TOKENS_CAP = 1700; // most a request may ask for (multi-page social posts)
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'method_not_allowed' }); return; }
@@ -24,6 +25,7 @@ module.exports = async (req, res) => {
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
   const { token, messages, provider = 'deepseek', model, key, test } = body;
+  const maxTokens = Math.min(MAX_TOKENS_CAP, Math.max(1, parseInt(body.max_tokens, 10) || MAX_TOKENS));
   if (!token) { res.status(400).json({ error: 'bad_request' }); return; }
   if (!test && (!Array.isArray(messages) || !messages.length)) {
     res.status(400).json({ error: 'bad_request' }); return;
@@ -62,12 +64,12 @@ module.exports = async (req, res) => {
       const msgs = messages.filter(m => m.role !== 'system');
       url = cfg.base;
       headers = { 'Content-Type': 'application/json', 'x-api-key': KEY, 'anthropic-version': '2023-06-01' };
-      payload = { model: useModel, max_tokens: MAX_TOKENS, system: sys, messages: msgs };
+      payload = { model: useModel, max_tokens: maxTokens, system: sys, messages: msgs };
       pickText = d => { const b = d && d.content && d.content.find(x => x.type === 'text'); return b && b.text; };
     } else {
       url = cfg.base;
       headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + KEY };
-      payload = { model: useModel, messages, max_tokens: MAX_TOKENS, temperature: 0.5, stream: false };
+      payload = { model: useModel, messages, max_tokens: maxTokens, temperature: 0.5, stream: false };
       pickText = d => d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
     }
 
