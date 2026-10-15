@@ -11,6 +11,7 @@
    Like every AI caption here: the start (home) never reaches the AI or the text. */
 
 let _spPhotos = [];   // ImageBitmap[] of the photos picked, in order
+let _spPagePhoto = {}; // page index → its own photo (replaced on that page), or null = no photo
 let _sp = null;       // { a, slides, wx } of the open post
 const SP_W = 1080, SP_H = 1350, SP_MAX_PAGES = 10;
 
@@ -201,7 +202,10 @@ async function _spGenerate(a, lang, o) {
   let seen = false; slides = slides.filter(s => s.type !== 'summary' || (!seen && (seen = true)));
   slides = slides.slice(0, n);
   const tpl = _spTemplate(a, lang, o);
-  while (slides.length < n) slides.push(tpl.slides[slides.length] || { type: 'photo', title: '', text: '' });
+  while (slides.length < n) {
+    const t = tpl.slides[slides.length];
+    slides.push(t && !(t.type === 'summary' && seen) ? t : { type: 'photo', title: '', text: '' });
+  }
   return { caption: clean(j.caption) || tpl.caption, slides };
 }
 
@@ -354,33 +358,38 @@ function openSocialPost(id) {
   const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
   const panel = document.getElementById('actAiPanel');
   if (!a || !panel) return;
-  _spPhotos = [];
+  _spPhotos = []; _spPagePhoto = {};
   const p = _spPrefs();
   let saved = null; try { saved = JSON.parse(localStorage.getItem(_spStateKey(id)) || 'null'); } catch {}
   _sp = { a, slides: saved && saved.slides || [], lang: saved && saved.lang || p.lang, wx: null };
   const chk = (id, on, label) => '<label class="sp-chk"><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + '> ' + tr(label) + '</label>';
   const lang = _sp.lang;
   panel.innerHTML =
-    '<div class="sp-head">' + tr('Social post') + '</div>'
-    + '<div class="sp-photos" id="spPhotos"></div>'
-    + '<label class="btn sp-add"><input type="file" id="spFile" accept="image/*" multiple hidden> + ' + tr('Add photos') + '</label>'
-    + '<div class="sp-row"><div class="sp-lang si-styles" role="group" aria-label="' + tr('Language') + '">'
+    '<div class="sp-head">' + tr('Social post') + '<span class="sp-sub">' + tr('Swipe the pages · tap one to change its photo') + '</span></div>'
+    + '<div class="sp-photo-row"><label class="sp-add-tile"><input type="file" id="spFile" accept="image/*" multiple hidden><span aria-hidden="true">+</span>' + tr('Photos') + '</label>'
+    + '<div class="sp-photos" id="spPhotos"></div></div>'
+    + '<div class="sp-lang sp-seg" role="group" aria-label="' + tr('Language') + '">'
     + '<button type="button" class="si-style' + (lang === 'en' ? ' active' : '') + '" data-lang="en">English</button>'
     + '<button type="button" class="si-style' + (lang === 'id' ? ' active' : '') + '" data-lang="id">Bahasa Indonesia</button></div>'
-    + '<label class="sp-chk">' + tr('Pages') + ' <input type="number" id="spPages" class="sp-pages" min="1" max="' + SP_MAX_PAGES + '" value="' + p.pages + '"></label>'
-    + '<label class="ai-cap-roast">' + aiRoastSelect('spTone', p.tone) + '</label></div>'
+    + '<div class="sp-row2"><div class="sp-stepper" role="group" aria-label="' + tr('Pages') + '">'
+    + '<button type="button" id="spMinus" aria-label="' + tr('Fewer pages') + '">−</button>'
+    + '<input type="number" id="spPages" min="1" max="' + SP_MAX_PAGES + '" value="' + p.pages + '" inputmode="numeric" aria-label="' + tr('Pages') + '">'
+    + '<span class="sp-step-lbl">' + tr('pages') + '</span>'
+    + '<button type="button" id="spPlus" aria-label="' + tr('More pages') + '">+</button></div>'
+    + '<button class="btn btn-primary sp-gen" type="button" id="spGen">' + (typeof AI_ICON !== 'undefined' ? AI_ICON : '') + ' ' + tr('Write with AI') + '</button></div>'
+    + '<details class="sp-more"><summary>' + tr('More options') + '</summary>'
+    + '<label class="ai-cap-roast">' + aiRoastSelect('spTone', p.tone) + '</label>'
     + '<div class="sp-opts">' + chk('spStats', p.stats, 'Performance numbers') + chk('spProgress', p.progress, 'My progression') + chk('spTags', p.tags, 'Hashtags') + '</div>'
     + '<textarea id="spNotes" class="ai-cap-input" rows="2" placeholder="' + tr('Anything to mention? e.g. with friends, flat tyre, first time up this climb (optional)') + '"></textarea>'
-    + '<div class="ai-cap-actions"><button class="btn btn-primary" type="button" id="spGen">' + (typeof AI_ICON !== 'undefined' ? AI_ICON : '') + ' ' + tr('Write with AI') + '</button>'
-    + '<button class="btn" type="button" id="spTpl">' + tr('Without AI') + '</button></div>'
+    + '<button class="btn sp-tpl" type="button" id="spTpl">' + tr('Without AI') + '</button></details>'
     + '<div class="ai-cap-status" id="spStatus"></div>'
     + '<div class="sp-slides" id="spSlides"></div>'
     + '<label class="sp-label" for="spText">' + tr('Caption') + '</label>'
     + '<textarea id="spText" class="ai-cap-input sp-text" rows="9"></textarea>'
-    + '<div class="ai-cap-actions"><button class="btn btn-primary" type="button" id="spShare">' + tr('Share') + '</button>'
+    + '<div class="sp-bar"><button class="btn btn-primary sp-share" type="button" id="spShare">' + tr('Share') + '</button>'
     + '<button class="btn" type="button" id="spDl">' + tr('Download all') + '</button>'
     + '<button class="btn" type="button" id="spCopy">' + tr('Copy caption') + '</button>'
-    + '<button class="btn" type="button" onclick="document.getElementById(\'actAiPanel\').innerHTML=\'\'">' + tr('Close') + '</button></div>';
+    + '<button class="btn sp-close" type="button" aria-label="' + tr('Close') + '" title="' + tr('Close') + '" onclick="document.getElementById(\'actAiPanel\').innerHTML=\'\'">✕</button></div>';
   const $ = s => document.getElementById(s);
   $('spText').value = (saved && saved.caption) || '';
   $('spText').oninput = _spSaveState;
@@ -395,12 +404,21 @@ function openSocialPost(id) {
     panel.querySelectorAll('.sp-lang .si-style').forEach(x => x.classList.toggle('active', x === b));
     _spRun(true);
   });
+  // − / + pages (or typing a number): the AI rewrites once you stop
+  let stepT = null;
+  const step = d => {
+    const inp = $('spPages'), v = Math.max(1, Math.min(SP_MAX_PAGES, (parseInt(inp.value, 10) || 5) + d));
+    inp.value = v; clearTimeout(stepT); stepT = setTimeout(() => _spRun(true), 900);
+  };
+  $('spMinus').onclick = () => step(-1); $('spPlus').onclick = () => step(1);
+  $('spPages').onchange = () => step(0);
   $('spGen').onclick = () => _spRun(true);
   $('spTpl').onclick = () => _spRun(false);
   $('spCopy').onclick = async () => { try { await navigator.clipboard.writeText($('spText').value); _spStatus('ok', '✓ ' + tr('Copied.')); } catch { _spStatus('err', tr('Couldn’t copy — select the text and copy it by hand.')); } };
   $('spShare').onclick = () => _spShare(false);
   $('spDl').onclick = () => _spShare(true);
   _spRenderPhotos();
+  try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
   // first open: let the AI write it straight away
   if (_sp.slides.length) _spRenderSlides(); else _spRun(true);
 }
@@ -439,11 +457,15 @@ function _spRenderPhotos() {
   });
 }
 
-/* Photos go to the pages in order (the summary card keeps its map). */
+/* Photos go to the pages in order (the summary card keeps its map); a page
+   whose photo was replaced or removed keeps its own and is skipped. */
+const _spAuto = j => _sp.slides[j].type !== 'summary' && !(j in _spPagePhoto);
 function _spPhotoFor(i) {
+  if (_sp.slides[i].type === 'summary') return null;
+  if (i in _spPagePhoto) return _spPagePhoto[i];
   let k = 0;
-  for (let j = 0; j < i; j++) if (_sp.slides[j].type !== 'summary') k++;
-  return _sp.slides[i].type === 'summary' ? null : (_spPhotos[k] || null);
+  for (let j = 0; j < i; j++) if (_spAuto(j)) k++;
+  return _spPhotos[k] || null;
 }
 
 async function _spRenderSlides() {
@@ -451,19 +473,38 @@ async function _spRenderSlides() {
   const { a, slides } = _sp;
   if (_sp.wx === null) { try { _sp.wx = (typeof aiWeather === 'function' && await aiWeather(a)) || false; } catch { _sp.wx = false; } }
   const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-  box.innerHTML = slides.map((s, i) => '<div class="sp-slide" data-i="' + i + '"><div class="sp-slide-bar"><span>' + trf('Page {0}', i + 1) + '</span>'
-    + '<button type="button" class="sp-slide-dl" aria-label="' + trf('Download page {0}', i + 1) + '" title="' + trf('Download page {0}', i + 1) + '">⬇</button></div><canvas></canvas>'
+  const btn = (cls, icon, label) => '<button type="button" class="sp-slide-dl ' + cls + '" aria-label="' + label + '" title="' + label + '">' + icon + '</button>';
+  box.innerHTML = slides.map((s, i) => '<div class="sp-slide" data-i="' + i + '"><div class="sp-slide-bar"><span>' + trf('Page {0}', i + 1) + '</span><span class="sp-slide-btns">'
+    + (s.type === 'summary' ? '' : '<input type="file" accept="image/*" hidden class="sp-slide-file">'
+      + btn('sp-ph-set', '🖼', tr('Replace photo on this page'))
+      + (_spPhotoFor(i) ? btn('sp-ph-none', '✕', tr('No photo on this page')) : '')
+      + (i in _spPagePhoto ? btn('sp-ph-auto', '↺', tr('Back to the photo order')) : ''))
+    + btn('sp-dl', '⬇', trf('Download page {0}', i + 1)) + '</span></div><canvas' + (s.type === 'summary' ? '' : ' class="sp-pickable" title="' + tr('Replace photo on this page') + '"') + '></canvas>'
     + (s.type === 'summary' ? '<div class="sp-slide-note">' + tr('Route & stats card') + '</div>'
       : '<input class="ai-cap-input" data-f="title" value="' + esc(s.title) + '" placeholder="' + tr('Title') + '">'
         + (s.type === 'stats' ? '' : '<textarea class="ai-cap-input" data-f="text" rows="3" placeholder="' + tr('Text') + '">' + esc(s.text) + '</textarea>'))
     + '</div>').join('');
-  const used = slides.filter(s => s.type !== 'summary').length;
+  const used = slides.filter((s, j) => _spAuto(j)).length;
   if (_spPhotos.length > used) _spStatus('', trf('{0} photo(s) won’t fit — add more pages and write again.', _spPhotos.length - used));
   box.querySelectorAll('.sp-slide').forEach(el => {
     const i = +el.dataset.i, cv = el.querySelector('canvas');
     const draw = () => _spDrawSlide(cv, a, _sp.slides[i], i, _sp.slides.length, _spPhotoFor(i), _sp.wx || null, _sp.lang);
     draw();
-    el.querySelector('.sp-slide-dl').onclick = async () => { const f = await _spFile(cv, i); if (f) _spDownload([f]); };
+    el.querySelector('.sp-dl').onclick = async () => { const f = await _spFile(cv, i); if (f) _spDownload([f]); };
+    const fi = el.querySelector('.sp-slide-file');
+    if (fi) {
+      const pick = () => fi.click();
+      el.querySelector('.sp-ph-set').onclick = pick; cv.onclick = pick;
+      fi.onchange = async () => {
+        const f = fi.files[0]; fi.value = '';
+        if (!f || !f.type.startsWith('image/')) return;
+        try { _spPagePhoto[i] = await createImageBitmap(f); } catch { return; }
+        _spRenderSlides();
+      };
+      const none = el.querySelector('.sp-ph-none'), auto = el.querySelector('.sp-ph-auto');
+      if (none) none.onclick = () => { _spPagePhoto[i] = null; _spRenderSlides(); };
+      if (auto) auto.onclick = () => { delete _spPagePhoto[i]; _spRenderSlides(); };
+    }
     let tm = null;
     el.querySelectorAll('[data-f]').forEach(inp => inp.oninput = () => {
       _sp.slides[i][inp.dataset.f] = inp.value; _spSaveState();
