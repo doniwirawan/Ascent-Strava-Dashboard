@@ -89,16 +89,22 @@ function _spProgressLines(p, id) {
   return L;
 }
 
-/* Key numbers as an emoji stat block (same in both languages, units unchanged). */
-function _spStatLines(a) {
-  const ride = isRide(a), L = ['📏 ' + fmtD(a.distance)];
-  if (a.moving_time) L.push('⏱️ ' + fmtT(a.moving_time));
-  if (a.total_elevation_gain > 10) L.push('⛰️ ' + fmtElev(a.total_elevation_gain));
-  if (a.average_speed) L.push('⚡ ' + (ride ? fmtSpeed(a.average_speed) : fmtPace(a.average_speed)));
-  if (a.average_heartrate) L.push('❤️ ' + Math.round(a.average_heartrate) + ' bpm');
-  if (a.device_watts === true && a.average_watts) L.push('🔋 ' + Math.round(a.average_watts) + ' W' + (a.weighted_average_watts ? ' (NP ' + Math.round(a.weighted_average_watts) + ' W)' : ''));
-  return L;
+/* Key numbers as one plain line: "72.0 km · 2h 36m · 1,150 m · 28.4 km/h" */
+function _spStatLine(a) {
+  const ride = isRide(a), L = [fmtD(a.distance)];
+  if (a.moving_time) L.push(fmtT(a.moving_time));
+  if (a.total_elevation_gain > 10) L.push(fmtElev(a.total_elevation_gain));
+  if (a.average_speed) L.push(ride ? fmtSpeed(a.average_speed) : fmtPace(a.average_speed));
+  if (a.average_heartrate) L.push('HR ' + Math.round(a.average_heartrate));
+  if (a.device_watts === true && a.average_watts) L.push(Math.round(a.average_watts) + ' W');
+  return L.join(' · ');
 }
+
+/* Captions never carry emoji (the owner's call) — strip any the AI slips in. */
+function _spNoEmoji(t) {
+  return String(t || '').replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{20E3}]/gu, '').replace(/[ \t]+$/gm, '').replace(/^[ \t]+/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 
 /* The numbers a page can show, formatted here (key → {label, value}). The AI
    gets the same list and refers to them by key. */
@@ -137,15 +143,18 @@ function _spTemplate(a, lang, o) {
   const hook = (dest ? (id ? sport + ' ke ' + dest : sport + ' out to ' + dest) : (id ? sport + ' hari ini' : "Today's " + sport.toLowerCase())) + (o.notes ? ' — ' + o.notes : '');
   const nums = Object.keys(_spNumbers(a, prog, id));
   const pl = _spProgressLines(prog, id);
-  const pool = [{ type: 'cover', title: hook.slice(0, 60), text: '' }];
+  // cover: the day's strongest number big, and a badge if the history earns one
+  const hero = prog.most_elevation ? 'elevation' : prog.fastest_at_this_distance ? (isRide(a) ? 'avg_speed' : 'avg_pace') : 'distance';
+  const badge = (prog.longest || prog.most_elevation || prog.fastest_at_this_distance || prog.first_of_kind) && pl.length ? pl[0] : '';
+  const pool = [{ type: 'cover', title: hook.slice(0, 60), text: '', hero: nums.includes(hero) ? hero : nums[0], badge }];
   if (o.stats) pool.push({ type: 'stats', title: id ? 'Angkanya' : 'The numbers', stats: nums.slice(0, 4) });
   if (o.progress && pl.length) pool.push({ type: 'progress', title: id ? 'Progres' : 'Progress', text: pl.slice(0, 3).join('\n') });
   if (o.stats && nums.length > 4) pool.push({ type: 'stats', title: id ? 'Detailnya' : 'The details', stats: nums.slice(4, 8) });
   pool.push({ type: 'summary', title: '', text: '' });
   const caption = [hook];
-  if (o.stats) caption.push('', ..._spStatLines(a));
-  if (o.progress && pl.length) caption.push('', ...pl.slice(0, 3).map(l => '📈 ' + l));
-  if (o.tags) caption.push('', isRide(a) ? (id ? '#gowes #sepedaan #bali #strava' : '#cycling #bali #strava') : (id ? '#lari #bali #strava' : '#running #bali #strava'));
+  if (o.progress && pl.length) caption.push(pl.slice(0, 2).join(', ').toLowerCase().replace(/^./, c => c.toUpperCase()) + '.');
+  if (o.stats) caption.push('', _spStatLine(a));
+  if (o.tags) caption.push('', isRide(a) ? (id ? '#gowes #sepedaan #bali' : '#cycling #bali') : (id ? '#lari #bali' : '#running #bali'));
   // extra pages beyond the plan are photo pages; keep the summary card last
   const summary = pool.pop(), slides = pool.slice(0, o.pages);
   while (slides.length < o.pages - 1) slides.push({ type: 'photo', title: '', text: '' });
@@ -168,25 +177,33 @@ async function _spGenerate(a, lang, o) {
   const langLine = id
     ? 'Write ALL text entirely in casual, natural Bahasa Indonesia the way Indonesian cyclists post on Instagram (use "aku", light slang is fine, not formal); keep numbers, units and place names unchanged. '
     : 'Write ALL text in natural, casual English. ';
+  const human = 'IMPORTANT — it must NOT read like AI or a brand. Write like a normal person typing on their phone: plain everyday words, short sentences, a bit understated, specific details over hype. '
+    + 'Never use emoji anywhere. Avoid typical AI phrases: "crushed it", "conquered", "journey", "epic", "unleash", "beast mode", "fueled by", "not gonna lie", "another day, another", "here\'s to", "what a ride", "a testament to", "pushing limits", "embrace". '
+    + 'No rhetorical questions, no em dashes (—), at most one exclamation mark in the whole post, no triple-adjective lists, do not start with "Just". '
+    + (id ? 'In Indonesian avoid formal or ad-like words such as "menaklukkan", "luar biasa", "perjalanan", "semangat terus", "tak terlupakan"; write like chatting with friends. ' : '');
   const sys = 'You create an Instagram carousel post about ONE of my workouts, in first person. '
-    + langLine + aiToneLine(o.tone)
+    + langLine + human + aiToneLine(o.tone)
     + 'Use ONLY the facts in the JSON — never invent. Stopped time is not a café or food stop; never say why I stopped. '
     + 'If "my_notes" is present it is what I told you about the day — build the story around it. '
     + 'If "furthest_place"/"furthest_landmark" is present it is where I rode/ran to — name it. NEVER mention, guess or hint at where I started or where I live. '
     + 'If "bike" is present it is the kind of bike (never a brand). Watts are only real if watts_source is "power meter"; otherwise never mention watts. Weather is a rough estimate — mention it lightly or not at all. '
     + '\n\nReturn ONLY a JSON object (no code fences, no comments): {"caption": string, "slides": [exactly ' + n + ' objects]}. '
-    + 'Each slide: {"type": one of "cover"|"stats"|"progress"|"story"|"photo"|"summary", "title": string, "text": string, "stats": [keys]}. '
-    + 'Slide 1 is "cover": a punchy headline title (max 40 chars) and a one-line text (max 80 chars). '
+    + 'Each slide: {"type": one of "cover"|"stats"|"progress"|"story"|"photo"|"summary", "title": string, "text": string, "stats": [keys], "hero": key, "badge": string} ("hero"/"badge" only on the cover). '
+    + 'Slide 1 is "cover" — it decides whether people stop scrolling and swipe, so make it strong: '
+    + '"title" is a short, specific hook (max 32 chars) that makes people curious, in my own voice, never generic ("Morning ride", "Great day out" are banned); '
+    + '"hero" is the ONE most impressive key from NUMBERS to show huge (elevation on a climbing day, distance on a long day, avg_speed on a fast day); '
+    + '"badge" is a max 28-char achievement tag only if "progression" really supports it (e.g. "Longest ride in 4 months", "Most climbing yet"), otherwise ""; '
+    + '"text" is one optional short line (max 60 chars) or "". '
     + (o.stats ? '"stats": a short title and 1–4 keys from NUMBERS in "stats" — use the keys only, never write the numbers yourself; group them meaningfully (e.g. effort, speed, heart). ' : 'Do NOT use "stats" slides. ')
     + (o.progress ? '"progress": a short title and text of 1–3 short lines separated by \\n, built from "progression" (best_in_history = best I have recorded; days = since I last beat it). Only claim what the numbers show; skip anything unimpressive rather than spin it. ' : 'Do NOT use "progress" slides. ')
     + '"story": a short title and text (max 160 chars) about a moment of the day. '
     + '"photo": a page that is mostly my photo — a title of max 30 chars and empty text; use these when photo_count is bigger than the other pages need. '
     + '"summary": the route map + full stats card, at most once, best as the last page; title and text empty. '
     + 'Plan the ' + n + ' pages as a story arc (hook → numbers → progression/story → finish) and do not repeat the same point on two pages. Titles max 40 chars, texts max 160 chars, no hashtags on pages. '
-    + '\n\n"caption" is the post caption: a hook line (an emoji is fine), then 1–3 short sentences. '
-    + (o.stats ? 'Then a blank line and a compact stat block, one stat per line, each starting with an emoji. ' : '')
-    + (o.progress ? 'Then a blank line and 1–3 progression lines. ' : '')
-    + (o.tags ? 'End with a blank line and 4–7 relevant hashtags' + (id ? ' (mix English and Indonesian ones like #gowes #sepedaan)' : '') + '. ' : 'No hashtags. ')
+    + '\n\n"caption" is the post caption: 1–3 short sentences about the day in my voice, NO emoji. '
+    + (o.progress ? 'If the progression is worth mentioning, one plain sentence about it (e.g. "longest one since june"). ' : '')
+    + (o.stats ? 'Then a blank line and the key stats on ONE plain line separated by " · " (e.g. "72 km · 2h 36m · 1,150 m"), no emoji, no labels. ' : '')
+    + (o.tags ? 'End with a blank line and 3–5 lowercase hashtags' + (id ? ' (Indonesian ones like #gowes #sepedaan are good)' : '') + '. ' : 'No hashtags. ')
     + 'No markdown anywhere.';
   const messages = [{ role: 'system', content: sys }, { role: 'user', content: 'Workout data (JSON):\n' + JSON.stringify(data) + '\n\nNUMBERS (key: label: value):\n' + JSON.stringify(NUMBERS) + '\n\nCreate my ' + n + '-page post.' }];
   const { provider, model, key } = aiProviderModel();
@@ -197,6 +214,8 @@ async function _spGenerate(a, lang, o) {
   const clean = s => String(s || '').replace(/\*\*(.+?)\*\*/g, '$1').trim();
   let slides = (Array.isArray(j.slides) ? j.slides : []).filter(s => s && SP_TYPES.includes(s.type)).map(s => ({
     type: s.type, title: clean(s.title), text: clean(s.text),
+    hero: s.type === 'cover' && nums[s.hero] ? s.hero : undefined,
+    badge: s.type === 'cover' ? clean(s.badge).slice(0, 32) : undefined,
     stats: s.type === 'stats' ? (Array.isArray(s.stats) ? s.stats : []).filter(k => nums[k]).slice(0, 4) : undefined,
   })).filter(s => s.type !== 'stats' || s.stats.length);
   let seen = false; slides = slides.filter(s => s.type !== 'summary' || (!seen && (seen = true)));
@@ -206,7 +225,7 @@ async function _spGenerate(a, lang, o) {
     const t = tpl.slides[slides.length];
     slides.push(t && !(t.type === 'summary' && seen) ? t : { type: 'photo', title: '', text: '' });
   }
-  return { caption: clean(j.caption) || tpl.caption, slides };
+  return { caption: _spNoEmoji(clean(j.caption)) || tpl.caption, slides };
 }
 
 /* ── Drawing one page (1080×1350, Instagram's 4:5) ── */
@@ -216,17 +235,43 @@ function _spRoundRect(ctx, x, y, w, h, r) {
   ctx.fill();
 }
 
-function _spRouteDecor(ctx, a, alpha) {
+/* Themes: accent + background for pages without a photo (photo pages keep
+   white text on the darkened photo whatever the theme). */
+const SP_THEMES = [
+  { id: 'strava', name: 'Strava', accent: '#fc4c02', bg: ['#1a1a1c', '#0c0c0d'] },
+  { id: 'midnight', name: 'Midnight', accent: '#4da3ff', bg: ['#101a2e', '#060a14'] },
+  { id: 'forest', name: 'Forest', accent: '#3ddc84', bg: ['#10201a', '#06100b'] },
+  { id: 'sunset', name: 'Sunset', accent: '#ff4f8b', bg: ['#2b1036', '#12071a'] },
+  { id: 'gold', name: 'Gold', accent: '#f5b700', bg: ['#1c1a14', '#0d0c08'] },
+  { id: 'light', name: 'Light', accent: '#fc4c02', bg: ['#faf8f4', '#e9e5de'], light: true },
+  { id: 'mono', name: 'Mono', accent: '#ffffff', bg: ['#161616', '#000000'] },
+];
+function _spTheme() {
+  const t = SP_THEMES.find(x => x.id === (_sp && _sp.theme)) || SP_THEMES[0];
+  return _sp && _sp.accent ? Object.assign({}, t, { accent: _sp.accent }) : t;
+}
+function _spRgba(hex, a) {
+  const n = parseInt(String(hex).replace('#', ''), 16);
+  return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+// text on an accent fill: dark on bright accents (gold, mono), white otherwise
+function _spOnAccent(hex) {
+  const n = parseInt(String(hex).replace('#', ''), 16);
+  return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255 > 0.62 ? '#141414' : '#fff';
+}
+
+/* The route line, fitted into a square box at `top`. `glow` = the bold cover look. */
+function _spRouteDecor(ctx, a, color, alpha, glow, box, top) {
   const pl = a.map && a.map.summary_polyline; if (!pl) return;
   const pts = decodePolyline(pl); if (pts.length < 2) return;
   const lats = pts.map(p => p[0]), lngs = pts.map(p => p[1]);
   const k = Math.cos((Math.min(...lats) + Math.max(...lats)) / 2 * Math.PI / 180);
   const w = (Math.max(...lngs) - Math.min(...lngs)) * k || 1e-6, h = (Math.max(...lats) - Math.min(...lats)) || 1e-6;
-  const box = 760, s = box / Math.max(w, h), ox = (SP_W - w * s) / 2, oy = 260 + (box - h * s) / 2;
-  ctx.save(); ctx.strokeStyle = 'rgba(252,76,2,' + alpha + ')'; ctx.lineWidth = 10; ctx.lineCap = ctx.lineJoin = 'round';
-  ctx.beginPath();
-  pts.forEach((p, i) => { const x = ox + (p[1] - Math.min(...lngs)) * k * s, y = oy + (Math.max(...lats) - p[0]) * s; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-  ctx.stroke(); ctx.restore();
+  const s = box / Math.max(w, h), ox = (SP_W - w * s) / 2, oy = top + (box - h * s) / 2;
+  const path = () => { ctx.beginPath(); pts.forEach((p, i) => { const x = ox + (p[1] - Math.min(...lngs)) * k * s, y = oy + (Math.max(...lats) - p[0]) * s; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); };
+  ctx.save(); ctx.lineCap = ctx.lineJoin = 'round';
+  (glow ? [[30, 0.18], [16, 0.35], [9, 1]] : [[10, alpha]]).forEach(([lw, al]) => { ctx.strokeStyle = _spRgba(color, al); ctx.lineWidth = lw; path(); ctx.stroke(); });
+  ctx.restore();
 }
 
 /* Bottom-anchored text block: draws wrapped lines upward from `bottom`. */
@@ -257,44 +302,84 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
     }
     return;
   }
-  // background: the photo (cover-fit) or the dark card with the route faintly behind
+  const T = _spTheme(), A = T.accent, dark = !!photo || !T.light;
+  const C = { fg: dark ? '#fff' : '#141414', sub: dark ? 'rgba(255,255,255,.88)' : 'rgba(20,20,20,.78)', muted: dark ? 'rgba(255,255,255,.65)' : 'rgba(20,20,20,.55)',
+    card: photo ? 'rgba(0,0,0,.45)' : T.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.06)' };
+  // background: the photo (cover-fit) or the theme card with the route behind
   if (photo) {
     const sc = Math.max(SP_W / photo.width, SP_H / photo.height);
     ctx.drawImage(photo, (SP_W - photo.width * sc) / 2, (SP_H - photo.height * sc) / 2, photo.width * sc, photo.height * sc);
     const top = ctx.createLinearGradient(0, 0, 0, 300);
     top.addColorStop(0, 'rgba(0,0,0,.55)'); top.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = top; ctx.fillRect(0, 0, SP_W, 300);
-    const bot = ctx.createLinearGradient(0, SP_H * (s.type === 'photo' ? 0.65 : 0.35), 0, SP_H);
-    bot.addColorStop(0, 'rgba(0,0,0,0)'); bot.addColorStop(1, 'rgba(0,0,0,.85)');
+    const bot = ctx.createLinearGradient(0, SP_H * (s.type === 'photo' ? 0.65 : 0.3), 0, SP_H);
+    bot.addColorStop(0, 'rgba(0,0,0,0)'); bot.addColorStop(1, 'rgba(0,0,0,.88)');
     ctx.fillStyle = bot; ctx.fillRect(0, 0, SP_W, SP_H);
   } else {
     const bg = ctx.createLinearGradient(0, 0, 0, SP_H);
-    bg.addColorStop(0, '#1a1a1c'); bg.addColorStop(1, '#0c0c0d');
+    bg.addColorStop(0, T.bg[0]); bg.addColorStop(1, T.bg[1]);
     ctx.fillStyle = bg; ctx.fillRect(0, 0, SP_W, SP_H);
-    _spRouteDecor(ctx, a, s.type === 'cover' || s.type === 'photo' ? 0.55 : 0.12);
+    if (s.type !== 'cover') _spRouteDecor(ctx, a, A, s.type === 'photo' ? 0.55 : 0.12, false, 760, 260);
   }
-  ctx.fillStyle = SI_ORANGE; ctx.fillRect(0, 0, SP_W, 10);
+  ctx.fillStyle = A; ctx.fillRect(0, 0, SP_W, 10);
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
   if (photo) { ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 14; }
 
   // header: sport · date, page number
   const when = a.start_date_local || a.start_date;
   const date = when ? new Date(when).toLocaleDateString(id ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
-  ctx.font = '700 30px ' + SI_FONT; ctx.fillStyle = SI_ORANGE;
+  ctx.font = '700 30px ' + SI_FONT; ctx.fillStyle = A;
   const sport = _spSport(a, id).toUpperCase();
   ctx.fillText(sport, P, 100);
-  ctx.font = '500 30px ' + SI_FONT; ctx.fillStyle = 'rgba(255,255,255,.75)';
+  ctx.font = '500 30px ' + SI_FONT; ctx.fillStyle = C.muted;
   ctx.fillText('  ·  ' + date, P + ctx.measureText(sport).width + 4, 100);
   if (n > 1) { ctx.textAlign = 'right'; ctx.fillText((i + 1) + '/' + n, SP_W - P, 100); ctx.textAlign = 'left'; }
 
   const W = SP_W - P * 2, bottom = SP_H - 110;
-  const title = (fs, max) => ({ text: s.title, font: '800 ' + fs + 'px ' + SI_FONT, color: '#fff', lh: fs * 1.12, max: max || 3, gap: 18 });
-  const body = fs => ({ text: s.text, font: '500 ' + fs + 'px ' + SI_FONT, color: 'rgba(255,255,255,.88)', lh: fs * 1.35, max: 4 });
+  const title = (fs, max) => ({ text: s.title, font: '800 ' + fs + 'px ' + SI_FONT, color: C.fg, lh: fs * 1.12, max: max || 3, gap: 18 });
+  const body = fs => ({ text: s.text, font: '500 ' + fs + 'px ' + SI_FONT, color: C.sub, lh: fs * 1.35, max: 4 });
   const rp = a.route_places;
 
   if (s.type === 'cover') {
-    const place = rp && rp.furthest_place ? '📍 ' + destName(rp) + '  ·  ' + kmOut(rp.furthest_km_from_start) : '';
-    _spTextBlock(ctx, [title(88), Object.assign(body(38), { gap: place ? 18 : 0 }), { text: place, font: '600 32px ' + SI_FONT, color: '#ffb28a', lh: 46, max: 1 }], P, bottom, W);
+    // the scroll-stopper: badge, one huge number, the hook, then where to
+    const nums = _spNumbers(a, socialProgress(a), id), hero = s.hero && nums[s.hero];
+    const place = rp && rp.furthest_place ? destName(rp) + '  ·  ' + kmOut(rp.furthest_km_from_start) : '';
+    let hfs = 0;
+    if (hero) { hfs = 220; do { ctx.font = '900 ' + hfs + 'px ' + SI_FONT; } while (ctx.measureText(hero.value).width > W && (hfs -= 6) > 60); }
+    const tfs = hero ? 80 : 100;
+    ctx.font = '800 ' + tfs + 'px ' + SI_FONT; const tl = s.title ? _siWrap(ctx, s.title, W, hero ? 2 : 3) : [];
+    ctx.font = '500 36px ' + SI_FONT; const bl = s.text ? _siWrap(ctx, s.text, W, 2) : [];
+    const badge = String(s.badge || '').trim().toUpperCase();
+    const parts = [];
+    if (badge) parts.push({ h: 66 + 30, draw: y => {
+      ctx.save(); ctx.shadowBlur = 0; ctx.font = '800 32px ' + SI_FONT;
+      const t = _siWrap(ctx, badge, W - 52, 1)[0], bw = ctx.measureText(t).width + 52;
+      ctx.fillStyle = A; _spRoundRect(ctx, P, y, bw, 66, 33);
+      ctx.fillStyle = _spOnAccent(A); ctx.fillText(t, P + 26, y + 45); ctx.restore();
+    } });
+    if (hero) parts.push({ h: 42 + hfs * 0.96 + 28, draw: y => {
+      ctx.font = '700 30px ' + SI_FONT; ctx.fillStyle = A; ctx.fillText(hero.label.toUpperCase(), P, y + 30);
+      ctx.font = '900 ' + hfs + 'px ' + SI_FONT; ctx.fillStyle = C.fg; ctx.fillText(hero.value, P - hfs * 0.03, y + 42 + hfs * 0.8);
+    } });
+    if (tl.length) parts.push({ h: tl.length * tfs * 1.08 + 16, draw: y => {
+      ctx.font = '800 ' + tfs + 'px ' + SI_FONT; ctx.fillStyle = C.fg;
+      tl.forEach((l, k) => ctx.fillText(l, P, y + (k + 1) * tfs * 1.08 - tfs * 0.2));
+    } });
+    if (bl.length) parts.push({ h: bl.length * 48 + 12, draw: y => {
+      ctx.font = '500 36px ' + SI_FONT; ctx.fillStyle = C.sub;
+      bl.forEach((l, k) => ctx.fillText(l, P, y + (k + 1) * 48 - 12));
+    } });
+    if (place) parts.push({ h: 46, draw: y => {
+      _siPin(ctx, P + 13, y + 14, 28, photo ? '#fff' : A);
+      ctx.font = '600 32px ' + SI_FONT; ctx.fillStyle = photo ? '#fff' : A; ctx.fillText(_siWrap(ctx, place, W - 44, 1)[0], P + 40, y + 36);
+    } });
+    let y = bottom - parts.reduce((t, x) => t + x.h, 0);
+    if (!photo) { const box = Math.min(620, y - 190); if (box > 200) _spRouteDecor(ctx, a, A, 1, true, box, 150); }
+    parts.forEach(x => { x.draw(y); y += x.h; });
+    if (n > 1) { // nudge people to swipe
+      ctx.save(); ctx.shadowBlur = 0; ctx.font = '800 26px ' + SI_FONT; ctx.fillStyle = photo ? '#fff' : A; ctx.textAlign = 'right';
+      ctx.fillText((id ? 'GESER' : 'SWIPE') + '  →', SP_W - P, SP_H - 50); ctx.restore();
+    }
   } else if (s.type === 'stats') {
     const nums = _spNumbers(a, socialProgress(a), id), keys = (s.stats || []).filter(k => nums[k]);
     const cols = keys.length === 1 ? 1 : 2, rows = Math.ceil(keys.length / cols);
@@ -302,12 +387,12 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
     _spTextBlock(ctx, [title(64, 2)], P, gridTop - 30, W);
     keys.forEach((k, j) => {
       const x = P + (j % cols) * (cw + 24), y = gridTop + Math.floor(j / cols) * (ch + 24);
-      ctx.save(); ctx.shadowBlur = 0; ctx.fillStyle = photo ? 'rgba(0,0,0,.45)' : 'rgba(255,255,255,.06)'; _spRoundRect(ctx, x, y, cw, ch, 22); ctx.restore();
-      ctx.font = '600 28px ' + SI_FONT; ctx.fillStyle = 'rgba(255,255,255,.65)';
+      ctx.save(); ctx.shadowBlur = 0; ctx.fillStyle = C.card; _spRoundRect(ctx, x, y, cw, ch, 22); ctx.restore();
+      ctx.font = '600 28px ' + SI_FONT; ctx.fillStyle = C.muted;
       ctx.fillText(_siWrap(ctx, nums[k].label.toUpperCase(), cw - 56, 1)[0], x + 28, y + 56);
       let fs = keys.length === 1 ? 150 : 86;
       do { ctx.font = '800 ' + fs + 'px ' + SI_FONT; } while (ctx.measureText(nums[k].value).width > cw - 56 && (fs -= 4) > 30);
-      ctx.fillStyle = '#fff'; ctx.fillText(nums[k].value, x + 28, y + ch - 40);
+      ctx.fillStyle = C.fg; ctx.fillText(nums[k].value, x + 28, y + ch - 40);
     });
   } else if (s.type === 'progress') {
     const lines = String(s.text || '').split('\n').map(l => l.trim()).filter(Boolean).slice(0, 4);
@@ -316,8 +401,8 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
     let y = bottom - laid.reduce((t, l) => t + l.length * 58 + 30, 0);
     _spTextBlock(ctx, [title(68, 2)], P, y - 20, W);
     laid.forEach(ls => {
-      ctx.font = '800 46px ' + SI_FONT; ctx.fillStyle = SI_ORANGE; ctx.fillText('↗', P, y + 46);
-      ctx.font = '700 46px ' + SI_FONT; ctx.fillStyle = '#fff';
+      ctx.font = '800 46px ' + SI_FONT; ctx.fillStyle = A; ctx.fillText('↗', P, y + 46);
+      ctx.font = '700 46px ' + SI_FONT; ctx.fillStyle = C.fg;
       ls.forEach(l => { y += 58; ctx.fillText(l, P + 70, y - 12); });
       y += 30;
     });
@@ -327,7 +412,7 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
     _spTextBlock(ctx, [title(60, 2), body(36)], P, bottom, W);
   }
   ctx.shadowBlur = 0;
-  ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = 'rgba(255,255,255,.5)';
+  ctx.font = '600 24px ' + SI_FONT; ctx.fillStyle = dark ? 'rgba(255,255,255,.5)' : 'rgba(20,20,20,.45)';
   ctx.fillText('ASCENT ANALYTICS', P, SP_H - 50);
 }
 
@@ -335,7 +420,7 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
 const _spStateKey = id => 'sp_state_' + id;
 function _spPrefs() {
   let p = {}; try { p = JSON.parse(localStorage.getItem('sp_prefs') || '{}') || {}; } catch {}
-  return Object.assign({ lang: window.LANG === 'id' ? 'id' : 'en', tone: 'light', stats: true, progress: true, tags: true, pages: 5 }, p);
+  return Object.assign({ lang: window.LANG === 'id' ? 'id' : 'en', tone: 'light', stats: true, progress: true, tags: true, pages: 5, theme: 'strava', accent: null }, p);
 }
 function _spOpts() {
   const v = id => document.getElementById(id) || {};
@@ -345,8 +430,11 @@ function _spOpts() {
     pages: Math.max(1, Math.min(SP_MAX_PAGES, parseInt(v('spPages').value, 10) || 5)),
     notes: (v('spNotes').value || '').trim(),
   };
-  try { localStorage.setItem('sp_prefs', JSON.stringify({ lang: o.lang, tone: o.tone, stats: o.stats, progress: o.progress, tags: o.tags, pages: o.pages })); } catch {}
+  _spSavePrefs({ lang: o.lang, tone: o.tone, stats: o.stats, progress: o.progress, tags: o.tags, pages: o.pages });
   return o;
+}
+function _spSavePrefs(fields) {
+  try { localStorage.setItem('sp_prefs', JSON.stringify(Object.assign(_spPrefs(), fields))); } catch {}
 }
 function _spSaveState() {
   if (!_sp) return;
@@ -361,7 +449,7 @@ function openSocialPost(id) {
   _spPhotos = []; _spPagePhoto = {};
   const p = _spPrefs();
   let saved = null; try { saved = JSON.parse(localStorage.getItem(_spStateKey(id)) || 'null'); } catch {}
-  _sp = { a, slides: saved && saved.slides || [], lang: saved && saved.lang || p.lang, wx: null };
+  _sp = { a, slides: saved && saved.slides || [], lang: saved && saved.lang || p.lang, wx: null, theme: p.theme, accent: p.accent };
   const chk = (id, on, label) => '<label class="sp-chk"><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + '> ' + tr(label) + '</label>';
   const lang = _sp.lang;
   panel.innerHTML =
@@ -371,6 +459,9 @@ function openSocialPost(id) {
     + '<div class="sp-lang sp-seg" role="group" aria-label="' + tr('Language') + '">'
     + '<button type="button" class="si-style' + (lang === 'en' ? ' active' : '') + '" data-lang="en">English</button>'
     + '<button type="button" class="si-style' + (lang === 'id' ? ' active' : '') + '" data-lang="id">Bahasa Indonesia</button></div>'
+    + '<div class="sp-themes" role="group" aria-label="' + tr('Theme') + '">'
+    + SP_THEMES.map(t => '<button type="button" class="sp-swatch' + (t.id === _sp.theme && !_sp.accent ? ' active' : '') + '" data-theme="' + t.id + '" title="' + t.name + '" aria-label="' + t.name + '" style="background:linear-gradient(135deg,' + t.bg[0] + ' 50%,' + t.accent + ' 50%)"></button>').join('')
+    + '<label class="sp-swatch sp-custom' + (_sp.accent ? ' active' : '') + '" title="' + tr('Your own colour') + '"' + (_sp.accent ? ' style="background:' + _sp.accent + '"' : '') + '><input type="color" id="spAccent" value="' + (_sp.accent || _spTheme().accent) + '" aria-label="' + tr('Your own colour') + '"></label></div>'
     + '<div class="sp-row2"><div class="sp-stepper" role="group" aria-label="' + tr('Pages') + '">'
     + '<button type="button" id="spMinus" aria-label="' + tr('Fewer pages') + '">−</button>'
     + '<input type="number" id="spPages" min="1" max="' + SP_MAX_PAGES + '" value="' + p.pages + '" inputmode="numeric" aria-label="' + tr('Pages') + '">'
@@ -393,6 +484,19 @@ function openSocialPost(id) {
   const $ = s => document.getElementById(s);
   $('spText').value = (saved && saved.caption) || '';
   $('spText').oninput = _spSaveState;
+  // theme / own colour: redraw the pages, no new AI call
+  const markTheme = () => panel.querySelectorAll('.sp-swatch').forEach(b => b.classList.toggle('active', b.classList.contains('sp-custom') ? !!_sp.accent : b.dataset.theme === _sp.theme && !_sp.accent));
+  panel.querySelectorAll('.sp-swatch[data-theme]').forEach(b => b.onclick = () => {
+    _sp.theme = b.dataset.theme; _sp.accent = null; $('spAccent').value = _spTheme().accent;
+    panel.querySelector('.sp-custom').style.background = '';
+    _spSavePrefs({ theme: _sp.theme, accent: null }); markTheme(); _spRenderSlides();
+  });
+  let accT = null;
+  $('spAccent').oninput = e => {
+    _sp.accent = e.target.value; panel.querySelector('.sp-custom').style.background = _sp.accent;
+    _spSavePrefs({ theme: _sp.theme, accent: _sp.accent }); markTheme();
+    clearTimeout(accT); accT = setTimeout(_spRenderSlides, 150);
+  };
   $('spFile').onchange = async e => {
     const files = [...e.target.files].filter(f => f.type.startsWith('image/')); e.target.value = '';
     for (const f of files) { try { _spPhotos.push(await createImageBitmap(f)); } catch {} }
@@ -473,6 +577,7 @@ async function _spRenderSlides() {
   const { a, slides } = _sp;
   if (_sp.wx === null) { try { _sp.wx = (typeof aiWeather === 'function' && await aiWeather(a)) || false; } catch { _sp.wx = false; } }
   const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  const heroNums = _spNumbers(a, socialProgress(a), _sp.lang === 'id');
   const btn = (cls, icon, label) => '<button type="button" class="sp-slide-dl ' + cls + '" aria-label="' + label + '" title="' + label + '">' + icon + '</button>';
   box.innerHTML = slides.map((s, i) => '<div class="sp-slide" data-i="' + i + '"><div class="sp-slide-bar"><span>' + trf('Page {0}', i + 1) + '</span><span class="sp-slide-btns">'
     + (s.type === 'summary' ? '' : '<input type="file" accept="image/*" hidden class="sp-slide-file">'
@@ -482,6 +587,9 @@ async function _spRenderSlides() {
     + btn('sp-dl', '⬇', trf('Download page {0}', i + 1)) + '</span></div><canvas' + (s.type === 'summary' ? '' : ' class="sp-pickable" title="' + tr('Replace photo on this page') + '"') + '></canvas>'
     + (s.type === 'summary' ? '<div class="sp-slide-note">' + tr('Route & stats card') + '</div>'
       : '<input class="ai-cap-input" data-f="title" value="' + esc(s.title) + '" placeholder="' + tr('Title') + '">'
+        + (s.type === 'cover' ? '<input class="ai-cap-input" data-f="badge" value="' + esc(s.badge) + '" placeholder="' + tr('Badge (optional), e.g. Longest ride in 4 months') + '">'
+          + '<select class="ai-cap-input" data-f="hero" aria-label="' + tr('Big number') + '"><option value="">' + tr('No big number') + '</option>'
+          + Object.entries(heroNums).map(([k, v]) => '<option value="' + k + '"' + (k === s.hero ? ' selected' : '') + '>' + esc(v.label + ': ' + v.value) + '</option>').join('') + '</select>' : '')
         + (s.type === 'stats' ? '' : '<textarea class="ai-cap-input" data-f="text" rows="3" placeholder="' + tr('Text') + '">' + esc(s.text) + '</textarea>'))
     + '</div>').join('');
   const used = slides.filter((s, j) => _spAuto(j)).length;

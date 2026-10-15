@@ -860,6 +860,11 @@ body.dev .dev-tag { display: inline-block; }
 .sp-thumb { flex: 0 0 auto; }
 .sp-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
 .sp-seg .si-style { padding: 10px 8px; font-size: 14px; }
+.sp-themes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.sp-swatch { position: relative; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border); padding: 0; cursor: pointer; overflow: hidden; flex: 0 0 auto; }
+.sp-swatch.active { border-color: var(--text); box-shadow: 0 0 0 2px var(--orange); }
+.sp-custom { background: conic-gradient(#fc4c02, #f5b700, #3ddc84, #4da3ff, #ff4f8b, #fc4c02); }
+.sp-custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 .sp-row2 { display: flex; gap: 10px; align-items: stretch; margin-bottom: 6px; }
 .sp-stepper { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); overflow: hidden; }
 .sp-stepper button { width: 40px; height: 44px; border: 0; background: transparent; color: var(--text); font-size: 22px; cursor: pointer; }
