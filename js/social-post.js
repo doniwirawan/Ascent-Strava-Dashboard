@@ -10,8 +10,39 @@
    shared text, so you paste it).
    Like every AI caption here: the start (home) never reaches the AI or the text. */
 
-let _spPhotos = [];   // ImageBitmap[] of the photos picked, in order
-let _spPagePhoto = {}; // page index → its own photo (replaced on that page), or null = no photo
+let _spPhotos = [];   // photos picked, in order — downsized JPEG Blobs, decoded only while drawing
+let _spPagePhoto = {}; // page index → its own photo Blob (replaced on that page), or null = no photo
+
+/* Memory (phones crashed): a decoded 12 MP photo is ~48 MB and every page was a
+   full-size canvas, all redrawn at once. Now photos are kept as ≤1920px JPEG
+   blobs, previews are small, and full-size pages are drawn one at a time on a
+   single shared canvas. */
+const SP_PREVIEW = 0.4;
+let _spWork = null, _spQueue = Promise.resolve(), _spGen = 0;
+async function _spLoadPhoto(f) {
+  const bm = await createImageBitmap(f);
+  const k = Math.min(1, 1920 / Math.max(bm.width, bm.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k);
+  c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height); if (bm.close) bm.close();
+  const blob = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.9));
+  c.width = c.height = 0;
+  return blob;
+}
+/* Draw page i full size on the shared canvas, then hand it to `use` — queued so
+   only one full-size page exists at a time. `gen` skips previews gone stale. */
+function _spRenderFull(i, use, gen) {
+  const run = _spQueue.then(async () => {
+    if (!_sp || !_sp.slides[i] || (gen != null && gen !== _spGen)) return null;
+    if (!_spWork) _spWork = document.createElement('canvas');
+    const blob = _spPhotoFor(i);
+    const photo = blob ? await createImageBitmap(blob).catch(() => null) : null;
+    try { await _spDrawSlide(_spWork, _sp.a, _sp.slides[i], i, _sp.slides.length, photo, _sp.wx || null, _sp.lang); }
+    finally { if (photo && photo.close) photo.close(); }
+    return use(_spWork);
+  });
+  _spQueue = run.catch(() => {});
+  return run;
+}
 let _sp = null;       // { a, slides, wx } of the open post
 const SP_W = 1080, SP_H = 1350, SP_MAX_PAGES = 10;
 // page height: Instagram post 4:5, or story 9:16 (keeps clear of the story UI at top and bottom)
@@ -303,7 +334,7 @@ async function _spDrawSlide(cv, a, s, i, n, photo, wx, lang) {
       cv.width = SP_W; cv.height = H;
       const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, T.bg[0]); g.addColorStop(1, T.bg[1]);
       ctx.fillStyle = g; ctx.fillRect(0, 0, SP_W, H);
-      oy = (H - SI_H) / 2; ctx.drawImage(c2, 0, oy);
+      oy = (H - SI_H) / 2; ctx.drawImage(c2, 0, oy); c2.width = c2.height = 0;
       ctx.fillStyle = T.accent; ctx.fillRect(0, 0, SP_W, 10);
     } else await drawStatsImage(cv, a, wx, style, T);
     if (n > 1) { // page number in a pill over the top-right corner
@@ -520,7 +551,7 @@ function openSocialPost(id) {
   };
   $('spFile').onchange = async e => {
     const files = [...e.target.files].filter(f => f.type.startsWith('image/')); e.target.value = '';
-    for (const f of files) { try { _spPhotos.push(await createImageBitmap(f)); } catch {} }
+    for (const f of files) { try { _spPhotos.push(await _spLoadPhoto(f)); } catch {} }
     _spRenderPhotos(); _spRenderSlides();
   };
   // another language = the AI writes it again in that language
@@ -570,12 +601,11 @@ async function _spRun(useAI) {
 
 function _spRenderPhotos() {
   const box = document.getElementById('spPhotos'); if (!box) return;
+  (box._urls || []).forEach(u => URL.revokeObjectURL(u)); box._urls = [];
   box.innerHTML = '';
-  _spPhotos.forEach((bm, i) => {
+  _spPhotos.forEach((blob, i) => {
     const d = document.createElement('div'); d.className = 'sp-thumb';
-    const c = document.createElement('canvas'); c.width = 152; c.height = 152;
-    const sc = Math.max(152 / bm.width, 152 / bm.height);
-    c.getContext('2d').drawImage(bm, (152 - bm.width * sc) / 2, (152 - bm.height * sc) / 2, bm.width * sc, bm.height * sc);
+    const c = document.createElement('img'); c.alt = ''; c.src = URL.createObjectURL(blob); box._urls.push(c.src);
     const b = document.createElement('button'); b.type = 'button'; b.textContent = '✕'; b.setAttribute('aria-label', tr('Remove'));
     b.onclick = () => { _spPhotos.splice(i, 1); _spRenderPhotos(); _spRenderSlides(); };
     d.append(c, b); box.appendChild(d);
@@ -601,6 +631,8 @@ async function _spRenderSlides() {
   const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const heroNums = _spNumbers(a, socialProgress(a), _sp.lang === 'id');
   const btn = (cls, icon, label) => '<button type="button" class="sp-slide-dl ' + cls + '" aria-label="' + label + '" title="' + label + '">' + icon + '</button>';
+  box.querySelectorAll('canvas').forEach(c => { c.width = c.height = 0; }); // let mobile Safari free them now
+  const gen = ++_spGen;
   box.innerHTML = slides.map((s, i) => '<div class="sp-slide" data-i="' + i + '"><div class="sp-slide-bar">'
     + '<span class="sp-slide-btns">' + btn('sp-mv-l', '‹', tr('Move left')).replace('<button', '<button' + (i ? '' : ' disabled'))
     + '<span class="sp-page-n">' + trf('Page {0}', i + 1) + '</span>'
@@ -622,9 +654,12 @@ async function _spRenderSlides() {
   if (_spPhotos.length > used) _spStatus('', trf('{0} photo(s) won’t fit — add more pages and write again.', _spPhotos.length - used));
   box.querySelectorAll('.sp-slide').forEach(el => {
     const i = +el.dataset.i, cv = el.querySelector('canvas');
-    const draw = () => _spDrawSlide(cv, a, _sp.slides[i], i, _sp.slides.length, _spPhotoFor(i), _sp.wx || null, _sp.lang);
+    const draw = () => _spRenderFull(i, w => {
+      cv.width = Math.round(w.width * SP_PREVIEW); cv.height = Math.round(w.height * SP_PREVIEW);
+      cv.getContext('2d').drawImage(w, 0, 0, cv.width, cv.height);
+    }, gen);
     draw();
-    el.querySelector('.sp-dl').onclick = async () => { const f = await _spFile(cv, i); if (f) _spDownload([f]); };
+    el.querySelector('.sp-dl').onclick = async () => { const f = await _spFile(i); if (f) _spDownload([f]); };
     el.querySelector('.sp-mv-l').onclick = () => _spMove(i, i - 1);
     el.querySelector('.sp-mv-r').onclick = () => _spMove(i, i + 1);
     const fi = el.querySelector('.sp-slide-file');
@@ -634,7 +669,7 @@ async function _spRenderSlides() {
       fi.onchange = async () => {
         const f = fi.files[0]; fi.value = '';
         if (!f || !f.type.startsWith('image/')) return;
-        try { _spPagePhoto[i] = await createImageBitmap(f); } catch { return; }
+        try { _spPagePhoto[i] = await _spLoadPhoto(f); } catch { return; }
         _spRenderSlides();
       };
       const none = el.querySelector('.sp-ph-none'), auto = el.querySelector('.sp-ph-auto');
@@ -660,14 +695,14 @@ function _spMove(i, j) {
 }
 
 /* Numbered so the pages stay in order: activity-123-01-of-05.jpg */
-async function _spFile(cv, i) {
+async function _spFile(i) {
   const n = _sp.slides.length, pad = k => String(k).padStart(2, '0');
-  const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
+  const blob = await _spRenderFull(i, w => new Promise(res => w.toBlob(res, 'image/jpeg', 0.92)));
   return blob ? new File([blob], 'activity-' + _sp.a.id + '-' + pad(i + 1) + '-of-' + pad(n) + '.jpg', { type: 'image/jpeg' }) : null;
 }
 async function _spFiles() {
-  const out = [], cs = document.querySelectorAll('#spSlides .sp-slide canvas');
-  for (let i = 0; i < cs.length; i++) { const f = await _spFile(cs[i], i); if (f) out.push(f); }
+  const out = [];
+  for (let i = 0; i < _sp.slides.length; i++) { const f = await _spFile(i); if (f) out.push(f); }
   return out;
 }
 /* One file per page, a moment apart (browsers drop rapid-fire downloads). */
