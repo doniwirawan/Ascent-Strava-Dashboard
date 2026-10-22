@@ -112,12 +112,28 @@ object HealthSync {
 
     // ── folding into the export's columns ───────────────────────────────────
 
+    /**
+     * One night, kept minute by minute (epoch minute → stage) so overlapping
+     * sessions count once: Health Connect may hold the same night from two apps
+     * (Health Sync and JoyoFit) or twice from one, and plain sums would double it.
+     */
     private class Night {
-        var deep = 0.0; var light = 0.0; var rem = 0.0; var wake = 0.0; var nap = 0.0
-        var first: Long? = null; var last: Long? = null; var off = DEFAULT_OFFSET_MS
-        val wakes = ArrayList<LongArray>(); val naps = ArrayList<LongArray>()
-        var steps = 0L
+        val mins = HashMap<Long, Int>()          // minute → stage (DEEP / LIGHT / REM / AWAKE)
+        val napMins = HashSet<Long>()
+        var off = DEFAULT_OFFSET_MS
+        val stepsByApp = HashMap<String, Long>()
+        fun count(stage: Int) = mins.values.count { it == stage }.toDouble()
+        val deep get() = count(DEEP); val light get() = count(LIGHT); val rem get() = count(REM); val wake get() = count(AWAKE)
+        val nap get() = napMins.size.toDouble()
+        val first get() = mins.keys.minOrNull()?.times(60000)
+        val last get() = mins.keys.maxOrNull()?.plus(1)?.times(60000)
+        /** awake stretches as [start, end) ms, for counting wake-ups */
+        val wakes: List<LongArray> get() = mins.filterValues { it == AWAKE }.keys.sorted().map { longArrayOf(it * 60000, (it + 1) * 60000) }
+        val naps: List<LongArray> get() = napMins.sorted().map { longArrayOf(it * 60000, (it + 1) * 60000) }
+        /** steps from the one app that counted the most that day — apps' counts overlap, never add them */
+        val steps get() = stepsByApp.values.maxOrNull() ?: 0L
     }
+    private const val DEEP = 1; private const val LIGHT = 2; private const val REM = 3; private const val AWAKE = 4
 
     private fun iso(ms: Long) = Instant.ofEpochMilli(ms).toString().substring(0, 10)
     private fun localHour(ms: Long, off: Long): Double {
@@ -127,38 +143,48 @@ object HealthSync {
         return Math.round(h * 100) / 100.0
     }
 
-    private fun fold(sessions: List<SleepSessionRecord>, steps: List<StepsRecord>): JSONArray {
+    /** Marks every minute of [st, en) with `stage`; sleep stages win over awake where sources disagree. */
+    private fun mark(n: Night, st: Long, en: Long, stage: Int) {
+        var m = st / 60000
+        val end = (en + 59999) / 60000
+        while (m < end) {
+            val cur = n.mins[m]
+            if (cur == null || cur == AWAKE) n.mins[m] = stage
+            m++
+        }
+    }
+
+    internal fun fold(sessions: List<SleepSessionRecord>, steps: List<StepsRecord>): JSONArray {
         val nights = sortedMapOf<String, Night>()
         fun get(d: String) = nights.getOrPut(d) { Night() }
         for (s in sessions) {
             val st = s.startTime.toEpochMilli(); val en = s.endTime.toEpochMilli()
+            if (en <= st) continue
             val off = (s.startZoneOffset?.totalSeconds?.toLong()?.times(1000)) ?: DEFAULT_OFFSET_MS
             val localStartHour = (((st + off) / 3600_000.0) % 24 + 24) % 24
             val isNap = en - st < 3 * 3600_000L && localStartHour in 10.0..19.0
             if (isNap) {
                 val n = get(iso(st + off)); n.off = off
-                n.nap += (en - st) / 60000.0; n.naps += longArrayOf(st, en)
+                var m = st / 60000; while (m < (en + 59999) / 60000) { n.napMins += m; m++ }
                 continue
             }
             val n = get(iso(st + off + 6 * 3600_000L)); n.off = off
-            if (n.first == null || st < n.first!!) n.first = st
-            if (n.last == null || en > n.last!!) n.last = en
-            if (s.stages.isEmpty()) { n.light += (en - st) / 60000.0; continue }      // no stages: count it all as sleep
+            if (s.stages.isEmpty()) { mark(n, st, en, LIGHT); continue }          // no stages: count it all as sleep
             for (g in s.stages) {
-                val m = (g.endTime.toEpochMilli() - g.startTime.toEpochMilli()) / 60000.0
-                when (g.stage) {
-                    SleepSessionRecord.STAGE_TYPE_DEEP -> n.deep += m
-                    SleepSessionRecord.STAGE_TYPE_REM -> n.rem += m
-                    SleepSessionRecord.STAGE_TYPE_AWAKE, SleepSessionRecord.STAGE_TYPE_AWAKE_IN_BED, SleepSessionRecord.STAGE_TYPE_OUT_OF_BED -> {
-                        n.wake += m; n.wakes += longArrayOf(g.startTime.toEpochMilli(), g.endTime.toEpochMilli())
-                    }
-                    else -> n.light += m                                               // LIGHT, SLEEPING, UNKNOWN
+                val stage = when (g.stage) {
+                    SleepSessionRecord.STAGE_TYPE_DEEP -> DEEP
+                    SleepSessionRecord.STAGE_TYPE_REM -> REM
+                    SleepSessionRecord.STAGE_TYPE_AWAKE, SleepSessionRecord.STAGE_TYPE_AWAKE_IN_BED, SleepSessionRecord.STAGE_TYPE_OUT_OF_BED -> AWAKE
+                    else -> LIGHT                                                    // LIGHT, SLEEPING, UNKNOWN
                 }
+                mark(n, g.startTime.toEpochMilli(), g.endTime.toEpochMilli(), stage)
             }
         }
         for (r in steps) {
             val off = (r.startZoneOffset?.totalSeconds?.toLong()?.times(1000)) ?: DEFAULT_OFFSET_MS
-            get(iso(r.startTime.toEpochMilli() + off)).steps += r.count
+            val app = r.metadata.dataOrigin.packageName
+            val day = get(iso(r.startTime.toEpochMilli() + off))
+            day.stepsByApp[app] = (day.stepsByApp[app] ?: 0L) + r.count
         }
         val out = JSONArray()
         nights.forEach { (date, n) ->

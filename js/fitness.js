@@ -861,8 +861,11 @@ async function renderActivityPowerZones(a) {
   document.getElementById('actPwzNote').textContent = trf('Zones from FTP {0} W', F);
 }
 
-function renderOverviewPowerZones() {
-  const card = document.getElementById('pwzCard');
+// The card shows on the Overview (ovPwz*) and on the Power page (pwz*).
+function renderOverviewPowerZones() { ['pwz', 'ovPwz'].forEach(_renderPwzInto); }
+
+function _renderPwzInto(id) {
+  const card = document.getElementById(id + 'Card');
   if (!card) return;
   const set = ((typeof modeActs === 'function') ? modeActs() : (typeof acts !== 'undefined' ? acts : [])).filter(_pwzRide);
   const ftp = (typeof estimateFtp === 'function') && estimateFtp();
@@ -878,8 +881,8 @@ function renderOverviewPowerZones() {
     for (const b in h) totals[powerZoneFor(+b * 10 + 5, F)] += h[b];
   });
   const sum = totals.reduce((s, v) => s + v, 0), peak = Math.max(...totals) || 1;
-  drawZoneRing(document.getElementById('pwzRing'), totals, { big: sum ? fmtTc(sum) : '—', small: tr('moving') }, 220, POWER_ZONES.map(z => z.color));
-  document.getElementById('pwzLegend').innerHTML = POWER_ZONES.map((z, i) => {
+  drawZoneRing(document.getElementById(id + 'Ring'), totals, { big: sum ? fmtTc(sum) : '—', small: tr('moving') }, 220, POWER_ZONES.map(z => z.color));
+  document.getElementById(id + 'Legend').innerHTML = POWER_ZONES.map((z, i) => {
     const lo = i ? Math.round(POWER_ZONES[i - 1].hi * F) : 0, hi = z.hi === Infinity ? null : Math.round(z.hi * F);
     const v = totals[i];
     return `<div class="hrz-row">
@@ -890,10 +893,10 @@ function renderOverviewPowerZones() {
       <span class="hrz-pct">${v && sum ? Math.round(v / sum * 100) + '%' : ''}</span>
     </div>`;
   }).join('');
-  const note = document.getElementById('pwzNote');
+  const note = document.getElementById(id + 'Note');
   note.innerHTML = trf('Zones from FTP {0} W · {1} of {2} power-meter rides analysed', F, have, have + missing.length)
-    + (missing.length ? ` <button class="seg-scan spdz-btn" id="pwzFetch">${trf('Analyse {0} more', missing.length)}</button>` : '');
-  const btn = document.getElementById('pwzFetch');
+    + (missing.length ? ` <button class="seg-scan spdz-btn" id="${id}Fetch">${trf('Analyse {0} more', missing.length)}</button>` : '');
+  const btn = document.getElementById(id + 'Fetch');
   if (btn) btn.onclick = async () => {
     btn.disabled = true;
     let n = 0;

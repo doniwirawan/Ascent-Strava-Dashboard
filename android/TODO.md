@@ -12,9 +12,15 @@ update through the in-app Update bar (`publish-update.mjs`).
 - [x] 7. Publish 2.3
 - [x] 8. Watch sleep from Health Connect (JoyoFit + Watch Fit 4) → /api/v1/sleep → dashboard + app (2.4)
 - [x] 9. AI Coach chat with your own key (DeepSeek, OpenRouter, OpenAI, Anthropic, Groq, Mistral) (2.4)
+- [x] 10. Past-data permission: first Health Connect sync reaches a year back (2.5)
+- [x] 11. Overlapping sleep / steps from several apps counted once, with unit tests (2.6)
+- [ ] 12. JoyoFit + Ascent as one app — needs the owner's decision first:
+      a) rebuild JoyoFit's no-watch features (strength logger, manual workouts, gear reminders, run plans) in Ascent — our own code, no licence change;
+      b) take JoyoFit's watch link (Kotlin, AGPL-3.0) into Ascent — the whole app then becomes AGPL, and pairing it resets the watch / unpairs Huawei Health, like JoyoFit does;
+      c) keep both apps, joined through Health Connect (what works today).
 
 Waiting on the owner / real data:
-- Turn on JoyoFit → Settings → Health & cloud → Write to Health Connect, then Ascent → Sleep → Allow access (first real nights)
+- Real Health Sync nights already arrive (29 Sep – 1 Oct + steps seen 22 Oct); keep an eye on 22 Oct's night after the next phone sync
 - Paste an AI key in Ascent → AI → Settings and ask something (only a rejected test key was tried)
 - Confirm 2.2 installed, then the 48-h download link can be deleted
 - Next Strava upload: check the webhook adds it to strava_cache (app shows it without opening the site)

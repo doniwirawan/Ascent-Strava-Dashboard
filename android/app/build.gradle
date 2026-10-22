@@ -26,8 +26,8 @@ android {
         applicationId "xyz.doniwirawan.ascent"
         minSdk 29
         targetSdk 34
-        versionCode 8
-        versionName "2.5"
+        versionCode 9
+        versionName "2.6"
 
         // Data comes from the personal API with a token typed into the app, so
         // nothing personal is baked into the APK (unless built with -Ppersonal).
@@ -69,4 +69,6 @@ dependencies {
     // Health Connect: watch sleep written by apps like JoyoFit (HealthSync.kt)
     implementation 'androidx.health.connect:connect-client:1.1.0-alpha07'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'   // android.jar's org.json is a stub in unit tests
 }
