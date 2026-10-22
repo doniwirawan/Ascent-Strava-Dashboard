@@ -713,6 +713,8 @@ function _actMapModeControl(m,a,line){
       const w=pts.slice(Math.max(0,k-1),k+2).map(p=>p[5]).filter(x=>x!=null);
       if(w.length) extra=` · ${Math.round(w.reduce((s,x)=>s+x,0)/w.length)} W`;
     }
+    // and the speed at the max-power point
+    if(key==='power'){ const v=pts[k][4]!=null?pts[k][4]:pts[k][2]; if(v!=null) extra=` · ${kmh(v)} ${speedUnit()}`; }
     if(pins[key]) m.removeLayer(pins[key]);
     pins[key]=L.marker(at,{keyboard:false,zIndexOffset:1000,icon:L.divIcon({className:'speed-peak-pin pin-'+key,iconSize:[30,30],iconAnchor:[15,15],html:icon})})
       .bindTooltip(`<b>${label(val)}</b>${extra} · ${fmtD(into)} ${T('into the ride')}`,{permanent:true,direction:'top',offset:[0,-16],className:'speed-peak-tip tip-'+key})
