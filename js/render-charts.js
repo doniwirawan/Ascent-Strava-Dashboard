@@ -707,9 +707,15 @@ function _actMapModeControl(m,a,line){
     if(k<0) return;
     let into=0; for(let i=1;i<=k;i++) into+=aiHaversine(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1])*1000;
     const at=[pts[k][0],pts[k][1]];
+    // power at the top speed: 3-second average round the peak (power meter rides only)
+    let extra='';
+    if(key==='speed'&&a.device_watts===true){
+      const w=pts.slice(Math.max(0,k-1),k+2).map(p=>p[5]).filter(x=>x!=null);
+      if(w.length) extra=` · ${Math.round(w.reduce((s,x)=>s+x,0)/w.length)} W`;
+    }
     if(pins[key]) m.removeLayer(pins[key]);
     pins[key]=L.marker(at,{keyboard:false,zIndexOffset:1000,icon:L.divIcon({className:'speed-peak-pin pin-'+key,iconSize:[30,30],iconAnchor:[15,15],html:icon})})
-      .bindTooltip(`<b>${label(val)}</b> · ${fmtD(into)} ${T('into the ride')}`,{permanent:true,direction:'top',offset:[0,-16],className:'speed-peak-tip tip-'+key})
+      .bindTooltip(`<b>${label(val)}</b>${extra} · ${fmtD(into)} ${T('into the ride')}`,{permanent:true,direction:'top',offset:[0,-16],className:'speed-peak-tip tip-'+key})
       .addTo(m);
     m.flyTo(at,Math.max(m.getZoom(),16),{duration:.8});
   };
