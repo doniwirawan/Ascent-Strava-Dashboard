@@ -16,9 +16,10 @@ import java.util.Locale
 import java.util.concurrent.Executors
 
 /**
- * One activity: its route shape, numbers and AI write-up, all from the
- * dashboard's database. The per-second charts need Strava's streams, so they
- * load only when asked for (one Strava request through the API).
+ * One activity: its map, numbers and AI write-up, all from the dashboard's
+ * database. The per-second data (charts, and the map's Speed / Power colours)
+ * needs Strava's streams, so it loads only when asked for (one Strava request
+ * through the API).
  */
 class RideActivity : Activity() {
 
@@ -41,25 +42,24 @@ class RideActivity : Activity() {
         col.addView(Ui.text(this, Ui.date(a.optString("start_date_local")) + " · " + a.optString("sport_type").ifEmpty { a.optString("type") }, 12f, Ui.MUTED))
 
         val poly = a.optJSONObject("map")?.optString("summary_polyline")
-        if (!poly.isNullOrEmpty()) col.addView(Ui.card(this).apply {
-            addView(RouteView(this@RideActivity).apply { set(poly) }, LinearLayout.LayoutParams(MATCH_PARENT, Ui.dp(this@RideActivity, 220)))
-        }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { topMargin = Ui.dp(this@RideActivity, 12) })
+        val map = if (!poly.isNullOrEmpty()) RideMap(this, poly) else null
+        if (map != null) col.addView(map, LinearLayout.LayoutParams(MATCH_PARENT, Ui.dp(this, 340)).apply { topMargin = Ui.dp(this@RideActivity, 12) })
 
         val t = ArrayList<Pair<String, String>>()
-        t += Ui.km(a.optDouble("distance")) to "distance"
-        t += Ui.hm(a.optLong("moving_time")) to "moving time"
-        t += "${Math.round(a.optDouble("total_elevation_gain"))} m" to "climbing"
-        if (a.optDouble("average_speed") > 0) t += Ui.kmh(a.optDouble("average_speed")) to "avg speed"
-        if (a.optDouble("max_speed") > 0) t += Ui.kmh(Math.min(a.optDouble("max_speed"), 65 / 3.6)) to "max speed"
-        if (a.optDouble("average_heartrate") > 0) t += "${Math.round(a.optDouble("average_heartrate"))} bpm" to "avg HR"
-        if (a.optDouble("max_heartrate") > 0) t += "${Math.round(a.optDouble("max_heartrate"))} bpm" to "max HR"
+        t += Ui.km(a.optDouble("distance")) to "distance|distance"
+        t += Ui.hm(a.optLong("moving_time")) to "moving time|time"
+        t += "${Math.round(a.optDouble("total_elevation_gain"))} m" to "climbing|climb"
+        if (a.optDouble("average_speed") > 0) t += Ui.kmh(a.optDouble("average_speed")) to "avg speed|speed"
+        if (a.optDouble("max_speed") > 0) t += Ui.kmh(Math.min(a.optDouble("max_speed"), 65 / 3.6)) to "max speed|speed"
+        if (a.optDouble("average_heartrate") > 0) t += "${Math.round(a.optDouble("average_heartrate"))} bpm" to "avg HR|hr"
+        if (a.optDouble("max_heartrate") > 0) t += "${Math.round(a.optDouble("max_heartrate"))} bpm" to "max HR|hr"
         val meter = a.optBoolean("device_watts")
-        if (a.optDouble("average_watts") > 0) t += "${Math.round(a.optDouble("average_watts"))} W" to if (meter) "avg power" else "avg power (est.)"
-        if (meter && a.optDouble("weighted_average_watts") > 0) t += "${Math.round(a.optDouble("weighted_average_watts"))} W" to "normalized power"
-        if (meter && a.optDouble("max_watts") > 0) t += "${Math.round(a.optDouble("max_watts"))} W" to "max power"
-        if (a.optDouble("kilojoules") > 0) t += String.format(Locale.US, "%,d kJ", Math.round(a.optDouble("kilojoules"))) to "energy"
-        if (a.optDouble("average_cadence") > 0) t += "${Math.round(a.optDouble("average_cadence"))}" to "cadence"
-        if (a.optDouble("suffer_score") > 0) t += "${Math.round(a.optDouble("suffer_score"))}" to "relative effort"
+        if (a.optDouble("average_watts") > 0) t += "${Math.round(a.optDouble("average_watts"))} W" to if (meter) "avg power|power" else "avg power (est.)|power"
+        if (meter && a.optDouble("weighted_average_watts") > 0) t += "${Math.round(a.optDouble("weighted_average_watts"))} W" to "normalized power|power"
+        if (meter && a.optDouble("max_watts") > 0) t += "${Math.round(a.optDouble("max_watts"))} W" to "max power|power"
+        if (a.optDouble("kilojoules") > 0) t += String.format(Locale.US, "%,d kJ", Math.round(a.optDouble("kilojoules"))) to "energy|energy"
+        if (a.optDouble("average_cadence") > 0) t += "${Math.round(a.optDouble("average_cadence"))}" to "cadence|cadence"
+        if (a.optDouble("suffer_score") > 0) t += "${Math.round(a.optDouble("suffer_score"))}" to "relative effort|effort"
         col.addView(Ui.heading(this, "Numbers"))
         col.addView(Ui.tiles(this, t))
 
@@ -82,15 +82,16 @@ class RideActivity : Activity() {
         io.execute { val fresh = try { Api.get(this, "ai") } catch (e: Exception) { null }; ui.post { showAi(fresh) } }
 
         val charts = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val load = Button(this).apply { text = "Show speed, heart rate & power charts" }
+        val load = button(if (map != null) "Load ride data: charts + speed & power on the map" else "Show speed, heart rate & power charts")
         load.setOnClickListener {
             load.isEnabled = false; load.text = "Loading charts…"
             io.execute {
-                val path = "activities/$id?streams=time,velocity_smooth,heartrate,watts,altitude"
+                val path = "activities/$id?streams=time,latlng,velocity_smooth,heartrate,watts,altitude"
                 val r = try { Api.cached(this, path) ?: Api.get(this, path) } catch (e: Exception) { load.post { load.text = e.message; load.isEnabled = true }; null }
                 val st = r?.optJSONObject("streams") ?: return@execute
                 ui.post {
                     col.removeView(load)
+                    if (map != null) map.setStreams(mapPoints(st), st.has("watts") && a.optBoolean("device_watts"))
                     fun series(k: String, scale: Double = 1.0): DoubleArray? {
                         val d = st.optJSONObject(k)?.optJSONArray("data") ?: return null
                         val n = d.length(); val step = Math.max(1, n / 400)          // ~400 points is plenty on a phone
@@ -109,14 +110,40 @@ class RideActivity : Activity() {
         }
         if (id > 0) { col.addView(load); col.addView(charts) }
 
-        col.addView(Button(this).apply {
-            text = "Open on Strava"
+        col.addView(button("Open on Strava").apply {
             setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.strava.com/activities/$id"))) }
         })
 
+        col.addView(android.view.View(this), LinearLayout.LayoutParams(MATCH_PARENT, Ui.dp(this, 16)))
         setContentView(ScrollView(this).apply {
             setBackgroundColor(Ui.BG)
             addView(col, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         })
+    }
+
+    private fun button(label: String) = Button(this).apply {
+        text = label
+        isAllCaps = false
+        layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { topMargin = Ui.dp(this@RideActivity, 12) }
+    }
+
+    /** [[lat, lng, speed, 10-s power], …] at full resolution, for the map's colours and peaks. */
+    private fun mapPoints(st: JSONObject): org.json.JSONArray {
+        val ll = st.optJSONObject("latlng")?.optJSONArray("data") ?: return org.json.JSONArray()
+        val v = st.optJSONObject("velocity_smooth")?.optJSONArray("data")
+        val w = st.optJSONObject("watts")?.optJSONArray("data")
+        val out = org.json.JSONArray()
+        var sum = 0.0
+        for (i in 0 until ll.length()) {
+            val p = ll.optJSONArray(i) ?: continue
+            val row = org.json.JSONArray().put(p.optDouble(0)).put(p.optDouble(1)).put(v?.optDouble(i, 0.0) ?: 0.0)
+            if (w != null) {
+                sum += w.optDouble(i, 0.0)
+                if (i >= 10) sum -= w.optDouble(i - 10, 0.0)
+                row.put(Math.round(sum / Math.min(i + 1, 10)))
+            }
+            out.put(row)
+        }
+        return out
     }
 }

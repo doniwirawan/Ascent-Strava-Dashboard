@@ -169,6 +169,20 @@ async function ai(sub) {
   return { activities: await sb('activity_ai?select=*') };
 }
 
+// The Android app's self-update: the newest build in the private storage bucket
+// (android/publish-update.mjs puts it there) and a 10-minute signed link to it.
+async function appRelease() {
+  const store = env('SUPABASE_URL').replace(/\/$/, '') + '/storage/v1/';
+  const r = await fetch(store + 'object/private-apps/ascent-latest.json', { headers: sbH() });
+  if (!r.ok) throw new HttpError(404, 'no_release');
+  const meta = await r.json();
+  const s = await fetch(store + 'object/sign/private-apps/' + encodeURIComponent(meta.file), {
+    method: 'POST', headers: sbH(), body: JSON.stringify({ expiresIn: 600 }),
+  });
+  if (!s.ok) throw new HttpError(502, 'store_unavailable');
+  return { ...meta, url: store.replace(/\/$/, '') + (await s.json()).signedURL };
+}
+
 const INDEX = {
   name: 'Ascent personal API', version: 1, auth: 'Authorization: Bearer asc_… (create one in Settings → Personal API)',
   endpoints: {
@@ -182,6 +196,7 @@ const INDEX = {
     'GET /api/v1/purchases?category=&after=&before=&cancelled=1': 'Purchases from the finance app',
     'GET /api/v1/bikes': 'Each bike and what its parts cost',
     'GET /api/v1/ai': 'AI analyses and captions per activity (GET /api/v1/ai/chats for coach chats)',
+    'GET /api/v1/app': 'Newest Android build: versionCode, versionName and a 10-minute download link',
   },
 };
 
@@ -202,6 +217,7 @@ async function route(req, parts) {
     case 'purchases': return purchases(q);
     case 'bikes': return bikes();
     case 'ai': return ai(id);
+    case 'app': return appRelease();
   }
   throw new HttpError(404, 'unknown_endpoint', { see: '/api/v1' });
 }

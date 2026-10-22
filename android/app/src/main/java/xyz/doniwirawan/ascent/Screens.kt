@@ -49,16 +49,16 @@ object Screens {
 
         col.addView(Ui.heading(a, "Last 7 days"))
         col.addView(Ui.tiles(a, listOf(
-            String.format(Locale.US, "%.1f km", w.optDouble("distance_km")) to "distance",
-            String.format(Locale.US, "%.1f h", w.optDouble("moving_hours")) to "moving",
-            "${w.optInt("elevation_m")} m" to "climbing",
-            "${w.optInt("activities")}" to "activities",
+            String.format(Locale.US, "%.1f km", w.optDouble("distance_km")) to "distance|distance",
+            String.format(Locale.US, "%.1f h", w.optDouble("moving_hours")) to "moving|time",
+            "${w.optInt("elevation_m")} m" to "climbing|climb",
+            "${w.optInt("activities")}" to "activities|rides",
         )))
 
         s.optJSONObject("fitness")?.let { f ->
             col.addView(Ui.heading(a, "Fitness & form"))
             col.addView(Ui.tiles(a, listOf(
-                "${f.optInt("ctl")}" to "fitness (CTL)", "${f.optInt("atl")}" to "fatigue (ATL)",
+                "${f.optInt("ctl")}" to "fitness (CTL)|effort", "${f.optInt("atl")}" to "fatigue (ATL)|energy",
                 String.format(Locale.US, "%+d", f.optInt("tsb")) to "form · ${f.optString("form")}", String.format(Locale.US, "%+d", f.optInt("ramp")) to "ramp / week",
             )))
         }
@@ -74,10 +74,10 @@ object Screens {
 
         col.addView(Ui.heading(a, "This year"))
         col.addView(Ui.tiles(a, listOf(
-            String.format(Locale.US, "%,.0f km", y.optDouble("distance_km")) to "distance",
-            String.format(Locale.US, "%,d m", y.optInt("elevation_m")) to "climbing",
-            String.format(Locale.US, "%.0f h", y.optDouble("moving_hours")) to "moving",
-            "${y.optInt("activities")}" to "activities",
+            String.format(Locale.US, "%,.0f km", y.optDouble("distance_km")) to "distance|distance",
+            String.format(Locale.US, "%,d m", y.optInt("elevation_m")) to "climbing|climb",
+            String.format(Locale.US, "%.0f h", y.optDouble("moving_hours")) to "moving|time",
+            "${y.optInt("activities")}" to "activities|rides",
         )))
         s.optJSONObject("streak")?.let { st ->
             col.addView(Ui.tiles(a, listOf("${st.optInt("weeks")} wk" to "active streak", "${st.optInt("active_days_this_year")}" to "active days")))
@@ -161,9 +161,9 @@ object Screens {
         }
         col.addView(Ui.heading(a, "Power"))
         col.addView(Ui.tiles(a, listOf(
-            "${Math.round(ftp)} W" to if (me?.optDouble("ftp", 0.0) ?: 0.0 > 0) "FTP (Strava)" else "FTP (estimated)",
+            "${Math.round(ftp)} W" to if (me?.optDouble("ftp", 0.0) ?: 0.0 > 0) "FTP (Strava)|power" else "FTP (estimated)|power",
             String.format(Locale.US, "%.2f", ftp / kg) to "W/kg at ${Ui.n0(kg)} kg",
-            "${Math.round(rows.maxOf { it.max })} W" to "max power",
+            "${Math.round(rows.maxOf { it.max })} W" to "max power|power",
             "${Math.round(rows.maxOf { it.np })} W" to "best NP ride",
         )))
         val since = System.currentTimeMillis() - 28L * 86_400_000
@@ -210,9 +210,9 @@ object Screens {
         fun hmMin(m: Double) = if (m.isNaN()) "—" else "${(m / 60).toInt()}h ${(m % 60).toInt()}m"
         col.addView(Ui.heading(a, "Last 7 nights · average"))
         col.addView(Ui.tiles(a, listOf(
-            hmMin(avg(week, "asleep")) to "asleep", hmMin(avg(week, "deep")) to "deep",
+            hmMin(avg(week, "asleep")) to "asleep|sleep", hmMin(avg(week, "deep")) to "deep",
             hmMin(avg(week, "rem")) to "REM", avg(week, "hrv").let { if (it.isNaN()) "—" else "${Math.round(it)} ms" } to "HRV",
-            avg(week, "rhr").let { if (it.isNaN()) "—" else "${Math.round(it)} bpm" } to "resting HR",
+            avg(week, "rhr").let { if (it.isNaN()) "—" else "${Math.round(it)} bpm" } to "resting HR|hr",
             avg(week, "eff").let { if (it.isNaN()) "—" else String.format(Locale.US, "%.0f%%", it) } to "efficiency",
         )))
         col.addView(Ui.text(a, "30-night average asleep: " + hmMin(avg(month, "asleep")), 12f, Ui.MUTED))

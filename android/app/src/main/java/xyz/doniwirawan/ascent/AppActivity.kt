@@ -28,6 +28,8 @@ class AppActivity : Activity() {
     private lateinit var content: LinearLayout
     private lateinit var scroll: ScrollView
     private lateinit var status: TextView
+    private lateinit var banner: LinearLayout
+    private var release: Updater.Release? = null
     private val tabs = linkedMapOf("home" to "Home", "rides" to "Rides", "power" to "Power", "sleep" to "Sleep", "money" to "Money")
     private val tabViews = HashMap<String, TextView>()
     private val tabIcons = HashMap<String, TabIcon>()
@@ -56,6 +58,18 @@ class AppActivity : Activity() {
         root.addView(top)
         status = Ui.text(this, "", 11f, Ui.MUTED).apply { setPadding(Ui.dp(this@AppActivity, 16), 0, Ui.dp(this@AppActivity, 16), 0) }
         root.addView(status)
+        banner = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = android.view.View.GONE
+            val p = Ui.dp(this@AppActivity, 12)
+            setPadding(p, p, p, p)
+            background = android.graphics.drawable.GradientDrawable().apply { setColor(Ui.ORANGE); cornerRadius = Ui.dp(this@AppActivity, 10).toFloat() }
+            setOnClickListener { installUpdate() }
+        }
+        root.addView(banner, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
+            val m = Ui.dp(this@AppActivity, 16); setMargins(m, Ui.dp(this@AppActivity, 8), m, 0)
+        })
 
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -88,6 +102,9 @@ class AppActivity : Activity() {
         root.addView(bar)
         setContentView(root)
 
+        if (Repo.prefs(this).getString("api_token", null).isNullOrBlank() && BuildConfig.BAKED_API_TOKEN.isNotBlank())
+            Repo.prefs(this).edit().putString("api_token", BuildConfig.BAKED_API_TOKEN).apply()
+
         current = saved?.getString("tab") ?: Repo.prefs(this).getString("tab", "home") ?: "home"
         if (Api.hasToken(this)) {
             show(current)
@@ -97,6 +114,7 @@ class AppActivity : Activity() {
                 AscentWidget.drawAll(this)
                 ui.post { if (current == "home" && Api.hasToken(this)) show("home") }
             }
+            checkForUpdate(false)
         } else showSettings()
     }
 
@@ -156,6 +174,56 @@ class AppActivity : Activity() {
         }
     }
 
+    /** Looks for a newer build; `manual` also reports "up to date" / errors. */
+    private fun checkForUpdate(manual: Boolean, note: TextView? = null) {
+        io.execute {
+            val r = try { Result.success(Updater.check(this)) } catch (e: Exception) { Result.failure(e) }
+            ui.post {
+                release = r.getOrNull()
+                showBanner()
+                if (manual) note?.text = when {
+                    r.isFailure -> "Couldn't check: ${r.exceptionOrNull()?.message}"
+                    release != null -> "Version ${release!!.name} is available — tap the orange bar."
+                    else -> "You have the latest version (${BuildConfig.VERSION_NAME})."
+                }
+            }
+        }
+    }
+
+    private fun showBanner(text: String? = null) {
+        val rel = release
+        banner.removeAllViews()
+        if (rel == null) { banner.visibility = android.view.View.GONE; return }
+        banner.visibility = android.view.View.VISIBLE
+        banner.addView(TabIcon(this, "update").apply { color = Color.WHITE }, LinearLayout.LayoutParams(Ui.dp(this, 22), Ui.dp(this, 22)))
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(Ui.dp(this@AppActivity, 10), 0, 0, 0) }
+        col.addView(Ui.text(this, text ?: "Update to ${rel.name}", 14f, Color.WHITE, true))
+        col.addView(Ui.text(this, if (text != null) "" else rel.notes.ifEmpty { "Tap to download and install." }, 12f, Color.WHITE))
+        banner.addView(col, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+    }
+
+    private var downloading = false
+    private fun installUpdate() {
+        val rel = release ?: return
+        if (downloading) return
+        downloading = true
+        io.execute {
+            val file = try {
+                // the link only lives 10 minutes — fetch a fresh one each time
+                val fresh = Updater.check(this) ?: rel
+                Updater.download(this, fresh) { pct -> ui.post { showBanner(if (pct >= 0) "Downloading… $pct%" else "Downloading…") } }
+            } catch (e: Exception) {
+                ui.post { downloading = false; showBanner("Download failed — tap to retry") }
+                null
+            }
+            if (file != null) ui.post {
+                downloading = false
+                if (Updater.install(this, file)) showBanner("Installing ${rel.name}…")
+                else showBanner("Allow Ascent to install updates, then tap here again")
+            }
+        }
+    }
+
     /** Token entry — first run, or the ⚙ button. */
     private fun showSettings() {
         generation++
@@ -205,6 +273,10 @@ class AppActivity : Activity() {
         col.addView(Ui.text(this, "Home-screen widgets use the same token. Long-press a widget for its own settings.", 11f, Ui.MUTED).apply {
             setPadding(0, Ui.dp(this@AppActivity, 16), 0, 0)
         })
+        col.addView(Ui.heading(this, "App version ${BuildConfig.VERSION_NAME}"))
+        val upNote = Ui.text(this, "", 12f, Ui.MUTED)
+        col.addView(button("Check for updates") { upNote.text = "Checking…"; checkForUpdate(true, upNote) })
+        col.addView(upNote)
     }
 
     fun button(label: String, onClick: () -> Unit) = Button(this).apply {

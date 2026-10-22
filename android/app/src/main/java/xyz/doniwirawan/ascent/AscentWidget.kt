@@ -82,12 +82,12 @@ open class AscentWidget : AppWidgetProvider() {
 
         private fun draw(ctx: Context, mgr: AppWidgetManager, id: Int, layout: Int) {
             val v = RemoteViews(ctx.packageName, layout)
-            populate(ctx, v, widthDp(mgr, id), layout)
+            populate(ctx, v, widthDp(mgr, id), heightDp(mgr, id), layout)
             mgr.updateAppWidget(id, v)
         }
 
         /** Fills whichever layout was inflated; the small one omits most of it. */
-        private fun populate(ctx: Context, v: RemoteViews, widthDp: Int, layout: Int) {
+        private fun populate(ctx: Context, v: RemoteViews, widthDp: Int, heightDp: Int, layout: Int) {
             val snap = Repo.cached(ctx)
             val error = Repo.lastError(ctx)
             val small = layout == R.layout.widget_small
@@ -135,7 +135,17 @@ open class AscentWidget : AppWidgetProvider() {
                 v.setTextColor(R.id.tvSync, ctx.getColor(R.color.dim))
             }
 
-            v.setImageViewBitmap(R.id.ivChart, chart(ctx, snap?.days, widthDp))
+            // The chart view takes whatever height is left under the header (the
+            // large layout's header is taller: it adds the latest activity line).
+            val chartDp = max(24, heightDp - if (layout == R.layout.widget_large) 168 else 146)
+            v.setImageViewBitmap(R.id.ivChart, chart(ctx, snap?.days, widthDp, chartDp))
+            val today = java.util.Calendar.getInstance()
+            DAY_IDS.forEachIndexed { i, tv ->
+                val c = today.clone() as java.util.Calendar
+                c.add(java.util.Calendar.DAY_OF_MONTH, -(6 - i))
+                v.setTextViewText(tv, "SMTWTFS"[c.get(java.util.Calendar.DAY_OF_WEEK) - 1].toString())
+                v.setTextColor(tv, if (i == 6) ctx.getColor(R.color.orange) else Color.parseColor("#55555F"))
+            }
 
             if (layout == R.layout.widget_large) {
                 v.setTextViewText(
@@ -190,6 +200,14 @@ open class AscentWidget : AppWidgetProvider() {
                 )
             )
         }
+
+        private val DAY_IDS = intArrayOf(R.id.tvD0, R.id.tvD1, R.id.tvD2, R.id.tvD3, R.id.tvD4, R.id.tvD5, R.id.tvD6)
+
+        /** Portrait height — what a phone launcher actually shows. */
+        private fun heightDp(mgr: AppWidgetManager, id: Int): Int =
+            mgr.getAppWidgetOptions(id)
+                .getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+                .takeIf { it > 0 } ?: 180
 
         private fun widthDp(mgr: AppWidgetManager, id: Int): Int =
             mgr.getAppWidgetOptions(id)
@@ -269,56 +287,36 @@ open class AscentWidget : AppWidgetProvider() {
 
         /**
          * Rendered as a bitmap because RemoteViews has no drawing primitives.
-         * The image is stretched with fitXY, so only the bar heights need to be
-         * accurate — width is scaled to whatever the widget ends up being.
+         * It is drawn at about the size the view will be (width and the height
+         * left under the header), so fitXY barely scales it and the bars stay
+         * crisp. Each day gets an equal slot, matching the weekday text row.
          */
-        private fun chart(ctx: Context, days: DoubleArray?, widthDp: Int): Bitmap {
+        private fun chart(ctx: Context, days: DoubleArray?, widthDp: Int, heightDp: Int): Bitmap {
             val density = ctx.resources.displayMetrics.density
             val w = max(160, (widthDp * density).toInt())
-            val h = (42 * density).toInt()
+            val h = max((24 * density).toInt(), (heightDp * density).toInt())
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bmp)
 
             val values = days ?: DoubleArray(7)
             val peak = values.maxOrNull() ?: 0.0
             val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-            val gap = w * 0.045f
-            val barW = (w - gap * 6) / 7f
-            // fitXY stretches this bitmap to the view, which inflates rounded
-            // corners into blobs — keep the radius small and absolute.
-            val radius = minOf(barW * 0.28f, 2f * density)
-
-            // Reserve a strip for weekday initials so the bars have context.
-            val labelH = h * 0.28f
-            val barsH = h - labelH
-            val today = java.util.Calendar.getInstance()
-            val initials = CharArray(7) { idx ->
-                val c = today.clone() as java.util.Calendar
-                c.add(java.util.Calendar.DAY_OF_MONTH, -(6 - idx))
-                "SMTWTFS"[c.get(java.util.Calendar.DAY_OF_WEEK) - 1]
-            }
-            val lp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                textAlign = Paint.Align.CENTER
-                textSize = labelH * 0.72f
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-            }
+            val slot = w / 7f
+            val barW = slot * 0.7f
+            val radius = minOf(barW * 0.28f, 3f * density)
 
             for (i in 0 until 7) {
                 val isToday = i == 6
                 // Empty days still get a sliver so the week's shape stays legible.
                 val ratio = if (peak > 0) (values[i] / peak).toFloat() else 0f
-                val barH = max(barsH * 0.10f, barsH * ratio)
-                val left = i * (barW + gap)
+                val barH = max(h * 0.06f, h * ratio)
+                val left = slot * i + (slot - barW) / 2
                 paint.color = when {
                     values[i] <= 0.0 -> Color.parseColor("#1E1E26")
                     isToday -> ctx.getColor(R.color.orange)
                     else -> Color.parseColor("#C2521A")
                 }
-                canvas.drawRoundRect(
-                    RectF(left, barsH - barH, left + barW, barsH), radius, radius, paint
-                )
-                lp.color = if (isToday) ctx.getColor(R.color.orange) else Color.parseColor("#55555F")
-                canvas.drawText(initials[i].toString(), left + barW / 2f, h - labelH * 0.12f, lp)
+                canvas.drawRoundRect(RectF(left, h - barH, left + barW, h.toFloat()), radius, radius, paint)
             }
             return bmp
         }

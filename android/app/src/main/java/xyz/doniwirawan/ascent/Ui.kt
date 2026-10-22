@@ -57,14 +57,19 @@ object Ui {
         layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { bottomMargin = dp(ctx, 10) }
     }
 
-    /** A grid of big numbers with small captions, `cols` per row. */
+    /** A grid of big numbers with small captions, `cols` per row. A caption may end
+     *  in "|icon" (a TabIcon kind) to draw that icon above its number. */
     fun tiles(ctx: Context, items: List<Pair<String, String>>, cols: Int = 2): LinearLayout {
         val box = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
         items.chunked(cols).forEach { row ->
             val line = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
-            row.forEach { (value, label) ->
+            row.forEach { (value, labelIcon) ->
+                val label = labelIcon.substringBefore('|')
+                val icon = labelIcon.substringAfter('|', "")
                 val c = card(ctx).apply {
                     gravity = Gravity.CENTER_HORIZONTAL
+                    if (icon.isNotEmpty()) addView(TabIcon(ctx, icon).apply { color = ORANGE },
+                        LinearLayout.LayoutParams(dp(ctx, 20), dp(ctx, 20)).apply { bottomMargin = dp(ctx, 4) })
                     addView(text(ctx, value, 20f, TEXT, true).apply { gravity = Gravity.CENTER })
                     addView(text(ctx, label.uppercase(Locale.US), 10f, MUTED, true).apply { gravity = Gravity.CENTER; letterSpacing = 0.08f })
                 }
@@ -195,34 +200,6 @@ class LineChart(ctx: Context) : View(ctx) {
     }
 }
 
-/** The ride's shape from its summary polyline — no map tiles, no network. */
-class RouteView(ctx: Context) : View(ctx) {
-    private var pts: List<DoubleArray> = emptyList()
-    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-
-    fun set(polyline: String?) { pts = if (polyline.isNullOrEmpty()) emptyList() else Ui.decodePolyline(polyline); invalidate() }
-
-    override fun onDraw(c: Canvas) {
-        if (pts.size < 2) return
-        val d = resources.displayMetrics.density
-        val k = Math.cos(Math.toRadians(pts[0][0]))            // squash longitude to keep the shape true
-        val xs = pts.map { it[1] * k }; val ys = pts.map { it[0] }
-        val minX = xs.minOrNull()!!; val maxX = xs.maxOrNull()!!; val minY = ys.minOrNull()!!; val maxY = ys.maxOrNull()!!
-        val pad = 14 * d
-        val s = Math.min((width - 2 * pad) / Math.max(maxX - minX, 1e-9), (height - 2 * pad) / Math.max(maxY - minY, 1e-9))
-        val ox = (width - (maxX - minX) * s) / 2; val oy = (height - (maxY - minY) * s) / 2
-        fun px(i: Int) = (ox + (xs[i] - minX) * s).toFloat()
-        fun py(i: Int) = (height - oy - (ys[i] - minY) * s).toFloat()
-        val path = Path().apply { moveTo(px(0), py(0)); for (i in 1 until pts.size) lineTo(px(i), py(i)) }
-        p.style = Paint.Style.STROKE; p.strokeJoin = Paint.Join.ROUND; p.strokeCap = Paint.Cap.ROUND
-        p.strokeWidth = 3.5f * d; p.color = Ui.ORANGE
-        c.drawPath(path, p)
-        p.style = Paint.Style.FILL
-        p.color = Ui.GREEN; c.drawCircle(px(0), py(0), 5 * d, p)
-        p.color = Ui.RED; c.drawCircle(px(pts.size - 1), py(pts.size - 1), 5 * d, p)
-    }
-}
-
 /** Line icons for the tab bar, drawn on a 24-unit grid (no icon library). */
 class TabIcon(ctx: Context, private val kind: String) : View(ctx) {
     var color = Ui.MUTED
@@ -254,6 +231,19 @@ class TabIcon(ctx: Context, private val kind: String) : View(ctx) {
             "money" -> { c.drawRoundRect(android.graphics.RectF(2.5f, 6f, 21.5f, 19f), 3f, 3f, p)
                 path.moveTo(2.5f, 10f); path.lineTo(21.5f, 10f)
                 c.drawCircle(16.5f, 14.5f, 1.2f, p.apply { style = Paint.Style.FILL }); p.style = Paint.Style.STROKE }
+            "distance" -> { c.drawCircle(5f, 18f, 2.2f, p); c.drawCircle(19f, 6f, 2.2f, p)
+                path.moveTo(7f, 18f); path.cubicTo(14f, 18f, 9f, 6f, 17f, 6f) }
+            "time" -> { c.drawCircle(12f, 12f, 9f, p); path.moveTo(12f, 7f); path.lineTo(12f, 12f); path.lineTo(15.5f, 14f) }
+            "climb" -> { path.moveTo(2.5f, 20f); path.lineTo(9f, 8f); path.lineTo(13f, 14f); path.lineTo(16f, 10f); path.lineTo(21.5f, 20f); path.close() }
+            "speed" -> { path.addArc(android.graphics.RectF(3f, 5f, 21f, 23f), 180f, 180f); path.moveTo(12f, 14f); path.lineTo(16.5f, 9f) }
+            "hr" -> { path.moveTo(12f, 20f); path.cubicTo(1f, 13f, 3f, 3.5f, 9f, 4.5f); path.cubicTo(10.5f, 4.8f, 11.5f, 6f, 12f, 7f)
+                path.cubicTo(12.5f, 6f, 13.5f, 4.8f, 15f, 4.5f); path.cubicTo(21f, 3.5f, 23f, 13f, 12f, 20f) }
+            "energy" -> { path.moveTo(12f, 21f); path.cubicTo(5f, 21f, 4f, 13f, 9f, 8.5f); path.cubicTo(9f, 11.5f, 11f, 12f, 11f, 12f)
+                path.cubicTo(10f, 7f, 13f, 4f, 14f, 3f); path.cubicTo(15f, 8f, 20f, 10f, 19f, 15f); path.cubicTo(18.5f, 18.5f, 15.5f, 21f, 12f, 21f) }
+            "cadence" -> { path.addArc(android.graphics.RectF(4f, 4f, 20f, 20f), -60f, 300f); path.moveTo(20f, 4.5f); path.lineTo(20f, 9.5f); path.lineTo(15f, 9.5f) }
+            "effort" -> { path.moveTo(2f, 12f); path.lineTo(7f, 12f); path.lineTo(9.5f, 6f); path.lineTo(14f, 19f); path.lineTo(16.5f, 12f); path.lineTo(22f, 12f) }
+            "update" -> { path.moveTo(12f, 3f); path.lineTo(12f, 15f); path.moveTo(7f, 10f); path.lineTo(12f, 15f); path.lineTo(17f, 10f)
+                path.moveTo(4f, 19f); path.lineTo(20f, 19f) }
         }
         c.drawPath(path, p)
         c.restore()

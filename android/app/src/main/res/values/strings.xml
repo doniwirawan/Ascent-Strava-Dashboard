@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ascent Widget</string>
+    <string name="app_name">Ascent</string>
     <string name="brand">ASCENT</string>
     <string name="km">km</string>
     <string name="this_week">this week</string>
