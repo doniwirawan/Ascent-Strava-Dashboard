@@ -155,6 +155,13 @@ function _spNumbers(a, prog, id) {
   if (a.device_watts === true) { // measured only — Strava's estimate isn't worth a page
     put('avg_power', 'Avg power', 'Power rata-rata', a.average_watts && Math.round(a.average_watts) + ' W');
     put('norm_power', 'Normalized power', 'Power ternormalisasi', a.weighted_average_watts && Math.round(a.weighted_average_watts) + ' W');
+    const p = ridePower(a);
+    if (p) {
+      put('max_power', 'Max power', 'Power maks', p.max && Math.round(p.max) + ' W');
+      put('w_per_kg', 'Power to weight', 'Power per kg', p.wkg.toFixed(2) + ' W/kg');
+      put('intensity', 'Intensity factor', 'Faktor intensitas', p.if && p.if.toFixed(2));
+      put('tss', 'Training stress (TSS)', 'Beban latihan (TSS)', p.tss && Math.round(p.tss));
+    }
   }
   put('energy', 'Energy', 'Energi', a.kilojoules && Math.round(a.kilojoules).toLocaleString() + ' kJ');
   put('cadence', 'Cadence', 'Kadens', a.average_cadence && (ride ? Math.round(a.average_cadence) + ' rpm' : Math.round(a.average_cadence * 2) + ' spm'));

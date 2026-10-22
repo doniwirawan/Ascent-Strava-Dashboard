@@ -9,6 +9,11 @@ const STAT_DEFS = [
   { key: 'max_heartrate', label: 'Max Heart Rate', fmt: a => a.max_heartrate ? Math.round(a.max_heartrate) + ' bpm' : '—', unit: '' },
   { key: 'average_cadence', label: 'Avg Cadence', fmt: a => a.average_cadence ? (isRun(a) ? Math.round(a.average_cadence * 2) + ' spm' : Math.round(a.average_cadence) + ' rpm') : '—', unit: '' },
   { key: 'average_watts', label: 'Avg Power', fmt: a => a.average_watts ? Math.round(a.average_watts) + ' W' : '—', unit: '' },
+  { key: 'norm_power', label: 'Norm Power', fmt: a => { const p = ridePower(a); return p && p.np ? Math.round(p.np) + ' W' : '—'; }, unit: '' },
+  { key: 'max_watts', label: 'Max Power', fmt: a => { const p = ridePower(a); return p && p.max ? Math.round(p.max) + ' W' : '—'; }, unit: '' },
+  { key: 'w_per_kg', label: 'W/kg', fmt: a => { const p = ridePower(a); return p ? p.wkg.toFixed(2) + ' W/kg' : '—'; }, unit: '' },
+  { key: 'intensity', label: 'Intensity (IF)', fmt: a => { const p = ridePower(a); return p && p.if ? p.if.toFixed(2) : '—'; }, unit: '' },
+  { key: 'tss', label: 'TSS', fmt: a => { const p = ridePower(a); return p && p.tss ? Math.round(p.tss) : '—'; }, unit: '' },
   { key: 'total_elevation_gain', label: 'Elevation', fmt: a => fmtElev(a.total_elevation_gain || 0), unit: '' },
   { key: 'kilojoules', label: 'Energy', fmt: a => a.kilojoules ? Math.round(a.kilojoules) + ' kJ' : '—', unit: '' },
   { key: 'calories', label: 'Calories', fmt: a => a.calories ? Math.round(a.calories) + ' kcal' : '—', unit: '' },
@@ -97,20 +102,21 @@ function statApplies(s, act) {
 }
 
 /* ── adapt the shown stats to the activity type (runs → pace/cadence,
-   rides → speed/power). Only re-picks when the sport category changes, so
+   rides → speed/power, power-meter rides → NP and W/kg). Only re-picks when the sport category changes, so
    manual tweaks within the same sport are preserved. Returns true if it
    changed the selection. ── */
 let _lastStatType = null;
 function adaptStatsToActivity(act) {
   if (!act) return false;
   const t = isRun(act) ? 'run'
-    : isRide(act) ? 'ride'
+    : isRide(act) ? (act.device_watts === true ? 'ride-power' : 'ride')
     : (typeof isSwim==='function' && isSwim(act)) ? 'swim'
     : (typeof isWalk==='function' && isWalk(act)) ? 'walk'
     : 'other';
   if (t === _lastStatType) return false;
   _lastStatType = t;
   if (t === 'run')       checkedStats = new Set(['distance', 'moving_time', 'pace', 'total_elevation_gain', 'average_heartrate', 'average_cadence']);
+  else if (t === 'ride-power') checkedStats = new Set(['distance', 'moving_time', 'average_speed', 'total_elevation_gain', 'norm_power', 'w_per_kg']);
   else if (t === 'ride') checkedStats = new Set(['distance', 'moving_time', 'average_speed', 'total_elevation_gain', 'average_heartrate', 'average_watts']);
   else if (t === 'swim') checkedStats = new Set(['distance', 'moving_time', 'pace', 'average_heartrate', 'calories']);
   else if (t === 'walk') checkedStats = new Set(['distance', 'moving_time', 'pace', 'total_elevation_gain', 'average_heartrate', 'calories']);

@@ -118,6 +118,10 @@ function _siStats(a, wx) {
   if (ride && typeof cleanMax === 'function' && cleanMax(a)) S.push(['Max speed', fmtSpeed(cleanMax(a))]);
   if (a.average_heartrate) S.push(['Avg HR', Math.round(a.average_heartrate) + ' bpm']);
   if (a.average_watts) S.push(['Avg power', Math.round(a.average_watts) + ' W']);
+  const p = ridePower(a);
+  if (p && p.np) S.push(['Norm power', Math.round(p.np) + ' W']);
+  if (p) S.push(['W/kg', p.wkg.toFixed(2)]);
+  if (p && p.tss) S.push(['TSS', String(Math.round(p.tss))]);
   if (a.kilojoules) S.push(['Energy', Math.round(a.kilojoules).toLocaleString() + ' kJ']);
   else if (a.calories) S.push(['Calories', Math.round(a.calories).toLocaleString()]);
   if (wx && wx.temp_c != null) S.push(['Weather', wx.temp_c + '°C', _siWeatherKind(wx.condition, a)]);
