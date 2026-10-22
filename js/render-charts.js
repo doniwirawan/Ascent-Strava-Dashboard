@@ -575,7 +575,7 @@ function _actBuildMap(a){
     _actTurnaroundPin(m,a,coords);
     _actBigMap=m;
     _actFullscreenControl(m);
-    if(typeof map3dControl==='function') map3dControl(m,[coords]);
+    if(typeof map3dControl==='function') map3dControl(m,[coords],()=>m._m3dColored&&m._m3dColored());
     if(a.id) _actMapModeControl(m,a,line);
     setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[24,24]});}catch{}},250);
   }catch{}
@@ -668,6 +668,26 @@ function _actFullscreenControl(m){
   document.addEventListener('fullscreenchange',onFs);
 }
 
+// The same colouring as GeoJSON for the 3D view (map3d.js); best = purple segment.
+function _actColoredGeo(trk, k, lo, hi, best){
+  const N=12, feats=[], bin=v=>Math.round(Math.max(0,Math.min(1,((v||0)-lo)/(hi-lo)))*(N-1));
+  const ll=p=>[p[1],p[0]];
+  let run=[ll(trk.pts[0])], cur=bin(trk.pts[0][k]);
+  const flush=()=>{ if(run.length>1) feats.push({type:'Feature',properties:{c:_speedColor(cur/(N-1))},geometry:{type:'LineString',coordinates:run}}); };
+  for(let i=1;i<trk.pts.length;i++){
+    const p=trk.pts[i], b=bin(p[k]);
+    run.push(ll(p));
+    if(b!==cur){ flush(); run=[ll(p)]; cur=b; }
+  }
+  flush();
+  if(best){
+    const seg=trk.pts.slice(best.from,best.to+1).map(ll);
+    feats.push({type:'Feature',properties:{c:'#ffffff',w:8},geometry:{type:'LineString',coordinates:seg}});
+    feats.push({type:'Feature',properties:{c:'#a855f7',w:5},geometry:{type:'LineString',coordinates:seg}});
+  }
+  return {type:'FeatureCollection',features:feats};
+}
+
 // Hovering the coloured track shows the speed (or power) at the nearest point.
 function _actSpeedHover(m,trk,k=2,lo=trk.lo,hi=trk.hi,fmt=v=>`${kmh(v)}</b> ${speedUnit()}`){
   const tip=L.DomUtil.create('div','speed-hover',m.getContainer());
@@ -702,6 +722,12 @@ function _actMapModeControl(m,a,line){
   const T=(typeof tr==='function')?tr:(x=>x);
   let speedLayer=null, legend=null, hover=null, powerLayer=null, powerHover=null;
   if(_actMapMode==='power' && a.device_watts!==true) _actMapMode='speed';
+  // 3D (map3d.js) asks for this when it opens: the track coloured like the 2D mode
+  m._m3dColored=()=>{
+    const trk=_actSpeedTracks[a.id];
+    if(!trk || _actMapMode==='route') return null;
+    return _actMapMode==='power' && trk.plo ? _actColoredGeo(trk,6,trk.plo,trk.phi,trk.best) : _actColoredGeo(trk,2,trk.lo,trk.hi);
+  };
   const legendCtl=L.control({position:'bottomleft'});
   legendCtl.onAdd=()=>{ legend=L.DomUtil.create('div','speed-legend'); return legend; };
 

@@ -91,8 +91,11 @@ function close3d(host) {
   host._m3d = null;
 }
 
-/* tracks: [[ [lat,lng], … ], …] — the routes the 2D map is showing. */
-async function open3d(lmap, tracks) {
+/* tracks: [[ [lat,lng], … ], …] — the routes the 2D map is showing.
+   colored(): optional — a GeoJSON FeatureCollection of LineStrings with a `c`
+   colour (and `w` width) each, drawn over the route: the activity map passes its
+   Speed / Power colouring, so 3D shows the same colours as 2D. */
+async function open3d(lmap, tracks, colored) {
   const host = lmap.getContainer();
   if (host._m3d) return;
   const box = L.DomUtil.create('div', 'map3d', host);
@@ -115,6 +118,8 @@ async function open3d(lmap, tracks) {
   let labelsOn = !!(lmap._labels && lmap.hasLayer(lmap._labels));
   const raster = (url, extra) => Object.assign({ type: 'raster', tiles: [url], tileSize: 256, maxzoom: 19 }, extra);
   const routeData = { type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: tracks.map(t => t.map(p => [p[1], p[0]])) } };
+  const colData = (typeof colored === 'function' && colored()) || null;
+  const lay = { 'line-join': 'round', 'line-cap': 'round' };
   const build = themeId => {
     const b = m3dBase(themeId), vis = labelsOn ? 'visible' : 'none';
     return Object.assign({
@@ -123,12 +128,15 @@ async function open3d(lmap, tracks) {
         roads: raster(M3D_ESRI + 'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { attribution: 'Labels &copy; Esri' }),
         places: raster(M3D_ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'),
         routes: { type: 'geojson', data: routeData },
-      }),
+      }, colData ? { colored: { type: 'geojson', data: colData } } : {}),
       layers: b.layers.concat([
         // same grey treatment as the 2D overlay, so its roads never look like routes
         { id: 'roads', type: 'raster', source: 'roads', layout: { visibility: vis }, paint: { 'raster-saturation': -1, 'raster-opacity': 0.85 } },
         { id: 'places', type: 'raster', source: 'places', layout: { visibility: vis } },
-      ], m3dRouteLayers(b.t, 'routes', 2.6)),
+      ], m3dRouteLayers(b.t, 'routes', 2.6), colData ? [
+        { id: 'colored', type: 'line', source: 'colored', layout: lay,
+          paint: { 'line-color': ['get', 'c'], 'line-width': ['coalesce', ['get', 'w'], 3.6] } },
+      ] : []),
     }, b.extra);
   };
   const style = build(m3dThemeId());
@@ -159,13 +167,13 @@ async function open3d(lmap, tracks) {
   };
 }
 
-function map3dControl(lmap, tracks) {
+function map3dControl(lmap, tracks, colored) {
   const c = L.control({ position: 'topright' });
   c.onAdd = () => {
     const b = L.DomUtil.create('a', 'leaflet-bar map-fs-btn map-3d-btn');
     b.href = '#'; b.setAttribute('role', 'button'); b.textContent = '3D'; b.title = tr('3D view');
     L.DomEvent.disableClickPropagation(b);
-    L.DomEvent.on(b, 'click', e => { L.DomEvent.preventDefault(e); open3d(lmap, tracks); });
+    L.DomEvent.on(b, 'click', e => { L.DomEvent.preventDefault(e); open3d(lmap, tracks, colored); });
     return b;
   };
   c.addTo(lmap);
