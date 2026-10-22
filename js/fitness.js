@@ -505,7 +505,9 @@ async function renderActivityHrZones(a) {
 }
 
 /* ── FTP ESTIMATION ──
+   0) The FTP you typed on the Power page.
    1) Strava's set FTP if present.
+   1b) Power meter: 0.95 × your best 20-min power (js/power-curve.js), the FTP-test rule.
    2) Power meter: best sustained ride effort: 0.95 × the highest weighted-average (or average)
       watts over rides ≥ 20 min — a rough 20-min-test → FTP proxy.
    3) No meter: the climb + HR estimate (js/climb-ftp.js).
@@ -513,7 +515,11 @@ async function renderActivityHrZones(a) {
    Returns {value, estimated, basis} or null. */
 function estimateFtp() {
   const ath = (typeof currentAthlete !== 'undefined' && currentAthlete) || {};
+  let own = 0; try { own = +localStorage.getItem('athlete_ftp_w') || 0; } catch {}
+  if (own >= 50 && own <= 700) return { value: Math.round(own), estimated: false, basis: 'manual' };
   if (ath.ftp) return { value: Math.round(ath.ftp), estimated: false, basis: 'strava' };
+  const p20 = (typeof pcBest20 === 'function') && pcBest20();
+  if (p20 > 0) return { value: Math.round(p20 * 0.95), estimated: true, basis: 'power20' };
 
   if (typeof acts !== 'undefined' && acts.length) {
     let best = 0;

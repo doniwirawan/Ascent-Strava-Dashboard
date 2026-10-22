@@ -445,7 +445,11 @@ function _trFtpCardHTML(ftpEst) {
   const ath = (typeof currentAthlete !== 'undefined' && currentAthlete) || {};
   const weight = athWeightKg();                       // kg (Strava profile, else fallback)
   const wkg = weight > 0 ? ftpEst.value / weight : 0;
-  const basisText = ftpEst.basis === 'strava'
+  const basisText = ftpEst.basis === 'manual'
+    ? tr('The FTP you set on the Power page.')
+    : ftpEst.basis === 'power20'
+      ? tr('95% of your best 20-minute power in the last 6 months.')
+    : ftpEst.basis === 'strava'
     ? tr('From your Strava profile FTP.')
     : ftpEst.basis === 'climb'
       ? tr('From your climbs: watts from altitude & weight, read at your threshold heart rate.')

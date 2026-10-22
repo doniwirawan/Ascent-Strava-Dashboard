@@ -50,7 +50,48 @@ async function _pcBestForRide(id) {
   const time = raw && raw.time && raw.time.data;
   const best = _pcBestFromStreams(watts, time);
   try { localStorage.setItem(ck, JSON.stringify({ v: 1, best: best || null })); } catch {}
+  pcVer++;
   return best;
+}
+
+// A ride's cached bests ({5: W, 60: W, …}) or null when it hasn't been analysed.
+function pcRidePeaks(id) {
+  try { const o = JSON.parse(localStorage.getItem('strava_pcurve_' + id)); return o && o.v === 1 ? o.best : null; } catch { return null; }
+}
+
+// The all-time curve rebuilt from every analysed power-meter ride (no fetching).
+function pcRebuildAgg() {
+  const agg = { sig: _pcSig(), best: {}, count: 0 };
+  acts.forEach(a => {
+    if (!isRide(a) || a.device_watts !== true) return;
+    const best = pcRidePeaks(a.id);
+    if (!best) return;
+    agg.count++;
+    for (const w of PC_WINDOWS) {
+      const v = best[w];
+      if (v != null && (!agg.best[w] || v > agg.best[w].v)) agg.best[w] = { v, name: a.name || 'Ride', date: a.start_date };
+    }
+  });
+  pcSaveAgg(agg);
+  pcVer++;
+  return agg;
+}
+
+// Best 20-min power over the last 180 days of power-meter rides — the FTP-test
+// number. Memoised: estimateFtp() runs for every table cell.
+let pcVer = 0, _pc20Memo = null;
+function pcBest20() {
+  const sig = acts.length + ':' + pcVer;
+  if (_pc20Memo && _pc20Memo.sig === sig) return _pc20Memo.v;
+  const since = Date.now() - 180 * 864e5;
+  let v = 0;
+  acts.forEach(a => {
+    if (!isRide(a) || a.device_watts !== true || new Date(a.start_date).getTime() < since) return;
+    const b = pcRidePeaks(a.id);
+    if (b && b[1200] > v) v = b[1200];
+  });
+  _pc20Memo = { sig, v };
+  return v;
 }
 
 function _pcSig() { return acts.length + ':' + ((acts[0] && acts[0].id) || ''); }

@@ -508,6 +508,9 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 .speed-peak-pin.pin-hr { background: #e5484d; }
 .leaflet-tooltip.speed-peak-tip.tip-hr { border-color: #e5484d; }
 .speed-legend i { width: 90px; height: 7px; border-radius: 4px; background: linear-gradient(90deg, hsl(120,90%,50%), hsl(60,90%,50%), hsl(0,90%,50%)); }
+/* Power mode: the strongest minute is drawn purple with a white edge */
+.speed-legend-best { display: flex; align-items: center; gap: 5px; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--border); }
+.speed-legend-best em { width: 16px; height: 5px; border-radius: 3px; background: #a855f7; box-shadow: 0 0 0 1.5px #fff; }
 
 /* ── Sleep before/after a training session (activity detail modal) ── */
 .actd-sleep:empty { display: none; }

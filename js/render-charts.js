@@ -575,17 +575,19 @@ function _actBuildMap(a){
     _actTurnaroundPin(m,a,coords);
     _actBigMap=m;
     _actFullscreenControl(m);
+    if(typeof map3dControl==='function') map3dControl(m,[coords]);
     if(a.id) _actMapModeControl(m,a,line);
     setTimeout(()=>{try{m.invalidateSize();m.fitBounds(line.getBounds(),{padding:[24,24]});}catch{}},250);
   }catch{}
 }
 
-/* Route / Speed switch on the activity map. Speed mode recolours the track
-   green (slow) → red (fast) from the full latlng + speed streams. The ends of
-   the scale are the 5th/95th percentile of moving speed, so stops and a single
-   top-speed moment don't flatten everything else into one colour. */
-let _actMapMode = localStorage.getItem('actMapMode')==='speed' ? 'speed' : 'route';
-const _actSpeedTracks = {}; // id → {pts:[[lat,lng,v,hr,raw,watts]], lo, hi} — in memory only, streams are large
+/* Route / Speed / Power switch on the activity map. Speed mode recolours the
+   track green (slow) → red (fast) from the full latlng + speed streams; Power
+   mode does the same with 10-second power and draws the ride's strongest minute
+   in purple. The ends of each scale are the 5th/95th percentile, so stops and a
+   single peak don't flatten everything else into one colour. */
+let _actMapMode = ['speed','power'].includes(localStorage.getItem('actMapMode')) ? localStorage.getItem('actMapMode') : 'route';
+const _actSpeedTracks = {}; // id → {pts:[[lat,lng,v,hr,raw,watts,watts10s]], lo, hi, plo, phi, best} — in memory only, streams are large
 
 async function _actSpeedTrack(id){
   if(_actSpeedTracks[id]) return _actSpeedTracks[id];
@@ -611,21 +613,33 @@ async function _actSpeedTrack(id){
   const mv = pts.map(p=>p[2]).filter(x=>x>1).sort((x,y)=>x-y);
   const q = f => mv.length ? mv[Math.min(mv.length-1, Math.floor(f*mv.length))] : 0;
   let lo=q(.05), hi=q(.95); if(hi-lo<0.5) hi=lo+0.5;
-  return (_actSpeedTracks[id] = {pts, lo, hi});
+  const trk={pts, lo, hi};
+  if(w){
+    // 10-second power (trailing average) for the colours, and the strongest minute
+    let sum=0;
+    pts.forEach((p,i)=>{ sum+=p[5]||0; if(i>=10) sum-=pts[i-10][5]||0; p[6]=sum/Math.min(i+1,10); });
+    const pw=pts.map(p=>p[6]).filter(x=>x>0).sort((x,y)=>x-y);
+    const pq=f=>pw.length?pw[Math.min(pw.length-1,Math.floor(f*pw.length))]:0;
+    trk.plo=pq(.05); trk.phi=pq(.95); if(trk.phi-trk.plo<20) trk.phi=trk.plo+20;
+    let s60=0, bi=-1, bv=0;
+    for(let i=0;i<pts.length;i++){ s60+=pts[i][5]||0; if(i>=60) s60-=pts[i-60][5]||0; if(i>=59 && s60>bv){ bv=s60; bi=i; } }
+    if(bi>=0) trk.best={from:bi-59, to:bi, w:Math.round(bv/60)};
+  }
+  return (_actSpeedTracks[id] = trk);
 }
 
 // 0 → green, 1 → red, through yellow
 const _speedColor = t => `hsl(${Math.round(120*(1-Math.max(0,Math.min(1,t))))},90%,50%)`;
 
-function _actSpeedLayer(trk){
+function _actSpeedLayer(trk, k=2, lo=trk.lo, hi=trk.hi){
   // bucket into 12 colour steps and merge runs, so thousands of points become a
   // handful of polylines instead of one per sample
   const N=12, g=L.layerGroup(), rend=L.canvas();
-  const bin = v => Math.round(Math.max(0,Math.min(1,(v-trk.lo)/(trk.hi-trk.lo)))*(N-1));
-  let run=[[trk.pts[0][0],trk.pts[0][1]]], cur=bin(trk.pts[0][2]);
+  const bin = v => Math.round(Math.max(0,Math.min(1,((v||0)-lo)/(hi-lo)))*(N-1));
+  let run=[[trk.pts[0][0],trk.pts[0][1]]], cur=bin(trk.pts[0][k]);
   const flush = () => { if(run.length>1) L.polyline(run,{color:_speedColor(cur/(N-1)),weight:5,opacity:1,renderer:rend}).addTo(g); };
   for(let i=1;i<trk.pts.length;i++){
-    const p=trk.pts[i], b=bin(p[2]);
+    const p=trk.pts[i], b=bin(p[k]);
     run.push([p[0],p[1]]);
     if(b!==cur){ flush(); run=[[p[0],p[1]]]; cur=b; }
   }
@@ -654,8 +668,8 @@ function _actFullscreenControl(m){
   document.addEventListener('fullscreenchange',onFs);
 }
 
-// Hovering the speed-coloured track shows the speed at the nearest point.
-function _actSpeedHover(m,trk){
+// Hovering the coloured track shows the speed (or power) at the nearest point.
+function _actSpeedHover(m,trk,k=2,lo=trk.lo,hi=trk.hi,fmt=v=>`${kmh(v)}</b> ${speedUnit()}`){
   const tip=L.DomUtil.create('div','speed-hover',m.getContainer());
   const dot=L.circleMarker([0,0],{radius:6,color:'#fff',weight:2,fillOpacity:1,interactive:false});
   let raf=0, ev=null;
@@ -672,8 +686,8 @@ function _actSpeedHover(m,trk){
     }
     if(best<0){ hide(); return; }
     const q=trk.pts[best], c=m.latLngToContainerPoint([q[0],q[1]]);
-    const col=_speedColor((q[2]-trk.lo)/(trk.hi-trk.lo));
-    tip.innerHTML=`<b style="color:${col}">${kmh(q[2])}</b> ${speedUnit()}`;
+    const col=_speedColor(((q[k]||0)-lo)/(hi-lo));
+    tip.innerHTML=`<b style="color:${col}">${fmt(q[k]||0)}`;
     tip.style.display='block'; tip.style.left=c.x+'px'; tip.style.top=c.y+'px';
     dot.setLatLng([q[0],q[1]]).setStyle({fillColor:col}).addTo(m);
   };
@@ -686,7 +700,8 @@ function _actSpeedHover(m,trk){
 
 function _actMapModeControl(m,a,line){
   const T=(typeof tr==='function')?tr:(x=>x);
-  let speedLayer=null, legend=null, hover=null;
+  let speedLayer=null, legend=null, hover=null, powerLayer=null, powerHover=null;
+  if(_actMapMode==='power' && a.device_watts!==true) _actMapMode='speed';
   const legendCtl=L.control({position:'bottomleft'});
   legendCtl.onAdd=()=>{ legend=L.DomUtil.create('div','speed-legend'); return legend; };
 
@@ -713,6 +728,12 @@ function _actMapModeControl(m,a,line){
       const w=pts.slice(Math.max(0,k-1),k+2).map(p=>p[5]).filter(x=>x!=null);
       if(w.length) extra=` · ${Math.round(w.reduce((s,x)=>s+x,0)/w.length)} W`;
     }
+    // speed and power at the max-HR point
+    if(key==='hr'){
+      const v=pts[k][4]!=null?pts[k][4]:pts[k][2];
+      if(v!=null) extra+=` · ${kmh(v)} ${speedUnit()}`;
+      if(a.device_watts===true){ const w=pts.slice(Math.max(0,k-1),k+2).map(p=>p[5]).filter(x=>x!=null); if(w.length) extra+=` · ${Math.round(w.reduce((s,x)=>s+x,0)/w.length)} W`; }
+    }
     // and the speed at the max-power point
     if(key==='power'){ const v=pts[k][4]!=null?pts[k][4]:pts[k][2]; if(v!=null) extra=` · ${kmh(v)} ${speedUnit()}`; }
     if(pins[key]) m.removeLayer(pins[key]);
@@ -736,6 +757,30 @@ function _actMapModeControl(m,a,line){
   };
 
   const apply = async () => {
+    if(powerLayer){ m.removeLayer(powerLayer); powerHover.off(); }
+    if(_actMapMode==='power'){
+      if(speedLayer){ m.removeLayer(speedLayer); hover.off(); }
+      const trk = await _actSpeedTrack(a.id);
+      if(_actBigMap!==m || _actMapMode!=='power') return;
+      if(!trk || !trk.plo){ _actMapMode='route'; sync(); return; }
+      if(!powerLayer){
+        powerLayer=_actSpeedLayer(trk,6,trk.plo,trk.phi);
+        if(trk.best){
+          const seg=trk.pts.slice(trk.best.from,trk.best.to+1).map(p=>[p[0],p[1]]);
+          L.polyline(seg,{color:'#fff',weight:10,opacity:.9}).addTo(powerLayer);
+          L.polyline(seg,{color:'#a855f7',weight:6,opacity:1}).addTo(powerLayer)
+            .bindTooltip(`<b>${trk.best.w} W</b> · ${T('strongest minute')}`,{sticky:true});
+        }
+        powerHover=_actSpeedHover(m,trk,6,trk.plo,trk.phi,v=>`${Math.round(v)}</b> W`);
+      }
+      powerHover.on();
+      line.setStyle({opacity:0});
+      powerLayer.addTo(m);
+      legendCtl.addTo(m);
+      legend.innerHTML=`<span>${Math.round(trk.plo)}</span><i></i><span>${Math.round(trk.phi)} W</span>`
+        +(trk.best?`<span class="speed-legend-best"><em></em>${T('Strongest minute')} ${trk.best.w} W</span>`:'');
+      return;
+    }
     if(_actMapMode==='speed'){
       const trk = await _actSpeedTrack(a.id);
       if(_actBigMap!==m || _actMapMode!=='speed') return; // modal or mode changed while loading
@@ -760,7 +805,8 @@ function _actMapModeControl(m,a,line){
   const c=L.control({position:'topleft'});
   c.onAdd=()=>{
     box=L.DomUtil.create('div','heat-mode leaflet-bar');
-    box.innerHTML=`<button type="button" data-m="route">${T('Route')}</button><button type="button" data-m="speed">${T('Speed')}</button>`;
+    box.innerHTML=`<button type="button" data-m="route">${T('Route')}</button><button type="button" data-m="speed">${T('Speed')}</button>`
+      +(a.device_watts===true?`<button type="button" data-m="power">${T('Power')}</button>`:'');
     L.DomEvent.disableClickPropagation(box);
     box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
       if(b.dataset.m===_actMapMode) return;
@@ -846,6 +892,7 @@ function openActivityModal(ref){
     ${a.id ? '<div class="actd-streams" id="actStreams"></div>' : ''}
     ${a.average_heartrate ? '<div class="actd-hrz" id="actHrz"></div>' : ''}
     ${a.device_watts === true && a.id ? '<div class="actd-hrz" id="actPwz"></div>' : ''}
+    ${a.device_watts === true && a.id ? '<div id="actWbal"></div>' : ''}
     ${a.average_heartrate ? '<div id="actHrd"></div>' : ''}
     ${ride && a.id ? '<div id="actSauce"></div>' : ''}
     ${ride && hasRoute && !a.trainer ? '<div id="actWind"></div>' : ''}
@@ -873,6 +920,7 @@ function openActivityModal(ref){
   if(!hasRoute && typeof renderManualPlace==='function') renderManualPlace(a);
   if(a.average_heartrate) renderActivityHrZones(a);
   if(a.device_watts === true && a.id && typeof renderActivityPowerZones==='function') renderActivityPowerZones(a);
+  if(a.device_watts === true && a.id && typeof renderActivityWbal==='function') renderActivityWbal(a);
   if(a.id) renderActivityStreams(a);
   if(a.id && typeof renderActivityAnalysis==='function') renderActivityAnalysis(a);
   if(typeof renderActivitySleep==='function') renderActivitySleep(a);
