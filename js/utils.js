@@ -60,6 +60,17 @@ const cleanMax = a => {
   return v > 0 ? v : 0;
 };
 // running pace: seconds per km/mi → "m:ss /km" (— when no speed)
+/* Power numbers for a ride with a real power meter (Strava's estimated watts don't count).
+   NP is Strava's weighted_average_watts; IF/TSS use estimateFtp() (js/fitness.js). */
+function ridePower(a) {
+  if (!a || a.device_watts !== true || !(a.average_watts > 0)) return null;
+  const avg = a.average_watts, np = a.weighted_average_watts || null;
+  const f = typeof estimateFtp === 'function' && estimateFtp(), ftp = f ? f.value : 0;
+  const IF = np && ftp ? np / ftp : null;
+  return { avg, np, max: a.max_watts || null, kj: a.kilojoules || null, ftp,
+    vi: np ? np / avg : null, if: IF, tss: IF ? (a.moving_time || 0) * np * IF / (ftp * 3600) * 100 : null,
+    wkg: avg / athWeightKg() };
+}
 const fmtPace = ms => {
   if (!ms || ms <= 0) return '—';
   const spu = (useImperial ? _MI*1000 : 1000) / ms; // seconds per unit

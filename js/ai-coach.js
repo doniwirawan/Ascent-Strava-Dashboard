@@ -269,6 +269,8 @@ function aiActivityData(a) {
     watts_source: a.average_watts ? (a.device_watts === true ? 'power meter' : 'Strava estimate (no power meter)') : undefined,
     np_watts: a.device_watts === true && a.weighted_average_watts ? Math.round(a.weighted_average_watts) : undefined,
     max_watts: a.device_watts === true && a.max_watts ? Math.round(a.max_watts) : undefined,
+    ...(p => p ? { w_per_kg: +p.wkg.toFixed(2), intensity_factor: p.if ? +p.if.toFixed(2) : undefined,
+      variability_index: p.vi ? +p.vi.toFixed(2) : undefined, tss: p.tss ? Math.round(p.tss) : undefined } : {})(ridePower(a)),
     // Strava stores run/walk cadence per leg — double it for steps/min
     avg_cadence: a.average_cadence ? (ride ? Math.round(a.average_cadence) + ' rpm' : Math.round(a.average_cadence * 2) + ' spm') : null,
     kj: a.kilojoules ? Math.round(a.kilojoules) : null,

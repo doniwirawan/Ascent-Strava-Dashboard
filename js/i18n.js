@@ -1119,6 +1119,7 @@ const TR_ID = {
   'Sleep columns appear for the dashboard owner.': 'Kolom tidur hanya tampil untuk pemilik dashboard.',
   'Distance': 'Jarak', 'Elevation': 'Elevasi', 'Avg speed': 'Kecepatan rata-rata', 'Max speed': 'Kecepatan maks', 'Avg power': 'Daya rata-rata', 'Energy': 'Energi',
   'Date': 'Tanggal', 'Activity': 'Aktivitas', 'Type': 'Jenis', 'Destination': 'Tujuan', 'Regency': 'Kabupaten', 'Moving time': 'Waktu bergerak',
+  'Normalized power': 'Daya ternormalisasi', 'Max power': 'Daya maks', 'Intensity factor': 'Faktor intensitas', 'Variability index': 'Indeks variabilitas',
   'Avg HR': 'HR rata-rata', 'Max HR': 'HR maks', 'Relative effort': 'Relative effort', 'Kudos': 'Kudos', 'PRs': 'PR',
   'Sleep': 'Tidur', 'Deep': 'Dalam', 'Light': 'Ringan', 'REM': 'REM', 'Awake (min)': 'Terjaga (mnt)', 'Wake-ups': 'Terbangun',
   'Recovery: HRV and resting HR against your last 30 days': 'Pemulihan: HRV dan HR istirahat dibanding 30 hari terakhir Anda',
