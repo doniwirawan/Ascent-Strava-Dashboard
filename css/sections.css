@@ -1008,6 +1008,10 @@ body.dev .dev-tag { display: inline-block; }
 .tr-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
 .tr-tile { padding: 16px; text-align: center; }
 .pw-tiles { grid-template-columns: repeat(3, 1fr); }
+/* one even gap between every card on the Power page (the borrowed Training cards bring their own margins) */
+#powerBody { display: flex; flex-direction: column; gap: 16px; }
+#powerBody > *, .pw-grid > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+#powerSection > #pwzCard { margin-top: 16px !important; }
 .pw-ins { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; line-height: 1.5; color: var(--text-2); }
 .pw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .pw-bar { display: grid; grid-template-columns: 120px 1fr 32px; align-items: center; gap: 10px; margin-top: 10px; font-size: 12px; }
