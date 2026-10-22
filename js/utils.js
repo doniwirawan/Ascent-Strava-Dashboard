@@ -253,6 +253,7 @@ function navScrollTo(id, btn) {
   if (id === 'dataSection' && typeof renderDataTable === 'function') renderDataTable();
   if (id === 'settingsSection' && typeof renderViewSettings === 'function') renderViewSettings();
   if (id === 'settingsSection' && typeof aiWebhookStatus === 'function') aiWebhookStatus();
+  if (id === 'settingsSection' && typeof renderPersonalApi === 'function') renderPersonalApi();
   // before aiCoachShow: the class hides the footer, which the page's height depends on
   document.body.classList.toggle('on-coach', id === 'coachSection'); // floating buttons would cover the chat input
   if (id === 'coachSection' && typeof aiCoachShow === 'function') aiCoachShow();

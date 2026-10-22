@@ -1010,6 +1010,17 @@
         <div id="webhookStatus" class="ai-test-result"></div>
         <div class="ai-settings-actions"><button class="ai-chip" type="button" onclick="aiWebhookStatus()">Check again</button></div>
       </div>
+      <!-- PERSONAL API — owner only (js/personal-api.js, api/_v1.js) -->
+      <div class="help-card" id="papiCard" style="display:none">
+        <h3>Personal API</h3>
+        <p class="ai-intro">Read all your data from your own apps: activities and streams, stats, sleep, Huawei workouts, purchases, bikes and AI captions. Create a token for each app and send it as <code>Authorization: Bearer …</code>. Revoke a token and that app loses access at once. Base URL: <code id="papiBase"></code> (open it with a token for the list of endpoints).</p>
+        <div class="ai-settings-actions">
+          <input id="papiName" class="papi-name" type="text" maxlength="60" placeholder="App name, e.g. My phone">
+          <button class="ai-chip ai-chip-primary" type="button" onclick="papiCreate()">Create token</button>
+        </div>
+        <div id="papiNew" class="ai-test-result" style="display:none"></div>
+        <div id="papiList" class="papi-list"></div>
+      </div>
 
 
       <div class="help-card">
@@ -1413,6 +1424,7 @@
 <script src="js/climb-ftp.js"></script>
 <script src="js/sauce.js"></script>
 <script src="js/power.js"></script>
+<script src="js/personal-api.js"></script>
 <script src="js/hr-decoupling.js"></script>
 <script src="js/time-lost.js"></script>
 <script src="js/wind-analysis.js"></script>

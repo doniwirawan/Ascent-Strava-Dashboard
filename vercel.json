@@ -16,6 +16,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/v1", "destination": "/api/stats?v1=" },
+    { "source": "/api/v1/:path*", "destination": "/api/stats?v1=:path*" },
     { "source": "/callback", "destination": "/callback.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms", "destination": "/terms.html" },

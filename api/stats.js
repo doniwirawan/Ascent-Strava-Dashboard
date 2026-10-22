@@ -276,6 +276,8 @@ async function loadStats({ strava = true } = {}) {
 }
 
 module.exports = async (req, res) => {
+  // /api/v1/* (the personal API) is rewritten here so it costs no extra function
+  if (req.query && req.query.v1 !== undefined) return require('./_v1.js')(req, res);
   const origin = req.headers.origin || '';
   if (ALLOWED_ORIGINS.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');

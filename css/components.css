@@ -735,3 +735,13 @@ body.map-fs-open { overflow: hidden; }
 .cai-hact { display: flex; gap: 4px; flex-shrink: 0; }
 .cai-hact button { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 4px 7px; cursor: pointer; font-size: 12px; color: var(--text); }
 .cai-hact button:hover { border-color: var(--orange); }
+
+/* Settings → Personal API */
+.papi-name { flex: 1; min-width: 0; padding: 7px 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+.papi-list { margin-top: 10px; }
+.papi-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.papi-row > div { flex: 1; min-width: 0; }
+.papi-row small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+.papi-token { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.papi-token code { flex: 1; min-width: 0; overflow-wrap: anywhere; padding: 6px 8px; background: var(--surface2); border-radius: 6px; font-size: 12px; }
+.papi-ex { margin: 8px 0 0; padding: 8px; background: var(--surface2); border-radius: 6px; font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
