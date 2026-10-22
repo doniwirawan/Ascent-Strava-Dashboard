@@ -28,7 +28,8 @@ class HttpError extends Error { constructor(status, code, extra) { super(code); 
 async function sb(path, opts = {}) {
   const r = await fetch(sbUrl() + path, { ...opts, headers: { ...sbH(), ...(opts.headers || {}) } });
   if (!r.ok) throw new HttpError(502, 'store_unavailable', { status: r.status });
-  return r.status === 204 ? null : r.json();
+  const text = await r.text();                      // writes with return=minimal answer 201 + empty body
+  return text ? JSON.parse(text) : null;
 }
 
 async function neon(id) {
@@ -125,6 +126,42 @@ async function activity(id, q) {
   return out;
 }
 
+// POST /sleep — nights from the Android app (Health Connect, e.g. JoyoFit + a
+// Huawei watch). Body { source, nights: [{ date, asleep, deep, light, rem, wake,
+// nap, wakeups, bed, up, tib, eff, napt, steps, dist, cal }] } in the same
+// columns as the export import (js/sleep-import.js). Merged into the sleep_data
+// row by date: new nights are added; nights that came from the Huawei export are
+// never overwritten; nights an earlier app sync wrote are replaced (hc_dates).
+const SLEEP_FIELDS = ['asleep', 'deep', 'light', 'rem', 'wake', 'nap', 'wakeups', 'bed', 'up', 'tib', 'eff', 'napt', 'steps', 'dist', 'cal', 'rhr', 'hrv'];
+async function saveSleep(req) {
+  let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+  const nights = Array.isArray(body && body.nights) ? body.nights.filter(n => n && /^\d{4}-\d{2}-\d{2}$/.test(n.date)) : null;
+  if (!nights || !nights.length) throw new HttpError(400, 'bad_request', { need: ['nights[].date'] });
+  const owner = env('OWNER_ATHLETE_ID');
+  const [row] = await sb('sleep_data?id=eq.' + encodeURIComponent(owner) + '&select=data');
+  let data = row && row.data && Array.isArray(row.data.rows) ? row.data : null;
+  if (!data) { try { data = JSON.parse(JSON.stringify(require('../private/sleep.json'))); } catch { throw new HttpError(404, 'no_sleep_data'); } }
+  const col = Object.fromEntries(data.cols.map((c, i) => [c, i]));
+  const byDate = new Map(data.rows.map(r => [r[0], r]));
+  const hc = new Set(data.hc_dates || []);
+  let added = 0, updated = 0, kept = 0;
+  for (const n of nights) {
+    let r = byDate.get(n.date);
+    if (r && r[col.asleep] > 0 && !hc.has(n.date)) { kept++; continue; }     // the export's night wins
+    if (!r) { r = data.cols.map(() => null); r[0] = n.date; ['asleep', 'deep', 'light', 'rem', 'wake', 'nap'].forEach(k => { r[col[k]] = 0; }); data.rows.push(r); byDate.set(n.date, r); added++; }
+    else updated++;
+    SLEEP_FIELDS.forEach(k => { if (k in col && n[k] != null) r[col[k]] = n[k]; });
+    hc.add(n.date);
+  }
+  data.rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  data.hc_dates = [...hc].sort();
+  data.hc_source = String((body && body.source) || 'Health Connect').slice(0, 80);
+  data.hc_synced_at = new Date().toISOString();
+  await sb('sleep_data?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: owner, data, synced_at: new Date().toISOString() }) });
+  return { ok: true, added, updated, kept_from_export: kept, last: data.rows[data.rows.length - 1][0] };
+}
+
 async function sleep() {
   const [row] = await sb('sleep_data?id=eq.' + encodeURIComponent(env('OWNER_ATHLETE_ID')) + '&select=data');
   if (row && row.data) return row.data;
@@ -191,7 +228,8 @@ const INDEX = {
     'GET /api/v1/activities/{id}?streams=1&live=1': 'One activity; streams=1 (or a key list) adds its streams from Strava',
     'GET /api/v1/stats': 'Totals, YTD, bests, by month / sport, calendar, streak, fitness',
     'GET /api/v1/strava-stats': 'Strava’s own all-time / YTD / 4-week totals',
-    'GET /api/v1/sleep': 'Sleep nights from the Huawei export',
+    'GET /api/v1/sleep': 'Sleep nights from the Huawei export (and the Android app)',
+    'POST /api/v1/sleep': 'Add nights { nights: [{ date, asleep, deep, light, rem, … }] } — the Android app’s Health Connect sync',
     'GET /api/v1/huawei': 'Huawei workouts (GET /api/v1/huawei/{record_id} for one with its track)',
     'GET /api/v1/purchases?category=&after=&before=&cancelled=1': 'Purchases from the finance app',
     'GET /api/v1/bikes': 'Each bike and what its parts cost',
@@ -203,6 +241,8 @@ const INDEX = {
 async function route(req, parts) {
   const [head, id, sub] = parts;
   if (head === 'tokens') return tokens(req, id);
+  // the one write: the Android app adding sleep nights from Health Connect
+  if (head === 'sleep' && req.method === 'POST') { await requireApiToken(req); return saveSleep(req); }
   if (req.method !== 'GET') throw new HttpError(405, 'method_not_allowed');
   await requireApiToken(req);
   const q = req.query || {};
@@ -234,6 +274,6 @@ module.exports = async (req, res) => {
   try { res.status(200).json(await route(req, parts)); }
   catch (e) {
     if (e instanceof HttpError) res.status(e.status).json(e.body);
-    else res.status(500).json({ error: 'server_error' });
+    else { console.error('v1', parts.join('/'), e); res.status(500).json({ error: 'server_error' }); }
   }
 };

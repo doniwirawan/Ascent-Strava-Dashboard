@@ -200,7 +200,8 @@ code — anyone holding one can read everything below.
 | `/activities/{id}` | One activity. `?streams=1` adds every stream from Strava (or a list: `?streams=watts,heartrate,latlng`); `?live=1` asks Strava when it isn't cached |
 | `/stats` | Totals, YTD, last 7/30 days, bests, by month / sport, calendar, streak, fitness |
 | `/strava-stats` | Strava's own all-time / YTD / 4-week totals |
-| `/sleep` | Sleep nights (Huawei export): `{ cols, rows, … }` |
+| `/sleep` | Sleep nights (Huawei export + the Android app's Health Connect sync): `{ cols, rows, … }` |
+| `POST /sleep` | The one write: `{ source, nights: [{ date, asleep, deep, light, rem, wake, nap, wakeups, bed, up, tib, eff, napt, steps, dist, cal }] }` (minutes; `bed`/`up` local hours, bed negative before midnight; a night is dated by the morning you woke). New nights are added, nights from the Huawei export are never overwritten, nights an earlier app sync wrote are replaced. |
 | `/huawei` | Huawei workouts (no tracks); `/huawei/{record_id}` for one with its track |
 | `/purchases?category=Cycling&after=&before=&cancelled=1` | Purchases from the finance app; cancelled orders hidden unless `cancelled=1` |
 | `/bikes` | Each bike with the parts assigned to it and what they cost |

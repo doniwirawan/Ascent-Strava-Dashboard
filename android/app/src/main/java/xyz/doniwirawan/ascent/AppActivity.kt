@@ -116,6 +116,11 @@ class AppActivity : Activity() {
                 ui.post { if (current == "home" && Api.hasToken(this)) show("home") }
             }
             checkForUpdate(false)
+            // watch sleep from Health Connect, at most every 6 hours
+            io.execute {
+                val go = try { HealthSync.available(this) && HealthSync.due(this) && HealthSync.hasSleepPermission(this) } catch (e: Exception) { false }
+                if (go) { runHealthSync(); ui.post { if (current == "sleep") show("sleep") } }
+            }
         } else showSettings()
     }
 
@@ -280,6 +285,63 @@ class AppActivity : Activity() {
         col.addView(upNote)
     }
 
+    /** Sleep tab: pull watch sleep from Health Connect (HealthSync.kt). */
+    fun healthCard(): LinearLayout {
+        val c = Ui.card(this)
+        c.addView(Ui.text(this, "Watch sleep · Health Connect", 14f, Ui.TEXT, true))
+        val note = Ui.text(this, "", 12f, Ui.MUTED).apply { setPadding(0, Ui.dp(this@AppActivity, 4), 0, 0) }
+        c.addView(note)
+        val st = HealthSync.status(this)
+        if (st != androidx.health.connect.client.HealthConnectClient.SDK_AVAILABLE) {
+            note.text = "Health Connect isn't set up on this phone. Install it, then turn on \"Write to Health Connect\" in your watch app (e.g. JoyoFit for the Watch Fit 4)."
+            c.addView(button("Get Health Connect") {
+                startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=com.google.android.apps.healthdata&url=healthconnect%3A%2F%2Fonboarding")))
+            })
+            return c
+        }
+        if (!HealthSync.hasSleepPermission(this)) {
+            note.text = "Let Ascent read the sleep your watch app writes to Health Connect (e.g. JoyoFit with the Watch Fit 4: Settings → Health & cloud → Write to Health Connect). Nights go to your dashboard too."
+            c.addView(button("Allow Health Connect access") {
+                try { HealthSync.requestPermissions(this, REQ_HC) } catch (e: Exception) { note.text = "Couldn't open Health Connect: ${e.message}" }
+            })
+            return c
+        }
+        val err = Repo.prefs(this).getString("hc_error", null)
+        note.text = err?.let { "Last try failed: $it" } ?: HealthSync.lastSync(this)?.let { "Last sync: $it" } ?: "Ready. Tap to pull the last 30 nights."
+        if (err != null) note.setTextColor(Ui.RED)
+        c.addView(button("Sync sleep now") { syncHealth(note, true) })
+        return c
+    }
+
+    private fun syncHealth(note: TextView?, manual: Boolean) {
+        note?.text = "Reading Health Connect…"
+        io.execute {
+            runHealthSync()
+            ui.post { if (current == "sleep") show("sleep") }       // card shows the result, chart the new nights
+        }
+    }
+
+    /** One sync; remembers a failure for the card (success is kept by HealthSync). */
+    private fun runHealthSync() {
+        try { HealthSync.sync(this); Repo.prefs(this).edit().remove("hc_error").apply() }
+        catch (e: Exception) { Repo.prefs(this).edit().putString("hc_error", e.message ?: e.javaClass.simpleName).apply() }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(req: Int, result: Int, data: Intent?) {
+        super.onActivityResult(req, result, data)
+        if (req == REQ_HC) afterHealthPermission()
+    }
+
+    override fun onRequestPermissionsResult(req: Int, perms: Array<out String>, results: IntArray) {
+        super.onRequestPermissionsResult(req, perms, results)
+        if (req == REQ_HC) afterHealthPermission()
+    }
+
+    private fun afterHealthPermission() {
+        if (HealthSync.hasSleepPermission(this)) syncHealth(null, true) else if (current == "sleep") show("sleep")
+    }
+
     fun button(label: String, onClick: () -> Unit) = Button(this).apply {
         text = label
         setOnClickListener { onClick() }
@@ -288,5 +350,9 @@ class AppActivity : Activity() {
 
     fun openRide(a: JSONObject) {
         startActivity(Intent(this, RideActivity::class.java).putExtra("activity", a.toString()))
+    }
+
+    companion object {
+        private const val REQ_HC = 2001
     }
 }
