@@ -1008,6 +1008,17 @@ body.dev .dev-tag { display: inline-block; }
 .tr-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
 .tr-tile { padding: 16px; text-align: center; }
 .pw-tiles { grid-template-columns: repeat(3, 1fr); }
+.pw-ins { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; line-height: 1.5; color: var(--text-2); }
+.pw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pw-bar { display: grid; grid-template-columns: 120px 1fr 32px; align-items: center; gap: 10px; margin-top: 10px; font-size: 12px; }
+.pw-bar i { height: 8px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.pw-bar em { display: block; height: 100%; }
+.pw-bar b { text-align: right; }
+.pw-row { display: flex; align-items: baseline; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.pw-row span { flex: 1; min-width: 0; color: var(--text-2); }
+.pw-row small { color: var(--muted); font-size: 11px; }
+.pw-sub { margin-top: 14px; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+@media (max-width: 720px) { .pw-grid { grid-template-columns: 1fr; } }
 .tr-tile-val { font-size: 30px; font-weight: 900; letter-spacing: -.5px; line-height: 1; }
 .tr-tile-unit { font-size: 13px; font-weight: 700; margin-left: 2px; color: var(--muted); }
 .tr-tile-lbl { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }

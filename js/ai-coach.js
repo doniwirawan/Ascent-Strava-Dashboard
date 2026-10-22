@@ -980,6 +980,7 @@ const AI_SECTION_LABEL = {
   milestonesSection: 'Achievements — trophies (all-time, year-to-date and last-4-week training totals, NOT KOM/segment awards), distance/elevation milestones and personal records',
   calSection:        'Calendar — activity frequency and consistency',
   heatSection:       'Heatmap — where you train (geographic spread of routes)',
+  powerSection:      'Power — FTP, W/kg, normalized power, intensity, efficiency (watts per heartbeat) and power-meter rides',
   sleepSection:      'Sleep & Recovery — measured sleep stages joined to training days (a night is labelled by the morning of waking)',
 };
 
