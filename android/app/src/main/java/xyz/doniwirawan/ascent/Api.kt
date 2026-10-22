@@ -15,7 +15,9 @@ import java.net.URL
  */
 object Api {
 
-    fun token(ctx: Context): String = Repo.prefs(ctx).getString("api_token", "") ?: ""
+    /** The token typed into the app, else the one a -Ppersonal build carries. */
+    fun token(ctx: Context): String =
+        Repo.prefs(ctx).getString("api_token", null)?.takeIf { it.isNotBlank() } ?: BuildConfig.BAKED_API_TOKEN
 
     fun hasToken(ctx: Context) = token(ctx).startsWith("asc_")
 

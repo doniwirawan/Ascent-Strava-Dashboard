@@ -3,6 +3,15 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// -Ppersonal builds a ready-to-use APK for the owner's own phone: it carries a
+// Personal API token from personal.properties (gitignored, API_TOKEN=asc_…), so
+// the app opens straight into the data with no setup. That APK can read all of
+// the owner's data — never publish it. Plain builds carry no token.
+def personalProps = new Properties()
+def personalFile = rootProject.file('personal.properties')
+if (project.hasProperty('personal') && personalFile.exists()) personalFile.withInputStream { personalProps.load(it) }
+def bakedApiToken = (personalProps['API_TOKEN'] ?: '').trim()
+
 // Release signing comes from keystore.properties when it exists; without it the
 // release build falls back to the debug key so `assembleRelease` always works.
 def keystoreProps = new Properties()
@@ -21,7 +30,8 @@ android {
         versionName "2.0"
 
         // Data comes from the personal API with a token typed into the app, so
-        // nothing personal is baked into the APK.
+        // nothing personal is baked into the APK (unless built with -Ppersonal).
+        buildConfigField "String", "BAKED_API_TOKEN", "\"${bakedApiToken}\""
         buildConfigField "String", "API_BASE", "\"https://ascent-analytics.doniwirawan.xyz/api/v1/\""
         buildConfigField "String", "TOKEN_ENDPOINT", "\"https://ascent-analytics.doniwirawan.xyz/api/strava-token\""
         buildConfigField "String", "DASHBOARD_URL", "\"https://ascent-analytics.doniwirawan.xyz/\""
