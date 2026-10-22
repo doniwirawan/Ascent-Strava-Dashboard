@@ -26,8 +26,8 @@ android {
         applicationId "xyz.doniwirawan.ascent"
         minSdk 29
         targetSdk 34
-        versionCode 7
-        versionName "2.4"
+        versionCode 8
+        versionName "2.5"
 
         // Data comes from the personal API with a token typed into the app, so
         // nothing personal is baked into the APK (unless built with -Ppersonal).

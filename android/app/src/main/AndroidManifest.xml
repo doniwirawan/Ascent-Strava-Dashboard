@@ -8,6 +8,8 @@
     <!-- Health Connect: read the sleep and steps your watch app writes there -->
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <!-- read further back than 30 days (the first sync backfills a year) -->
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
 
     <queries>
         <package android:name="com.google.android.apps.healthdata" />

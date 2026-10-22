@@ -300,16 +300,20 @@ class AppActivity : Activity() {
             return c
         }
         if (!HealthSync.hasSleepPermission(this)) {
-            note.text = "Let Ascent read the sleep your watch app writes to Health Connect (e.g. JoyoFit with the Watch Fit 4: Settings → Health & cloud → Write to Health Connect). Nights go to your dashboard too."
+            note.text = "Let Ascent read the sleep in Health Connect. To keep your watch on Huawei Health, add the Health Sync app (Huawei Health to Health Connect, Sleep on). JoyoFit works too, but it resets the watch when it pairs. Also allow past data, so the first sync reaches a year back."
             c.addView(button("Allow Health Connect access") {
                 try { HealthSync.requestPermissions(this, REQ_HC) } catch (e: Exception) { note.text = "Couldn't open Health Connect: ${e.message}" }
             })
             return c
         }
         val err = Repo.prefs(this).getString("hc_error", null)
-        note.text = err?.let { "Last try failed: $it" } ?: HealthSync.lastSync(this)?.let { "Last sync: $it" } ?: "Ready. Tap to pull the last 30 nights."
+        note.text = err?.let { "Last try failed: $it" } ?: HealthSync.lastSync(this)?.let { "Last sync: $it" } ?: "Ready. Tap to pull your nights from Health Connect."
         if (err != null) note.setTextColor(Ui.RED)
         c.addView(button("Sync sleep now") { syncHealth(note, true) })
+        // past-data access is a separate switch; offer it until it's on
+        if (!HealthSync.hasHistory(this)) c.addView(button("Allow past data (older nights)") {
+            try { HealthSync.requestPermissions(this, REQ_HC) } catch (e: Exception) { note.text = "Couldn't open Health Connect: ${e.message}" }
+        })
         return c
     }
 

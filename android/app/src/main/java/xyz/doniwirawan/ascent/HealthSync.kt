@@ -29,9 +29,12 @@ import java.time.temporal.ChronoUnit
  */
 object HealthSync {
 
+    /** Health Connect only lets apps read 30 days back unless they also hold this one. */
+    const val HISTORY = "android.permission.health.READ_HEALTH_DATA_HISTORY"
     val PERMISSIONS = setOf(
         HealthPermission.getReadPermission(SleepSessionRecord::class),
         HealthPermission.getReadPermission(StepsRecord::class),
+        HISTORY,
     )
     private const val DEFAULT_OFFSET_MS = 8 * 3600_000L        // Bali, when a record carries no offset
 
@@ -56,11 +59,22 @@ object HealthSync {
             .contains(HealthPermission.getReadPermission(SleepSessionRecord::class))
     }
 
+    fun hasHistory(ctx: Context): Boolean = available(ctx) && runBlocking {
+        HealthConnectClient.getOrCreate(ctx).permissionController.getGrantedPermissions().contains(HISTORY)
+    }
+
     fun lastSync(ctx: Context): String? = Repo.prefs(ctx).getString("hc_last", null)
 
-    /** Reads the last `days` days, uploads them, returns a line for the screen. Network + disk; call off the UI thread. */
-    fun sync(ctx: Context, days: Long = 30): String {
+    /**
+     * Reads recent nights, uploads them, returns a line for the screen. The first
+     * sync with history access reaches a year back (e.g. what Health Sync copied
+     * from Huawei Health); later ones only the last 30 days. Network + disk; call
+     * off the UI thread.
+     */
+    fun sync(ctx: Context, daysOverride: Long? = null): String {
         val client = HealthConnectClient.getOrCreate(ctx)
+        val history = runBlocking { client.permissionController.getGrantedPermissions().contains(HISTORY) }
+        val days = daysOverride ?: if (history && !Repo.prefs(ctx).getBoolean("hc_backfilled", false)) 365L else 30L
         val end = Instant.now()
         val start = end.minus(days, ChronoUnit.DAYS)
         val range = TimeRangeFilter.between(start, end)
@@ -70,12 +84,13 @@ object HealthSync {
                 readAll(client, StepsRecord::class, range) else emptyList()
         }
         val nights = fold(sessions, steps)
-        if (nights.length() == 0) return "Health Connect has no sleep for the last $days days yet — sync your watch in its app first."
+        if (nights.length() == 0) return "Health Connect has no sleep for the last $days days yet — sync your watch app (or Health Sync) first."
         val res = post(ctx, JSONObject().put("source", "Health Connect").put("nights", nights))
         val msg = "Synced ${sessions.size} sleep sessions: ${res.optInt("added")} new nights, ${res.optInt("updated")} updated" +
             (if (res.optInt("kept_from_export") > 0) ", ${res.optInt("kept_from_export")} kept from the Huawei export" else "") + "."
         Repo.prefs(ctx).edit().putString("hc_last", java.text.SimpleDateFormat("d MMM, HH:mm", java.util.Locale.getDefault()).format(java.util.Date()) + " · " + msg)
-            .putLong("hc_last_at", System.currentTimeMillis()).apply()
+            .putLong("hc_last_at", System.currentTimeMillis())
+            .putBoolean("hc_backfilled", Repo.prefs(ctx).getBoolean("hc_backfilled", false) || days > 30).apply()
         return msg
     }
 
