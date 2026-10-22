@@ -53,6 +53,7 @@ class AppActivity : Activity() {
             setPadding(Ui.dp(this@AppActivity, 16), Ui.dp(this@AppActivity, 12), Ui.dp(this@AppActivity, 8), Ui.dp(this@AppActivity, 4))
         }
         top.addView(Ui.text(this, "Ascent", 20f, Ui.TEXT, true), LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        top.addView(topButton("AI") { startActivity(Intent(this, ChatsActivity::class.java)) })
         top.addView(topButton("Web") { startActivity(Intent(this, MainActivity::class.java)) })
         top.addView(topButton("⚙") { showSettings() })
         root.addView(top)

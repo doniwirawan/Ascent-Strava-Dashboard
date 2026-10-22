@@ -24,7 +24,7 @@ object Screens {
         v.apply { layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, Ui.dp(a, h)) }
 
     // ── Home ────────────────────────────────────────────────────────────────
-    fun home(a: AppActivity): Unit = a.load(listOf("stats")) { r ->
+    fun home(a: AppActivity): Unit = a.load(listOf("stats", "activities?limit=300")) { r ->
         val s = r["stats"] ?: return@load
         val col = a.page()
         fun tot(o: JSONObject?) = o ?: JSONObject()
@@ -61,6 +61,27 @@ object Screens {
                 "${f.optInt("ctl")}" to "fitness (CTL)|effort", "${f.optInt("atl")}" to "fatigue (ATL)|energy",
                 String.format(Locale.US, "%+d", f.optInt("tsb")) to "form · ${f.optString("form")}", String.format(Locale.US, "%+d", f.optInt("ramp")) to "ramp / week",
             )))
+        }
+
+        s.optJSONObject("fitness")?.optJSONArray("last_90_days")?.let { arr ->
+            val days = list(arr)
+            if (days.size > 1) {
+                col.addView(Ui.heading(a, "Fitness & form, 90 days"))
+                col.addView(Ui.card(a).apply {
+                    addView(chart(a, FitnessChart(a).apply {
+                        set(days.map { it.optDouble("ctl") }.toDoubleArray(), days.map { it.optDouble("tsb") }.toDoubleArray(), days.map { Ui.date(it.optString("date")).substringBeforeLast(' ') })
+                    }, 160))
+                    addView(Ui.text(a, "Orange line: fitness (CTL). Bars: form (TSB) — green fresh, red fatigued.", 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 6), 0, 0) })
+                })
+            }
+        }
+
+        s.optJSONObject("calendar")?.let { cal ->
+            val km = list(cal.optJSONArray("days")).associate { it.optString("date") to it.optDouble("km") }
+            col.addView(Ui.heading(a, "Last 12 months · ${km.size} active days"))
+            col.addView(Ui.card(a).apply {
+                addView(chart(a, CalendarHeat(a).apply { set(cal.optString("from"), km, cal.optString("to")) }, 64))
+            })
         }
 
         s.optJSONObject("latest_ride")?.let { l ->
@@ -102,42 +123,107 @@ object Screens {
                 addView(Ui.row(a, "Longest time moving", String.format(Locale.US, "%.1f h", b.optDouble("longest_moving_hours"))))
             })
         }
+        // Eddington (website: render-overview.js): the largest E with E rides of ≥ E km
+        val rideKm = list(r["activities?limit=300"]?.optJSONArray("activities")).filter { isRide(it) }.map { it.optDouble("distance") / 1000 }
+        if (rideKm.isNotEmpty()) {
+            val sorted = rideKm.sortedDescending()
+            var e = 0; while (e < sorted.size && sorted[e] >= e + 1) e++
+            col.addView(Ui.heading(a, "Eddington number"))
+            col.addView(Ui.card(a).apply {
+                addView(LinearLayout(a).apply {
+                    orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+                    addView(Ui.text(a, "$e", 40f, Ui.ORANGE, true))
+                    addView(Ui.text(a, "$e rides of at least $e km", 13f, Ui.MUTED).apply { setPadding(Ui.dp(a, 14), 0, 0, 0) })
+                })
+                (e + 1..e + 3).forEach { t ->
+                    val have = rideKm.count { it >= t }
+                    addView(Ui.divider(a))
+                    addView(Ui.row(a, "E = $t", "${maxOf(0, t - have)} more", "rides of ≥ $t km · have $have of $t"))
+                }
+            })
+        }
+        list(s.optJSONArray("bikes")).takeIf { it.isNotEmpty() }?.let { bikes ->
+            col.addView(Ui.heading(a, "Bikes"))
+            col.addView(Ui.card(a).apply {
+                bikes.forEachIndexed { i, b ->
+                    if (i > 0) addView(Ui.divider(a))
+                    addView(Ui.row(a, b.optString("name"), String.format(Locale.US, "%,.0f km", b.optDouble("distance_km"))))
+                }
+            })
+        }
+
         col.addView(Ui.text(a, "From your dashboard's database · synced ${Ui.date(s.optString("synced_at"))}", 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 10), 0, 0) })
     }
 
     // ── Rides ───────────────────────────────────────────────────────────────
     private var rideFilter = "all"
+    private var rideQuery = ""
 
     fun rides(a: AppActivity): Unit = a.load(listOf("activities?limit=300")) { r ->
         val all = list(r["activities?limit=300"]?.optJSONArray("activities"))
         val col = a.page()
+
+        col.addView(a.button("Map of all routes") { a.startActivity(android.content.Intent(a, RoutesActivity::class.java)) })
+        val search = android.widget.EditText(a).apply {
+            hint = "Search rides by name or place"
+            setText(rideQuery)
+            setSingleLine(true)
+            setTextColor(Ui.TEXT); setHintTextColor(Ui.MUTED)
+        }
+        col.addView(search, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { topMargin = Ui.dp(a, 6) })
+
         val chips = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("all" to "All", "ride" to "Rides", "run" to "Runs", "other" to "Other").forEach { (id, label) ->
-            chips.addView(Ui.text(a, label, 13f, if (id == rideFilter) Ui.ORANGE else Ui.MUTED, true).apply {
-                setPadding(0, Ui.dp(a, 6), Ui.dp(a, 18), Ui.dp(a, 10))
-                setOnClickListener { rideFilter = id; rides(a) }
-            })
-        }
         col.addView(chips)
-        val shown = all.filter {
-            val t = it.optString("sport_type").ifEmpty { it.optString("type") }
-            when (rideFilter) { "ride" -> isRide(it); "run" -> t.contains("Run"); "other" -> !isRide(it) && !t.contains("Run"); else -> true }
-        }
-        col.addView(Ui.text(a, "${shown.size} activities", 11f, Ui.MUTED))
-        val c = Ui.card(a)
-        shown.forEachIndexed { i, act ->
-            if (i > 0) c.addView(Ui.divider(a))
-            val watts = act.optDouble("average_watts", 0.0)
-            val value = when {
-                act.optBoolean("device_watts") && watts > 0 -> "${Math.round(watts)} W"
-                isRide(act) -> Ui.kmh(act.optDouble("average_speed"))
-                else -> Ui.hm(act.optLong("moving_time"))
+        val count = Ui.text(a, "", 11f, Ui.MUTED)
+        col.addView(count)
+        val box = Ui.card(a)
+        col.addView(box)
+
+        fun place(act: JSONObject) = act.optJSONObject("route_places")?.let { rp ->
+            listOf("furthest_landmark", "furthest_place").map { rp.optString(it) }.firstOrNull { it.isNotEmpty() && it != "null" }
+        }.orEmpty()
+
+        fun fill() {
+            val q = rideQuery.trim().lowercase(Locale.ROOT)
+            val shown = all.filter {
+                val t = it.optString("sport_type").ifEmpty { it.optString("type") }
+                val kindOk = when (rideFilter) { "ride" -> isRide(it); "run" -> t.contains("Run"); "other" -> !isRide(it) && !t.contains("Run"); else -> true }
+                kindOk && (q.isEmpty() || it.optString("name").lowercase(Locale.ROOT).contains(q) || place(it).lowercase(Locale.ROOT).contains(q))
             }
-            c.addView(Ui.row(a, act.optString("name"), value,
-                Ui.date(act.optString("start_date_local")) + " · " + Ui.km(act.optDouble("distance")) + " · " + Ui.hm(act.optLong("moving_time")) +
-                    " · ${Math.round(act.optDouble("total_elevation_gain"))} m").apply { setOnClickListener { a.openRide(act) } })
+            count.text = "${shown.size} activities" + if (shown.isNotEmpty()) " · " + Ui.km(shown.sumOf { it.optDouble("distance") }) else ""
+            box.removeAllViews()
+            if (shown.isEmpty()) box.addView(Ui.text(a, "Nothing matches.", 13f, Ui.MUTED))
+            shown.take(200).forEachIndexed { i, act ->
+                if (i > 0) box.addView(Ui.divider(a))
+                val watts = act.optDouble("average_watts", 0.0)
+                val value = when {
+                    act.optBoolean("device_watts") && watts > 0 -> "${Math.round(watts)} W"
+                    isRide(act) -> Ui.kmh(act.optDouble("average_speed"))
+                    else -> Ui.hm(act.optLong("moving_time"))
+                }
+                val where = place(act).takeIf { it.isNotEmpty() }?.let { " · $it" }.orEmpty()
+                box.addView(Ui.row(a, act.optString("name"), value,
+                    Ui.date(act.optString("start_date_local")) + " · " + Ui.km(act.optDouble("distance")) + " · " + Ui.hm(act.optLong("moving_time")) +
+                        " · ${Math.round(act.optDouble("total_elevation_gain"))} m" + where).apply { setOnClickListener { a.openRide(act) } })
+            }
         }
-        col.addView(c)
+
+        fun drawChips() {
+            chips.removeAllViews()
+            listOf("all" to "All", "ride" to "Rides", "run" to "Runs", "other" to "Other").forEach { (id, label) ->
+                chips.addView(Ui.text(a, label, 13f, if (id == rideFilter) Ui.ORANGE else Ui.MUTED, true).apply {
+                    setPadding(0, Ui.dp(a, 10), Ui.dp(a, 18), Ui.dp(a, 8))
+                    setOnClickListener { rideFilter = id; drawChips(); fill() }
+                })
+            }
+        }
+        drawChips()
+        search.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(e: android.text.Editable?) { rideQuery = e?.toString().orEmpty(); fill() }
+            override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, af: Int) {}
+            override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
+        })
+        fill()
     }
 
     // ── Power ───────────────────────────────────────────────────────────────
@@ -188,6 +274,19 @@ object Screens {
                     (if (p.vi > 0) String.format(Locale.US, " · VI %.2f", p.vi) else "")).apply { setOnClickListener { a.openRide(p.a) } })
         }
         col.addView(c)
+        // training zones (website Training Zones card): what each zone means in watts / bpm
+        col.addView(Ui.heading(a, "Training zones"))
+        col.addView(Ui.card(a).apply {
+            addView(Ui.text(a, "Power · FTP ${Math.round(ftp)} W", 13f, Ui.TEXT, true))
+            Zones.POWER.forEachIndexed { i, z -> addView(Ui.row(a, z.name, Zones.range(Zones.POWER, i, ftp) + " W").apply { (getChildAt(0) as LinearLayout).getChildAt(0).let { (it as android.widget.TextView).setTextColor(z.color) } }) }
+            val lthr = Zones.lthr(a)
+            if (lthr > 0) {
+                addView(Ui.text(a, "Heart rate · threshold ${Math.round(lthr)} bpm", 13f, Ui.TEXT, true).apply { setPadding(0, Ui.dp(a, 14), 0, 0) })
+                Zones.HEART.forEachIndexed { i, z -> addView(Ui.row(a, z.name, Zones.range(Zones.HEART, i, lthr) + " bpm").apply { (getChildAt(0) as LinearLayout).getChildAt(0).let { (it as android.widget.TextView).setTextColor(z.color) } }) }
+            }
+            addView(Ui.text(a, "Easy rides belong in Z2. Sweet spot and Z4 build FTP; keep them to 1–2 sessions a week.", 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 8), 0, 0) })
+        })
+
         col.addView(Ui.text(a, "NP = normalized power · IF = NP ÷ FTP · TSS = training stress (100 ≈ an hour at FTP) · VI = NP ÷ average. Set your own FTP on the web dashboard's Power page.", 11f, Ui.MUTED))
     }
 

@@ -249,3 +249,93 @@ class TabIcon(ctx: Context, private val kind: String) : View(ctx) {
         c.restore()
     }
 }
+
+/** Fitness (CTL) as a line over form (TSB) bars around zero — the website's Training chart, simplified. */
+class FitnessChart(ctx: Context) : View(ctx) {
+    private var ctl = DoubleArray(0)
+    private var tsb = DoubleArray(0)
+    private var labels: List<String> = emptyList()
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    fun set(ctl: DoubleArray, tsb: DoubleArray, labels: List<String>) { this.ctl = ctl; this.tsb = tsb; this.labels = labels; invalidate() }
+
+    override fun onDraw(c: Canvas) {
+        if (ctl.size < 2) return
+        val d = resources.displayMetrics.density
+        val top = 8 * d; val bottom = height - 16 * d
+        val hi = Math.max(ctl.maxOrNull() ?: 1.0, tsb.maxOrNull() ?: 0.0) * 1.1
+        val lo = Math.min(0.0, tsb.minOrNull() ?: 0.0) * 1.1
+        fun y(v: Double) = (bottom - (v - lo) / (hi - lo) * (bottom - top)).toFloat()
+        val step = width.toFloat() / (ctl.size - 1)
+        // form bars: green when fresh, red when fatigued
+        val bw = Math.max(1f, step * 0.7f)
+        tsb.forEachIndexed { i, v ->
+            p.color = if (v >= 0) Color.argb(150, 34, 197, 94) else Color.argb(150, 239, 68, 68)
+            val x = i * step
+            c.drawRect(x - bw / 2, Math.min(y(v), y(0.0)), x + bw / 2, Math.max(y(v), y(0.0)), p)
+        }
+        p.color = Ui.LINE; p.strokeWidth = d
+        c.drawLine(0f, y(0.0), width.toFloat(), y(0.0), p)
+        val path = Path()
+        ctl.forEachIndexed { i, v -> if (i == 0) path.moveTo(0f, y(v)) else path.lineTo(i * step, y(v)) }
+        p.style = Paint.Style.STROKE; p.strokeWidth = 2.2f * d; p.color = Ui.ORANGE
+        c.drawPath(path, p)
+        p.style = Paint.Style.FILL; p.textSize = 9 * d; p.color = Ui.MUTED
+        listOf(0, labels.size / 2, labels.size - 1).forEach { i ->
+            if (i < labels.size) {
+                p.textAlign = when (i) { 0 -> Paint.Align.LEFT; labels.size - 1 -> Paint.Align.RIGHT; else -> Paint.Align.CENTER }
+                c.drawText(labels[i], i * step, height - 3 * d, p)
+            }
+        }
+    }
+}
+
+/** A year of activity as a heatmap: one column per week (Mon at the top), darker orange = more km. */
+class CalendarHeat(ctx: Context) : View(ctx) {
+    private var weeks: List<DoubleArray> = emptyList()
+    private var months: List<Pair<Int, String>> = emptyList()
+    private var max = 1.0
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    /** from: the Monday the grid starts on (yyyy-MM-dd); km per date. */
+    fun set(from: String, kmByDay: Map<String, Double>, today: String) {
+        val cal = java.util.Calendar.getInstance()
+        cal.set(from.substring(0, 4).toInt(), from.substring(5, 7).toInt() - 1, from.substring(8, 10).toInt())
+        val w = ArrayList<DoubleArray>(); val m = ArrayList<Pair<Int, String>>()
+        val names = arrayOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+        var lastMonth = -1
+        while (true) {
+            val col = DoubleArray(7) { -1.0 }
+            for (dow in 0 until 7) {
+                val key = String.format(Locale.US, "%04d-%02d-%02d", cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH) + 1, cal.get(java.util.Calendar.DAY_OF_MONTH))
+                if (key > today) break
+                if (dow == 0 && cal.get(java.util.Calendar.MONTH) != lastMonth) { lastMonth = cal.get(java.util.Calendar.MONTH); m.add(w.size to names[lastMonth]) }
+                col[dow] = kmByDay[key] ?: 0.0
+                cal.add(java.util.Calendar.DAY_OF_MONTH, 1)
+            }
+            w.add(col)
+            if (col.any { it < 0 } || w.size > 60) break
+        }
+        weeks = w; months = m; max = (kmByDay.values.maxOrNull() ?: 1.0).coerceAtLeast(1.0)
+        invalidate()
+    }
+
+    override fun onDraw(c: Canvas) {
+        if (weeks.isEmpty()) return
+        val d = resources.displayMetrics.density
+        val labelH = 12 * d
+        val cell = Math.min(width.toFloat() / weeks.size, (height - labelH) / 7f)
+        val gap = cell * 0.18f
+        weeks.forEachIndexed { x, col ->
+            col.forEachIndexed { y, km ->
+                if (km < 0) return@forEachIndexed
+                p.color = if (km <= 0) Color.parseColor("#1E1E26")
+                    else Color.argb((70 + 185 * Math.sqrt(km / max)).toInt().coerceAtMost(255), 252, 76, 2)
+                c.drawRoundRect(x * cell, labelH + y * cell, x * cell + cell - gap, labelH + y * cell + cell - gap, gap, gap, p)
+            }
+        }
+        p.color = Ui.MUTED; p.textSize = 9 * d; p.textAlign = Paint.Align.LEFT
+        var lastX = -100f
+        months.forEach { (col, name) -> val x = col * cell; if (x - lastX > 24 * d) { c.drawText(name, x, 9 * d, p); lastX = x } }
+    }
+}

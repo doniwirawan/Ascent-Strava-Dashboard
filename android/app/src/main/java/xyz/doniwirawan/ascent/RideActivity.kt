@@ -86,7 +86,7 @@ class RideActivity : Activity() {
         load.setOnClickListener {
             load.isEnabled = false; load.text = "Loading charts…"
             io.execute {
-                val path = "activities/$id?streams=time,latlng,velocity_smooth,heartrate,watts,altitude"
+                val path = "activities/$id?streams=time,distance,latlng,velocity_smooth,heartrate,watts,altitude"
                 val r = try { Api.cached(this, path) ?: Api.get(this, path) } catch (e: Exception) { load.post { load.text = e.message; load.isEnabled = true }; null }
                 val st = r?.optJSONObject("streams") ?: return@execute
                 ui.post {
@@ -105,6 +105,21 @@ class RideActivity : Activity() {
                             addView(LineChart(this@RideActivity).apply { set(s, look.first, look.second) }, LinearLayout.LayoutParams(MATCH_PARENT, Ui.dp(this@RideActivity, 130)))
                         })
                     }
+                    // time in zones (website bands) and per-km splits
+                    val time = st.optJSONObject("time")?.optJSONArray("data")
+                    val ftp = Zones.ftp(this)
+                    val watts = st.optJSONObject("watts")?.optJSONArray("data")
+                    if (watts != null && ftp > 0 && a.optBoolean("device_watts")) {
+                        charts.addView(Ui.heading(this, "Power zones · FTP ${Math.round(ftp)} W"))
+                        charts.addView(Zones.view(this, Zones.POWER, ftp, "W", Zones.timeIn(Zones.POWER, ftp, watts, time)))
+                    }
+                    val lthr = Zones.lthr(this)
+                    val hr = st.optJSONObject("heartrate")?.optJSONArray("data")
+                    if (hr != null && lthr > 0) {
+                        charts.addView(Ui.heading(this, "Heart-rate zones · threshold ${Math.round(lthr)} bpm"))
+                        charts.addView(Zones.view(this, Zones.HEART, lthr, "bpm", Zones.timeIn(Zones.HEART, lthr, hr, time)))
+                    }
+                    Zones.splits(this, st)?.let { charts.addView(Ui.heading(this, "Splits per km")); charts.addView(it) }
                 }
             }
         }
