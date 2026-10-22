@@ -437,6 +437,7 @@ function trSetWeight(v) {
   const w = parseFloat(v);
   try { if (w >= 30 && w <= 200) localStorage.setItem('athlete_weight_kg', String(w)); else localStorage.removeItem('athlete_weight_kg'); } catch {}
   renderTraining();
+  if (typeof renderPower === 'function') renderPower();
 }
 
 function _trFtpCardHTML(ftpEst) {
@@ -840,11 +841,6 @@ function renderTraining() {
   body.innerHTML = `
     ${whoopRowHTML(false)}
     ${_trIntroHTML(d)}
-    ${_trFtpCardHTML(d.ftpEst)}
-    ${_trFtpTrendHTML()}
-    ${typeof _trClimbPowerHTML === 'function' ? _trClimbPowerHTML() : ''}
-    ${typeof _trSauceHTML === 'function' ? _trSauceHTML() : ''}
-    ${_trNote('FTP & W/kg')}
     ${_trZonesHTML(d.ftpEst)}
     ${_trRunPredictHTML()}
     ${typeof _trEventReadyHTML === 'function' ? _trEventReadyHTML(d) : ''}
@@ -881,7 +877,6 @@ function renderTraining() {
     ${_trConsistencyHTML()}
     ${_trNote('Consistency')}
     ${_trTrendsHTML()}
-    ${typeof _trPowerCurveHTML === 'function' ? _trPowerCurveHTML() : ''}
     ${typeof _trHrDecouplingHTML === 'function' ? _trHrDecouplingHTML() : ''}
     ${typeof _trTimeLostHTML === 'function' ? _trTimeLostHTML() : ''}
     ${typeof _trWindHTML === 'function' ? _trWindHTML() : ''}
@@ -901,8 +896,6 @@ function renderTraining() {
   if (typeof analyzeWind === 'function') analyzeWind();
   if (typeof analyzeTimeLost === 'function') analyzeTimeLost();
   if (typeof analyzeHrDecoupling === 'function') analyzeHrDecoupling();
-  // keep FTP-from-climbs current: rescans only when new hilly rides arrive
-  if (typeof autoClimbPower === 'function') autoClimbPower();
 }
 
 // Draw the CTL / ATL / TSB chart (last ~180 days) with Chart.js.

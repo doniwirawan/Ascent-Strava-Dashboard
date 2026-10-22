@@ -385,6 +385,10 @@
       <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
       Training
     </button>
+    <button class="nav-link" onclick="navScrollTo('powerSection',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+      Power
+    </button>
     <button class="nav-link" id="sleepNavLink" style="display:none" onclick="navScrollTo('sleepSection',this)">
       <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       Sleep
@@ -543,15 +547,6 @@
         <div class="hrz-legend" id="spdzLegend"></div>
       </div>
       <div class="hrz-note" id="spdzNote"></div>
-    </div>
-    <!-- TIME IN POWER ZONES — only once there are power-meter rides (fitness.js) -->
-    <div class="hrzone-card" id="pwzCard" style="display:none;margin-top:16px">
-      <div class="s-label">Time in Power Zones</div>
-      <div class="hrz-body">
-        <canvas class="hrz-ring" id="pwzRing"></canvas>
-        <div class="hrz-legend" id="pwzLegend"></div>
-      </div>
-      <div class="hrz-note" id="pwzNote"></div>
     </div>
   </div>
 
@@ -804,6 +799,21 @@
   <div id="trainingSection" style="display:none">
     <div class="section-title">Training Load &amp; Fatigue</div>
     <div id="trainingBody"></div>
+  </div>
+
+  <!-- POWER — FTP, power-meter rides, curve, zones (power.js) -->
+  <div id="powerSection" style="display:none">
+    <div class="section-title">Power</div>
+    <div id="powerBody"></div>
+    <!-- TIME IN POWER ZONES — only once there are power-meter rides (fitness.js) -->
+    <div class="hrzone-card" id="pwzCard" style="display:none;margin-top:16px">
+      <div class="s-label">Time in Power Zones</div>
+      <div class="hrz-body">
+        <canvas class="hrz-ring" id="pwzRing"></canvas>
+        <div class="hrz-legend" id="pwzLegend"></div>
+      </div>
+      <div class="hrz-note" id="pwzNote"></div>
+    </div>
   </div>
 
   <!-- SLEEP (owner only) -->
@@ -1402,6 +1412,7 @@
 <script src="js/power-curve.js"></script>
 <script src="js/climb-ftp.js"></script>
 <script src="js/sauce.js"></script>
+<script src="js/power.js"></script>
 <script src="js/hr-decoupling.js"></script>
 <script src="js/time-lost.js"></script>
 <script src="js/wind-analysis.js"></script>

@@ -155,7 +155,7 @@ function _cpPool() {
 // What a scan depends on: which rides are in the pool, and the body weight.
 function _cpSig() { return athWeightKg() + '|k' + (typeof BIKE_KIT_V !== 'undefined' ? BIKE_KIT_V : 0) + '|' + _cpPool().map(a => a.id).join(','); }
 
-// Called from renderTraining: rescan (cache-first, so only new rides are
+// Called from renderPower: rescan (cache-first, so only new rides are
 // fetched) when the pool or weight changed. At most once per page load, so a
 // rate-limited scan doesn't retry on every render.
 let _cpAutoTried = false;
@@ -235,4 +235,5 @@ async function computeClimbPower() {
   _cpRunning = false;
   // FTP, W/kg, VO2max and the run predictions all read from this — redraw the page.
   if (typeof renderTraining === 'function') renderTraining();
+  if (typeof renderPower === 'function') renderPower();
 }

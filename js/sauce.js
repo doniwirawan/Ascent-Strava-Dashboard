@@ -448,6 +448,7 @@ async function computeSaucePower() {
   _spRunning = false;
   // Training load and the fitness chart read these rides now — redraw the page.
   if (typeof renderTraining === 'function') renderTraining();
+  if (typeof renderPower === 'function') renderPower();
 }
 
 /* ── Activity modal block: this ride's estimated power, W′ balance, food ── */

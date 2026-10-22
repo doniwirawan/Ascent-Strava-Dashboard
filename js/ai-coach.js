@@ -489,7 +489,7 @@ function _placesRefreshUI(full) {
   run(typeof renderRegencyMap === 'function' && renderRegencyMap);
   if (!full) return;
   [typeof renderCycling === 'function' && renderCycling, typeof renderRunning === 'function' && renderRunning,
-   typeof renderBestEfforts === 'function' && renderBestEfforts, typeof renderTraining === 'function' && renderTraining].forEach(run);
+   typeof renderBestEfforts === 'function' && renderBestEfforts, typeof renderTraining === 'function' && renderTraining, typeof renderPower === 'function' && renderPower].forEach(run);
 }
 
 /* "Guwang, Sukawati → Kintamani, Bangli · 46 km out" (or just the start). */
