@@ -156,7 +156,10 @@ async function bikes() {
   const list = c.bikes && c.bikes.length ? c.bikes : [{ id: 'camp', name: 'Camp SR3D', kind: 'Road' }, { id: 'mosso', name: 'Mosso 735 GVL', kind: 'Gravel' }, { id: 'xtrada', name: 'Polygon Xtrada 6', kind: 'MTB' }];
   const key = i => [i.site, i.order_id, i.item, i.variant].join('|').slice(0, 400);
   const all = ((items && items.data && items.data.items) || []).filter(i => i.category === 'Cycling' && !i.cancelled);
-  const parts = id => all.filter(i => (c.assign || {})[key(i)] === id);
+  // same as finance app src/lib/bikes.ts: saved assignment, else its first-guess rules
+  const RULES = [[/camp roadbike|sr3d/i, 'camp'], [/think ?rider|goldix aero chainring|fc-r7100/i, 'camp'], [/mosso gravel|735 ?gvl|grx/i, 'mosso'], [/xtrada/i, 'xtrada']];
+  const place = i => { const a = (c.assign || {})[key(i)]; if (a) return a; const t = i.item + ' ' + i.variant; for (const [re, b] of RULES) if (re.test(t)) return b; return i.sub === 'Tools & maintenance' ? 'shared' : null; };
+  const parts = id => all.filter(i => place(i) === id);
   return { bikes: list.map(b => ({ ...b, spent: parts(b.id).reduce((s, i) => s + (i.paid || 0), 0), parts: parts(b.id) })),
     shared: parts('shared'), note: 'Parts are the purchases assigned to each bike on finance.doniwirawan.xyz/bikes.' };
 }

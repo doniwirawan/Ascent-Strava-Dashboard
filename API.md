@@ -164,3 +164,57 @@ Requires these Vercel env vars: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
 `OWNER_ATHLETE_ID`.
 
 To allow another origin, add it to `ALLOWED_ORIGINS` in `api/stats.js` and redeploy.
+
+---
+
+# Personal API (`/api/v1`) — your own data, for your own apps
+
+Read-only REST API over **all** of the owner's data, for a phone app or scripts.
+Code: `api/_v1.js` (rewritten into `api/stats.js` by `vercel.json`, so it adds no
+Serverless Function).
+
+**Base URL:** `https://ascent-analytics.doniwirawan.xyz/api/v1`
+
+## Auth
+
+1. Dashboard → **Settings → Personal API** → name the app → **Create token**.
+2. Copy the `asc_…` token. It is shown **once**; only its SHA-256 hash is stored
+   (Supabase `api_tokens`). Revoke it there and it stops working immediately.
+3. Send it on every request:
+
+```bash
+curl -H "Authorization: Bearer asc_…" https://ascent-analytics.doniwirawan.xyz/api/v1/activities?limit=5
+```
+
+Responses are JSON, never cached (`Cache-Control: private, no-store`), and CORS is
+open (`*`) because auth is the bearer token, not cookies. Keep tokens out of public
+code — anyone holding one can read everything below.
+
+## Endpoints (all `GET`)
+
+| Path | Returns |
+|---|---|
+| `/` | This list of endpoints |
+| `/me` | Strava profile, bikes and shoes (live from Strava) |
+| `/activities?limit=50&offset=0&type=Ride,Run&after=YYYY-MM-DD&before=YYYY-MM-DD` | Cached activities, newest first — full Strava summaries incl. `map.summary_polyline`. `limit` max 500 |
+| `/activities/{id}` | One activity. `?streams=1` adds every stream from Strava (or a list: `?streams=watts,heartrate,latlng`); `?live=1` asks Strava when it isn't cached |
+| `/stats` | Totals, YTD, last 7/30 days, bests, by month / sport, calendar, streak, fitness |
+| `/strava-stats` | Strava's own all-time / YTD / 4-week totals |
+| `/sleep` | Sleep nights (Huawei export): `{ cols, rows, … }` |
+| `/huawei` | Huawei workouts (no tracks); `/huawei/{record_id}` for one with its track |
+| `/purchases?category=Cycling&after=&before=&cancelled=1` | Purchases from the finance app; cancelled orders hidden unless `cancelled=1` |
+| `/bikes` | Each bike with the parts assigned to it and what they cost |
+| `/ai` | AI analysis + caption per activity; `/ai/chats` for AI Coach conversations |
+
+## Errors
+
+`{ "error": "code" }` with: `401 missing_api_token / invalid_api_token`,
+`404 not_found / unknown_endpoint`, `405 method_not_allowed`,
+`429 strava_rate_limited` (streams / live calls share the app's Strava limit),
+`501 not_configured`, `502 store_unavailable / strava_unavailable`.
+
+## Token management (used by the Settings card)
+
+Authenticated with the owner's **Strava** access token in `X-Strava-Token`:
+`GET /api/v1/tokens` (list), `POST /api/v1/tokens {"name"}` (create, returns the
+token once), `DELETE /api/v1/tokens/{id}` (revoke).
