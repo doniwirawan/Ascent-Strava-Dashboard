@@ -23,14 +23,16 @@ import java.util.Locale
 import java.util.concurrent.Executors
 
 /**
- * The only screen in the app: shows what the widget last managed to fetch, and
- * lets the Strava refresh token be replaced if it ever stops working. Built in
- * code so the APK needs no UI libraries at all.
+ * The widget's settings: shows what it last managed to fetch, and takes the
+ * Personal API token it reads with (shared with the app's own screens). The
+ * Strava refresh token is only the fallback for when no API token is set.
+ * Built in code so the APK needs no UI libraries at all.
  */
 class SetupActivity : Activity() {
 
     private lateinit var status: TextView
     private lateinit var tokenField: EditText
+    private lateinit var apiField: EditText
     private val io = Executors.newSingleThreadExecutor()
     private val ui = Handler(Looper.getMainLooper())
 
@@ -74,7 +76,22 @@ class SetupActivity : Activity() {
         }
         col.addView(status)
 
-        col.addView(label("Strava refresh token"))
+        col.addView(label("Personal API token"))
+        apiField = EditText(this).apply {
+            setText(Api.token(this@SetupActivity))
+            hint = "asc_…"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setSingleLine(true)
+        }
+        col.addView(apiField, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        col.addView(
+            body("From the dashboard: Settings → Personal API → Create token. The widget then reads your own database instead of Strava.")
+                .apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f) }
+        )
+
+        col.addView(label("Strava refresh token (fallback)"))
         tokenField = EditText(this).apply {
             setText(Repo.refreshToken(this@SetupActivity))
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
@@ -84,12 +101,13 @@ class SetupActivity : Activity() {
         }
         col.addView(tokenField, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         col.addView(
-            body("Only needed if Strava ever invalidates the built-in one. It stays on this phone.")
+            body("Only used without an API token. Logging in to the dashboard in the app fills it in. It stays on this phone.")
                 .apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f) }
         )
 
         col.addView(button("Save & refresh now") {
             Repo.setRefreshToken(this, tokenField.text.toString())
+            if (apiField.text.toString().trim() != Api.token(this)) Api.setToken(this, apiField.text.toString())
             refresh()
         })
 
@@ -126,7 +144,7 @@ class SetupActivity : Activity() {
     }
 
     private fun refresh() {
-        status.text = "Fetching from Strava…"
+        status.text = if (Api.hasToken(this)) "Fetching from your dashboard…" else "Fetching from Strava…"
         status.setTextColor(Color.parseColor("#8A8A96"))
         io.execute {
             try {

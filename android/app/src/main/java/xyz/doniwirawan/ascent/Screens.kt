@@ -1,0 +1,292 @@
+package xyz.doniwirawan.ascent
+
+import android.view.Gravity
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.widget.LinearLayout
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.Calendar
+import java.util.Locale
+
+/**
+ * The five native screens. Each one is a pure function of the API responses it
+ * names, so AppActivity.load can draw it from the saved copy and again from the
+ * fresh one. Power numbers follow the web dashboard (js/utils.js ridePower):
+ * power-meter rides only, NP = Strava's weighted average, IF/TSS from FTP.
+ */
+object Screens {
+
+    private val RIDE_TYPES = setOf("Ride", "VirtualRide", "EBikeRide", "GravelRide", "MountainBikeRide")
+    private fun isRide(a: JSONObject) = (a.optString("sport_type").ifEmpty { a.optString("type") }) in RIDE_TYPES
+    private fun list(arr: JSONArray?): List<JSONObject> = if (arr == null) emptyList() else (0 until arr.length()).map { arr.getJSONObject(it) }
+    private fun chart(a: AppActivity, v: android.view.View, h: Int) =
+        v.apply { layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, Ui.dp(a, h)) }
+
+    // ── Home ────────────────────────────────────────────────────────────────
+    fun home(a: AppActivity): Unit = a.load(listOf("stats")) { r ->
+        val s = r["stats"] ?: return@load
+        val col = a.page()
+        fun tot(o: JSONObject?) = o ?: JSONObject()
+        val w = tot(s.optJSONObject("last_7_days")); val m = tot(s.optJSONObject("last_30_days")); val y = tot(s.optJSONObject("ytd"))
+
+        Repo.cached(a)?.let { snap ->
+            val c = Ui.card(a).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+            val ring = RecoveryActivity.RingView(a).apply { label = "RECOVERY" }
+            ring.set(snap.recovery / 100f, "${snap.recovery}%", Repo.recoveryBandLabel(snap.recovery), Repo.recoveryBandColor(snap.recovery))
+            c.addView(ring, LinearLayout.LayoutParams(Ui.dp(a, 120), Ui.dp(a, 120)))
+            val t = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL; setPadding(Ui.dp(a, 14), 0, 0, 0) }
+            t.addView(Ui.text(a, String.format(Locale.US, "Strain %.1f of 21", snap.strain), 15f, Ui.TEXT, true))
+            t.addView(Ui.text(a, when {
+                snap.recovery >= 67 -> "Well recovered. Good day to go hard."
+                snap.recovery >= 34 -> "Partly recovered. Moderate training is fine."
+                else -> "Fatigue is high. Take it easy or rest."
+            }, 12f, Ui.MUTED))
+            c.addView(t, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            c.setOnClickListener { a.startActivity(android.content.Intent(a, RecoveryActivity::class.java)) }
+            col.addView(c)
+        }
+
+        col.addView(Ui.heading(a, "Last 7 days"))
+        col.addView(Ui.tiles(a, listOf(
+            String.format(Locale.US, "%.1f km", w.optDouble("distance_km")) to "distance",
+            String.format(Locale.US, "%.1f h", w.optDouble("moving_hours")) to "moving",
+            "${w.optInt("elevation_m")} m" to "climbing",
+            "${w.optInt("activities")}" to "activities",
+        )))
+
+        s.optJSONObject("fitness")?.let { f ->
+            col.addView(Ui.heading(a, "Fitness & form"))
+            col.addView(Ui.tiles(a, listOf(
+                "${f.optInt("ctl")}" to "fitness (CTL)", "${f.optInt("atl")}" to "fatigue (ATL)",
+                String.format(Locale.US, "%+d", f.optInt("tsb")) to "form · ${f.optString("form")}", String.format(Locale.US, "%+d", f.optInt("ramp")) to "ramp / week",
+            )))
+        }
+
+        s.optJSONObject("latest_ride")?.let { l ->
+            col.addView(Ui.heading(a, "Latest ride"))
+            col.addView(Ui.card(a).apply {
+                addView(Ui.text(a, l.optString("name"), 15f, Ui.TEXT, true))
+                addView(Ui.text(a, Ui.date(l.optString("date")) + String.format(Locale.US, " · %.1f km · %d m · %d min · %.1f km/h",
+                    l.optDouble("distance_km"), l.optInt("elevation_m"), l.optInt("moving_minutes"), l.optDouble("avg_kmh")), 12f, Ui.MUTED))
+            })
+        }
+
+        col.addView(Ui.heading(a, "This year"))
+        col.addView(Ui.tiles(a, listOf(
+            String.format(Locale.US, "%,.0f km", y.optDouble("distance_km")) to "distance",
+            String.format(Locale.US, "%,d m", y.optInt("elevation_m")) to "climbing",
+            String.format(Locale.US, "%.0f h", y.optDouble("moving_hours")) to "moving",
+            "${y.optInt("activities")}" to "activities",
+        )))
+        s.optJSONObject("streak")?.let { st ->
+            col.addView(Ui.tiles(a, listOf("${st.optInt("weeks")} wk" to "active streak", "${st.optInt("active_days_this_year")}" to "active days")))
+        }
+
+        val months = list(s.optJSONArray("by_month")).takeLast(12)
+        if (months.isNotEmpty()) {
+            col.addView(Ui.heading(a, "Distance per month"))
+            col.addView(Ui.card(a).apply {
+                addView(chart(a, BarChart(a).apply {
+                    set(months.map { it.optDouble("distance_km") }.toDoubleArray(), months.map { it.optString("month").takeLast(2) })
+                    highlight = months.size - 1
+                }, 150))
+            })
+        }
+        s.optJSONObject("bests")?.let { b ->
+            col.addView(Ui.heading(a, "Bests"))
+            col.addView(Ui.card(a).apply {
+                addView(Ui.row(a, "Longest ride", String.format(Locale.US, "%.1f km", b.optDouble("longest_ride_km"))))
+                addView(Ui.row(a, "Biggest climb", "${b.optInt("biggest_climb_m")} m"))
+                addView(Ui.row(a, "Fastest average", String.format(Locale.US, "%.1f km/h", b.optDouble("fastest_avg_kmh"))))
+                addView(Ui.row(a, "Longest time moving", String.format(Locale.US, "%.1f h", b.optDouble("longest_moving_hours"))))
+            })
+        }
+        col.addView(Ui.text(a, "From your dashboard's database · synced ${Ui.date(s.optString("synced_at"))}", 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 10), 0, 0) })
+    }
+
+    // ── Rides ───────────────────────────────────────────────────────────────
+    private var rideFilter = "all"
+
+    fun rides(a: AppActivity): Unit = a.load(listOf("activities?limit=300")) { r ->
+        val all = list(r["activities?limit=300"]?.optJSONArray("activities"))
+        val col = a.page()
+        val chips = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf("all" to "All", "ride" to "Rides", "run" to "Runs", "other" to "Other").forEach { (id, label) ->
+            chips.addView(Ui.text(a, label, 13f, if (id == rideFilter) Ui.ORANGE else Ui.MUTED, true).apply {
+                setPadding(0, Ui.dp(a, 6), Ui.dp(a, 18), Ui.dp(a, 10))
+                setOnClickListener { rideFilter = id; rides(a) }
+            })
+        }
+        col.addView(chips)
+        val shown = all.filter {
+            val t = it.optString("sport_type").ifEmpty { it.optString("type") }
+            when (rideFilter) { "ride" -> isRide(it); "run" -> t.contains("Run"); "other" -> !isRide(it) && !t.contains("Run"); else -> true }
+        }
+        col.addView(Ui.text(a, "${shown.size} activities", 11f, Ui.MUTED))
+        val c = Ui.card(a)
+        shown.forEachIndexed { i, act ->
+            if (i > 0) c.addView(Ui.divider(a))
+            val watts = act.optDouble("average_watts", 0.0)
+            val value = when {
+                act.optBoolean("device_watts") && watts > 0 -> "${Math.round(watts)} W"
+                isRide(act) -> Ui.kmh(act.optDouble("average_speed"))
+                else -> Ui.hm(act.optLong("moving_time"))
+            }
+            c.addView(Ui.row(a, act.optString("name"), value,
+                Ui.date(act.optString("start_date_local")) + " · " + Ui.km(act.optDouble("distance")) + " · " + Ui.hm(act.optLong("moving_time")) +
+                    " · ${Math.round(act.optDouble("total_elevation_gain"))} m").apply { setOnClickListener { a.openRide(act) } })
+        }
+        col.addView(c)
+    }
+
+    // ── Power ───────────────────────────────────────────────────────────────
+    class Pw(val a: JSONObject, val avg: Double, val np: Double, val max: Double, val ifac: Double, val tss: Double, val vi: Double, val wkg: Double)
+
+    fun power(a: AppActivity): Unit = a.load(listOf("activities?limit=300", "me")) { r ->
+        val acts = list(r["activities?limit=300"]?.optJSONArray("activities")).filter { isRide(it) && it.optBoolean("device_watts") && it.optDouble("average_watts") > 0 }
+        val me = r["me"]
+        val col = a.page()
+        val kg = me?.optDouble("weight", 0.0)?.takeIf { it > 0 } ?: 78.0
+        val bestNp = acts.filter { it.optLong("moving_time") >= 1200 }.maxOfOrNull { it.optDouble("weighted_average_watts", it.optDouble("average_watts")) } ?: 0.0
+        val ftp = me?.optDouble("ftp", 0.0)?.takeIf { it > 0 } ?: Math.round(bestNp * 0.95).toDouble()
+        val rows = acts.map {
+            val avg = it.optDouble("average_watts"); val np = it.optDouble("weighted_average_watts", 0.0)
+            val f = if (np > 0 && ftp > 0) np / ftp else 0.0
+            Pw(it, avg, np, it.optDouble("max_watts", 0.0), f, if (f > 0) it.optLong("moving_time") * np * f / (ftp * 3600) * 100 else 0.0, if (np > 0) np / avg else 0.0, avg / kg)
+        }
+        if (rows.isEmpty()) {
+            col.addView(Ui.card(a).apply { addView(Ui.text(a, "No rides with a power meter yet. Once you ride with one, FTP, normalized power, intensity and TSS show up here.", 13f, Ui.MUTED)) })
+            return@load
+        }
+        col.addView(Ui.heading(a, "Power"))
+        col.addView(Ui.tiles(a, listOf(
+            "${Math.round(ftp)} W" to if (me?.optDouble("ftp", 0.0) ?: 0.0 > 0) "FTP (Strava)" else "FTP (estimated)",
+            String.format(Locale.US, "%.2f", ftp / kg) to "W/kg at ${Ui.n0(kg)} kg",
+            "${Math.round(rows.maxOf { it.max })} W" to "max power",
+            "${Math.round(rows.maxOf { it.np })} W" to "best NP ride",
+        )))
+        val since = System.currentTimeMillis() - 28L * 86_400_000
+        val recentKj = rows.filter { parse(it.a.optString("start_date")) >= since }.sumOf { it.a.optDouble("kilojoules", 0.0) }
+        col.addView(Ui.tiles(a, listOf("${rows.size}" to "power-meter rides", String.format(Locale.US, "%,.0f kJ", recentKj) to "work, 28 days")))
+
+        val last = rows.take(20).reversed()
+        col.addView(Ui.heading(a, "Normalized power, last ${last.size} rides"))
+        col.addView(Ui.card(a).apply {
+            addView(chart(a, BarChart(a).apply {
+                color = Ui.PURPLE
+                set(last.map { if (it.np > 0) it.np else it.avg }.toDoubleArray(), last.map { Ui.date(it.a.optString("start_date_local")).substringBefore(' ') })
+            }, 150))
+        })
+        col.addView(Ui.heading(a, "Rides with power"))
+        val c = Ui.card(a)
+        rows.take(40).forEachIndexed { i, p ->
+            if (i > 0) c.addView(Ui.divider(a))
+            c.addView(Ui.row(a, p.a.optString("name"), if (p.np > 0) "${Math.round(p.np)} W NP" else "${Math.round(p.avg)} W",
+                Ui.date(p.a.optString("start_date_local")) + String.format(Locale.US, " · avg %d W · %.2f W/kg", Math.round(p.avg), p.wkg) +
+                    (if (p.ifac > 0) String.format(Locale.US, " · IF %.2f · TSS %d", p.ifac, Math.round(p.tss)) else "") +
+                    (if (p.vi > 0) String.format(Locale.US, " · VI %.2f", p.vi) else "")).apply { setOnClickListener { a.openRide(p.a) } })
+        }
+        col.addView(c)
+        col.addView(Ui.text(a, "NP = normalized power · IF = NP ÷ FTP · TSS = training stress (100 ≈ an hour at FTP) · VI = NP ÷ average. Set your own FTP on the web dashboard's Power page.", 11f, Ui.MUTED))
+    }
+
+    private fun parse(iso: String): Long = try {
+        java.time.Instant.parse(iso).toEpochMilli()
+    } catch (e: Exception) { 0L }
+
+    // ── Sleep ───────────────────────────────────────────────────────────────
+    fun sleep(a: AppActivity): Unit = a.load(listOf("sleep")) { r ->
+        val s = r["sleep"] ?: return@load
+        val cols = s.optJSONArray("cols")
+        val idx = HashMap<String, Int>(); for (i in 0 until (cols?.length() ?: 0)) idx[cols!!.getString(i)] = i
+        val rowsArr = s.optJSONArray("rows") ?: JSONArray()
+        val nights = (0 until rowsArr.length()).map { rowsArr.getJSONArray(it) }.filter { it.optDouble(idx["asleep"] ?: 1, 0.0) > 0 }
+        val col = a.page()
+        if (nights.isEmpty()) { col.addView(Ui.text(a, "No sleep data yet — import it on the web dashboard's Sleep page.", 13f, Ui.MUTED)); return@load }
+        fun v(n: JSONArray, k: String) = idx[k]?.let { n.optDouble(it, Double.NaN) } ?: Double.NaN
+        fun avg(list: List<JSONArray>, k: String) = list.map { v(it, k) }.filter { !it.isNaN() && it > 0 }.let { if (it.isEmpty()) Double.NaN else it.average() }
+        val week = nights.takeLast(7); val month = nights.takeLast(30)
+        fun hmMin(m: Double) = if (m.isNaN()) "—" else "${(m / 60).toInt()}h ${(m % 60).toInt()}m"
+        col.addView(Ui.heading(a, "Last 7 nights · average"))
+        col.addView(Ui.tiles(a, listOf(
+            hmMin(avg(week, "asleep")) to "asleep", hmMin(avg(week, "deep")) to "deep",
+            hmMin(avg(week, "rem")) to "REM", avg(week, "hrv").let { if (it.isNaN()) "—" else "${Math.round(it)} ms" } to "HRV",
+            avg(week, "rhr").let { if (it.isNaN()) "—" else "${Math.round(it)} bpm" } to "resting HR",
+            avg(week, "eff").let { if (it.isNaN()) "—" else String.format(Locale.US, "%.0f%%", it) } to "efficiency",
+        )))
+        col.addView(Ui.text(a, "30-night average asleep: " + hmMin(avg(month, "asleep")), 12f, Ui.MUTED))
+        col.addView(Ui.heading(a, "Hours asleep, last ${month.size} nights"))
+        col.addView(Ui.card(a).apply {
+            addView(chart(a, BarChart(a).apply {
+                color = Ui.BLUE
+                format = { String.format(Locale.US, "%.1f", it) }
+                set(month.map { v(it, "asleep") / 60 }.toDoubleArray(), month.map { it.optString(0).takeLast(2) })
+            }, 150))
+        })
+        col.addView(Ui.heading(a, "Nights"))
+        val c = Ui.card(a)
+        nights.takeLast(21).reversed().forEachIndexed { i, n ->
+            if (i > 0) c.addView(Ui.divider(a))
+            val hrv = v(n, "hrv")
+            c.addView(Ui.row(a, Ui.date(n.optString(0)), hmMin(v(n, "asleep")),
+                "deep " + hmMin(v(n, "deep")) + " · REM " + hmMin(v(n, "rem")) +
+                    (if (!v(n, "eff").isNaN()) String.format(Locale.US, " · %.0f%%", v(n, "eff")) else "") +
+                    (if (!hrv.isNaN()) " · HRV ${Math.round(hrv)}" else "")))
+        }
+        col.addView(c)
+    }
+
+    // ── Money ───────────────────────────────────────────────────────────────
+    fun money(a: AppActivity): Unit = a.load(listOf("purchases", "bikes")) { r ->
+        val items = list(r["purchases"]?.optJSONArray("items")).sortedByDescending { it.optString("date") }
+        val col = a.page()
+        val now = Calendar.getInstance()
+        val year = String.format(Locale.US, "%04d", now.get(Calendar.YEAR))
+        val month = year + String.format(Locale.US, "-%02d", now.get(Calendar.MONTH) + 1)
+        fun sum(l: List<JSONObject>) = l.sumOf { it.optDouble("paid", 0.0) }
+        val thisYear = items.filter { it.optString("date").startsWith(year) }
+        col.addView(Ui.heading(a, "Spending"))
+        col.addView(Ui.tiles(a, listOf(
+            Ui.rp(sum(items.filter { it.optString("date").startsWith(month) })) to "this month",
+            Ui.rp(sum(thisYear)) to "this year",
+            Ui.rp(sum(thisYear.filter { it.optString("category") == "Cycling" })) to "cycling, this year",
+            "${items.size}" to "purchases",
+        )))
+
+        val months = (11 downTo 0).map { back -> Calendar.getInstance().apply { add(Calendar.MONTH, -back) }.let { String.format(Locale.US, "%04d-%02d", it.get(Calendar.YEAR), it.get(Calendar.MONTH) + 1) } }
+        col.addView(Ui.heading(a, "Per month"))
+        col.addView(Ui.card(a).apply {
+            addView(chart(a, BarChart(a).apply {
+                format = { if (it >= 1e6) String.format(Locale.US, "%.1fjt", it / 1e6) else String.format(Locale.US, "%.0frb", it / 1e3) }
+                set(months.map { m -> sum(items.filter { it.optString("date").startsWith(m) }) }.toDoubleArray(), months.map { it.takeLast(2) })
+                highlight = months.size - 1
+            }, 150))
+        })
+
+        val byCat = thisYear.groupBy { it.optString("category").ifEmpty { "Other" } }.mapValues { sum(it.value) }.toList().sortedByDescending { it.second }
+        if (byCat.isNotEmpty()) {
+            col.addView(Ui.heading(a, "By category, $year"))
+            col.addView(Ui.card(a).apply { byCat.forEachIndexed { i, (k, v) -> if (i > 0) addView(Ui.divider(a)); addView(Ui.row(a, k, Ui.rp(v))) } })
+        }
+
+        list(r["bikes"]?.optJSONArray("bikes")).takeIf { it.isNotEmpty() }?.let { bikes ->
+            col.addView(Ui.heading(a, "Bikes"))
+            col.addView(Ui.card(a).apply {
+                bikes.forEachIndexed { i, b ->
+                    if (i > 0) addView(Ui.divider(a))
+                    addView(Ui.row(a, b.optString("name"), Ui.rp(b.optDouble("spent")), "${b.optString("kind")} · ${b.optJSONArray("parts")?.length() ?: 0} parts"))
+                }
+            })
+        }
+
+        col.addView(Ui.heading(a, "Latest purchases"))
+        val c = Ui.card(a)
+        items.take(30).forEachIndexed { i, p ->
+            if (i > 0) c.addView(Ui.divider(a))
+            c.addView(Ui.row(a, p.optString("item").take(70), Ui.rp(p.optDouble("paid")),
+                Ui.date(p.optString("date")) + " · " + p.optString("category") + (p.optString("shop").takeIf { it.isNotEmpty() }?.let { " · $it" } ?: "")))
+        }
+        col.addView(c)
+    }
+}

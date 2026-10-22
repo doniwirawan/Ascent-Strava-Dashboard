@@ -279,6 +279,38 @@ async function processActivity(activityId, isUpdate, updates, userToken, caption
   return (withNote ? 'captioned' + (noteOk ? ' + private note' : ' (private note failed)') : 're-captioned (private note kept)') + ': ' + name;
 }
 
+/* Keep the Supabase activity cache (strava_cache) current, so the dashboard's
+   personal API (api/_v1.js) and the Android app read new rides from our own DB
+   without asking Strava. Detailed-activity extras the cache never holds are
+   dropped, so the row keeps the list-endpoint shape the dashboard writes. */
+const CACHE_DROP = ['segment_efforts', 'splits_metric', 'splits_standard', 'laps', 'best_efforts', 'photos', 'similar_activities', 'stats_visibility', 'embed_token', 'available_zones'];
+async function cacheActivity(activityId, deleted) {
+  const s = sb(), owner = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
+  if (!s || !owner) return;
+  const url = s.url.replace(/owner_tokens$/, 'strava_cache');
+  let act = null;
+  if (!deleted) {
+    const token = await ownerAccessToken();
+    if (!token) return;
+    const r = await fetch(STRAVA + '/activities/' + activityId, { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) return;
+    act = await r.json();
+    CACHE_DROP.forEach(k => delete act[k]);
+    if (act.map) delete act.map.polyline;
+  }
+  const r = await fetch(url + '?id=eq.' + encodeURIComponent(owner) + '&select=activities', { headers: s.H });
+  if (!r.ok) return;
+  const row = (await r.json())[0];
+  if (!row || !Array.isArray(row.activities)) return;      // the dashboard creates the row on first sync
+  const list = row.activities.filter(a => String(a && a.id) !== String(activityId));
+  if (act) list.push(act);
+  list.sort((a, b) => String(b.start_date || '').localeCompare(String(a.start_date || '')));
+  await fetch(url + '?id=eq.' + encodeURIComponent(owner), {
+    method: 'PATCH', headers: { ...s.H, Prefer: 'return=minimal' },
+    body: JSON.stringify({ activities: list, synced_at: new Date().toISOString() }),
+  });
+}
+
 module.exports = async (req, res) => {
   // Subscription validation handshake
   if (req.method === 'GET') {
@@ -299,15 +331,21 @@ module.exports = async (req, res) => {
 
   const owner = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
   const enabled = (process.env.AUTO_CAPTION || 'on').toLowerCase() !== 'off';
+  const mine = body.object_type === 'activity' && (!owner || String(body.owner_id) === owner);
   // Auto-caption a brand-new activity from the owner; on "update", re-caption
   // only if the bike changed since (processActivity checks, so our own PUT can't loop).
-  if (enabled && body.object_type === 'activity' && ['create', 'update'].includes(body.aspect_type)
-      && (!owner || String(body.owner_id) === owner)) {
+  // Then, for any change (incl. delete), update the activity cache — after the
+  // caption, so the cache stores the final title.
+  if (mine && ['create', 'update', 'delete'].includes(body.aspect_type)) {
     if (body.aspect_type === 'update') console.log('strava update event', body.object_id, JSON.stringify(body.updates || {}));
     waitUntil((async () => {
-      const done = await logEvent(body.aspect_type, body.object_id);
-      await done(await processActivity(body.object_id, body.aspect_type === 'update', body.updates)
-        .catch(e => 'failed: ' + ((e && e.message) || e)));
+      if (enabled && body.aspect_type !== 'delete') {
+        const done = await logEvent(body.aspect_type, body.object_id);
+        await done(await processActivity(body.object_id, body.aspect_type === 'update', body.updates)
+          .catch(e => 'failed: ' + ((e && e.message) || e)));
+      }
+      await cacheActivity(body.object_id, body.aspect_type === 'delete')
+        .catch(e => console.log('cache update failed', body.object_id, (e && e.message) || e));
     })());
   }
 

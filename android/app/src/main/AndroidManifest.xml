@@ -12,15 +12,26 @@
         android:theme="@android:style/Theme.DeviceDefault">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".AppActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- The full web dashboard, opened from the native screens. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout"
+            android:label="@string/app_name" />
+
+        <activity
+            android:name=".RideActivity"
+            android:exported="false"
+            android:label="Activity" />
 
         <!-- The widget's configure screen: shown when the widget is placed, and
              again on long-press thanks to widgetFeatures="reconfigurable". That

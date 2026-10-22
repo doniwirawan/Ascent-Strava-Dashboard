@@ -208,26 +208,33 @@ Open http://localhost:3000 and click **Connect with Strava**.
 
 [![Download APK](https://img.shields.io/badge/Download-APK-FC4C02?style=flat-square)](https://github.com/doniwirawan/Ascent-Strava-Dashboard/releases/latest)
 
-`android/` holds a small Kotlin app that wraps the dashboard and adds home-screen
-widgets. Grab the APK from [Releases](https://github.com/doniwirawan/Ascent-Strava-Dashboard/releases/latest),
+`android/` holds a small Kotlin app (no UI libraries) with native screens over the
+[personal API](API.md), the full dashboard one tap away, and home-screen widgets.
+Grab the APK from [Releases](https://github.com/doniwirawan/Ascent-Strava-Dashboard/releases/latest),
 or build it yourself:
 
 ```bash
 cd android
-./gradlew assembleRelease -PpublicBuild    # no credentials baked in
+./gradlew assembleRelease
 ```
 
+- **Native screens** — Home (recovery, last 7 days, fitness & form, this year,
+  monthly distance, bests), Rides (list + detail with route shape, numbers, the
+  saved AI analysis, and speed / HR / power / elevation charts on request),
+  Power (FTP, W/kg, NP, IF, TSS, VI per ride), Sleep and Money (spending,
+  categories, what each bike cost). Each draws its last copy instantly, offline
+  too, then refreshes.
+- **Data comes from the dashboard's own database** via a Personal API token
+  (dashboard → Settings → Personal API) typed into the app — nothing personal is
+  baked into the APK, so every build is safe to share. The Strava webhook keeps
+  that database current, so new rides show up without the app calling Strava;
+  only the per-ride charts ask Strava, when you tap for them.
 - **Widgets** in three sizes — Recovery, Day Strain, the rolling 7-day distance,
-  and a bar per day. Tapping a ring opens a native Recovery screen.
-- **The full dashboard** in a WebView, with story-card downloads and the Android
-  share sheet wired up (a bare WebView drops `blob:` downloads silently).
-- **Sign-in** happens through Strava in the app; the widget then inherits that
-  session.
-
-> **`-PpublicBuild` matters.** Without it the build bakes `STRAVA_REFRESH_TOKEN`
-> from your `.env.local` into the APK so it logs in automatically — convenient
-> for your own phone, but that token sits in `classes.dex` in plain text and
-> grants read access to your Strava. Never publish a build made without the flag.
+  and a bar per day — read the same token. Tapping a ring opens a native
+  Recovery screen.
+- **The full dashboard** in a WebView (Web button), with story-card downloads
+  and the Android share sheet wired up (a bare WebView drops `blob:` downloads
+  silently).
 
 ### Recovery & Strain
 

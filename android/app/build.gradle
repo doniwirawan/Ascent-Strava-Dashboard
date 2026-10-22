@@ -3,28 +3,6 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
-// The Strava refresh token is baked in from the web app's .env.local so the
-// widget works the moment it is placed on the home screen. It can be replaced
-// from the app's setup screen without rebuilding.
-// Values in .env.local are written quoted with a trailing literal "\n" escape,
-// e.g. STRAVA_REFRESH_TOKEN="<40 hex>\n" — strip both, or the token is unusable.
-// -PpublicBuild produces a shareable APK with no personal token in it. The
-// token below is readable in plain text inside classes.dex, so a build carrying
-// it must never be published — it grants read access to the owner's Strava.
-def publicBuild = project.hasProperty('publicBuild')
-
-def bakedRefreshToken = {
-    if (publicBuild) return ''
-    def f = rootProject.file('../.env.local')
-    if (!f.exists()) return ''
-    def m = (f.text =~ /(?m)^STRAVA_REFRESH_TOKEN=(.*)$/)
-    if (!m) return ''
-    return m[0][1].trim()
-        .replaceAll('^["\']|["\']$', '')
-        .replaceAll('\\\\[nrt]+$', '')
-        .trim()
-}()
-
 // Release signing comes from keystore.properties when it exists; without it the
 // release build falls back to the debug key so `assembleRelease` always works.
 def keystoreProps = new Properties()
@@ -39,10 +17,12 @@ android {
         applicationId "xyz.doniwirawan.ascent"
         minSdk 29
         targetSdk 34
-        versionCode 2
-        versionName "1.1"
+        versionCode 3
+        versionName "2.0"
 
-        buildConfigField "String", "DEFAULT_REFRESH_TOKEN", "\"${bakedRefreshToken}\""
+        // Data comes from the personal API with a token typed into the app, so
+        // nothing personal is baked into the APK.
+        buildConfigField "String", "API_BASE", "\"https://ascent-analytics.doniwirawan.xyz/api/v1/\""
         buildConfigField "String", "TOKEN_ENDPOINT", "\"https://ascent-analytics.doniwirawan.xyz/api/strava-token\""
         buildConfigField "String", "DASHBOARD_URL", "\"https://ascent-analytics.doniwirawan.xyz/\""
     }

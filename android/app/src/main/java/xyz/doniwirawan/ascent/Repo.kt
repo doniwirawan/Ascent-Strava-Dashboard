@@ -10,12 +10,14 @@ import java.util.Calendar
 import java.util.Locale
 
 /**
- * Talks to Strava on the phone's behalf.
+ * Fetches the widget's activities and turns them into its numbers.
  *
- * The client secret stays on Vercel: we POST the refresh token to the web app's
- * /api/strava-token and get a short-lived access token back, then call Strava
- * directly. Results are cached in SharedPreferences so the widget can draw
- * instantly (and offline) before any network work happens.
+ * With a Personal API token (Api.kt) they come from the dashboard's own
+ * database — no Strava call. Without one it falls back to Strava, using the
+ * refresh token the web view hands over after a dashboard login: we POST it to
+ * /api/strava-token (the client secret stays on Vercel) for an access token.
+ * Results are cached in SharedPreferences so the widget can draw instantly
+ * (and offline) before any network work happens.
  */
 object Repo {
 
@@ -57,8 +59,7 @@ object Repo {
     }
 
     fun refreshToken(ctx: Context): String =
-        prefs(ctx).getString("refresh_token", null)?.takeIf { it.isNotBlank() }
-            ?: BuildConfig.DEFAULT_REFRESH_TOKEN
+        prefs(ctx).getString("refresh_token", null)?.takeIf { it.isNotBlank() } ?: ""
 
     fun setRefreshToken(ctx: Context, token: String) {
         // A new refresh token invalidates any cached access token.
@@ -87,8 +88,7 @@ object Repo {
      */
     fun refresh(ctx: Context): Snapshot {
         try {
-            val token = accessToken(ctx)
-            val snapshot = compute(fetchThisYear(token))
+            val snapshot = compute(if (Api.hasToken(ctx)) fetchFromApi(ctx) else fetchThisYear(accessToken(ctx)))
             prefs(ctx).edit()
                 .putString("snapshot", toJson(snapshot).toString())
                 .remove("last_error")
@@ -112,7 +112,7 @@ object Repo {
         if (cached != null && p.getLong("expires_at", 0L) > nowSec + 120) return cached
 
         val refresh = refreshToken(ctx)
-        if (refresh.isBlank()) throw IllegalStateException("No refresh token. Open Ascent Widget and paste one.")
+        if (refresh.isBlank()) throw IllegalStateException("Open Ascent and add your Personal API token.")
 
         val res = postJson(BuildConfig.TOKEN_ENDPOINT, JSONObject().put("refresh_token", refresh))
         val access = res.optString("access_token")
@@ -195,6 +195,15 @@ object Repo {
             if (arr.length() < PAGE_SIZE) break
         }
         return out
+    }
+
+    /** The same window as fetchThisYear, from the personal API's activity cache. */
+    private fun fetchFromApi(ctx: Context): List<JSONObject> {
+        val from = Calendar.getInstance().apply { zeroTime(); add(Calendar.DAY_OF_MONTH, -180) }
+        val jan1 = Calendar.getInstance().apply { set(Calendar.MONTH, Calendar.JANUARY); set(Calendar.DAY_OF_MONTH, 1); zeroTime() }
+        val after = dayKey(if (jan1.before(from)) jan1 else from)
+        val arr = Api.get(ctx, "activities?limit=500&after=$after").optJSONArray("activities") ?: JSONArray()
+        return (0 until arr.length()).map { arr.getJSONObject(it) }
     }
 
     // ── Aggregation ─────────────────────────────────────────────────────────
