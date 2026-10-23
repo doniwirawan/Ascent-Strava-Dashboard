@@ -75,6 +75,24 @@ class ScreensTest {
         assertTrue("top sport Ride", "Ride" in t)
     }
 
+    @Test fun streakCountsConsecutiveDays() {
+        assertEquals(3, More.longestStreak(setOf("2026-09-30", "2026-10-01", "2026-10-02", "2026-10-05", "2026-10-06")))
+        assertEquals(0, More.longestStreak(emptySet()))
+    }
+
+    @Test fun calendarPage() {
+        val now = java.time.LocalDate.now()
+        val d1 = now.withDayOfMonth(1).toString(); val d2 = now.withDayOfMonth(2).toString()
+        val acts = org.json.JSONArray(listOf(act(1, "Ride", 40.0, 90, d1), act(2, "Run", 10.0, 60, d1), act(3, "Ride", 30.0, 70, d2)))
+        (Api::class.java.getDeclaredMethod("cacheFile", android.content.Context::class.java, String::class.java)
+            .apply { isAccessible = true }.invoke(Api, app, "activities?limit=500") as java.io.File).apply { parentFile!!.mkdirs() }.writeText(JSONObject().put("activities", acts).toString())
+        More.calendar(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "Calendar" in t && "MONTH BY MONTH" in t)
+        assertTrue("3 activities on 2 days, streak 2", t.any { it.startsWith("3 activities · 2 active days · 80.0 km") } && "2 days" in t)
+        assertTrue("every day of the month is drawn", "${now.lengthOfMonth()}" in t)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)

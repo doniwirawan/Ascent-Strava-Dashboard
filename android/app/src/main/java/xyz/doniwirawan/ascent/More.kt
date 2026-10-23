@@ -12,10 +12,12 @@ import java.util.Locale
 object More {
     private val PAGES = listOf(
         "trends" to ("Trends" to "Weekly distance, year over year, year in review"),
+        "calendar" to ("Calendar" to "Every day of a month, and month by month"),
     )
 
     fun show(a: AppActivity, id: String) = when (id) {
         "trends" -> trends(a)
+        "calendar" -> calendar(a)
         else -> menu(a)
     }
 
@@ -164,5 +166,129 @@ object More {
         )))
         col.addView(Ui.heading(a, "$yr distance per month (km)"))
         col.addView(Ui.card(a).apply { addView(Screens.chart(a, BarChart(a).apply { set(month, MONTHS.map { it.take(1) }) }, 150)) })
+    }
+
+    // ── Calendar (website renderCalendar + calDayOpen + renderMonthly) ──────
+    private var calMonth: java.time.YearMonth? = null
+    private var calDay: String? = null
+    private var monthlyYear = 0
+
+    /** Longest run of consecutive active days among [days] (yyyy-MM-dd). */
+    internal fun longestStreak(days: Set<String>): Int {
+        var best = 0
+        days.forEach { d ->
+            if (java.time.LocalDate.parse(d).minusDays(1).toString() in days) return@forEach   // not the start of a run
+            var n = 0; var x = java.time.LocalDate.parse(d)
+            while (x.toString() in days) { n++; x = x.plusDays(1) }
+            best = maxOf(best, n)
+        }
+        return best
+    }
+
+    fun calendar(a: AppActivity): Unit = a.load(listOf("activities?limit=500")) { r ->
+        val acts = Screens.list(r["activities?limit=500"]?.optJSONArray("activities")).filter { day(it).length == 10 }
+        val col = a.page()
+        back(a, col, "Calendar")
+        if (acts.isEmpty()) { col.addView(Ui.text(a, "No activities yet.", 13f, Ui.MUTED)); return@load }
+        val byDay = acts.groupBy { day(it) }
+        val today = java.time.LocalDate.now()
+        val year = byDay.filterKeys { it > today.minusDays(365).toString() }
+        col.addView(Ui.heading(a, "Last 365 days"))
+        col.addView(Ui.tiles(a, listOf(
+            "${year.values.sumOf { it.size }}" to "activities|rides", "${year.size}" to "active days",
+            "${longestStreak(year.keys)} days" to "longest streak", "${year.values.maxOfOrNull { it.size } ?: 0}" to "most in one day",
+        )))
+
+        val month = calMonth ?: java.time.YearMonth.from(today).also { calMonth = it }
+        val nav = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL }
+        fun arrow(t: String, by: Long) = Ui.text(a, t, 20f, Ui.ORANGE, true).apply {
+            setPadding(Ui.dp(a, 14), Ui.dp(a, 4), Ui.dp(a, 14), Ui.dp(a, 4)); setOnClickListener { calMonth = month.plusMonths(by); calDay = null; a.show("more:calendar") }
+        }
+        nav.addView(arrow("‹", -1))
+        nav.addView(Ui.text(a, MONTHS[month.monthValue - 1] + " ${month.year}", 15f, Ui.TEXT, true).apply { gravity = android.view.Gravity.CENTER }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        nav.addView(arrow("›", 1))
+        col.addView(nav)
+        val inMonth = byDay.filterKeys { it.startsWith(month.toString()) }
+        col.addView(Ui.text(a, "${inMonth.values.sumOf { it.size }} activities · ${inMonth.size} active days · " + Ui.km(inMonth.values.flatten().sumOf { it.optDouble("distance") }), 11f, Ui.MUTED))
+        col.addView(Ui.card(a).apply {
+            fun line() = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL }.also { addView(it) }
+            line().apply { listOf("S", "M", "T", "W", "T", "F", "S").forEach { addView(Ui.text(a, it, 11f, Ui.MUTED, true).apply { gravity = android.view.Gravity.CENTER }, LinearLayout.LayoutParams(0, Ui.dp(a, 22), 1f)) } }
+            var row = line()
+            val lead = month.atDay(1).dayOfWeek.value % 7
+            fun blank() = row.addView(android.view.View(a), LinearLayout.LayoutParams(0, Ui.dp(a, 40), 1f).apply { setMargins(Ui.dp(a, 2), Ui.dp(a, 2), Ui.dp(a, 2), Ui.dp(a, 2)) })
+            repeat(lead) { blank() }
+            for (d in 1..month.lengthOfMonth()) {
+                if ((lead + d - 1) % 7 == 0 && d > 1) row = line()
+                val key = month.atDay(d).toString()
+                val n = byDay[key]?.size ?: 0
+                row.addView(Ui.text(a, "$d", 13f, if (n > 0) Ui.TEXT else Ui.MUTED, n > 0).apply {
+                    gravity = android.view.Gravity.CENTER
+                    // the website's legend: 1, 2, 3–4, 5+ activities a day
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = Ui.dp(a, 6).toFloat()
+                        setColor(if (n == 0) Ui.LINE else androidx.core.graphics.ColorUtils.setAlphaComponent(Ui.ORANGE, when (n) { 1 -> 90; 2 -> 150; 3, 4 -> 210; else -> 255 }))
+                        if (key == calDay) setStroke(Ui.dp(a, 2), Ui.TEXT)
+                    }
+                    if (n > 0) setOnClickListener {
+                        val list = byDay[key]!!
+                        if (list.size == 1) a.openRide(list[0]) else { calDay = key; a.show("more:calendar") }
+                    }
+                }, LinearLayout.LayoutParams(0, Ui.dp(a, 40), 1f).apply { setMargins(Ui.dp(a, 2), Ui.dp(a, 2), Ui.dp(a, 2), Ui.dp(a, 2)) })
+            }
+            repeat((7 - (lead + month.lengthOfMonth()) % 7) % 7) { blank() }
+        })
+        calDay?.let { k -> byDay[k] }?.let { list ->
+            col.addView(Ui.heading(a, Ui.date(calDay!!)))
+            col.addView(Ui.card(a).apply {
+                list.forEachIndexed { i, x ->
+                    if (i > 0) addView(Ui.divider(a))
+                    addView(Ui.row(a, x.optString("name"), Ui.km(x.optDouble("distance")),
+                        x.optString("sport_type").ifEmpty { x.optString("type") }.replace(Regex("([a-z])([A-Z])"), "$1 $2") + " · " + Ui.hm(x.optLong("moving_time"))).apply { setOnClickListener { a.openRide(x) } })
+                }
+            })
+        }
+        monthByMonth(a, col, acts)
+    }
+
+    private fun monthByMonth(a: AppActivity, col: LinearLayout, acts: List<JSONObject>) {
+        val years = acts.map { day(it).take(4).toInt() }.distinct().sortedDescending()
+        if (monthlyYear !in years) monthlyYear = years.first()
+        val yr = monthlyYear
+        col.addView(Ui.heading(a, "Month by month"))
+        col.addView(android.widget.HorizontalScrollView(a).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(LinearLayout(a).apply {
+                years.forEach { y ->
+                    addView(Ui.text(a, "$y", 13f, if (y == yr) Ui.ORANGE else Ui.MUTED, true).apply {
+                        setPadding(0, Ui.dp(a, 6), Ui.dp(a, 18), Ui.dp(a, 6)); setOnClickListener { monthlyYear = y; a.show("more:calendar") }
+                    })
+                }
+            })
+        })
+        val byMonth = acts.filter { day(it).startsWith("$yr") }.groupBy { day(it).substring(5, 7).toInt() - 1 }
+        var prev: Double? = null
+        col.addView(Ui.card(a).apply {
+            (0 until 12).forEach { m ->
+                if (m > 0) addView(Ui.divider(a))
+                val l = byMonth[m]
+                if (l == null) { addView(Ui.row(a, MONTHS[m], "—")); return@forEach }
+                val dist = l.sumOf { it.optDouble("distance") }
+                val spd = l.map { it.optDouble("average_speed", 0.0) }.filter { it > 0 }
+                val hr = l.map { it.optDouble("average_heartrate", 0.0) }.filter { it > 0 }
+                val kj = l.sumOf { it.optDouble("kilojoules", it.optDouble("calories", 0.0)) }
+                // change against the previous month that had activity, like the website
+                val change = prev?.let { if (it > 0) " " + pct(dist, it) else "" }.orEmpty()
+                addView(Ui.row(a, MONTHS[m] + " · ${l.size}", Ui.km(dist) + change,
+                    String.format(Locale.US, "%,d m · %s", Math.round(l.sumOf { it.optDouble("total_elevation_gain") }), Ui.hm(l.sumOf { it.optLong("moving_time") })) +
+                        (if (spd.isNotEmpty()) " · " + Ui.kmh(spd.average()) else "") + (if (hr.isNotEmpty()) " · ${Math.round(hr.average())} bpm" else "") +
+                        (if (kj > 0) String.format(Locale.US, " · %,d kJ", Math.round(kj)) else "")))
+                prev = dist
+            }
+            val all = byMonth.values.flatten()
+            addView(Ui.divider(a))
+            addView(Ui.row(a, "$yr · ${all.size}", Ui.km(all.sumOf { it.optDouble("distance") }),
+                String.format(Locale.US, "%,d m · %s", Math.round(all.sumOf { it.optDouble("total_elevation_gain") }), Ui.hm(all.sumOf { it.optLong("moving_time") }))))
+        })
+        col.addView(Ui.text(a, "Each month: activities, distance with the change from the month before, climbing, moving time, average speed, heart rate and work.", 11f, Ui.MUTED))
     }
 }
