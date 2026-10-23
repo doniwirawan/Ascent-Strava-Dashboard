@@ -53,6 +53,12 @@ object Destinations {
     private fun file(ctx: Context) = File(ctx.filesDir, "bali-regencies.json")
     private const val URL_GEO = "https://ascent-analytics.doniwirawan.xyz/data/bali-regencies.json"
     private var regs: List<Regency>? = null
+
+    /** Bali's regencies from the phone's copy, downloading it the first time. Network on first use. */
+    internal fun regencies(ctx: Context): List<Regency>? = regs ?: runCatching {
+        if (!file(ctx).exists()) file(ctx).writeText(URL(URL_GEO).readText())
+        parse(JSONObject(file(ctx).readText()))
+    }.getOrNull()?.also { regs = it }
     private var pick: String? = null
 
     fun page(a: AppActivity): Unit = a.load(listOf("activities?limit=500")) { r ->

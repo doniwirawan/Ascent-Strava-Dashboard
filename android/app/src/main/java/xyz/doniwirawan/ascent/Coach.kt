@@ -49,17 +49,29 @@ object Coach {
 
     /** Sends `question` with the conversation so far; returns the reply. Network call. */
     fun ask(ctx: Context, question: String): String {
-        val key = key(ctx)
-        if (key.isBlank()) throw IllegalStateException("Add your AI key first.")
-        val p = provider(ctx)
         val hist = history(ctx)
         val system = SYS + "\n\nAthlete data (JSON):\n" + context(ctx).toString()
         val msgs = JSONArray()
         for (i in maxOf(0, hist.length() - 12) until hist.length()) msgs.put(hist.getJSONObject(i))      // last 6 exchanges
         msgs.put(JSONObject().put("role", "user").put("content", question))
 
-        val body = if (p.anthropic) JSONObject().put("model", model(ctx)).put("max_tokens", 800).put("system", system).put("messages", msgs)
-        else JSONObject().put("model", model(ctx)).put("max_tokens", 800)
+        val reply = call(ctx, system, msgs, 800)
+        hist.put(JSONObject().put("role", "user").put("content", question))
+        hist.put(JSONObject().put("role", "assistant").put("content", reply))
+        store(ctx, hist)
+        return reply
+    }
+
+    /** One question with its own instructions, no chat history (route planning, insights). Network call. */
+    fun once(ctx: Context, system: String, user: String, maxTokens: Int = 600): String =
+        call(ctx, system, JSONArray().put(JSONObject().put("role", "user").put("content", user)), maxTokens)
+
+    private fun call(ctx: Context, system: String, msgs: JSONArray, maxTokens: Int): String {
+        val key = key(ctx)
+        if (key.isBlank()) throw IllegalStateException("Add your AI key first (AI → Settings).")
+        val p = provider(ctx)
+        val body = if (p.anthropic) JSONObject().put("model", model(ctx)).put("max_tokens", maxTokens).put("system", system).put("messages", msgs)
+        else JSONObject().put("model", model(ctx)).put("max_tokens", maxTokens)
             .put("messages", JSONArray().put(JSONObject().put("role", "system").put("content", system)).apply { for (i in 0 until msgs.length()) put(msgs.get(i)) })
         val c = (URL(p.url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"; doOutput = true; connectTimeout = 15_000; readTimeout = 90_000
@@ -78,9 +90,6 @@ object Coach {
             else j.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("message")?.optString("content").orEmpty()
         } finally { c.disconnect() }
         if (reply.isBlank()) throw IllegalStateException("${p.name} sent an empty reply.")
-        hist.put(JSONObject().put("role", "user").put("content", question))
-        hist.put(JSONObject().put("role", "assistant").put("content", reply))
-        store(ctx, hist)
         return reply
     }
 

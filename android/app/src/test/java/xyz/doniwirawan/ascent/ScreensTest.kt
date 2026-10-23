@@ -349,6 +349,29 @@ class ScreensTest {
         assertTrue(t.toString(), "Photos" in t && "1 activities with photos. Tap one for all its photos." in t && "Ride 1" in t && "Ride 2" !in t)
     }
 
+    @Test fun chaseRouting() {
+        val d = JSONObject(java.io.File("../../data/bali-major-roads.json").readText()); val ways = d.getJSONArray("ways")
+        val roads = (0 until ways.length()).map { Ui.decodePolyline(ways.getJSONArray(it).getString(1)) }
+        val cls = (0 until ways.length()).map { ways.getJSONArray(it).getInt(0) }
+        val denpasar = doubleArrayOf(-8.6705, 115.2126); val ubud = doubleArrayOf(-8.5069, 115.2625)
+        val g0 = Chase.build(roads, cls, emptyList())
+        assertTrue("no rides: everything is never ridden", g0.nw.all { it })
+        val r = Chase.route(g0, denpasar, listOf(ubud), null, "any")!!
+        assertTrue("Denpasar → Ubud by road ${r.total} m", r.total in 20_000.0..35_000.0)
+        assertEquals(r.total, r.nw, 1e-6)
+        // ride the first half of that route: those roads count as ridden now
+        val g1 = Chase.build(roads, cls, listOf(r.pts.take(r.pts.size / 2)))
+        val r1 = Chase.route(g1, denpasar, listOf(ubud), null, "any")!!
+        assertTrue("about half is now ridden: ${r1.nw / r1.total}", r1.nw / r1.total in 0.3..0.7)
+        // a 40 km never-ridden loop from Denpasar comes back near 40 km
+        val loop = Chase.suggest(g0, denpasar, 40.0)!!
+        assertTrue("loop ${loop.total} m", loop.total in 30_000.0..50_000.0)
+        assertEquals(Chase.m(loop.pts.first(), loop.pts.last()), 0.0, 1.0)
+        // the encoder round-trips through the decoder
+        val back = Ui.decodePolyline(Chase.encode(r.pts))
+        assertEquals(r.pts.size, back.size); assertEquals(r.pts.last()[1], back.last()[1], 1e-5)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)
