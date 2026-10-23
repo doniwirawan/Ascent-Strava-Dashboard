@@ -237,6 +237,38 @@ class MainActivity : Activity() {
             }
         }
 
+        /** Several pages at once (the social post carousel), plus its caption. */
+        @JavascriptInterface
+        fun shareMany(json: String, text: String) {
+            try {
+                val list = org.json.JSONArray(json)
+                val dir = File(cacheDir, "share").apply { mkdirs() }
+                val uris = ArrayList<Uri>()
+                var mime = "image/*"
+                for (i in 0 until list.length()) {
+                    val o = list.getJSONObject(i)
+                    val file = File(dir, o.getString("name"))
+                    file.writeBytes(decode(o.getString("data")))
+                    uris.add(shareUriFor(file))
+                    if (i == 0) mime = mimeOf(o.getString("data"))
+                }
+                if (uris.isEmpty()) { toast("Nothing to share"); return }
+                startActivity(
+                    Intent.createChooser(
+                        Intent(if (uris.size == 1) Intent.ACTION_SEND else Intent.ACTION_SEND_MULTIPLE).apply {
+                            type = mime
+                            if (uris.size == 1) putExtra(Intent.EXTRA_STREAM, uris[0]) else putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                            if (text.isNotEmpty()) putExtra(Intent.EXTRA_TEXT, text)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        },
+                        "Share"
+                    )
+                )
+            } catch (e: Exception) {
+                toast("Share failed: ${e.message}")
+            }
+        }
+
         @JavascriptInterface
         fun toastMessage(msg: String) = toast(msg)
     }
@@ -320,13 +352,23 @@ class MainActivity : Activity() {
               }, true);
 
               // Android WebView has no Web Share API — route it to a share sheet.
+              // Every file goes (a social post has several pages), with any text.
               navigator.share = function(data){
-                var f = data && data.files && data.files[0];
-                if (!f) { AscentBridge.toastMessage('Nothing to share'); return Promise.resolve(); }
-                var fr = new FileReader();
-                fr.onload = function(){ AscentBridge.share(f.name || 'ascent.png', fr.result); };
-                fr.readAsDataURL(f);
-                return Promise.resolve();
+                var files = (data && data.files) || [];
+                if (!files.length) { AscentBridge.toastMessage('Nothing to share'); return Promise.resolve(); }
+                if (files.length === 1 && !(data.text)) {
+                  var fr = new FileReader();
+                  fr.onload = function(){ AscentBridge.share(files[0].name || 'ascent.png', fr.result); };
+                  fr.readAsDataURL(files[0]);
+                  return Promise.resolve();
+                }
+                return Promise.all(Array.prototype.map.call(files, function(f){
+                  return new Promise(function(res){
+                    var fr = new FileReader();
+                    fr.onload = function(){ res({ name: f.name || 'ascent.png', data: fr.result }); };
+                    fr.readAsDataURL(f);
+                  });
+                })).then(function(list){ AscentBridge.shareMany(JSON.stringify(list), data.text || ''); });
               };
               navigator.canShare = function(){ return true; };
             })();

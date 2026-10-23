@@ -146,6 +146,13 @@ class RideActivity : Activity() {
         if (id > 0) col.addView(button("Story card").apply {
             setOnClickListener { startActivity(Intent(this@RideActivity, MainActivity::class.java).putExtra("url", BuildConfig.DASHBOARD_URL + "?story=" + id)) }
         })
+        // and its stats image (map styles, themes) and AI social post carousel, same web view
+        if (id > 0) col.addView(button("Stats image").apply {
+            setOnClickListener { startActivity(Intent(this@RideActivity, MainActivity::class.java).putExtra("url", BuildConfig.DASHBOARD_URL + "?stats=" + id)) }
+        })
+        if (id > 0) col.addView(button("Social post").apply {
+            setOnClickListener { startActivity(Intent(this@RideActivity, MainActivity::class.java).putExtra("url", BuildConfig.DASHBOARD_URL + "?social=" + id)) }
+        })
 
         col.addView(button("Open on Strava").apply {
             setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.strava.com/activities/$id"))) }

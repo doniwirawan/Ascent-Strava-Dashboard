@@ -106,6 +106,15 @@ if (!CONFIG.refreshToken) {
       if (i >= 0 && picker) { picker.value = String(i); if (picker.onchange) picker.onchange(); }
       return;
     }
+    // ?stats=<id> / ?social=<id> (the app's ride page) open that activity with the tool already open
+    const q = new URLSearchParams(location.search), shareId = q.get('stats') || q.get('social');
+    if (shareId && typeof acts !== 'undefined' && acts.some(a => String(a.id) === shareId)) {
+      history.replaceState(null, '', location.pathname);
+      openActivityModal(shareId);
+      if (q.get('stats')) openStatsImage(shareId); else if (typeof openSocialPost === 'function') openSocialPost(shareId);
+      setTimeout(() => { const p = document.getElementById('actAiPanel'); if (p) p.scrollIntoView({ block: 'start' }); }, 400);
+      return;
+    }
     if (localStorage.getItem('story_open') === '1' && typeof acts !== 'undefined' && acts.length) openStoryModal();
   });
 }
