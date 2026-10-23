@@ -195,6 +195,27 @@ class ScreensTest {
         assertTrue("rest-day nights are 6h", t.indexOf("Rest day").let { it >= 0 && "6h 0m" in t.subList(it, it + 3) })
     }
 
+    @Test fun gearCostAndComparison() {
+        val road = JSONObject().put("id", "b1").put("name", "Camp SR3D").put("distance", 1_000_000.0)
+        val gravel = JSONObject().put("id", "b2").put("name", "Mosso 735 GVL").put("distance", 500_000.0)
+        // 30 km/h flat on the road bike, 20 km/h flat on the gravel bike
+        val acts = (1..4).map { act(it.toLong(), "Ride", 30.0, 60, "2026-10-0$it", 140.0, ",\"gear_id\":\"b1\"").put("total_elevation_gain", 30) } +
+            (5..8).map { act(it.toLong(), "Ride", 20.0, 60, "2026-10-0$it", 140.0, ",\"gear_id\":\"b2\"").put("total_elevation_gain", 30) }
+        val a = Screens.bikeStats(road, acts)!!; val g = Screens.bikeStats(gravel, acts)!!
+        assertEquals(4, a.n); assertEquals(30.0, a.flatSpeed!! * 3.6, 0.01)
+        val facts = Screens.bikeFacts(a, g)
+        assertTrue(facts.toString(), facts[0] == "Flat rides: 50.0% faster on the Camp SR3D (30.0 km/h vs 20.0 km/h).")
+        cache("me", JSONObject().put("bikes", org.json.JSONArray(listOf(road, gravel))))
+        cache("bikes", JSONObject().put("bikes", org.json.JSONArray(listOf(JSONObject().put("id", "camp").put("name", "Camp SR3D").put("spent", 10_000_000), JSONObject().put("id", "mosso").put("name", "Mosso").put("spent", 5_000_000))))
+            .put("shared", org.json.JSONArray(listOf(JSONObject().put("paid", 1_500_000)))))
+        cache("purchases", JSONObject().put("items", org.json.JSONArray()))
+        cache("activities?limit=500", JSONObject().put("activities", org.json.JSONArray(acts)))
+        Screens.money(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        // 16.5 M over 1,500 km = Rp 11,000/km; the road bike: 10 M + 1 M of tools over 1,000 km
+        assertTrue(t.toString(), "COST PER KM" in t && "BIKE COMPARISON" in t && "Rp 11.000/km" in t)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)

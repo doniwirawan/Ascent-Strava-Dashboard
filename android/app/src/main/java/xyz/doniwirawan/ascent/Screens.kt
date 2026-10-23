@@ -766,8 +766,92 @@ object Screens {
         col.addView(Ui.text(a, "Kept on this phone. Strava's odometer updates after each upload.", 11f, Ui.MUTED))
     }
 
+    // ── Gear: cost per km and bike comparison (website js/gear-maint.js) ────
+    class BikeStats(val bike: JSONObject, val n: Int, val km: Double, val avgDist: Double, val speed: Double, val flatSpeed: Double?, val hr: Double?, val watts: Double?, val measured: Boolean, val ef: Double?, val climb: Double, val maxSpeed: Double)
+
+    /** Outdoor rides of 10 min+ on [bike], website bikeCompareStats. */
+    internal fun bikeStats(bike: JSONObject, acts: List<JSONObject>): BikeStats? {
+        val rides = acts.filter { it.optString("gear_id") == bike.optString("id") && isRide(it) && !it.optBoolean("trainer") && it.optString("sport_type") != "VirtualRide" && it.optDouble("moving_time") >= 600 && it.optDouble("distance") > 0 }
+        if (rides.isEmpty()) return null
+        val t = rides.sumOf { it.optDouble("moving_time") }; val d = rides.sumOf { it.optDouble("distance") }
+        val flat = rides.filter { it.optDouble("total_elevation_gain") / (it.optDouble("distance") / 1000) < 8 }
+        val hrR = rides.filter { it.optDouble("average_heartrate", 0.0) > 0 }; val wR = rides.filter { it.optDouble("average_watts", 0.0) > 0 }
+        fun tw(l: List<JSONObject>, f: (JSONObject) -> Double) = l.sumOf { it.optDouble("moving_time") }.let { tt -> if (tt > 0) l.sumOf { f(it) * it.optDouble("moving_time") } / tt else null }
+        return BikeStats(bike, rides.size, d / 1000, d / rides.size, d / t,
+            if (flat.size >= 2) flat.sumOf { it.optDouble("distance") } / flat.sumOf { it.optDouble("moving_time") } else null,
+            tw(hrR) { it.optDouble("average_heartrate") }, tw(wR) { it.optDouble("average_watts") }, wR.count { it.optBoolean("device_watts") } >= wR.size / 2.0,
+            tw(hrR.filter { it.optDouble("average_speed") > 0 }) { it.optDouble("average_speed") * 60 / it.optDouble("average_heartrate") },
+            rides.sumOf { it.optDouble("total_elevation_gain") } / (d / 1000), rides.maxOf { it.optDouble("max_speed", 0.0) })
+    }
+
+    /** The head-to-head sentences for the two most-ridden bikes. */
+    internal fun bikeFacts(a: BikeStats, b: BikeStats): List<String> {
+        fun name(s: BikeStats) = s.bike.optString("nickname").ifEmpty { s.bike.optString("name") }
+        fun pct(x: Double, y: Double) = (x - y) / y * 100
+        val out = ArrayList<String>()
+        fun faster(v: (BikeStats) -> Double, lbl: String) = pct(v(a), v(b)).let { p ->
+            if (Math.abs(p) < 1.5) "$lbl: about the same on both." else { val (f, s) = if (p > 0) a to b else b to a
+                String.format(Locale.US, "%s: %.1f%% faster on the %s (%s vs %s).", lbl, Math.abs(p), name(f), Ui.kmh(v(f)), Ui.kmh(v(s))) } }
+        if (a.flatSpeed != null && b.flatSpeed != null) out += faster({ it.flatSpeed!! }, "Flat rides")
+        out += faster({ it.speed }, "All rides")
+        if (a.ef != null && b.ef != null) pct(a.ef, b.ef).let { p -> out += if (Math.abs(p) < 1.5) "Efficiency (distance per heartbeat) is about the same on both."
+            else String.format(Locale.US, "You cover %.1f%% more distance per heartbeat on the %s — the same effort goes further.", Math.abs(p), name(if (p > 0) a else b)) }
+        if (a.watts != null && b.watts != null) out += "Average power: ${Math.round(a.watts)} W on the ${name(a)} vs ${Math.round(b.watts)} W on the ${name(b)}." +
+            listOf(a, b).filter { !it.measured }.map { name(it) }.takeIf { it.isNotEmpty() }?.let { " (${it.joinToString()}: mostly estimated by Strava, not a power meter — compare with care.)" }.orEmpty()
+        if (a.hr != null && b.hr != null) out += "Average heart rate: ${Math.round(a.hr)} bpm on the ${name(a)} vs ${Math.round(b.hr)} bpm on the ${name(b)}."
+        if (Math.abs(a.climb - b.climb) >= 2) { val (h, f) = if (a.climb > b.climb) a to b else b to a
+            out += String.format(Locale.US, "Your %s rides are hillier: %.1f m climbing per km vs %.1f on the %s.", name(h), h.climb, f.climb, name(f)) }
+        out += "You ride the ${name(a)} most: ${a.n} rides vs ${b.n}, averaging ${Ui.km(a.avgDist)} vs ${Ui.km(b.avgDist)} per ride."
+        return out
+    }
+
+    private fun gear(a: AppActivity, col: LinearLayout, me: JSONObject?, financeBikes: List<JSONObject>, shared: Double, acts: List<JSONObject>) {
+        val bikes = list(me?.optJSONArray("bikes")).filter { !it.optBoolean("retired") }
+        if (bikes.isEmpty()) return
+        fun nameOf(b: JSONObject) = b.optString("nickname").ifEmpty { b.optString("name") }
+        // what each bike cost, from the finance app (its ids are words in the Strava bike's name)
+        val cost = bikes.associateWith { b -> financeBikes.firstOrNull { f -> (nameOf(b) + " " + b.optString("name")).lowercase(Locale.ROOT).contains(f.optString("id").lowercase(Locale.ROOT)) }?.optDouble("spent", 0.0) ?: 0.0 }
+        val priced = bikes.filter { (cost[it] ?: 0.0) > 0 && it.optDouble("distance") > 0 }
+        if (priced.isNotEmpty()) {
+            val kmAll = priced.sumOf { it.optDouble("distance") } / 1000
+            col.addView(Ui.heading(a, "Cost per km"))
+            val bikesOnly = priced.sumOf { cost[it]!! }; val all = bikesOnly + shared
+            col.addView(Ui.card(a).apply {
+                addView(Ui.row(a, "All bikes + tools", Ui.rp(all / kmAll) + "/km", Ui.rp(all) + " · " + String.format(Locale.US, "%,.0f km ridden", kmAll)))
+                if (shared > 0) addView(Ui.row(a, "Bikes only", Ui.rp(bikesOnly / kmAll) + "/km", Ui.rp(bikesOnly)))
+                priced.forEach { b ->
+                    val km = b.optDouble("distance") / 1000; val share = if (shared > 0) shared * km / kmAll else 0.0; val total = cost[b]!! + share
+                    val rides = acts.filter { it.optString("gear_id") == b.optString("id") }
+                    val hours = rides.sumOf { it.optDouble("moving_time") } / 3600
+                    val days = rides.map { it.optString("start_date_local").take(10) }.distinct().size
+                    val next = listOf(1000, 2500, 5000, 10000, 20000, 30000, 50000).filter { it > km * 1.15 }.take(2)
+                    addView(Ui.divider(a))
+                    addView(Ui.row(a, nameOf(b), Ui.rp(total / km) + "/km", Ui.rp(total) + (if (share > 0) " incl. " + Ui.rp(share) + " tools" else "") + String.format(Locale.US, " · %,.0f km", km) +
+                        (if (rides.isNotEmpty()) " · " + Ui.rp(total / rides.size) + " a ride" else "") + (if (hours >= 1) " · " + Ui.rp(total / hours) + " an hour" else "") +
+                        (if (days > 0) " · " + Ui.rp(total / days) + " a riding day" else "") +
+                        (if (next.isNotEmpty()) " · keep riding: " + next.joinToString(", ") { String.format(Locale.US, "%,d km → %s/km", it, Ui.rp(total / it)) } else "")))
+                }
+                addView(Ui.text(a, "Bike costs are the parts assigned to each bike in the finance app; shared tools are split by how far each bike has been ridden.", 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 6), 0, 0) })
+            })
+        }
+        val stats = bikes.mapNotNull { bikeStats(it, acts) }.sortedByDescending { it.n }
+        if (stats.isEmpty()) return
+        col.addView(Ui.heading(a, "Bike comparison"))
+        stats.forEach { s ->
+            col.addView(Ui.card(a).apply {
+                addView(Ui.text(a, nameOf(s.bike), 14f, Ui.TEXT, true))
+                addView(Ui.row(a, "Rides", "${s.n}", String.format(Locale.US, "%,.0f km · %s a ride", s.km, Ui.km(s.avgDist))))
+                addView(Ui.row(a, "Average speed", Ui.kmh(s.speed), "flat rides " + (s.flatSpeed?.let { Ui.kmh(it) } ?: "—") + " · top " + Ui.kmh(s.maxSpeed)))
+                addView(Ui.row(a, "Power · heart rate", (s.watts?.let { "${Math.round(it)} W" } ?: "—") + " · " + (s.hr?.let { "${Math.round(it)} bpm" } ?: "—"),
+                    "efficiency " + (s.ef?.let { String.format(Locale.US, "%.2f m/beat", it) } ?: "—") + String.format(Locale.US, " · climbing %.1f m/km", s.climb)))
+            })
+        }
+        if (stats.size >= 2 && stats[1].n >= 3) col.addView(Ui.card(a).apply { bikeFacts(stats[0], stats[1]).forEach { addView(Ui.text(a, "•  $it", 13f, Ui.TEXT).apply { setPadding(0, Ui.dp(a, 3), 0, Ui.dp(a, 3)) }) } })
+        col.addView(Ui.text(a, "Outdoor rides of 10 minutes or more. Flat rides = under 8 m climbing per km, the fairest speed comparison.", 11f, Ui.MUTED))
+    }
+
     // ── Money ───────────────────────────────────────────────────────────────
-    fun money(a: AppActivity): Unit = a.load(listOf("purchases", "bikes", "me")) { r ->
+    fun money(a: AppActivity): Unit = a.load(listOf("purchases", "bikes", "me", "activities?limit=500")) { r ->
         val items = list(r["purchases"]?.optJSONArray("items")).sortedByDescending { it.optString("date") }
         val col = a.page()
         val now = Calendar.getInstance()
@@ -809,6 +893,7 @@ object Screens {
             })
         }
 
+        gear(a, col, r["me"], list(r["bikes"]?.optJSONArray("bikes")), list(r["bikes"]?.optJSONArray("shared")).sumOf { it.optDouble("paid", 0.0) }, list(r["activities?limit=500"]?.optJSONArray("activities")))
         r["me"]?.let { bikeCare(a, col, it) }
 
         col.addView(Ui.heading(a, "Latest purchases"))

@@ -46,7 +46,7 @@ Uses data the API already has:
 - [x] P6. Power extras: aerobic efficiency (EF), cadence vs power, flat vs hilly, best NP, climbing power / FTP without a power meter (power.js, climb-ftp.js) — Power tab (3.6; climbing power moved to P15b)
 - [x] P7. Sleep insights: consistency / midpoint, after training vs rest, stress, active kcal, monthly watch metrics (sleep.js) — Sleep tab, findings + trends (3.7)
 - [ ] P7b. Sleep, the rest of sleep.js: records & recipe, health risk, year health, stress, energy, steps, bike ↔ body, patterns, export, AI summary
-- [ ] P8. Gear: bike comparison — usage, cost per km, efficiency, speed on flat rides (gear-maint.js)
+- [x] P8. Gear: bike comparison — usage, cost per km, efficiency, speed on flat rides (gear-maint.js) — Money tab (3.8)
 - [ ] P9. Milestones & trophies (renderMilestones, renderChallenges)
 - [ ] P10. Heatmap extras: ride destinations by regency (regency-map.js)
 - [ ] P11. Huawei-only workouts in the activity list (/huawei)
