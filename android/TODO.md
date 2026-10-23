@@ -50,7 +50,7 @@ Uses data the API already has:
 - [x] P9. Milestones & trophies (renderMilestones, renderChallenges) — More → Milestones (3.9; the KOM list joins P16)
 - [x] P10. Heatmap extras: ride destinations by regency (regency-map.js) — More → Destinations (3.10; outside Bali is one count, the website looks those up on Nominatim)
 - [x] P11. Huawei-only workouts in the activity list (/huawei) — Rides tab (3.11; sending them to Strava joins P19)
-- [ ] P12. Data: all activities & sleep as a sortable table (data-table.js)
+- [x] P12. Data: all activities & sleep as a sortable table (data-table.js) — More → Data (3.12)
 
 Needs ride streams (/activities/{id}?streams=…, shares the Strava limit):
 - [ ] P13. Ride page: heart-rate decoupling, wind analysis, time-lost analysis (hr-decoupling.js, wind-analysis.js, time-lost.js)

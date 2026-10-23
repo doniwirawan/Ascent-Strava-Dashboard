@@ -255,6 +255,24 @@ class ScreensTest {
         assertTrue(t.toString(), "ONLY ON HUAWEI · 1" in t && "Mountain climbing" in t && "Outdoor walk" !in t)
     }
 
+    @Test fun dataTable() {
+        val (sl, _) = sleepFixture()
+        val nights = SleepInsights.nights(sl)
+        val acts = listOf(act(1, "Ride", 40.0, 90, "2026-08-02"), act(2, "Ride", 60.0, 150, "2026-08-04"), act(3, "Run", 5.0, 30, "2026-08-04"))
+        val rows = DataPage.rows(acts, nights)
+        assertEquals(3 + 58, rows.size)   // 60 nights, 2 of them on activity days
+        assertEquals(480.0, rows.first { it.a?.optLong("id") == 1L }.s!!.asleep, 0.0)
+        val dist = DataPage.cols(200.0, 78.0).first { it.key == "dist" }
+        val sorted = DataPage.sort(rows, dist, true)
+        assertEquals(listOf(2L, 1L, 3L), sorted.take(3).map { it.a!!.optLong("id") })
+        assertTrue("rest days (no distance) sort last", sorted.drop(3).all { it.a == null })
+        assertEquals(listOf(3L, 1L, 2L), DataPage.sort(rows, dist, false).take(3).map { it.a!!.optLong("id") })
+        cache("sleep", sl); cache("activities?limit=500", JSONObject().put("activities", org.json.JSONArray(acts))); cache("me", JSONObject().put("ftp", 200))
+        DataPage.page(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "Data" in t && "61 rows · sorted by date" in t && "Rest day" in t)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)
