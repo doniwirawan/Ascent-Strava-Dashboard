@@ -338,8 +338,55 @@ object Screens {
         col.addView(c)
     }
 
+    // ── Bike care ───────────────────────────────────────────────────────────
+    // The website's maintenance reminders (js/gear-maint.js): Strava has no
+    // service data, so "Serviced" saves the bike's odometer on this phone and
+    // the distance since is measured against a typical interval.
+    private class Part(val key: String, val name: String, val km: Int)
+    private val PARTS = listOf(Part("chain", "Chain", 4000), Part("tire", "Tires", 5000), Part("brake", "Brake pads", 2500), Part("wax", "Wax / lube", 250))
+
+    private fun bikeCare(a: AppActivity, col: LinearLayout, me: JSONObject) {
+        val bikes = list(me.optJSONArray("bikes")).filter { !it.optBoolean("retired") }
+        if (bikes.isEmpty()) return
+        val prefs = Repo.prefs(a)
+        col.addView(Ui.heading(a, "Bike care"))
+        bikes.forEach { b ->
+            val id = b.optString("id")
+            val odo = b.optDouble("distance", 0.0)
+            col.addView(Ui.card(a).apply {
+                addView(Ui.text(a, b.optString("nickname").ifEmpty { b.optString("name") }, 14f, Ui.TEXT, true))
+                addView(Ui.text(a, String.format(Locale.US, "%,.0f km on Strava", odo / 1000), 11f, Ui.MUTED))
+                PARTS.forEach { part ->
+                    val k = "care_${id}_${part.key}"
+                    val since = if (prefs.contains(k)) (odo - prefs.getFloat(k, 0f)) / 1000 else null
+                    val (label, color) = when {
+                        since == null -> "not tracked" to Ui.MUTED
+                        since >= part.km -> "overdue" to Ui.RED
+                        since >= part.km * 0.8 -> "due soon" to Ui.ORANGE
+                        else -> "OK" to Ui.GREEN
+                    }
+                    addView(Ui.divider(a))
+                    addView(Ui.row(a, part.name, label,
+                        (since?.let { String.format(Locale.US, "%,.0f of %,d km since service", maxOf(0.0, it), part.km) } ?: "every ~${part.km} km") + " · tap when serviced").apply {
+                        ((getChildAt(1)) as android.widget.TextView).setTextColor(color)
+                        setOnClickListener {
+                            android.app.AlertDialog.Builder(a)
+                                .setTitle("${part.name} serviced?")
+                                .setMessage(String.format(Locale.US, "Counts from today's odometer, %,.0f km.", odo / 1000))
+                                .setPositiveButton("Serviced now") { _, _ -> prefs.edit().putFloat(k, odo.toFloat()).apply(); a.show("money") }
+                                .setNeutralButton("Stop tracking") { _, _ -> prefs.edit().remove(k).apply(); a.show("money") }
+                                .setNegativeButton("Cancel", null)
+                                .show()
+                        }
+                    })
+                }
+            })
+        }
+        col.addView(Ui.text(a, "Kept on this phone. Strava's odometer updates after each upload.", 11f, Ui.MUTED))
+    }
+
     // ── Money ───────────────────────────────────────────────────────────────
-    fun money(a: AppActivity): Unit = a.load(listOf("purchases", "bikes")) { r ->
+    fun money(a: AppActivity): Unit = a.load(listOf("purchases", "bikes", "me")) { r ->
         val items = list(r["purchases"]?.optJSONArray("items")).sortedByDescending { it.optString("date") }
         val col = a.page()
         val now = Calendar.getInstance()
@@ -380,6 +427,8 @@ object Screens {
                 }
             })
         }
+
+        r["me"]?.let { bikeCare(a, col, it) }
 
         col.addView(Ui.heading(a, "Latest purchases"))
         val c = Ui.card(a)

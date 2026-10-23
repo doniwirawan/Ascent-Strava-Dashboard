@@ -63,6 +63,8 @@ open class AscentWidget : AppWidgetProvider() {
                     drawAll(app)
                     onDone?.invoke()
                 }
+                // keep the app current even when it isn't opened (Updater.kt)
+                Updater.background(app)
             }
         }
 

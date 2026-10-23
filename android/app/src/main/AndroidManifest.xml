@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- self-update: hand the downloaded APK to Android's installer (Updater.kt) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Android 14+: let a self-update install without the confirm dialog -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
     <!-- Health Connect: read the sleep and steps your watch app writes there -->
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
@@ -96,6 +98,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- PackageInstaller's answer to a self-update (Updater.kt) -->
+        <receiver
+            android:name=".Updater$Result"
+            android:exported="false" />
 
         <!-- Refresh intents target this receiver explicitly, so only the system
              APPWIDGET_UPDATE broadcast needs a filter. -->

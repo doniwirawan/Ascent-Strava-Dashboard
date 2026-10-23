@@ -115,13 +115,29 @@ class AppActivity : Activity() {
                 AscentWidget.drawAll(this)
                 ui.post { if (current == "home" && Api.hasToken(this)) show("home") }
             }
-            checkForUpdate(false)
+            Updater.justUpdated(this)?.let { status.text = it }
             // watch sleep from Health Connect, at most every 6 hours
             io.execute {
                 val go = try { HealthSync.available(this) && HealthSync.due(this) && HealthSync.hasSleepPermission(this) } catch (e: Exception) { false }
                 if (go) { runHealthSync(); ui.post { if (current == "sleep") show("sleep") } }
             }
         } else showSettings()
+    }
+
+    private var resumed = false
+
+    override fun onResume() {
+        super.onResume()
+        resumed = true
+        // a cancelled or failed install comes back here
+        if (release != null && !downloading) showBanner(Updater.lastError(this))
+        // updates install themselves: look every 30 minutes while the app is used
+        if (Api.hasToken(this) && !downloading && Updater.due(this, 30 * 60_000L)) checkForUpdate(false)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        resumed = false
     }
 
     override fun onSaveInstanceState(out: Bundle) {
@@ -180,7 +196,10 @@ class AppActivity : Activity() {
         }
     }
 
-    /** Looks for a newer build; `manual` also reports "up to date" / errors. */
+    /**
+     * Looks for a newer build and, when there is one, downloads and installs it
+     * straight away; `manual` also reports "up to date" / errors.
+     */
     private fun checkForUpdate(manual: Boolean, note: TextView? = null) {
         io.execute {
             val r = try { Result.success(Updater.check(this)) } catch (e: Exception) { Result.failure(e) }
@@ -189,9 +208,10 @@ class AppActivity : Activity() {
                 showBanner()
                 if (manual) note?.text = when {
                     r.isFailure -> "Couldn't check: ${r.exceptionOrNull()?.message}"
-                    release != null -> "Version ${release!!.name} is available — tap the orange bar."
+                    release != null -> "Version ${release!!.name} is available — installing."
                     else -> "You have the latest version (${BuildConfig.VERSION_NAME})."
                 }
+                if (release != null) installUpdate(auto = !manual)
             }
         }
     }
@@ -209,23 +229,40 @@ class AppActivity : Activity() {
     }
 
     private var downloading = false
-    private fun installUpdate() {
+
+    /**
+     * Downloads the release (unless it already is) and installs it. `auto` is
+     * the unasked-for path: it never jumps to the "Install unknown apps"
+     * switch, and installs only while the app is on screen.
+     */
+    private fun installUpdate(auto: Boolean = false) {
         val rel = release ?: return
         if (downloading) return
         downloading = true
         io.execute {
             val file = try {
-                // the link only lives 10 minutes — fetch a fresh one each time
-                val fresh = Updater.check(this) ?: rel
-                Updater.download(this, fresh) { pct -> ui.post { showBanner(if (pct >= 0) "Downloading… $pct%" else "Downloading…") } }
+                Updater.downloaded(this, rel) ?: run {
+                    // the link only lives 10 minutes — fetch a fresh one each time
+                    val fresh = Updater.check(this) ?: rel
+                    Updater.download(this, fresh) { pct -> ui.post { showBanner(if (pct >= 0) "Downloading ${rel.name}… $pct%" else "Downloading ${rel.name}…") } }
+                }
             } catch (e: Exception) {
                 ui.post { downloading = false; showBanner("Download failed — tap to retry") }
                 null
             }
             if (file != null) ui.post {
                 downloading = false
-                if (Updater.install(this, file)) showBanner("Installing ${rel.name}…")
-                else showBanner("Allow Ascent to install updates, then tap here again")
+                val allowed = packageManager.canRequestPackageInstalls()
+                if (auto && (!resumed || !allowed)) {
+                    showBanner(if (allowed) "${rel.name} is ready — tap to install" else "${rel.name} is ready — tap, then allow Ascent to install updates")
+                    return@post
+                }
+                try {
+                    if (Updater.install(this, file)) showBanner("Installing ${rel.name} — Ascent closes when it's done")
+                    else showBanner("Allow Ascent to install updates, then tap here again")
+                } catch (e: Exception) {
+                    showBanner("Install failed — tap to retry")
+                }
             }
         }
     }
@@ -268,6 +305,7 @@ class AppActivity : Activity() {
                     if (err != null) { note.text = err; note.setTextColor(Ui.RED); return@post }
                     io.execute { try { Repo.refresh(this) } catch (e: Exception) {}; AscentWidget.drawAll(this) }
                     show("home")
+                    checkForUpdate(false)
                 }
             }
         })

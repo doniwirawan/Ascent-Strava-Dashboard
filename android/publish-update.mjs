@@ -45,3 +45,11 @@ const meta = { versionCode, versionName, notes: process.argv[2] || '', file, pub
 const m = await fetch(store + 'object/private-apps/ascent-latest.json', { method: 'POST', headers: { ...H, 'Content-Type': 'application/json', 'x-upsert': 'true' }, body: JSON.stringify(meta) });
 if (!m.ok) { console.error('Could not write ascent-latest.json', m.status, await m.text()); process.exit(1); }
 console.log(`Published ${versionName} (${versionCode}) as ${file}`);
+
+// Older builds are never offered again — remove them from the bucket.
+const listed = await (await fetch(store + 'object/list/private-apps', { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ prefix: '', limit: 1000 }) })).json();
+const old = (Array.isArray(listed) ? listed : []).map(o => o.name).filter(n => /^ascent-\d+-[0-9a-f]+\.apk$/.test(n) && n !== file);
+if (old.length) {
+  const d = await fetch(store + 'object/private-apps', { method: 'DELETE', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: old }) });
+  console.log(d.ok ? `Removed ${old.length} older build(s)` : `Could not remove older builds (${d.status})`);
+}

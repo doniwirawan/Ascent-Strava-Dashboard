@@ -14,7 +14,9 @@ update through the in-app Update bar (`publish-update.mjs`).
 - [x] 9. AI Coach chat with your own key (DeepSeek, OpenRouter, OpenAI, Anthropic, Groq, Mistral) (2.4)
 - [x] 10. Past-data permission: first Health Connect sync reaches a year back (2.5)
 - [x] 11. Overlapping sleep / steps from several apps counted once, with unit tests (2.6)
-- [ ] 12. JoyoFit + Ascent as one app — needs the owner's decision first:
+- [x] 12. Updates install themselves: PackageInstaller session, auto-download on open + widget refresh, old APKs removed on publish (2.7)
+- [x] 13. Money: Bike care — chain / tyre / brake / wax service reminders per bike, kept on the phone (2.7)
+- [ ] 14. JoyoFit + Ascent as one app — needs the owner's decision first:
       a) rebuild JoyoFit's no-watch features (strength logger, manual workouts, gear reminders, run plans) in Ascent — our own code, no licence change;
       b) take JoyoFit's watch link (Kotlin, AGPL-3.0) into Ascent — the whole app then becomes AGPL, and pairing it resets the watch / unpairs Huawei Health, like JoyoFit does;
       c) keep both apps, joined through Health Connect (what works today).
