@@ -228,5 +228,7 @@ object SleepInsights {
         }
         // records, the recipe, month by month, long-term health, healthiest year
         SleepHealth.draw(a, col, all, real, train)
+        // the watch's daily body data joined with the rides
+        SleepBody.draw(a, col, all, real, train, acts)
     }
 }

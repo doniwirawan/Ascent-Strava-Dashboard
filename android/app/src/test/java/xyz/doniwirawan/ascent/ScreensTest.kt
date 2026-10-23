@@ -260,6 +260,24 @@ class ScreensTest {
         assertEquals(1.0, SleepHealth.corr(listOf(1.0, 2.0, 3.0, 4.0, 5.0), listOf(2.0, 4.0, 6.0, 8.0, 10.0))!!, 1e-9)
     }
 
+    @Test fun sleepBody() {
+        // least squares recovers y = 1 + 2·a + 3·b exactly
+        val x = listOf(doubleArrayOf(0.0, 1.0), doubleArrayOf(1.0, 0.0), doubleArrayOf(2.0, 5.0), doubleArrayOf(3.0, 1.0), doubleArrayOf(4.0, 2.0))
+        val c = SleepBody.ols(x, x.map { 1 + 2 * it[0] + 3 * it[1] })!!
+        assertEquals(1.0, c[0], 1e-9); assertEquals(2.0, c[1], 1e-9); assertEquals(3.0, c[2], 1e-9)
+        // 60 days of stress, higher on the 20 riding days
+        val cols = org.json.JSONArray(listOf("date", "asleep", "stress", "steps", "cal"))
+        val start = java.time.LocalDate.parse("2026-06-01")
+        val days = (0 until 60).map { start.plusDays(it.toLong()).toString() }
+        val rows = org.json.JSONArray(days.mapIndexed { i, d -> org.json.JSONArray(listOf(d, 420, if (i % 3 == 0) 50 else 30, if (i % 3 == 0) 12000 else 4000, 400)) })
+        val all = SleepInsights.nights(JSONObject().put("cols", cols).put("rows", rows))
+        val train = SleepInsights.trainingDays(days.filterIndexed { i, _ -> i % 3 == 0 }.mapIndexed { i, d -> act(i.toLong() + 1, "Ride", 60.0, 120, d) })
+        val st = SleepBody.stress(all, train, all.associateBy { it.date })!!
+        assertEquals(50.0, st.onRide.v, 1e-9); assertEquals(30.0, st.onRest.v, 1e-9)
+        val p = SleepBody.steps(all, train)!!
+        assertEquals(20, p.big); assertEquals(20, p.bigRide)
+    }
+
     @Test fun milestones() {
         val b = Milestones.badge(6200.0, "km total", { "%,d".format(Math.round(it)) }, listOf(1000.0 to "1,000 km Club", 5000.0 to "5,000 km Club", 10000.0 to "10,000 km Club"))
         assertEquals("5,000 km Club", b.name); assertEquals(2, b.tier); assertEquals("10,000 km Club", b.next); assertEquals(62, b.pct)
