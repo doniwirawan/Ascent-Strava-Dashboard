@@ -63,7 +63,8 @@ Needs a new route in api/_v1.js:
 - [ ] P16b. Segment gaps: road you ride often that no segment covers (segment-gaps.js; needs segment geometry from /segments/{id})
 - [x] P17. Photos — More → Photos (3.18; new ?photos=1 on /api/v1/activities/{id}, no photo locations)
 - [x] P18. Chase routes — More → Chase routes (3.19; AI through the app's own key, no server change; router checked identical to the website on the real road file)
-- [ ] P19. Writes: AI overview insight, bulk caption rewrite, Huawei-only upload to Strava (write routes in _v1.js)
+- [x] P19. AI insight on each page — every app page (3.20; through the app's own AI key)
+- [ ] P19b. Writes back to Strava: bulk AI caption rewrite, GPS-glitch note in the description, Huawei-only upload (write routes in _v1.js)
 - [ ] P20. Share: stats image + social post (story card is done)
 
 Settings:

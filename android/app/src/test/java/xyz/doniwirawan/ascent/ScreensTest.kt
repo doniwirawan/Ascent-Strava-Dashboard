@@ -372,6 +372,24 @@ class ScreensTest {
         assertEquals(r.pts.size, back.size); assertEquals(r.pts.last()[1], back.last()[1], 1e-5)
     }
 
+    @Test fun aiInsight() {
+        val col = LinearLayout(app).apply {
+            addView(Ui.text(app, "Last 7 days", 11f)); addView(Ui.text(app, "120.0 km distance over 5 rides", 13f))
+            addView(android.widget.EditText(app).apply { setText("typed, not sent") })
+        }
+        assertEquals("Last 7 days\n120.0 km distance over 5 rides", Insight.text(col))
+        Insight.add(app, "home", col, true)
+        assertEquals("no AI key: nothing added", 3, col.childCount)
+        Coach.save(app, "deepseek", "sk-test", "")
+        val page = Insight.text(col); var h = 0; for (c in page) h = h * 31 + c.code
+        Repo.prefs(app).edit().putString("ai_ins_home", JSONObject().put("sig", h.toString(36)).put("text", "Saved insight.").put("at", System.currentTimeMillis()).toString()).apply()
+        Insight.add(app, "home", col, true)
+        assertTrue(texts(col).toString(), "Saved insight." in texts(col) && "✦ AI insight" in texts(col))
+        Insight.add(app, "home", col, false)
+        assertEquals("redrawing keeps one card", 1, (0 until col.childCount).count { col.getChildAt(it).tag == "insight" })
+        Coach.save(app, "deepseek", "", "")
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)

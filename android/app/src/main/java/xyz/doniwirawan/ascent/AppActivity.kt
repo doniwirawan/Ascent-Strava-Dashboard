@@ -178,6 +178,8 @@ class AppActivity : Activity() {
         if (current.startsWith("more:")) show("more") else super.onBackPressed()
     }
 
+    fun currentPage() = current
+
     /** Clears the screen and returns the column to fill. */
     fun page(): LinearLayout { content.removeAllViews(); return content }
 
@@ -188,7 +190,8 @@ class AppActivity : Activity() {
     fun load(paths: List<String>, render: (Map<String, JSONObject?>) -> Unit) {
         val gen = ++generation
         val cached = paths.associateWith { Api.cached(this, it) }
-        if (cached.values.any { it != null }) render(cached)
+        val pageId = current
+        if (cached.values.any { it != null }) { render(cached); Insight.add(this, pageId, content, false) }
         else { page().addView(Ui.text(this, "Loading…", 13f, Ui.MUTED)) }
         status.text = "Updating…"
         io.execute {
@@ -201,7 +204,7 @@ class AppActivity : Activity() {
                 if (gen != generation) return@post
                 status.text = error ?: ""
                 status.setTextColor(if (error != null) Ui.RED else Ui.MUTED)
-                if (fresh.values.any { it != null }) render(fresh)
+                if (fresh.values.any { it != null }) { render(fresh); Insight.add(this, pageId, content, true) }
                 else page().addView(Ui.text(this, error ?: "Nothing to show yet.", 13f, Ui.MUTED))
             }
         }
