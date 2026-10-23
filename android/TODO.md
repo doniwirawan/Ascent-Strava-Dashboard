@@ -24,13 +24,59 @@ update through the in-app Update bar (`publish-update.mjs`).
       b) take JoyoFit's watch link (Kotlin, AGPL-3.0) into Ascent — the whole app then becomes AGPL, and pairing it resets the watch / unpairs Huawei Health, like JoyoFit does;
       c) keep both apps, joined through Health Connect (what works today).
 
+## Web → app parity (owner, 2026-10-23: "every web feature in the app too")
+
+Every dashboard section (index.html) against the app, migrated one at a time in
+this order: first what the current /api/v1 data already covers, then what needs
+ride streams, then what needs a new route in api/_v1.js (never a new api/ file).
+
+Already in the app: overview stats + all-time + fun facts, fitness & form, 12-month
+calendar heat, Eddington, bests, bikes km, activity list + search + routes map (2D/3D),
+ride page (charts, zones, splits, segments & PRs, best efforts, AI analysis, Story card),
+power (FTP, NP/IF/TSS, zones), sleep basics, recovery/strain, purchases, bike parts cost,
+bike care, AI Coach chat + history, watch link.
+
+Uses data the API already has:
+- [ ] P1. Sports: Running, Walking & hiking, Swimming, Other — totals + last-20 trend + distance spread (render-charts.js)
+- [ ] P2. Trends: weekly distance, year-over-year monthly distance, Year in review (renderTrends, renderRewind)
+- [ ] P3. Calendar: month-by-month activity calendar (renderCalendar)
+- [ ] P4. Overview extras: sport breakdown, HR-zone + speed-zone rings, insights, streak/consistency (render-overview.js)
+- [ ] P5. Training: 7/42-day load, ramp, climbing ability (VAM, best climb), running VDOT, readiness (training.js, sleep.js renderReadiness)
+- [ ] P6. Power extras: aerobic efficiency (EF), cadence vs power, flat vs hilly, best NP, climbing power / FTP without a power meter (power.js, climb-ftp.js)
+- [ ] P7. Sleep insights: consistency / midpoint, after training vs rest, stress, active kcal, monthly watch metrics (sleep.js)
+- [ ] P8. Gear: bike comparison — usage, cost per km, efficiency, speed on flat rides (gear-maint.js)
+- [ ] P9. Milestones & trophies (renderMilestones, renderChallenges)
+- [ ] P10. Heatmap extras: ride destinations by regency (regency-map.js)
+- [ ] P11. Huawei-only workouts in the activity list (/huawei)
+- [ ] P12. Data: all activities & sleep as a sortable table (data-table.js)
+
+Needs ride streams (/activities/{id}?streams=…, shares the Strava limit):
+- [ ] P13. Ride page: heart-rate decoupling, wind analysis, time-lost analysis (hr-decoupling.js, wind-analysis.js, time-lost.js)
+- [ ] P14. Ride page: abnormal-speed / GPS spike check (gps-fix.js; the GPX repair suite stays web-only)
+- [ ] P15. Power curve + Morton CP / W′ and W′ balance (power-curve.js, sauce.js)
+
+Needs a new route in api/_v1.js:
+- [ ] P16. Segments: your starred segments, segment gaps, segment intelligence
+- [ ] P17. Photos
+- [ ] P18. Chase routes: AI route generator (/api/route + /api/ai need owner auth that accepts the asc_ token)
+- [ ] P19. AI: overview insight, bulk caption rewrite (writes back to Strava)
+- [ ] P20. Share: stats image + social post (story card is done)
+
+Settings:
+- [ ] P21. Units (km / mi) and language (English / Indonesian)
+- [ ] P22. Help: what the metrics mean
+
+Stays web-only: landing page, Strava login, PWA install, save page as image, GPX repair
+editor, Personal API token management and webhook settings (need the Strava login), Huawei
+export upload (the watch link replaces it).
+
 Waiting on the owner / real data:
 - Health Connect on the phone has no sleep after 1 Oct (21–22 Oct steps only): after 2.8 the Sleep card says which app wrote what — check Health Sync → Health Connect → Sleep is on
 - Real Health Sync nights already arrive (29 Sep – 1 Oct + steps seen 22 Oct); keep an eye on 22 Oct's night after the next phone sync
 - Paste an AI key in Ascent → AI → Settings and ask something (only a rejected test key was tried)
 - Confirm 2.2 installed, then the 48-h download link can be deleted
-- Next Strava upload: check the webhook adds it to strava_cache (app shows it without opening the site)
-- First PP6 rides: check the power numbers look right
-- Weight 79 kg on the Strava profile (app reads W/kg from it)
+- ✓ Webhook adds uploads to strava_cache (23 Oct ride cached without opening the site, checked 23 Oct)
+- ✓ PP6 rides look right (21–23 Oct: avg 117–146 W, NP 121–153 W, max 853 W)
+- Weight: Strava profile says 78 kg, not 79 — update it on Strava if 79 is right (app reads W/kg from it)
 - Stats image: keep Weather + PRs on power rides? (9-stat limit)
 - L/R balance: skipped (needs FIT upload)
