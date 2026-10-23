@@ -119,6 +119,16 @@ async function activity(id, q) {
   const a = (all || []).find(x => String(x.id) === String(id));
   const out = { activity: a || (q.live === '1' ? await strava('/activities/' + encodeURIComponent(id)) : null) };
   if (!out.activity) throw new HttpError(404, 'not_found', { hint: 'Not in the cached activities; add ?live=1 to ask Strava.' });
+  // detail=1: Strava's full activity — segment efforts and PRs (no coordinates)
+  if (q.detail === '1') {
+    const d = await strava('/activities/' + encodeURIComponent(id));
+    const eff = e => ({ name: e.name, elapsed_time: e.elapsed_time, moving_time: e.moving_time, distance: e.distance, pr_rank: e.pr_rank || null,
+      kom_rank: e.kom_rank || null, average_watts: e.average_watts || null, average_heartrate: e.average_heartrate || null,
+      average_grade: e.segment ? e.segment.average_grade : null, climb_category: e.segment ? e.segment.climb_category : null });
+    out.detail = { description: d.description || '', calories: d.calories || null, device_name: d.device_name || '',
+      achievement_count: d.achievement_count || 0, pr_count: d.pr_count || 0,
+      segment_efforts: (d.segment_efforts || []).map(eff), best_efforts: (d.best_efforts || []).map(eff) };
+  }
   if (q.streams) {
     const keys = String(q.streams === '1' ? 'time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,temp,moving,grade_smooth' : q.streams).replace(/[^a-z_,]/g, '');
     out.streams = await strava('/activities/' + encodeURIComponent(id) + '/streams?keys=' + keys + '&key_by_type=true');
@@ -225,7 +235,7 @@ const INDEX = {
   endpoints: {
     'GET /api/v1/me': 'Your Strava profile, bikes and shoes (live from Strava)',
     'GET /api/v1/activities?limit=&offset=&type=&after=YYYY-MM-DD&before=': 'Cached activities, newest first (full Strava summaries)',
-    'GET /api/v1/activities/{id}?streams=1&live=1': 'One activity; streams=1 (or a key list) adds its streams from Strava',
+    'GET /api/v1/activities/{id}?streams=1&detail=1&live=1': 'One activity; streams=1 (or a key list) adds its streams from Strava, detail=1 its segment efforts and PRs',
     'GET /api/v1/stats': 'Totals, YTD, bests, by month / sport, calendar, streak, fitness',
     'GET /api/v1/strava-stats': 'Strava’s own all-time / YTD / 4-week totals',
     'GET /api/v1/sleep': 'Sleep nights from the Huawei export (and the Android app)',

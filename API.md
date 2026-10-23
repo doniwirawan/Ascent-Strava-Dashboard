@@ -197,7 +197,7 @@ code — anyone holding one can read everything below.
 | `/` | This list of endpoints |
 | `/me` | Strava profile, bikes and shoes (live from Strava) |
 | `/activities?limit=50&offset=0&type=Ride,Run&after=YYYY-MM-DD&before=YYYY-MM-DD` | Cached activities, newest first — full Strava summaries incl. `map.summary_polyline`. `limit` max 500 |
-| `/activities/{id}` | One activity. `?streams=1` adds every stream from Strava (or a list: `?streams=watts,heartrate,latlng`); `?live=1` asks Strava when it isn't cached |
+| `/activities/{id}` | One activity. `?streams=1` adds every stream from Strava (or a list: `?streams=watts,heartrate,latlng`); `?detail=1` adds segment efforts, best efforts and PR / KOM ranks (no coordinates); `?live=1` asks Strava when it isn't cached |
 | `/stats` | Totals, YTD, last 7/30 days, bests, by month / sport, calendar, streak, fitness |
 | `/strava-stats` | Strava's own all-time / YTD / 4-week totals |
 | `/sleep` | Sleep nights (Huawei export + the Android app's Health Connect sync): `{ cols, rows, … }` |

@@ -67,13 +67,15 @@ object Ui {
                 val label = labelIcon.substringBefore('|')
                 val icon = labelIcon.substringAfter('|', "")
                 val c = card(ctx).apply {
-                    gravity = Gravity.CENTER_HORIZONTAL
+                    // every tile the same height: icon or not, one- or two-line caption
+                    gravity = Gravity.CENTER
+                    minimumHeight = dp(ctx, 100)
                     if (icon.isNotEmpty()) addView(TabIcon(ctx, icon).apply { color = ORANGE },
                         LinearLayout.LayoutParams(dp(ctx, 20), dp(ctx, 20)).apply { bottomMargin = dp(ctx, 4) })
                     addView(text(ctx, value, 20f, TEXT, true).apply { gravity = Gravity.CENTER })
                     addView(text(ctx, label.uppercase(Locale.US), 10f, MUTED, true).apply { gravity = Gravity.CENTER; letterSpacing = 0.08f })
                 }
-                line.addView(c, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f).apply {
+                line.addView(c, LinearLayout.LayoutParams(0, MATCH_PARENT, 1f).apply {
                     marginEnd = dp(ctx, 5); marginStart = dp(ctx, 5); bottomMargin = dp(ctx, 10)
                 })
             }

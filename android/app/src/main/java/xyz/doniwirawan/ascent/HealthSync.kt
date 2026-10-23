@@ -59,6 +59,16 @@ object HealthSync {
             .contains(HealthPermission.getReadPermission(SleepSessionRecord::class))
     }
 
+    /**
+     * Whether this phone's Health Connect can share data from before access was
+     * granted at all. Where it can't, the permission dialog silently does nothing.
+     */
+    @OptIn(androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi::class)
+    fun historySupported(ctx: Context): Boolean = available(ctx) && try {
+        HealthConnectClient.getOrCreate(ctx).features.getFeatureStatus(androidx.health.connect.client.HealthConnectFeatures.FEATURE_HEALTH_DATA_HISTORIC_READ) ==
+            androidx.health.connect.client.HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+    } catch (e: Exception) { false }
+
     fun hasHistory(ctx: Context): Boolean = available(ctx) && runBlocking {
         HealthConnectClient.getOrCreate(ctx).permissionController.getGrantedPermissions().contains(HISTORY)
     }
@@ -87,11 +97,33 @@ object HealthSync {
         if (nights.length() == 0) return "Health Connect has no sleep for the last $days days yet — sync your watch app (or Health Sync) first."
         val res = post(ctx, JSONObject().put("source", "Health Connect").put("nights", nights))
         val msg = "Synced ${sessions.size} sleep sessions: ${res.optInt("added")} new nights, ${res.optInt("updated")} updated" +
-            (if (res.optInt("kept_from_export") > 0) ", ${res.optInt("kept_from_export")} kept from the Huawei export" else "") + "."
+            (if (res.optInt("kept_from_export") > 0) ", ${res.optInt("kept_from_export")} kept from the Huawei export" else "") + ". " + sources(sessions)
         Repo.prefs(ctx).edit().putString("hc_last", java.text.SimpleDateFormat("d MMM, HH:mm", java.util.Locale.getDefault()).format(java.util.Date()) + " · " + msg)
             .putLong("hc_last_at", System.currentTimeMillis())
             .putBoolean("hc_backfilled", Repo.prefs(ctx).getBoolean("hc_backfilled", false) || days > 30).apply()
         return msg
+    }
+
+    /**
+     * What Health Connect holds: which apps wrote the sleep, and the newest
+     * night — so a watch app that stopped writing sleep shows on the card.
+     */
+    private fun sources(sessions: List<SleepSessionRecord>): String {
+        if (sessions.isEmpty()) return "Health Connect holds no sleep sessions in that time — check that your watch app (e.g. Health Sync → Health Connect → Sleep) is writing sleep."
+        val by = sessions.groupBy { appName(it.metadata.dataOrigin.packageName) }.map { (k, v) -> "$k ${v.size}" }.joinToString(", ")
+        val newest = sessions.maxOf { it.endTime }
+        val ago = ChronoUnit.HOURS.between(newest, Instant.now())
+        val when_ = java.text.SimpleDateFormat("d MMM", java.util.Locale.getDefault()).format(java.util.Date(newest.toEpochMilli()))
+        return "From: $by. Newest sleep ends $when_" +
+            if (ago > 36) " — nothing newer is in Health Connect, so the watch app isn't writing sleep there now." else "."
+    }
+
+    private fun appName(pkg: String) = when (pkg) {
+        "nl.appyhapps.healthsync" -> "Health Sync"
+        "com.huawei.health" -> "Huawei Health"
+        "com.google.android.apps.fitness" -> "Google Fit"
+        "com.sec.android.app.shealth" -> "Samsung Health"
+        else -> pkg.substringAfterLast('.')
     }
 
     /** Auto-sync at most every 6 hours. */

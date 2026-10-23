@@ -144,8 +144,8 @@ object Updater {
     fun lastError(ctx: Context): String? = Repo.prefs(ctx).getString("update_error", null)
 
     /**
-     * Wakes up the first time a new build runs: returns "Updated to X" with its
-     * notes once, then null.
+     * The first time a new build runs: returns its release notes ("" when there
+     * are none) once, then null.
      */
     fun justUpdated(ctx: Context): String? {
         val p = Repo.prefs(ctx)
@@ -154,8 +154,7 @@ object Updater {
         p.edit().putInt("seen_version", BuildConfig.VERSION_CODE).remove("update_error").apply()
         dir(ctx).listFiles()?.forEach { it.delete() }
         if (seen == 0) return null                           // first run, not an update
-        val notes = p.getString("update_notes_${BuildConfig.VERSION_CODE}", "").orEmpty()
-        return "Updated to ${BuildConfig.VERSION_NAME}" + if (notes.isNotEmpty()) " — $notes" else ""
+        return p.getString("update_notes_${BuildConfig.VERSION_CODE}", "").orEmpty()
     }
 
     /** Called by widget refreshes: check every 6 h, fetch a newer build, install it if Android allows. */

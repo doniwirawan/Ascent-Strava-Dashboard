@@ -103,6 +103,27 @@ object Screens {
         s.optJSONObject("streak")?.let { st ->
             col.addView(Ui.tiles(a, listOf("${st.optInt("weeks")} wk" to "active streak", "${st.optInt("active_days_this_year")}" to "active days")))
         }
+        // Strava's own all-time ride totals, and the website's fun comparisons
+        s.optJSONObject("all_time")?.let { t ->
+            col.addView(Ui.heading(a, "All time · rides"))
+            col.addView(Ui.tiles(a, listOf(
+                String.format(Locale.US, "%,d km", t.optInt("distance_km")) to "distance|distance",
+                String.format(Locale.US, "%,d m", t.optInt("elevation_m")) to "climbing|climb",
+                String.format(Locale.US, "%,d h", t.optInt("moving_hours")) to "moving|time",
+                String.format(Locale.US, "%,d", t.optInt("rides")) to "rides|rides",
+            )))
+        }
+        s.optJSONObject("fun")?.let { f ->
+            col.addView(Ui.card(a).apply {
+                addView(Ui.row(a, "Everests climbed", String.format(Locale.US, "%.1f×", f.optDouble("everests"))))
+                addView(Ui.divider(a))
+                addView(Ui.row(a, "Around the Earth", "${f.optInt("around_the_earth_pct")}%"))
+                addView(Ui.divider(a))
+                addView(Ui.row(a, "Days in the saddle", String.format(Locale.US, "%.1f", f.optDouble("days_in_the_saddle"))))
+                addView(Ui.divider(a))
+                addView(Ui.row(a, "Babi guling burned this year", "${f.optInt("babi_guling_this_year")}", String.format(Locale.US, "%,d kcal on the bike", f.optInt("kcal_this_year"))))
+            })
+        }
 
         val months = list(s.optJSONArray("by_month")).takeLast(12)
         if (months.isNotEmpty()) {

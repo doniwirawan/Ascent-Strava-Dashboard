@@ -66,7 +66,8 @@ class AppActivity : Activity() {
             val p = Ui.dp(this@AppActivity, 12)
             setPadding(p, p, p, p)
             background = android.graphics.drawable.GradientDrawable().apply { setColor(Ui.ORANGE); cornerRadius = Ui.dp(this@AppActivity, 10).toFloat() }
-            setOnClickListener { installUpdate() }
+            // an update to install, else the "what's new" note, which a tap hides
+            setOnClickListener { if (release != null) installUpdate() else { showingNews = false; visibility = android.view.View.GONE } }
         }
         root.addView(banner, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
             val m = Ui.dp(this@AppActivity, 16); setMargins(m, Ui.dp(this@AppActivity, 8), m, 0)
@@ -115,7 +116,7 @@ class AppActivity : Activity() {
                 AscentWidget.drawAll(this)
                 ui.post { if (current == "home" && Api.hasToken(this)) show("home") }
             }
-            Updater.justUpdated(this)?.let { status.text = it }
+            Updater.justUpdated(this)?.let { showNews(it) }
             // watch sleep from Health Connect, at most every 6 hours
             io.execute {
                 val go = try { HealthSync.available(this) && HealthSync.due(this) && HealthSync.hasSleepPermission(this) } catch (e: Exception) { false }
@@ -218,13 +219,29 @@ class AppActivity : Activity() {
 
     private fun showBanner(text: String? = null) {
         val rel = release
+        if (rel == null) { if (showingNews) return; banner.removeAllViews(); banner.visibility = android.view.View.GONE; return }
         banner.removeAllViews()
-        if (rel == null) { banner.visibility = android.view.View.GONE; return }
+        showingNews = false
+        (banner.background as android.graphics.drawable.GradientDrawable).setColor(Ui.ORANGE)
         banner.visibility = android.view.View.VISIBLE
         banner.addView(TabIcon(this, "update").apply { color = Color.WHITE }, LinearLayout.LayoutParams(Ui.dp(this, 22), Ui.dp(this, 22)))
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(Ui.dp(this@AppActivity, 10), 0, 0, 0) }
         col.addView(Ui.text(this, text ?: "Update to ${rel.name}", 14f, Color.WHITE, true))
         col.addView(Ui.text(this, if (text != null) "" else rel.notes.ifEmpty { "Tap to download and install." }, 12f, Color.WHITE))
+        banner.addView(col, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+    }
+
+    /** Once after an update: what changed, in the banner (green, tap to hide). */
+    private var showingNews = false
+    private fun showNews(notes: String) {
+        showingNews = true
+        banner.removeAllViews()
+        banner.visibility = android.view.View.VISIBLE
+        (banner.background as android.graphics.drawable.GradientDrawable).setColor(Ui.GREEN)
+        banner.addView(TabIcon(this, "update").apply { color = Color.WHITE }, LinearLayout.LayoutParams(Ui.dp(this, 22), Ui.dp(this, 22)))
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(Ui.dp(this@AppActivity, 10), 0, 0, 0) }
+        col.addView(Ui.text(this, "Updated to ${BuildConfig.VERSION_NAME}", 14f, Color.WHITE, true))
+        col.addView(Ui.text(this, notes.ifEmpty { "Tap to hide." }, 12f, Color.WHITE))
         banner.addView(col, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
     }
 
@@ -348,10 +365,15 @@ class AppActivity : Activity() {
         note.text = err?.let { "Last try failed: $it" } ?: HealthSync.lastSync(this)?.let { "Last sync: $it" } ?: "Ready. Tap to pull your nights from Health Connect."
         if (err != null) note.setTextColor(Ui.RED)
         c.addView(button("Sync sleep now") { syncHealth(note, true) })
-        // past-data access is a separate switch; offer it until it's on
-        if (!HealthSync.hasHistory(this)) c.addView(button("Allow past data (older nights)") {
-            try { HealthSync.requestPermissions(this, REQ_HC) } catch (e: Exception) { note.text = "Couldn't open Health Connect: ${e.message}" }
-        })
+        // past-data access is a separate switch; offer it until it's on, where the phone has it at all
+        if (!HealthSync.hasHistory(this)) {
+            if (HealthSync.historySupported(this)) c.addView(button("Allow past data (older nights)") {
+                try { HealthSync.requestPermissions(this, REQ_HC) } catch (e: Exception) { note.text = "Couldn't open Health Connect: ${e.message}" }
+            })
+            else c.addView(Ui.text(this, "This phone's Health Connect can't share data from before you allowed Ascent (about 30 days earlier) — Android or the Health Connect app needs an update for that. Older nights come from the Huawei export on the website's Sleep page.", 11f, Ui.MUTED).apply {
+                setPadding(0, Ui.dp(this@AppActivity, 8), 0, 0)
+            })
+        }
         return c
     }
 
