@@ -163,6 +163,7 @@ object Screens {
                 }
             })
         }
+        homeExtras(a, col, list(r["activities?limit=300"]?.optJSONArray("activities")))
         list(s.optJSONArray("bikes")).takeIf { it.isNotEmpty() }?.let { bikes ->
             col.addView(Ui.heading(a, "Bikes"))
             col.addView(Ui.card(a).apply {
@@ -174,6 +175,108 @@ object Screens {
         }
 
         col.addView(Ui.text(a, "From your dashboard's database · synced ${Ui.date(s.optString("synced_at"))}", 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 10), 0, 0) })
+    }
+
+    // ── Home extras (website render-overview.js + fitness.js overview cards) ──
+    private val HR_NAMES = listOf("Recovery" to 0xFF3B82F6.toInt(), "Endurance" to 0xFF22C55E.toInt(), "Tempo" to 0xFFEAB308.toInt(), "Threshold" to 0xFFF97316.toInt(), "Anaerobic" to 0xFFEF4444.toInt())
+    private val SPEED_NAMES = listOf("Easy", "Steady", "Brisk", "Fast", "Flying")
+    private val RIDE_EDGES = doubleArrayOf(0.0, 15.0, 20.0, 25.0, 30.0)   // km/h, the website's fixed ride bands
+
+    /** Seconds per HR zone, each activity's moving time at its average HR; zones are 60/70/80/90 % of the highest HR seen. */
+    internal fun hrZoneTotals(acts: List<JSONObject>): DoubleArray {
+        val max = acts.maxOfOrNull { it.optDouble("max_heartrate", 0.0) } ?: 0.0
+        val t = DoubleArray(5)
+        if (max <= 0) return t
+        acts.forEach { a ->
+            val hr = a.optDouble("average_heartrate", 0.0)
+            if (hr > 0) t[listOf(0.6, 0.7, 0.8, 0.9).indexOfFirst { hr / max < it }.let { if (it < 0) 4 else it }] += a.optDouble("moving_time")
+        }
+        return t
+    }
+
+    /** Ride seconds per speed band, each ride's moving time at its average speed. */
+    internal fun speedZoneTotals(rides: List<JSONObject>): DoubleArray {
+        val t = DoubleArray(5)
+        rides.forEach { a -> val v = a.optDouble("average_speed") * 3.6; if (v > 0) t[RIDE_EDGES.indexOfLast { v >= it }] += a.optDouble("moving_time") }
+        return t
+    }
+
+    /** Biggest distance inside any 7 days, starting from each activity (the website's "Biggest week"). */
+    internal fun biggestWeek(acts: List<JSONObject>): Double {
+        val s = acts.map { parse(it.optString("start_date")) to it.optDouble("distance") }.sortedBy { it.first }
+        var best = 0.0
+        s.indices.forEach { i -> var sum = 0.0; var j = i; while (j < s.size && s[j].first - s[i].first <= 7 * 86_400_000L) { sum += s[j].second; j++ }; best = maxOf(best, sum) }
+        return best
+    }
+
+    private fun zoneCard(a: AppActivity, col: LinearLayout, title: String, totals: DoubleArray, names: List<Pair<String, Int>>, range: (Int) -> String, note: String) {
+        val sum = totals.sum()
+        if (sum <= 0) return
+        col.addView(Ui.heading(a, title))
+        col.addView(Ui.card(a).apply {
+            totals.forEachIndexed { i, v ->
+                if (i > 0) addView(Ui.divider(a))
+                addView(Ui.row(a, "Z${i + 1} · ${names[i].first}", if (v > 0) Ui.hm(v.toLong()) + " · ${Math.round(v / sum * 100)}%" else "—", range(i)).apply {
+                    ((getChildAt(0) as LinearLayout).getChildAt(0) as android.widget.TextView).setTextColor(names[i].second)
+                })
+            }
+            addView(Ui.text(a, note, 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 6), 0, 0) })
+        })
+    }
+
+    private fun homeExtras(a: AppActivity, col: LinearLayout, acts: List<JSONObject>) {
+        if (acts.isEmpty()) return
+        // by sport, when there is more than one
+        val sports = listOf("ride" to "Cycling", "run" to "Running", "walk" to "Walking", "swim" to "Swimming").mapNotNull { (k, n) -> acts.filter { sportOf(it) == k }.takeIf { it.isNotEmpty() }?.let { Triple(k, n, it) } }
+        if (sports.size > 1) {
+            col.addView(Ui.heading(a, "By sport"))
+            col.addView(Ui.card(a).apply {
+                sports.forEachIndexed { i, (k, n, l) ->
+                    if (i > 0) addView(Ui.divider(a))
+                    val d = l.sumOf { it.optDouble("distance") }; val t = l.sumOf { it.optDouble("moving_time") }
+                    val avg = when (k) {
+                        "ride" -> l.map { it.optDouble("average_speed") }.filter { it > 0 }.let { if (it.isEmpty()) "—" else Ui.kmh(it.average()) }
+                        else -> if (d > 0 && t > 0) Math.round(if (k == "swim") 100 * t / d else 1000 * t / d).let { String.format(Locale.US, "%d:%02d", it / 60, it % 60) } + if (k == "swim") " /100m" else " /km" else "—"
+                    }
+                    addView(Ui.row(a, "$n · ${l.size}", Ui.km(d), String.format(Locale.US, "%,.0f h · %,d m · ", t / 3600, Math.round(l.sumOf { it.optDouble("total_elevation_gain") })) + avg).apply {
+                        setOnClickListener { rideFilter = k; rideQuery = ""; a.show("rides") }
+                    })
+                }
+            })
+        }
+
+        val max = acts.maxOfOrNull { it.optDouble("max_heartrate", 0.0) } ?: 0.0
+        val withHr = acts.count { it.optDouble("average_heartrate", 0.0) > 0 }
+        zoneCard(a, col, "Time in heart-rate zones", hrZoneTotals(acts), HR_NAMES, { i ->
+            val f = doubleArrayOf(0.0, 0.6, 0.7, 0.8, 0.9)
+            when (i) { 0 -> "≤ ${Math.round(f[1] * max)} bpm"; 4 -> "${Math.round(f[4] * max)}+ bpm"; else -> "${Math.round(f[i] * max)}–${Math.round(f[i + 1] * max)} bpm" }
+        }, "Estimated from each activity's average heart rate, zones from your highest HR (${Math.round(max)} bpm) · $withHr of ${acts.size} activities have HR.")
+        zoneCard(a, col, "Time at speed · rides", speedZoneTotals(acts.filter { isRide(it) }), SPEED_NAMES.mapIndexed { i, n -> n to HR_NAMES[i].second }, { i ->
+            if (i == 4) "${Math.round(RIDE_EDGES[4])}+ km/h" else "${Math.round(RIDE_EDGES[i])}–${Math.round(RIDE_EDGES[i + 1])} km/h"
+        }, "Estimated: each ride's moving time counted at its average speed, so surges inside a ride don't show.")
+
+        // insights
+        val slots = linkedMapOf("Morning" to 0, "Afternoon" to 0, "Evening" to 0, "Night" to 0)
+        acts.forEach { x ->
+            val h = x.optString("start_date_local").drop(11).take(2).toIntOrNull() ?: 0
+            val k = when { h in 5..11 -> "Morning"; h in 12..16 -> "Afternoon"; h in 17..20 -> "Evening"; else -> "Night" }
+            slots[k] = slots[k]!! + 1
+        }
+        val prime = slots.maxByOrNull { it.value }!!
+        val dow = IntArray(7).also { d -> acts.forEach { runCatching { d[java.time.LocalDate.parse(it.optString("start_date_local").take(10)).dayOfWeek.value % 7]++ } } }
+        val busy = dow.indices.maxByOrNull { dow[it] } ?: 0
+        val times = acts.map { parse(it.optString("start_date")) }.filter { it > 0 }
+        val span = if (times.isEmpty()) 1.0 else maxOf(1.0, (times.maxOrNull()!! - times.minOrNull()!!) / 86_400_000.0 + 1)
+        val kcal = acts.sumOf { it.optDouble("kilojoules", it.optDouble("calories", 0.0)) }
+        col.addView(Ui.heading(a, "Insights"))
+        col.addView(Ui.tiles(a, listOf(
+            prime.key to "prime time · ${Math.round(prime.value * 100.0 / acts.size)}%|time",
+            listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")[busy] to "busiest day · ${dow[busy]}",
+            Ui.km(biggestWeek(acts)) to "biggest 7 days|distance",
+            String.format(Locale.US, "%.1f", acts.size / span * 7) to "activities a week",
+            String.format(Locale.US, "%,d", Math.round(kcal / 285)) to "pizza slices burned|energy",
+            "${acts.map { it.optString("start_date_local").take(10) }.distinct().size}" to "active days",
+        )))
     }
 
     // ── Rides ───────────────────────────────────────────────────────────────

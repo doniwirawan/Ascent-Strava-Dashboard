@@ -40,7 +40,7 @@ Uses data the API already has:
 - [x] P1. Sports: Running, Walking & hiking, Swimming, Other — totals + last-20 trend + distance spread (render-charts.js) — Rides tab chips (3.1)
 - [x] P2. Trends: weekly distance, year-over-year monthly distance, Year in review (renderTrends, renderRewind) — More → Trends (3.2)
 - [x] P3. Calendar: month-by-month activity calendar (renderCalendar) — More → Calendar (3.3)
-- [ ] P4. Overview extras: sport breakdown, HR-zone + speed-zone rings, insights, streak/consistency (render-overview.js)
+- [x] P4. Overview extras: sport breakdown, HR-zone + speed-zone rings, insights, streak/consistency (render-overview.js) — Home (3.4; zones are average-HR / average-speed estimates like the website before streams)
 - [ ] P5. Training: 7/42-day load, ramp, climbing ability (VAM, best climb), running VDOT, readiness (training.js, sleep.js renderReadiness)
 - [ ] P6. Power extras: aerobic efficiency (EF), cadence vs power, flat vs hilly, best NP, climbing power / FTP without a power meter (power.js, climb-ftp.js)
 - [ ] P7. Sleep insights: consistency / midpoint, after training vs rest, stress, active kcal, monthly watch metrics (sleep.js)

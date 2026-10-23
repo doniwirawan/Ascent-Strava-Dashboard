@@ -93,6 +93,30 @@ class ScreensTest {
         assertTrue("every day of the month is drawn", "${now.lengthOfMonth()}" in t)
     }
 
+    @Test fun zoneEstimates() {
+        // highest HR 200: an average of 130 (65%) is Z2, 175 (87.5%) is Z4
+        val acts = listOf(act(1, "Ride", 30.0, 60, "2026-10-01", 130.0, ",\"max_heartrate\":200"), act(2, "Run", 10.0, 30, "2026-10-02", 175.0, ",\"max_heartrate\":190"))
+        assertEquals(listOf(0.0, 3600.0, 0.0, 1800.0, 0.0), Screens.hrZoneTotals(acts).toList())
+        // 22 km/h is Brisk (20–25), 30 km/h the top band (30+)
+        assertEquals(listOf(0.0, 0.0, 3600.0, 0.0, 3600.0), Screens.speedZoneTotals(listOf(act(3, "Ride", 22.0, 60, "2026-10-01"), act(4, "Ride", 30.0, 60, "2026-10-02"))).toList())
+        // 8 days apart: two separate weeks; 3 days apart: one
+        assertEquals(50.0, Screens.biggestWeek(listOf(act(5, "Ride", 20.0, 60, "2026-10-01"), act(6, "Ride", 30.0, 60, "2026-10-04"), act(7, "Ride", 40.0, 60, "2026-10-12"))) / 1000, 0.01)
+    }
+
+    private fun cache(path: String, body: JSONObject) =
+        (Api::class.java.getDeclaredMethod("cacheFile", android.content.Context::class.java, String::class.java)
+            .apply { isAccessible = true }.invoke(Api, app, path) as java.io.File).apply { parentFile!!.mkdirs() }.writeText(body.toString())
+
+    @Test fun homeDrawsExtras() {
+        cache("stats", JSONObject().put("synced_at", "2026-10-01T00:00:00Z"))
+        cache("activities?limit=300", JSONObject().put("activities", org.json.JSONArray(listOf(
+            act(1, "Ride", 30.0, 60, "2026-10-01", 130.0, ",\"max_heartrate\":200"), act(2, "Run", 10.0, 50, "2026-10-02", 150.0), act(3, "Walk", 3.0, 40, "2026-10-03").put("start_date_local", "")))))
+        Screens.home(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "BY SPORT" in t && "TIME IN HEART-RATE ZONES" in t && "TIME AT SPEED · RIDES" in t && "INSIGHTS" in t)
+        assertTrue("Z2 1 h of 3 activities' moving", t.any { it.startsWith("1h 0m · ") })
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)

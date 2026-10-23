@@ -26,8 +26,8 @@ android {
         applicationId "xyz.doniwirawan.ascent"
         minSdk 30   // the watch link's UPSERTs need SQLite 3.24+ (Android 11)
         targetSdk 34
-        versionCode 16
-        versionName "3.3"
+        versionCode 17
+        versionName "3.4"
 
         // Data comes from the personal API with a token typed into the app, so
         // nothing personal is baked into the APK (unless built with -Ppersonal).
