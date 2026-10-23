@@ -55,7 +55,7 @@ Uses data the API already has:
 Needs ride streams (/activities/{id}?streams=…, shares the Strava limit):
 - [x] P13. Ride page: heart-rate decoupling, wind analysis, time-lost analysis (hr-decoupling.js, wind-analysis.js, time-lost.js) — ride page (3.13)
 - [x] P14. Ride page: abnormal-speed / GPS spike check (gps-fix.js; the GPX repair suite stays web-only) — More → GPS check (3.14; the Strava description note joins P19)
-- [ ] P15. Power curve + Morton CP / W′ and W′ balance (power-curve.js, sauce.js)
+- [x] P15. Power curve + Morton CP / W′ and W′ balance (power-curve.js, sauce.js) — Power tab + ride page (3.15)
 - [ ] P15b. Climbing power / FTP without a power meter: scans climbs from altitude streams (climb-ftp.js)
 
 Needs a new route in api/_v1.js:

@@ -567,6 +567,7 @@ object Screens {
             addView(Ui.text(a, "Easy rides belong in Z2. Sweet spot and Z4 build FTP; keep them to 1–2 sessions a week.", 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 8), 0, 0) })
         })
 
+        PowerCurve.card(a, col, rows.map { it.a }, kg)
         powerExtras(a, col, rows, me)
         col.addView(Ui.text(a, "NP = normalized power · IF = NP ÷ FTP · TSS = training stress (100 ≈ an hour at FTP) · VI = NP ÷ average. Set your own FTP on the web dashboard's Power page.", 11f, Ui.MUTED))
     }

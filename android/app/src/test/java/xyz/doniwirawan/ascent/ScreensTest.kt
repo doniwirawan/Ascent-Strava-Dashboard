@@ -305,6 +305,16 @@ class ScreensTest {
         assertEquals(15.0, fixed.optDouble("max_speed"), 0.0)
     }
 
+    @Test fun powerCurveMaths() {
+        val w = DoubleArray(3600) { if (it in 1000 until 1030) 600.0 else 200.0 }
+        val b = PowerCurve.bests(w, null)
+        assertEquals(600.0, b[5]!!, 0.0); assertEquals(600.0, b[30]!!, 0.0); assertEquals(400.0, b[60]!!, 0.0); assertEquals(Math.round(200 + 400 * 30 / 3600.0).toDouble(), b[3600]!!, 0.0)
+        val fit = PowerCurve.morton(listOf(120, 300, 600, 1200, 1800, 3600).map { it to 250 + 20000.0 / it })!!
+        assertEquals(250.0, fit.cp, 0.5); assertEquals(20000.0, fit.wPrime, 50.0)
+        assertEquals(10000.0, PowerCurve.wBal(DoubleArray(100) { 350.0 }, 250.0, 20000.0).last(), 1e-6)
+        assertTrue(PowerCurve.rank(1200, 4.0 * 78, 78.0) != null)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)
