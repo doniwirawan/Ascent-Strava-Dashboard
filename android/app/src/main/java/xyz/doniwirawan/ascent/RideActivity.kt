@@ -86,7 +86,7 @@ class RideActivity : Activity() {
         load.setOnClickListener {
             load.isEnabled = false; load.text = "Loading charts…"
             io.execute {
-                val path = "activities/$id?streams=time,distance,latlng,velocity_smooth,heartrate,watts,altitude"
+                val path = "activities/$id?streams=time,distance,latlng,velocity_smooth,heartrate,watts,altitude,cadence"
                 val r = try { Api.cached(this, path) ?: Api.get(this, path) } catch (e: Exception) { load.post { load.text = e.message; load.isEnabled = true }; null }
                 val st = r?.optJSONObject("streams") ?: return@execute
                 ui.post {
@@ -120,6 +120,8 @@ class RideActivity : Activity() {
                         charts.addView(Zones.view(this, Zones.HEART, lthr, "bpm", Zones.timeIn(Zones.HEART, lthr, hr, time)))
                     }
                     Zones.splits(this, st)?.let { charts.addView(Ui.heading(this, "Splits per km")); charts.addView(it) }
+                    // the website's stream analyses: decoupling, where the time went, wind
+                    RideAnalysis.draw(this, ui, io, charts, a, st)
                 }
             }
         }

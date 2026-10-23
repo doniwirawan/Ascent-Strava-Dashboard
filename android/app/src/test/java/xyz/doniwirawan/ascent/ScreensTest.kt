@@ -273,6 +273,23 @@ class ScreensTest {
         assertTrue(t.toString(), "Data" in t && "61 rows · sorted by date" in t && "Rest day" in t)
     }
 
+    @Test fun rideAnalyses() {
+        val hr = DoubleArray(100) { if (it < 50) 140.0 else 150.0 }; val w = DoubleArray(100) { 200.0 }
+        val d = RideAnalysis.decoupling(hr, w, true)!!
+        assertEquals((200 / 140.0 - 200 / 150.0) / (200 / 140.0) * 100, d.pct, 1e-9)
+        assertEquals(Ui.ORANGE.let { 0xFFFB923C.toInt() }, RideAnalysis.band(d.pct).first)
+        // 100 samples at 10 m/s: half climbing 5%, half flat with cadence; 600 s moving, 700 s elapsed
+        val spd = DoubleArray(101) { 10.0 }; val dist = DoubleArray(101) { it * 10.0 }
+        val alt = DoubleArray(101) { if (it <= 50) it * 0.5 else 25.0 }; val cad = DoubleArray(101) { 85.0 }
+        val t = RideAnalysis.timeLost(JSONObject().put("moving_time", 600).put("elapsed_time", 700).put("distance", 6000).put("average_speed", 10), spd, alt, dist, cad)!!
+        assertEquals(300.0, t.climb, 1e-9); assertEquals(300.0, t.flat, 1e-9); assertEquals(100.0, t.stopped, 1e-9)
+        // riding due north into an 18 km/h wind from the north
+        val north = (0..10).map { doubleArrayOf(-8.6 + it * 0.01, 115.2) }
+        val wnd = RideAnalysis.wind(north, 18.0, 0.0)!!
+        assertEquals(100, wnd.headPct); assertEquals(-18.0, wnd.netKmh, 0.01)
+        assertEquals(100, RideAnalysis.wind(north, 18.0, 180.0)!!.tailPct)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)
