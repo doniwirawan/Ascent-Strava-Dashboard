@@ -674,7 +674,7 @@ object Screens {
     } catch (e: Exception) { 0L }
 
     // ── Sleep ───────────────────────────────────────────────────────────────
-    fun sleep(a: AppActivity): Unit = a.load(listOf("sleep")) { r ->
+    fun sleep(a: AppActivity): Unit = a.load(listOf("sleep", "activities?limit=500")) { r ->
         val s = r["sleep"]
         if (s == null) { a.page().apply { addView(Watch.card(a)); addView(a.healthCard()) }; return@load }
         val cols = s.optJSONArray("cols")
@@ -716,6 +716,7 @@ object Screens {
                     (if (!hrv.isNaN()) " · HRV ${Math.round(hrv)}" else "")))
         }
         col.addView(c)
+        SleepInsights.draw(a, col, s, list(r["activities?limit=500"]?.optJSONArray("activities")))
     }
 
     // ── Bike care ───────────────────────────────────────────────────────────

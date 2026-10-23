@@ -167,6 +167,34 @@ class ScreensTest {
         assertTrue("best NP of a 1h+ ride", "200 W" in t)
     }
 
+    /** 60 made-up nights: a ride every other day; the night after a ride is 8h, after a rest day 6h. */
+    private fun sleepFixture(): Pair<JSONObject, List<JSONObject>> {
+        val start = java.time.LocalDate.parse("2026-08-01")
+        val rides = (0 until 60 step 2).map { i -> act(i.toLong(), "Ride", 30.0, 90, start.plusDays(i.toLong()).toString()) }
+        val rows = org.json.JSONArray((1..60).map { i ->
+            val trained = (i - 1) % 2 == 0
+            org.json.JSONArray(listOf(start.plusDays(i.toLong()).toString(), if (trained) 480 else 360, if (trained) 100 else 70, 90, 250, 92, -0.5, 7.0))
+        })
+        return JSONObject().put("cols", org.json.JSONArray(listOf("date", "asleep", "deep", "rem", "light", "eff", "bed", "up"))).put("rows", rows) to rides
+    }
+
+    @Test fun sleepFindings() {
+        val (s, rides) = sleepFixture()
+        val cards = SleepInsights.findings(SleepInsights.nights(s), SleepInsights.trainingDays(rides))
+        val t = cards.first { it.title.startsWith("Training buys you") }
+        assertEquals("Training buys you 2h 0m more sleep", t.title)
+        assertTrue(t.body, t.body.contains("Deep sleep goes up 30 minutes"))
+    }
+
+    @Test fun sleepTabDrawsInsights() {
+        val (s, rides) = sleepFixture()
+        cache("sleep", s); cache("activities?limit=500", JSONObject().put("activities", org.json.JSONArray(rides)))
+        Screens.sleep(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "WHAT YOUR SLEEP SAYS" in t && "THE NIGHT AFTER" in t && "BY DAY OF THE WEEK" in t && "HOW YOUR NIGHTS SPREAD" in t)
+        assertTrue("rest-day nights are 6h", t.indexOf("Rest day").let { it >= 0 && "6h 0m" in t.subList(it, it + 3) })
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)
