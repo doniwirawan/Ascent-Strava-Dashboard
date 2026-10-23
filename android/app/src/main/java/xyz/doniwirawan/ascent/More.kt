@@ -19,6 +19,7 @@ object More {
         "data" to ("Data" to "Every activity and night, sorted by anything"),
         "gps" to ("GPS check" to "Rides with impossible top speeds, normalized"),
         "segments" to ("Segments" to "Starred segments, KOMs, and where a PR is close"),
+        "photos" to ("Photos" to "Every photo from your activities"),
     )
 
     fun show(a: AppActivity, id: String) = when (id) {
@@ -30,6 +31,7 @@ object More {
         "data" -> DataPage.page(a)
         "gps" -> GpsCheck.page(a)
         "segments" -> Segments.page(a)
+        "photos" -> Photos.page(a)
         else -> menu(a)
     }
 

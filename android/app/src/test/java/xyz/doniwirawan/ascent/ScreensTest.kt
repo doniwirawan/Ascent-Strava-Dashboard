@@ -342,6 +342,13 @@ class ScreensTest {
         assertTrue(t.toString(), "SEGMENT INTELLIGENCE" in t && "Improving fastest" in t && "STARRED · 1" in t && "4:10" in t && "👑 Short sprint" in t && "1:01" in t)
     }
 
+    @Test fun photosPage() {
+        cache("activities?limit=500", JSONObject().put("activities", org.json.JSONArray(listOf(act(1, "Ride", 30.0, 60, "2026-10-01").put("total_photo_count", 3), act(2, "Ride", 30.0, 60, "2026-10-02")))))
+        Photos.page(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "Photos" in t && "1 activities with photos. Tap one for all its photos." in t && "Ride 1" in t && "Ride 2" !in t)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)
