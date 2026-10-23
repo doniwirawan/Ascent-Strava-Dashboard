@@ -238,6 +238,8 @@ class ScreensTest {
         Training.page(app)
         val t = texts(app.findViewById(android.R.id.content))
         assertTrue(t.toString(), "EVENT READINESS" in t && "BRM 300" in t && "Plan" in t)
+        // no AI key in tests: the plan says where to add one
+        assertTrue(t.toString(), "Add an AI key (AI → Settings) for a day-by-day plan." in t)
     }
 
     @Test fun milestones() {

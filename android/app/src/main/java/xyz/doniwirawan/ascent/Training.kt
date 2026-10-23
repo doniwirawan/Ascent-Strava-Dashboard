@@ -9,7 +9,7 @@ import java.util.Locale
  * More → Training: the website's Training page (js/training.js) — the load
  * model and fitness chart, form advice, recovery, consistency, FTP, run
  * predictions, event readiness (EventReady.kt) and the list-data insight
- * cards. The AI plan is not here yet.
+ * cards, and an AI plan for the next days through your own AI key.
  */
 object Training {
     private fun day(x: JSONObject) = x.optString("start_date_local").ifEmpty { x.optString("start_date") }.take(10)
@@ -116,6 +116,7 @@ object Training {
         col.addView(Ui.card(a).apply {
             addView(Ui.text(a, "Recovery recommendation", 14f, formColor, true))
             addView(Ui.text(a, advice, 13f, Ui.TEXT).apply { setPadding(0, Ui.dp(a, 4), 0, 0) })
+            aiPlan(a, this, s)
         })
 
         // Recovery & next ride (website _trRecoveryCardHTML)
@@ -197,6 +198,47 @@ object Training {
             }
 
         insights(a, col, rides, hrMax)
+    }
+
+    // ── AI plan for the next 3–5 days (website trainingAiRec), through your own AI key ──
+    private const val PLAN_SYS = "You are a concise endurance-cycling coach. Using ONLY the training-load numbers provided (TrainingPeaks model: CTL=fitness, ATL=fatigue, TSB=form/freshness, ramp=weekly CTL change), give a short, specific recovery-and-training recommendation for the next 3–5 days. The athlete already sees these numbers on screen, so do not restate or explain them — go straight to the day-by-day plan. Note overreaching risk if ramp is high or TSB very negative. Never invent data. Reply in English, short plain text, under 120 words."
+    private var planTried = false   // auto-generate at most once per app run, like the website per session
+    private var planBusy = false
+
+    /** A plan made from other numbers would contradict the tiles above it. */
+    internal fun planSig(s: Series) = listOf(s.last.ctl, s.last.atl, s.last.tsb, s.ramp).joinToString("/") { Math.round(it).toString() }
+
+    private fun aiPlan(a: AppActivity, card: LinearLayout, s: Series) {
+        val prefs = Repo.prefs(a); val sig = planSig(s)
+        val saved = runCatching { JSONObject(prefs.getString("tr_ai_plan", "{}")!!) }.getOrNull()?.takeIf { it.optString("sig") == sig }?.optString("text").orEmpty()
+        card.addView(Ui.divider(a).apply { (layoutParams as LinearLayout.LayoutParams).setMargins(0, Ui.dp(a, 10), 0, Ui.dp(a, 8)) })
+        if (Coach.key(a).isBlank()) { card.addView(Ui.text(a, "Add an AI key (AI → Settings) for a day-by-day plan.", 12f, Ui.MUTED)); return }
+        val body = Ui.text(a, saved.ifEmpty { if (planBusy) "…" else "" }, 13f, Ui.TEXT)
+        card.addView(android.widget.LinearLayout(a).apply {
+            addView(Ui.text(a, "✦ AI plan · next 3–5 days", 11f, Ui.ORANGE, true), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.text(a, if (saved.isEmpty()) "Get plan" else "↻", if (saved.isEmpty()) 12f else 15f, Ui.MUTED, true).apply {
+                setPadding(Ui.dp(a, 12), 0, 0, 0); setOnClickListener { if (!planBusy) makePlan(a, s, body) }
+            })
+        })
+        card.addView(body)
+        if (saved.isEmpty() && !planTried && !planBusy) { planTried = true; makePlan(a, s, body) }
+    }
+
+    private fun makePlan(a: AppActivity, s: Series, body: android.widget.TextView) {
+        planBusy = true; body.text = "…"
+        val payload = JSONObject().put("fitness_ctl", Math.round(s.last.ctl)).put("fatigue_atl", Math.round(s.last.atl))
+            .put("form_tsb", Math.round(s.last.tsb)).put("ramp_rate_per_week", Math.round(s.ramp))
+            .put("daily_load_last_14", org.json.JSONArray(s.days.takeLast(14).map { Math.round(it.load) }))
+        val sig = planSig(s); val page = a.currentPage()
+        Thread {
+            val r = runCatching { Coach.once(a, PLAN_SYS, "My current training load:\n" + payload.toString(2), 400).trim()
+                .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1").replace(Regex("^#+ ", RegexOption.MULTILINE), "") }
+            r.getOrNull()?.let { Repo.prefs(a).edit().putString("tr_ai_plan", JSONObject().put("sig", sig).put("text", it).put("at", System.currentTimeMillis()).toString()).apply() }
+            a.ui.post {
+                planBusy = false
+                if (a.currentPage() == page) body.text = r.getOrElse { (it.message ?: "Couldn't reach your AI.") + " The guidance above is rule-based from your numbers." }
+            }
+        }.start()
     }
 
     private fun insights(a: AppActivity, col: LinearLayout, rides: List<JSONObject>, hrMax: Double) {
