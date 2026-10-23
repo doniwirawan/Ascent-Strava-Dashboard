@@ -139,6 +139,11 @@ class RideActivity : Activity() {
         }
         if (id > 0) { col.addView(segBtn); col.addView(segs) }
 
+        // the website's story card (every layout, incl. Power) for this ride, in the app's web view
+        if (id > 0) col.addView(button("Story card").apply {
+            setOnClickListener { startActivity(Intent(this@RideActivity, MainActivity::class.java).putExtra("url", BuildConfig.DASHBOARD_URL + "?story=" + id)) }
+        })
+
         col.addView(button("Open on Strava").apply {
             setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.strava.com/activities/$id"))) }
         })

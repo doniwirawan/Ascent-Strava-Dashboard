@@ -105,7 +105,8 @@ class MainActivity : Activity() {
             }
         }
 
-        if (saved != null) web.restoreState(saved) else web.loadUrl(BuildConfig.DASHBOARD_URL)
+        // "url" — a page of the dashboard to open, e.g. a ride's story card (RideActivity)
+        if (saved != null) web.restoreState(saved) else web.loadUrl(intent.getStringExtra("url") ?: BuildConfig.DASHBOARD_URL)
     }
 
     /**
