@@ -30,7 +30,7 @@ class AppActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var banner: LinearLayout
     private var release: Updater.Release? = null
-    private val tabs = linkedMapOf("home" to "Home", "rides" to "Rides", "power" to "Power", "sleep" to "Sleep", "money" to "Money")
+    private val tabs = linkedMapOf("home" to "Home", "rides" to "Rides", "power" to "Power", "sleep" to "Sleep", "money" to "Money", "more" to "More")
     private val tabViews = HashMap<String, TextView>()
     private val tabIcons = HashMap<String, TabIcon>()
     private var current = "home"
@@ -158,8 +158,9 @@ class AppActivity : Activity() {
         if (!Api.hasToken(this)) { showSettings(); return }
         current = tab
         Repo.prefs(this).edit().putString("tab", tab).apply()
-        tabViews.forEach { (id, v) -> v.setTextColor(if (id == tab) Ui.ORANGE else Ui.MUTED) }
-        tabIcons.forEach { (id, v) -> v.color = if (id == tab) Ui.ORANGE else Ui.MUTED }
+        val group = tab.substringBefore(':')   // "more:trends" is a page of the More tab
+        tabViews.forEach { (id, v) -> v.setTextColor(if (id == group) Ui.ORANGE else Ui.MUTED) }
+        tabIcons.forEach { (id, v) -> v.color = if (id == group) Ui.ORANGE else Ui.MUTED }
         scroll.scrollTo(0, 0)
         when (tab) {
             "home" -> Screens.home(this)
@@ -167,7 +168,13 @@ class AppActivity : Activity() {
             "power" -> Screens.power(this)
             "sleep" -> Screens.sleep(this)
             "money" -> Screens.money(this)
+            else -> More.show(this, tab.substringAfter(':', ""))
         }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        if (current.startsWith("more:")) show("more") else super.onBackPressed()
     }
 
     /** Clears the screen and returns the column to fill. */

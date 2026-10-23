@@ -56,6 +56,25 @@ class ScreensTest {
         assertTrue("longest ride", "40.0 km" in t)
     }
 
+    @Test fun weeksStartOnSunday() {
+        // Sat 3 Oct 2026 is in the week of Sun 27 Sep; Sun 4 Oct starts the next
+        val w = More.weeks(listOf(act(1, "Ride", 10.0, 30, "2026-10-03"), act(2, "Ride", 20.0, 60, "2026-10-04"), act(3, "Ride", 5.0, 20, "2026-10-05")))
+        assertEquals(listOf("2026-09-27" to 10.0, "2026-10-04" to 25.0), w.map { it.first to Math.round(it.second).toDouble() })
+    }
+
+    @Test fun trendsPage() {
+        val acts = org.json.JSONArray(listOf(act(1, "Ride", 40.0, 90, "2026-03-01", 140.0), act(2, "Run", 10.0, 60, "2026-03-08"), act(3, "Ride", 30.0, 70, "2025-03-02")))
+        (Api::class.java.getDeclaredMethod("cacheFile", android.content.Context::class.java, String::class.java)
+            .apply { isAccessible = true }.invoke(Api, app, "activities?limit=500") as java.io.File).apply { parentFile!!.mkdirs() }.writeText(JSONObject().put("activities", acts).toString())
+        More.trends(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "Trends" in t && "YEAR IN REVIEW" in t)
+        assertTrue("2026 total 50 km", "50 km" in t)
+        assertTrue("same months of 2025: 30 km, +67%", "30 km" in t && "▲ 67%" in t)
+        assertTrue("review: 2 activities vs 1", t.any { it.startsWith("1 · ▲ 100%") })
+        assertTrue("top sport Ride", "Ride" in t)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)

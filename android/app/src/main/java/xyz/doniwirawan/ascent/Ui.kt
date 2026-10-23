@@ -141,6 +141,8 @@ class BarChart(ctx: Context) : View(ctx) {
     var color = Ui.ORANGE
     var highlight = -1
     var format: (Double) -> String = { Ui.n0(it) }
+    /** A second series drawn faintly behind the bars (e.g. last year), or null. */
+    var behind: DoubleArray? = null
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
 
     fun set(values: DoubleArray, labels: List<String>) { this.values = values; this.labels = labels; invalidate() }
@@ -150,11 +152,17 @@ class BarChart(ctx: Context) : View(ctx) {
         val d = resources.displayMetrics.density
         val bottom = height - 16 * d
         val top = 14 * d
-        val max = values.maxOrNull()?.takeIf { it > 0 } ?: 1.0
+        val max = maxOf(values.maxOrNull() ?: 0.0, behind?.maxOrNull() ?: 0.0).takeIf { it > 0 } ?: 1.0
         val slot = width.toFloat() / values.size
         val bw = slot * 0.62f
         val every = Math.max(1, Math.ceil(values.size / 8.0).toInt())
         p.textAlign = Paint.Align.CENTER
+        behind?.forEachIndexed { i, v ->
+            val x = slot * i + (slot - bw) / 2 - slot * 0.1f
+            val h = ((v / max) * (bottom - top)).toFloat()
+            p.color = Ui.LINE
+            if (i < values.size) c.drawRoundRect(x, bottom - h, x + bw + slot * 0.2f, bottom, 3 * d, 3 * d, p)
+        }
         values.forEachIndexed { i, v ->
             val x = slot * i + (slot - bw) / 2
             val h = ((v / max) * (bottom - top)).toFloat()
@@ -244,6 +252,7 @@ class TabIcon(ctx: Context, private val kind: String) : View(ctx) {
                 path.cubicTo(10f, 7f, 13f, 4f, 14f, 3f); path.cubicTo(15f, 8f, 20f, 10f, 19f, 15f); path.cubicTo(18.5f, 18.5f, 15.5f, 21f, 12f, 21f) }
             "cadence" -> { path.addArc(android.graphics.RectF(4f, 4f, 20f, 20f), -60f, 300f); path.moveTo(20f, 4.5f); path.lineTo(20f, 9.5f); path.lineTo(15f, 9.5f) }
             "effort" -> { path.moveTo(2f, 12f); path.lineTo(7f, 12f); path.lineTo(9.5f, 6f); path.lineTo(14f, 19f); path.lineTo(16.5f, 12f); path.lineTo(22f, 12f) }
+            "more" -> listOf(6f, 12f, 18f).forEach { y -> path.moveTo(4f, y); path.lineTo(20f, y) }
             "update" -> { path.moveTo(12f, 3f); path.lineTo(12f, 15f); path.moveTo(7f, 10f); path.lineTo(12f, 15f); path.lineTo(17f, 10f)
                 path.moveTo(4f, 19f); path.lineTo(20f, 19f) }
         }

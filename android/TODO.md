@@ -38,7 +38,7 @@ bike care, AI Coach chat + history, watch link.
 
 Uses data the API already has:
 - [x] P1. Sports: Running, Walking & hiking, Swimming, Other — totals + last-20 trend + distance spread (render-charts.js) — Rides tab chips (3.1)
-- [ ] P2. Trends: weekly distance, year-over-year monthly distance, Year in review (renderTrends, renderRewind)
+- [x] P2. Trends: weekly distance, year-over-year monthly distance, Year in review (renderTrends, renderRewind) — More → Trends (3.2)
 - [ ] P3. Calendar: month-by-month activity calendar (renderCalendar)
 - [ ] P4. Overview extras: sport breakdown, HR-zone + speed-zone rings, insights, streak/consistency (render-overview.js)
 - [ ] P5. Training: 7/42-day load, ramp, climbing ability (VAM, best climb), running VDOT, readiness (training.js, sleep.js renderReadiness)

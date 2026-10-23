@@ -18,9 +18,9 @@ import java.util.Locale
 object Screens {
 
     private val RIDE_TYPES = setOf("Ride", "VirtualRide", "EBikeRide", "GravelRide", "MountainBikeRide")
-    private fun isRide(a: JSONObject) = (a.optString("sport_type").ifEmpty { a.optString("type") }) in RIDE_TYPES
-    private fun list(arr: JSONArray?): List<JSONObject> = if (arr == null) emptyList() else (0 until arr.length()).map { arr.getJSONObject(it) }
-    private fun chart(a: AppActivity, v: android.view.View, h: Int) =
+    internal fun isRide(a: JSONObject) = (a.optString("sport_type").ifEmpty { a.optString("type") }) in RIDE_TYPES
+    internal fun list(arr: JSONArray?): List<JSONObject> = if (arr == null) emptyList() else (0 until arr.length()).map { arr.getJSONObject(it) }
+    internal fun chart(a: AppActivity, v: android.view.View, h: Int) =
         v.apply { layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, Ui.dp(a, h)) }
 
     // ── Home ────────────────────────────────────────────────────────────────
@@ -440,7 +440,7 @@ object Screens {
         col.addView(Ui.text(a, "NP = normalized power · IF = NP ÷ FTP · TSS = training stress (100 ≈ an hour at FTP) · VI = NP ÷ average. Set your own FTP on the web dashboard's Power page.", 11f, Ui.MUTED))
     }
 
-    private fun parse(iso: String): Long = try {
+    internal fun parse(iso: String): Long = try {
         java.time.Instant.parse(iso).toEpochMilli()
     } catch (e: Exception) { 0L }
 
