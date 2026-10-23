@@ -16,12 +16,16 @@ update through the in-app Update bar (`publish-update.mjs`).
 - [x] 11. Overlapping sleep / steps from several apps counted once, with unit tests (2.6)
 - [x] 12. Updates install themselves: PackageInstaller session, auto-download on open + widget refresh, old APKs removed on publish (2.7)
 - [x] 13. Money: Bike care — chain / tyre / brake / wax service reminders per bike, kept on the phone (2.7)
+- [x] 15. Ride page: Segments & PRs; Home: all-time + fun facts; "Updated to" banner (2.8)
+- [x] 16. Sleep card names the apps that wrote sleep + newest night; past-data button only where supported (2.8)
+- [x] 17. 3D maps (ride + all routes, fly-through); map buttons wrap instead of overlapping; Story card button (2.9)
 - [ ] 14. JoyoFit + Ascent as one app — needs the owner's decision first:
       a) rebuild JoyoFit's no-watch features (strength logger, manual workouts, gear reminders, run plans) in Ascent — our own code, no licence change;
       b) take JoyoFit's watch link (Kotlin, AGPL-3.0) into Ascent — the whole app then becomes AGPL, and pairing it resets the watch / unpairs Huawei Health, like JoyoFit does;
       c) keep both apps, joined through Health Connect (what works today).
 
 Waiting on the owner / real data:
+- Health Connect on the phone has no sleep after 1 Oct (21–22 Oct steps only): after 2.8 the Sleep card says which app wrote what — check Health Sync → Health Connect → Sleep is on
 - Real Health Sync nights already arrive (29 Sep – 1 Oct + steps seen 22 Oct); keep an eye on 22 Oct's night after the next phone sync
 - Paste an AI key in Ascent → AI → Settings and ask something (only a rejected test key was tried)
 - Confirm 2.2 installed, then the 48-h download link can be deleted
