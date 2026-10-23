@@ -79,7 +79,9 @@ object SleepBody {
 
     // ── Phantom steps (website _slpSteps) ───────────────────────────────────
     class Steps(val base: Double, val rideMean: Double, val perHour: Double?, val r: Double?, val rN: Int, val rawMean: Double, val realMean: Double,
-                val big: Int, val bigRide: Int, val bigWalk: Int, val bigReal: Int, val worst: Triple<String, Double, Double>)
+                val big: Int, val bigRide: Int, val bigWalk: Int, val bigReal: Int, val worst: Triple<String, Double, Double>,
+                /** date → (phantom, walked) steps, rounded, for every day in the Strava window */
+                val corrected: Map<String, Pair<Long, Long>>)
 
     internal fun steps(allDays: List<Night>, train: Map<String, Train>): Steps? {
         val g = allDays.filter { it["steps"] != null }
@@ -101,7 +103,8 @@ object SleepBody {
         val worst = win.maxByOrNull { Math.round(phantom(it)) }!!
         return Steps(mean(restDays.map { it["steps"]!! }), mean(ys), perHour, corr(xs, ys), xs.size, mean(win.map { it["steps"]!! }),
             mean(win.map { Math.round(it["steps"]!! - phantom(it)).toDouble() }), big.size, bigRide.size, big.size - bigRide.size,
-            bigRide.count { it["steps"]!! - phantom(it) >= 10000 }, Triple(worst.date, worst["steps"]!!, Math.round(phantom(worst)).toDouble()))
+            bigRide.count { it["steps"]!! - phantom(it) >= 10000 }, Triple(worst.date, worst["steps"]!!, Math.round(phantom(worst)).toDouble()),
+            win.associate { it.date to (Math.round(phantom(it)) to Math.round(it["steps"]!! - phantom(it))) })
     }
 
     // ── What the bike does to the next morning (website _slpBikeBody) ──────

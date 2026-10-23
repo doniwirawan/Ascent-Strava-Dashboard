@@ -33,7 +33,7 @@ object SleepInsights {
         }.sortedBy { it.date }
     }
 
-    class Train(var re: Double = 0.0, var min: Double = 0.0, var dist: Double = 0.0, var startH: Double? = null) { val load get() = if (re > 0) re else min }
+    class Train(var re: Double = 0.0, var min: Double = 0.0, var dist: Double = 0.0, var startH: Double? = null, var n: Int = 0) { val load get() = if (re > 0) re else min }
 
     /** Days you trained: Relative Effort (else moving minutes) and the earliest start, website _slpTrainingDays. */
     internal fun trainingDays(acts: List<JSONObject>): Map<String, Train> {
@@ -42,7 +42,7 @@ object SleepInsights {
             val s = a.optString("start_date_local"); val d = s.take(10)
             if (d.length < 10) return@forEach
             val t = map.getOrPut(d) { Train() }
-            t.re += a.optDouble("suffer_score", 0.0); t.min += a.optDouble("moving_time", 0.0) / 60; t.dist += a.optDouble("distance", 0.0)
+            t.n++; t.re += a.optDouble("suffer_score", 0.0); t.min += a.optDouble("moving_time", 0.0) / 60; t.dist += a.optDouble("distance", 0.0)
             s.drop(11).take(5).takeIf { it.length == 5 }?.let { hm -> val h = hm.take(2).toDouble() + hm.drop(3).toDouble() / 60; if (t.startH == null || h < t.startH!!) t.startH = h }
         }
         return map
@@ -230,5 +230,7 @@ object SleepInsights {
         SleepHealth.draw(a, col, all, real, train)
         // the watch's daily body data joined with the rides
         SleepBody.draw(a, col, all, real, train, acts)
+        // CSV / JSON / SQL of every day
+        SleepData.draw(a, col, all, train)
     }
 }

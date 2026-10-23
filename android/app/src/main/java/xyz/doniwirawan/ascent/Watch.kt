@@ -67,7 +67,7 @@ object Watch {
             note.text = "Syncing… keep the watch near the phone."
             syncNow(a, address) { err -> a.ui.post { note.text = err ?: "Synced."; if (err == null) a.show("sleep") } }
         })
-        c.addView(a.button(if (st.background) "Background sync: on (every 30 min)" else "Background sync: off") {
+        c.addView(a.button(if (st.background) "Background sync: on — reconnects by itself, every 30 min straight to Ascent" else "Background sync: off") {
             try { AscentWatch.setBackground(a, if (st.background) null else address); a.show("sleep") }
             catch (e: Exception) { note.text = e.message }
         })
@@ -147,6 +147,15 @@ object Watch {
         val msg = "Upload failed: ${e.message}"
         prefs(ctx).edit().putString("watch_upload", msg).apply()
         msg
+    }
+
+    /** Each background sync with the watch: its nights go straight to Ascent, app open or not. */
+    class Synced : android.content.BroadcastReceiver() {
+        override fun onReceive(ctx: Context, intent: android.content.Intent) {
+            if (!Api.hasToken(ctx)) return
+            val app = ctx.applicationContext; val done = goAsync()
+            Thread { try { upload(app); AscentWidget.drawAll(app) } catch (e: Exception) {} finally { done.finish() } }.start()
+        }
     }
 
     /** Widget refreshes: upload at most every 3 hours while a watch is connected to Ascent. */

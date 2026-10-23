@@ -137,6 +137,9 @@ object Coach {
                     out.put(JSONObject().apply { idx.forEach { (k, j) -> if (j != null && !r.isNull(j)) put(k, r.get(j)) } })
                 }
                 o.put("sleep_last_14_nights_minutes", out)
+                // the website's sleep analysis for the coach: sleep around rides, load, bedtime, patterns
+                val rides = (Api.cached(ctx, "activities?limit=500") ?: Api.cached(ctx, "activities?limit=300"))?.optJSONArray("activities")
+                runCatching { SleepData.summary(SleepInsights.nights(s), (0 until (rides?.length() ?: 0)).map { rides!!.getJSONObject(it) }) }.getOrNull()?.let { o.put("sleep_summary", it) }
             }
         }
         return o

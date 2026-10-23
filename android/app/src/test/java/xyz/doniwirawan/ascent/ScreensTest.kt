@@ -278,6 +278,20 @@ class ScreensTest {
         assertEquals(20, p.big); assertEquals(20, p.bigRide)
     }
 
+    @Test fun sleepExport() {
+        val cols = org.json.JSONArray(listOf("date", "asleep", "deep", "light", "rem", "wake", "bed", "up", "eff", "steps"))
+        val rows = org.json.JSONArray(listOf(org.json.JSONArray(listOf("2026-06-01", 420, 80, 260, 80, 20, -0.5, 6.75, 93.333, 5000)), org.json.JSONArray(listOf("2026-06-02", 0, 0, 0, 0, 0, null, null, null, 9000))))
+        val all = SleepInsights.nights(JSONObject().put("cols", cols).put("rows", rows))
+        val r = SleepData.rows(all, SleepInsights.trainingDays(listOf(act(1, "Ride", 40.0, 90, "2026-06-02"))))
+        val csv = SleepData.csv(r).split("\n")
+        assertEquals(3, csv.size); assertTrue(csv[0].startsWith("date,weekday,asleep_min,"))
+        // whole numbers print like JavaScript, decimals round to 2 places, clock times from decimal hours
+        assertTrue(csv[1], csv[1].startsWith("2026-06-01,Mon,420,80,260,80,20,,,,93.33,-0.5,23:30,6.75,06:45,3.13,"))
+        assertTrue(csv[2], csv[2].startsWith("2026-06-02,Tue,,,,,0,") && csv[2].endsWith(",1,1,90,40,,14:00"))
+        assertTrue(SleepData.sql(r).contains("CREATE TABLE health_daily (\n  date TEXT PRIMARY KEY,  -- calendar date"))
+        assertEquals(2, JSONObject(SleepData.json(r, "now")).getInt("days"))
+    }
+
     @Test fun milestones() {
         val b = Milestones.badge(6200.0, "km total", { "%,d".format(Math.round(it)) }, listOf(1000.0 to "1,000 km Club", 5000.0 to "5,000 km Club", 10000.0 to "10,000 km Club"))
         assertEquals("5,000 km Club", b.name); assertEquals(2, b.tier); assertEquals("10,000 km Club", b.next); assertEquals(62, b.pct)

@@ -48,7 +48,7 @@ Uses data the API already has:
 - [x] P7. Sleep insights: consistency / midpoint, after training vs rest, stress, active kcal, monthly watch metrics (sleep.js) — Sleep tab, findings + trends (3.7)
 - [x] P7b. Sleep: records & recipe, month by month, long-term health, healthiest year — Sleep tab (3.27; checked identical to the website on the real nights)
 - [x] P7c. Sleep: daily stress, calories & movement, phantom steps, bike → next morning, night → ride, patterns — Sleep tab (3.28; checked identical to the website on the real nights + rides)
-- [ ] P7d. Sleep: export (CSV / JSON / SQL), AI summary
+- [x] P7d. Sleep: export (CSV / JSON / SQL) + the sleep summary for the AI Coach (3.29; byte-identical to the website on the real data). Watch background syncs now upload to Ascent at once
 - [x] P8. Gear: bike comparison — usage, cost per km, efficiency, speed on flat rides (gear-maint.js) — Money tab (3.8)
 - [x] P9. Milestones & trophies (renderMilestones, renderChallenges) — More → Milestones (3.9; the KOM list joins P16)
 - [x] P10. Heatmap extras: ride destinations by regency (regency-map.js) — More → Destinations (3.10; outside Bali is one count, the website looks those up on Nominatim)

@@ -249,6 +249,8 @@ internal class BackgroundController(private val runtime: WearRuntime) {
       link.syncActivity()
       synced = true
       lastSyncAtMs = SystemClock.elapsedRealtime()
+      // tell the host app, so it can pass the fresh data on without being opened (Ascent uploads it)
+      context.sendBroadcast(Intent(ACTION_SYNCED).setPackage(context.packageName))
     } catch (e: CancellationException) {
       throw e
     } catch (e: WearException) {
@@ -335,6 +337,7 @@ internal class BackgroundController(private val runtime: WearRuntime) {
 
   companion object {
     const val ACTION_TICK = "com.joyodigitama.huaweiwear.action.TICK"
+    const val ACTION_SYNCED = "com.joyodigitama.huaweiwear.action.SYNCED"
     const val INITIAL_BACKOFF_MS = 5_000L
     const val MAX_BACKOFF_MS = 5 * 60_000L
 

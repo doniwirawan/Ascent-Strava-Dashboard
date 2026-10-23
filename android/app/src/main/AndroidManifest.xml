@@ -99,6 +99,15 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- the watch link finished a background sync: upload its nights (Watch.kt) -->
+        <receiver
+            android:name=".Watch$Synced"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.joyodigitama.huaweiwear.action.SYNCED" />
+            </intent-filter>
+        </receiver>
+
         <!-- PackageInstaller's answer to a self-update (Updater.kt) -->
         <receiver
             android:name=".Updater$Result"
