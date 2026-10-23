@@ -510,7 +510,8 @@ object Screens {
     class Pw(val a: JSONObject, val avg: Double, val np: Double, val max: Double, val ifac: Double, val tss: Double, val vi: Double, val wkg: Double)
 
     fun power(a: AppActivity): Unit = a.load(listOf("activities?limit=300", "me")) { r ->
-        val acts = list(r["activities?limit=300"]?.optJSONArray("activities")).filter { isRide(it) && it.optBoolean("device_watts") && it.optDouble("average_watts") > 0 }
+        val everything = list(r["activities?limit=300"]?.optJSONArray("activities"))
+        val acts = everything.filter { isRide(it) && it.optBoolean("device_watts") && it.optDouble("average_watts") > 0 }
         val me = r["me"]
         val col = a.page()
         val kg = me?.optDouble("weight", 0.0)?.takeIf { it > 0 } ?: 78.0
@@ -523,6 +524,7 @@ object Screens {
         }
         if (rows.isEmpty()) {
             col.addView(Ui.card(a).apply { addView(Ui.text(a, "No rides with a power meter yet. Once you ride with one, FTP, normalized power, intensity and TSS show up here.", 13f, Ui.MUTED)) })
+            ClimbPower.card(a, col, everything, kg)
             return@load
         }
         col.addView(Ui.heading(a, "Power"))
@@ -569,6 +571,7 @@ object Screens {
 
         PowerCurve.card(a, col, rows.map { it.a }, kg)
         powerExtras(a, col, rows, me)
+        ClimbPower.card(a, col, everything, kg)
         col.addView(Ui.text(a, "NP = normalized power · IF = NP ÷ FTP · TSS = training stress (100 ≈ an hour at FTP) · VI = NP ÷ average. Set your own FTP on the web dashboard's Power page.", 11f, Ui.MUTED))
     }
 

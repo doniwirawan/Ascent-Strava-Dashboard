@@ -315,6 +315,19 @@ class ScreensTest {
         assertTrue(PowerCurve.rank(1200, 4.0 * 78, 78.0) != null)
     }
 
+    @Test fun climbPower() {
+        // 1,200 s at 4 m/s climbing 6% (0.24 m/s up), HR 150, one sample a second
+        val n = 1200
+        val t = DoubleArray(n) { it.toDouble() }; val d = DoubleArray(n) { it * 4.0 }; val h = DoubleArray(n) { it * 0.24 }; val hr = DoubleArray(n) { 150.0 }
+        val pts = ClimbPower.points(t, h, d, null, hr)
+        assertEquals(2, pts.size)                          // two whole 8-minute windows fit in 20 minutes
+        assertEquals(6.0, pts[0].grade, 0.01); assertEquals(150.0, pts[0].hr, 1e-9)
+        assertEquals((90 * 9.81 * 0.24 + 0.005 * 90 * 9.81 * 4 + 0.5 * 1.15 * 0.4 * 64) / 0.97, pts[0].w(90.0), 1e-6)
+        // watts = 2 × hr − 50 exactly → the line recovers it
+        val f = ClimbPower.fit((0 until 10).map { (120.0 + it * 5) to (2 * (120.0 + it * 5) - 50) })!!
+        assertEquals(2.0, f.b, 1e-9); assertEquals(-50.0, f.a, 1e-9)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)
