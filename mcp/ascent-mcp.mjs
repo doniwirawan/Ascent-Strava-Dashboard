@@ -98,6 +98,13 @@ const TOOLS = [
     inputSchema: { type: 'object', properties: { chats: { type: 'boolean', description: 'Coach conversations instead of per-activity analyses' } } },
     run: a => api(a.chats ? '/ai/chats' : '/ai') },
 
+  { name: 'segments', description: 'Starred Strava segments, or one segment by id; with efforts=true, your effort history on it (times in seconds).',
+    inputSchema: { type: 'object', properties: { id: { type: 'string' }, efforts: { type: 'boolean' } } },
+    run: a => api(a.id ? '/segments/' + encodeURIComponent(a.id) + (a.efforts ? '/efforts' : '') : '/segments') },
+
+  { name: 'koms', description: 'Your KOM / QOM / CR segments.',
+    inputSchema: { type: 'object', properties: {} }, run: () => api('/koms') },
+
   { name: 'app_release', description: 'Newest published Android build (versionCode, versionName, notes).',
     inputSchema: { type: 'object', properties: {} },
     run: async () => { const { url, ...r } = await api('/app'); return r; } },

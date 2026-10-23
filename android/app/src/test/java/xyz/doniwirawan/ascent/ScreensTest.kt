@@ -328,6 +328,20 @@ class ScreensTest {
         assertEquals(2.0, f.b, 1e-9); assertEquals(-50.0, f.a, 1e-9)
     }
 
+    @Test fun segmentsPage() {
+        // six efforts getting faster: 300 → 250 s, with a 900 s stopped run that must be ignored
+        val m = Segments.metrics(listOf(300.0, 290.0, 900.0, 280.0, 270.0, 260.0, 250.0).mapIndexed { i, t -> t to "2026-0${i + 1}-01" })!!
+        assertEquals(6, m.count); assertEquals(250.0, m.pr, 0.0); assertEquals(0.0, m.gap, 0.0)
+        assertEquals((290 - 260.0) / 290 * 100, m.improvePct, 0.06)
+        val seg = JSONObject().put("id", 7).put("name", "Made-up climb").put("distance", 2000).put("average_grade", 4.5).put("athlete_pr_effort", JSONObject().put("elapsed_time", 250))
+        cache("segments", JSONObject().put("segments", org.json.JSONArray(listOf(seg))))
+        cache("koms", JSONObject().put("koms", org.json.JSONArray(listOf(JSONObject().put("elapsed_time", 61).put("start_date_local", "2026-05-01T07:00:00Z").put("segment", JSONObject().put("name", "Short sprint").put("distance", 400).put("average_grade", 0.5))))))
+        cache("segments/7/efforts", JSONObject().put("efforts", org.json.JSONArray(listOf(300, 290, 280, 270, 260, 250).mapIndexed { i, t -> JSONObject().put("elapsed_time", t).put("start_date_local", "2026-0${i + 1}-01T07:00:00Z") })))
+        Segments.page(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "SEGMENT INTELLIGENCE" in t && "Improving fastest" in t && "STARRED · 1" in t && "4:10" in t && "👑 Short sprint" in t && "1:01" in t)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)

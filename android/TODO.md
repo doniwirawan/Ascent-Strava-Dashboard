@@ -59,7 +59,8 @@ Needs ride streams (/activities/{id}?streams=…, shares the Strava limit):
 - [x] P15b. Climbing power / FTP without a power meter: scans climbs from altitude streams (climb-ftp.js) — Power tab (3.16; bike weight is the website default 10 kg, the API has no gear weights)
 
 Needs a new route in api/_v1.js:
-- [ ] P16. Segments: your starred segments, segment gaps, segment intelligence, KOM / QOM list
+- [x] P16. Segments: your starred segments, segment gaps, segment intelligence, KOM / QOM list — More → Segments (3.17; new /api/v1/segments + /koms)
+- [ ] P16b. Segment gaps: road you ride often that no segment covers (segment-gaps.js; needs segment geometry from /segments/{id})
 - [ ] P17. Photos
 - [ ] P18. Chase routes: AI route generator (/api/route + /api/ai need owner auth that accepts the asc_ token)
 - [ ] P19. Writes: AI overview insight, bulk caption rewrite, Huawei-only upload to Strava (write routes in _v1.js)
