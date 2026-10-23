@@ -129,6 +129,12 @@ async function activity(id, q) {
       achievement_count: d.achievement_count || 0, pr_count: d.pr_count || 0,
       segment_efforts: (d.segment_efforts || []).map(eff), best_efforts: (d.best_efforts || []).map(eff) };
   }
+  // photos=1: the activity's photos (largest size, caption, date; no photo locations)
+  if (q.photos === '1') {
+    const ph = await strava('/activities/' + encodeURIComponent(id) + '/photos?size=1024&photo_sources=true');
+    out.photos = (ph || []).map(p => ({ url: p.urls ? (p.urls['1024'] || Object.values(p.urls)[0]) : null, caption: p.caption || '',
+      created_at: p.created_at_local || p.created_at || null, video: !!p.video_url, sizes: p.sizes && p.sizes['1024'] || null })).filter(p => p.url);
+  }
   if (q.streams) {
     const keys = String(q.streams === '1' ? 'time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,temp,moving,grade_smooth' : q.streams).replace(/[^a-z_,]/g, '');
     out.streams = await strava('/activities/' + encodeURIComponent(id) + '/streams?keys=' + keys + '&key_by_type=true');
@@ -258,7 +264,7 @@ const INDEX = {
   endpoints: {
     'GET /api/v1/me': 'Your Strava profile, bikes and shoes (live from Strava)',
     'GET /api/v1/activities?limit=&offset=&type=&after=YYYY-MM-DD&before=': 'Cached activities, newest first (full Strava summaries)',
-    'GET /api/v1/activities/{id}?streams=1&detail=1&live=1': 'One activity; streams=1 (or a key list) adds its streams from Strava, detail=1 its segment efforts and PRs',
+    'GET /api/v1/activities/{id}?streams=1&detail=1&photos=1&live=1': 'One activity; streams=1 (or a key list) adds its streams from Strava, detail=1 its segment efforts and PRs, photos=1 its photos',
     'GET /api/v1/stats': 'Totals, YTD, bests, by month / sport, calendar, streak, fitness',
     'GET /api/v1/strava-stats': 'Strava’s own all-time / YTD / 4-week totals',
     'GET /api/v1/sleep': 'Sleep nights from the Huawei export (and the Android app)',
