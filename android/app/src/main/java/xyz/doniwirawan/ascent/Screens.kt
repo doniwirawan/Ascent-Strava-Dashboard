@@ -194,7 +194,9 @@ object Screens {
         col.addView(search, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { topMargin = Ui.dp(a, 6) })
 
         val chips = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL }
-        col.addView(chips)
+        col.addView(android.widget.HorizontalScrollView(a).apply { isHorizontalScrollBarEnabled = false; addView(chips) })
+        val sport = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(sport)
         val count = Ui.text(a, "", 11f, Ui.MUTED)
         col.addView(count)
         val box = Ui.card(a)
@@ -207,10 +209,11 @@ object Screens {
         fun fill() {
             val q = rideQuery.trim().lowercase(Locale.ROOT)
             val shown = all.filter {
-                val t = it.optString("sport_type").ifEmpty { it.optString("type") }
-                val kindOk = when (rideFilter) { "ride" -> isRide(it); "run" -> t.contains("Run"); "other" -> !isRide(it) && !t.contains("Run"); else -> true }
-                kindOk && (q.isEmpty() || it.optString("name").lowercase(Locale.ROOT).contains(q) || place(it).lowercase(Locale.ROOT).contains(q))
+                (rideFilter == "all" || sportOf(it) == rideFilter) &&
+                    (q.isEmpty() || it.optString("name").lowercase(Locale.ROOT).contains(q) || place(it).lowercase(Locale.ROOT).contains(q))
             }
+            sport.removeAllViews()
+            if (rideFilter != "all" && q.isEmpty()) sportPage(a, sport, shown, rideFilter)
             count.text = "${shown.size} activities" + if (shown.isNotEmpty()) " · " + Ui.km(shown.sumOf { it.optDouble("distance") }) else ""
             box.removeAllViews()
             if (shown.isEmpty()) box.addView(Ui.text(a, "Nothing matches.", 13f, Ui.MUTED))
@@ -231,7 +234,8 @@ object Screens {
 
         fun drawChips() {
             chips.removeAllViews()
-            listOf("all" to "All", "ride" to "Rides", "run" to "Runs", "other" to "Other").forEach { (id, label) ->
+            val have = all.map { sportOf(it) }.toSet()
+            listOf("all" to "All", "ride" to "Rides", "run" to "Runs", "walk" to "Walks", "swim" to "Swims", "other" to "Other").filter { it.first == "all" || it.first in have }.forEach { (id, label) ->
                 chips.addView(Ui.text(a, label, 13f, if (id == rideFilter) Ui.ORANGE else Ui.MUTED, true).apply {
                     setPadding(0, Ui.dp(a, 10), Ui.dp(a, 18), Ui.dp(a, 8))
                     setOnClickListener { rideFilter = id; drawChips(); fill() }
@@ -245,6 +249,131 @@ object Screens {
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
         })
         fill()
+    }
+
+    // ── Sport pages ─────────────────────────────────────────────────────────
+    // The website's Cycling / Running / Walking / Swimming / Other sections
+    // (js/render-charts.js), shown above the list when a sport chip is picked.
+    private val RUNS = setOf("Run", "VirtualRun", "TrailRun")
+    internal fun sportOf(a: JSONObject): String {
+        val t = a.optString("type").ifEmpty { a.optString("sport_type") }
+        return when { isRide(a) -> "ride"; t in RUNS -> "run"; t == "Walk" || t == "Hike" -> "walk"; t == "Swim" || t == "OpenWaterSwim" -> "swim"; else -> "other" }
+    }
+
+    internal fun sportPage(a: AppActivity, col: LinearLayout, list: List<JSONObject>, key: String) {
+        if (list.isEmpty()) return
+        val byDist = key != "other"
+        val word = mapOf("ride" to "ride", "run" to "run", "walk" to "walk", "swim" to "swim")[key] ?: "session"
+        // pace: min per km, per 100 m for swims
+        fun pace(ms: Double) = if (ms <= 0) "—" else Math.round(if (key == "swim") 100 / ms else 1000 / ms).let { String.format(Locale.US, "%d:%02d", it / 60, it % 60) }
+        val paceU = if (key == "swim") " /100m" else " /km"
+        fun speedOrPace(x: JSONObject) = if (key == "ride") Ui.kmh(x.optDouble("average_speed")) else pace(x.optDouble("average_speed")) + paceU
+        fun sub(x: JSONObject, extra: String) = Ui.date(x.optString("start_date_local")) + " · " + extra
+        fun hero(c: LinearLayout, label: String, value: String, x: JSONObject, extra: String) =
+            c.addView(Ui.row(a, label, value, x.optString("name") + " · " + sub(x, extra)).apply { setOnClickListener { a.openRide(x) } })
+        val size = { x: JSONObject -> if (byDist) x.optDouble("distance") else x.optDouble("moving_time") }
+        val longest = list.maxByOrNull(size)!!
+        val fastest = list.filter { it.optDouble("average_speed") > 0 && it.optDouble("distance") > 0 }.maxByOrNull { it.optDouble("average_speed") }
+        val typeOf = { x: JSONObject -> x.optString("sport_type").ifEmpty { x.optString("type") }.ifEmpty { "Workout" }.replace(Regex("([a-z])([A-Z])"), "$1 $2") }
+
+        col.addView(Ui.heading(a, mapOf("ride" to "Cycling", "run" to "Running", "walk" to "Walking & hiking", "swim" to "Swimming")[key] ?: "Other sports"))
+        col.addView(Ui.card(a).apply {
+            when {
+                key == "ride" -> {
+                    list.maxByOrNull { it.optDouble("max_speed") }?.let { hero(this, "Fastest speed (max)", Ui.kmh(it.optDouble("max_speed")), it, Ui.km(it.optDouble("distance"))) }
+                    addView(Ui.divider(a))
+                    fastest?.let { hero(this, "Best average speed", Ui.kmh(it.optDouble("average_speed")), it, Ui.km(it.optDouble("distance"))) }
+                    addView(Ui.divider(a))
+                    hero(this, "Longest ride", Ui.km(longest.optDouble("distance")), longest, Ui.hm(longest.optLong("moving_time")))
+                }
+                byDist -> {
+                    fastest?.let { hero(this, "Best pace", pace(it.optDouble("average_speed")) + paceU, it, Ui.km(it.optDouble("distance"))); addView(Ui.divider(a)) }
+                    hero(this, "Longest $word", Ui.km(longest.optDouble("distance")), longest, Ui.hm(longest.optLong("moving_time")))
+                }
+                else -> {
+                    hero(this, "Longest session", Ui.hm(longest.optLong("moving_time")), longest, typeOf(longest))
+                    val types = list.groupingBy(typeOf).eachCount().toList().sortedByDescending { it.second }
+                    addView(Ui.divider(a))
+                    addView(Ui.row(a, "Most played", types[0].first, types.joinToString(" · ") { "${it.first} ${it.second}×" }))
+                }
+            }
+        })
+
+        val hr = list.map { it.optDouble("average_heartrate", 0.0) }.filter { it > 0 }
+        col.addView(Ui.tiles(a, listOf(
+            "${list.size}" to "${word}s|rides",
+            (if (byDist) Ui.km(list.sumOf { it.optDouble("distance") }) else "${list.maxOf { it.optInt("max_heartrate") }.takeIf { it > 0 } ?: "—"} bpm") to (if (byDist) "distance|distance" else "max heart rate|hr"),
+            String.format(Locale.US, "%.1f h", list.sumOf { it.optDouble("moving_time") } / 3600) to "moving|time",
+            (if (hr.isEmpty()) "—" else "${Math.round(hr.average())} bpm") to "average heart rate|hr",
+        )))
+
+        // rides: the last 4 weeks against the 4 before
+        if (key == "ride") {
+            val now = System.currentTimeMillis(); val day = 86_400_000L
+            fun within(from: Int, to: Int) = list.filter { parse(it.optString("start_date")).let { t -> t >= now - from * day && t < now - to * day } }
+            val cur = within(28, 0); val prev = within(56, 28)
+            fun delta(x: Double, y: Double) = if (y <= 0) "" else Math.round((x - y) / y * 100).let { p -> if (p == 0L) " · no change" else (if (p > 0) " · ▲ " else " · ▼ ") + Math.abs(p) + "%" }
+            fun dist(l: List<JSONObject>) = l.sumOf { it.optDouble("distance") }
+            fun climb(l: List<JSONObject>) = l.sumOf { it.optDouble("total_elevation_gain") }
+            fun spd(l: List<JSONObject>) = l.sumOf { it.optDouble("moving_time") }.let { t -> if (t > 0) dist(l) / t else 0.0 }
+            col.addView(Ui.heading(a, "Last 4 weeks vs the 4 before"))
+            col.addView(Ui.card(a).apply {
+                addView(Ui.row(a, "Rides", "${cur.size}", "was ${prev.size}" + delta(cur.size.toDouble(), prev.size.toDouble())))
+                addView(Ui.divider(a)); addView(Ui.row(a, "Distance", Ui.km(dist(cur)), "was " + Ui.km(dist(prev)) + delta(dist(cur), dist(prev))))
+                addView(Ui.divider(a)); addView(Ui.row(a, "Climbing", "${Math.round(climb(cur))} m", "was ${Math.round(climb(prev))} m" + delta(climb(cur), climb(prev))))
+                addView(Ui.divider(a)); addView(Ui.row(a, "Average speed", Ui.kmh(spd(cur)), "was " + Ui.kmh(spd(prev)) + delta(spd(cur), spd(prev))))
+            })
+        }
+
+        // top 5: fastest pace for runs, the longest for the rest
+        val top = if (key == "run") list.filter { it.optDouble("average_speed") > 0 }.sortedByDescending { it.optDouble("average_speed") } else list.sortedByDescending(size)
+        col.addView(Ui.heading(a, if (key == "run") "Top 5 fastest pace" else "Top 5 longest ${word}s"))
+        col.addView(Ui.card(a).apply {
+            top.take(5).forEachIndexed { i, x ->
+                if (i > 0) addView(Ui.divider(a))
+                val value = if (key == "run") pace(x.optDouble("average_speed")) + paceU else if (byDist) Ui.km(x.optDouble("distance")) else Ui.hm(x.optLong("moving_time"))
+                val extra = if (key == "run") Ui.km(x.optDouble("distance")) else if (byDist) Ui.hm(x.optLong("moving_time")) + (if (x.optDouble("average_speed") > 0) " · " + speedOrPace(x) else "") else typeOf(x)
+                addView(Ui.row(a, "${i + 1}. " + x.optString("name"), value, sub(x, extra)).apply { setOnClickListener { a.openRide(x) } })
+            }
+        })
+
+        // the last 20: speed for rides, pace for runs, distance (or minutes) for the rest
+        val last = list.sortedBy { it.optString("start_date") }.takeLast(20)
+        col.addView(Ui.heading(a, when (key) { "ride" -> "Average speed"; "run" -> "Pace (min/km)"; "other" -> "Minutes"; else -> "Distance (km)" } + ", last ${last.size} ${word}s"))
+        col.addView(Ui.card(a).apply {
+            addView(chart(a, BarChart(a).apply {
+                when (key) {
+                    "ride" -> format = { String.format(Locale.US, "%.0f", it) }
+                    "run" -> format = { s -> Math.round(s * 60).let { String.format(Locale.US, "%d:%02d", it / 60, it % 60) } }
+                    else -> format = { String.format(Locale.US, if (byDist) "%.1f" else "%.0f", it) }
+                }
+                set(last.map {
+                    val v = it.optDouble("average_speed")
+                    when (key) { "ride" -> v * 3.6; "run" -> if (v > 0) 1000 / v / 60 else 0.0; "other" -> it.optDouble("moving_time") / 60; else -> it.optDouble("distance") / 1000 }
+                }.toDoubleArray(), last.map { Ui.date(it.optString("start_date_local")).substringBefore(' ') })
+            }, 150))
+        })
+
+        if (key == "ride" || key == "run") {
+            val (edges, labels) = if (key == "ride") listOf(0, 20, 40, 60, 80, 100, 150, 200) to listOf("<20", "20-40", "40-60", "60-80", "80-100", "100-150", "150-200", "200+")
+                else listOf(0, 5, 10, 15, 21, 30, 42) to listOf("<5", "5-10", "10-15", "15-21", "21-30", "30-42", "42+")
+            val counts = DoubleArray(labels.size)
+            list.forEach { x -> val km = x.optDouble("distance") / 1000; counts[edges.indexOfLast { km >= it }.coerceAtLeast(0)]++ }
+            col.addView(Ui.heading(a, "${word.replaceFirstChar { it.uppercase() }} distance spread (km)"))
+            col.addView(Ui.card(a).apply { addView(chart(a, BarChart(a).apply { set(counts, labels) }, 130)) })
+        } else {
+            // hours per month, the last 12 months
+            val months = (11 downTo 0).map { back -> Calendar.getInstance().apply { add(Calendar.MONTH, -back) }.let { String.format(Locale.US, "%04d-%02d", it.get(Calendar.YEAR), it.get(Calendar.MONTH) + 1) } }
+            col.addView(Ui.heading(a, "Hours per month"))
+            col.addView(Ui.card(a).apply {
+                addView(chart(a, BarChart(a).apply {
+                    format = { String.format(Locale.US, "%.1f", it) }
+                    set(months.map { m -> list.filter { it.optString("start_date_local").startsWith(m) }.sumOf { it.optDouble("moving_time") } / 3600 }.toDoubleArray(), months.map { it.takeLast(2) })
+                    highlight = months.size - 1
+                }, 130))
+            })
+        }
+        col.addView(Ui.heading(a, "All ${word}s"))
     }
 
     // ── Power ───────────────────────────────────────────────────────────────

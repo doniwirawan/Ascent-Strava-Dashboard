@@ -37,7 +37,7 @@ power (FTP, NP/IF/TSS, zones), sleep basics, recovery/strain, purchases, bike pa
 bike care, AI Coach chat + history, watch link.
 
 Uses data the API already has:
-- [ ] P1. Sports: Running, Walking & hiking, Swimming, Other — totals + last-20 trend + distance spread (render-charts.js)
+- [x] P1. Sports: Running, Walking & hiking, Swimming, Other — totals + last-20 trend + distance spread (render-charts.js) — Rides tab chips (3.1)
 - [ ] P2. Trends: weekly distance, year-over-year monthly distance, Year in review (renderTrends, renderRewind)
 - [ ] P3. Calendar: month-by-month activity calendar (renderCalendar)
 - [ ] P4. Overview extras: sport breakdown, HR-zone + speed-zone rings, insights, streak/consistency (render-overview.js)
