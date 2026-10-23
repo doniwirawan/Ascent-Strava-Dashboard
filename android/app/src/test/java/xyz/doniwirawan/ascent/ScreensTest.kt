@@ -242,6 +242,24 @@ class ScreensTest {
         assertTrue(t.toString(), "Add an AI key (AI → Settings) for a day-by-day plan." in t)
     }
 
+    @Test fun sleepHealth() {
+        // 70 identical textbook nights: 7h30 asleep, 20% deep, 20% REM, 90% efficient, 23:00 → 07:00
+        val cols = org.json.JSONArray(listOf("date", "asleep", "deep", "light", "rem", "wake", "bed", "up", "eff"))
+        val start = java.time.LocalDate.parse("2025-12-01")
+        val rows = org.json.JSONArray((0 until 70).map { org.json.JSONArray(listOf(start.plusDays(it.toLong()).toString(), 450, 90, 270, 90, 50, -1.0, 7.0, 90.0)) }
+            + listOf(org.json.JSONArray(listOf("2026-02-15", 300, 40, 220, 40, 60, 1.5, 6.5, 80.0))))
+        val all = SleepInsights.nights(JSONObject().put("cols", cols).put("rows", rows)); val real = all.filter { it.asleep >= 60 }
+        val k = SleepHealth.risk(real, all)!!
+        assertEquals(4, k.comps.size)
+        assertTrue(k.score.toString(), k.score >= 95); assertEquals("Strong", k.grade)
+        val r = SleepHealth.records(real, emptyMap())!!
+        assertEquals("Shortest night", r.nights.last().label); assertEquals("5h 0m", r.nights.last().value)
+        assertEquals(70, r.goodRun!!.first)   // 2025-12-01 … 2026-02-08 back to back
+        assertEquals(10, r.tierSize)
+        assertEquals(2, SleepHealth.years(real, all)!!.rows.size)
+        assertEquals(1.0, SleepHealth.corr(listOf(1.0, 2.0, 3.0, 4.0, 5.0), listOf(2.0, 4.0, 6.0, 8.0, 10.0))!!, 1e-9)
+    }
+
     @Test fun milestones() {
         val b = Milestones.badge(6200.0, "km total", { "%,d".format(Math.round(it)) }, listOf(1000.0 to "1,000 km Club", 5000.0 to "5,000 km Club", 10000.0 to "10,000 km Club"))
         assertEquals("5,000 km Club", b.name); assertEquals(2, b.tier); assertEquals("10,000 km Club", b.next); assertEquals(62, b.pct)

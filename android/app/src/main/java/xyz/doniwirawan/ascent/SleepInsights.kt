@@ -48,12 +48,12 @@ object SleepInsights {
         return map
     }
 
-    private fun next(d: String, k: Long = 1) = LocalDate.parse(d).plusDays(k).toString()
-    private fun dow(d: String) = LocalDate.parse(d).dayOfWeek.value % 7           // 0 = Sunday
-    private val DOW = listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
-    private fun mean(l: List<Double>) = if (l.isEmpty()) Double.NaN else l.average()
+    internal fun next(d: String, k: Long = 1) = LocalDate.parse(d).plusDays(k).toString()
+    internal fun dow(d: String) = LocalDate.parse(d).dayOfWeek.value % 7           // 0 = Sunday
+    internal val DOW = listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+    internal fun mean(l: List<Double>) = if (l.isEmpty()) Double.NaN else l.average()
     internal fun hm(m: Double) = if (m.isNaN()) "—" else "${(m / 60).toInt()}h ${Math.round(m % 60).toInt().let { if (it == 60) 59 else it }}m"
-    private fun clock(h: Double) = (((h % 24) + 24) % 24).let { x -> val hh = x.toInt(); val mm = Math.round((x - hh) * 60).toInt(); String.format(Locale.US, "%02d:%02d", if (mm == 60) hh + 1 else hh, if (mm == 60) 0 else mm) }
+    internal fun clock(h: Double) = (((h % 24) + 24) % 24).let { x -> val hh = x.toInt(); val mm = Math.round((x - hh) * 60).toInt(); String.format(Locale.US, "%02d:%02d", if (mm == 60) hh + 1 else hh, if (mm == 60) 0 else mm) }
 
     class Agg(val n: Int, val asleep: Double, val deep: Double, val rem: Double, val light: Double, val eff: Double, val bed: Double)
     internal fun agg(g: List<Night>) = Agg(g.size, mean(g.map { it.asleep }), mean(g.map { it.deep }), mean(g.map { it.rem }), mean(g.map { it.light }),
@@ -226,5 +226,7 @@ object SleepInsights {
                 }
             })
         }
+        // records, the recipe, month by month, long-term health, healthiest year
+        SleepHealth.draw(a, col, all, real, train)
     }
 }

@@ -46,7 +46,8 @@ Uses data the API already has:
 - [x] P5c. AI training plan (training.js) — Training → Recovery recommendation (3.26; your own AI key, saved until the load numbers change)
 - [x] P6. Power extras: aerobic efficiency (EF), cadence vs power, flat vs hilly, best NP, climbing power / FTP without a power meter (power.js, climb-ftp.js) — Power tab (3.6; climbing power moved to P15b)
 - [x] P7. Sleep insights: consistency / midpoint, after training vs rest, stress, active kcal, monthly watch metrics (sleep.js) — Sleep tab, findings + trends (3.7)
-- [ ] P7b. Sleep, the rest of sleep.js: records & recipe, health risk, year health, stress, energy, steps, bike ↔ body, patterns, export, AI summary
+- [x] P7b. Sleep: records & recipe, month by month, long-term health, healthiest year — Sleep tab (3.27; checked identical to the website on the real nights)
+- [ ] P7c. Sleep, the rest of sleep.js: stress, energy, steps, bike ↔ body, patterns, export, AI summary
 - [x] P8. Gear: bike comparison — usage, cost per km, efficiency, speed on flat rides (gear-maint.js) — Money tab (3.8)
 - [x] P9. Milestones & trophies (renderMilestones, renderChallenges) — More → Milestones (3.9; the KOM list joins P16)
 - [x] P10. Heatmap extras: ride destinations by regency (regency-map.js) — More → Destinations (3.10; outside Bali is one count, the website looks those up on Nominatim)
