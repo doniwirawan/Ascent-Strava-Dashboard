@@ -290,6 +290,21 @@ class ScreensTest {
         assertEquals(100, RideAnalysis.wind(north, 18.0, 180.0)!!.tailPct)
     }
 
+    @Test fun gpsCheck() {
+        val (out, n) = GpsCheck.fixSpikes(doubleArrayOf(10.0, 25.0, 12.0, Double.NaN, 14.0))
+        assertEquals(2, n); assertEquals(11.0, out[1], 1e-9); assertEquals(13.0, out[3], 1e-9)
+        cache("activities?limit=500", JSONObject().put("activities", org.json.JSONArray(listOf(act(1, "Ride", 30.0, 60, "2026-10-01").put("max_speed", 30.0), act(2, "Ride", 30.0, 60, "2026-10-02")))))
+        GpsCheck.page(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "GPS check" in t && "Ride 1" in t && "108.0 km/h" in t && "Ride 2" !in t)
+        // a saved correction replaces the top speed wherever the activity is read
+        java.io.File(app.filesDir, "maxfix.json").writeText("{\"1\":{\"raw\":30,\"fixed\":15}}")
+        GpsCheck::class.java.getDeclaredField("fixes").apply { isAccessible = true }.set(GpsCheck, null)
+        GpsCheck.load(app)
+        val fixed = Screens.list(org.json.JSONArray(listOf(act(1, "Ride", 30.0, 60, "2026-10-01").put("max_speed", 30.0))))[0]
+        assertEquals(15.0, fixed.optDouble("max_speed"), 0.0)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)

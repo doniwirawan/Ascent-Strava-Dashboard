@@ -17,6 +17,7 @@ object More {
         "milestones" to ("Milestones" to "Records, Strava totals and badges"),
         "destinations" to ("Destinations" to "Where your rides turn around, by Bali regency"),
         "data" to ("Data" to "Every activity and night, sorted by anything"),
+        "gps" to ("GPS check" to "Rides with impossible top speeds, normalized"),
     )
 
     fun show(a: AppActivity, id: String) = when (id) {
@@ -26,6 +27,7 @@ object More {
         "milestones" -> Milestones.page(a)
         "destinations" -> Destinations.page(a)
         "data" -> DataPage.page(a)
+        "gps" -> GpsCheck.page(a)
         else -> menu(a)
     }
 

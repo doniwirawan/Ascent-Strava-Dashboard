@@ -107,6 +107,7 @@ class AppActivity : Activity() {
         if (Repo.prefs(this).getString("api_token", null).isNullOrBlank() && BuildConfig.BAKED_API_TOKEN.isNotBlank())
             Repo.prefs(this).edit().putString("api_token", BuildConfig.BAKED_API_TOKEN).apply()
 
+        GpsCheck.load(this)
         current = saved?.getString("tab") ?: Repo.prefs(this).getString("tab", "home") ?: "home"
         if (Api.hasToken(this)) {
             show(current)

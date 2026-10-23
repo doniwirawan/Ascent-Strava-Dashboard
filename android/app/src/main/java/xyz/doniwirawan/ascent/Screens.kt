@@ -19,7 +19,8 @@ object Screens {
 
     private val RIDE_TYPES = setOf("Ride", "VirtualRide", "EBikeRide", "GravelRide", "MountainBikeRide")
     internal fun isRide(a: JSONObject) = (a.optString("sport_type").ifEmpty { a.optString("type") }) in RIDE_TYPES
-    internal fun list(arr: JSONArray?): List<JSONObject> = if (arr == null) emptyList() else (0 until arr.length()).map { arr.getJSONObject(it) }
+    // saved GPS-glitch corrections replace Strava's top speed wherever an activity is read (GpsCheck)
+    internal fun list(arr: JSONArray?): List<JSONObject> = if (arr == null) emptyList() else (0 until arr.length()).map { arr.getJSONObject(it).also(GpsCheck::apply) }
     internal fun chart(a: AppActivity, v: android.view.View, h: Int) =
         v.apply { layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, Ui.dp(a, h)) }
 
