@@ -14,7 +14,7 @@ object More {
         "money" to ("Money" to "Spending, bikes, cost per km, bike comparison, bike care"),
         "trends" to ("Trends" to "Weekly distance, year over year, year in review"),
         "calendar" to ("Calendar" to "Every day of a month, and month by month"),
-        "training" to ("Training" to "Load, form, recovery, consistency, FTP, run predictions, records"),
+        "training" to ("Training" to "Load, form, event readiness, recovery, consistency, FTP, run predictions"),
         "milestones" to ("Milestones" to "Records, Strava totals and badges"),
         "destinations" to ("Destinations" to "Where your rides turn around, by Bali regency"),
         "data" to ("Data" to "Every activity and night, sorted by anything"),

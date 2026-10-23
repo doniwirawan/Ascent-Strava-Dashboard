@@ -216,6 +216,30 @@ class ScreensTest {
         assertTrue(t.toString(), "COST PER KM" in t && "BIKE COMPARISON" in t && "Rp 11.000/km" in t)
     }
 
+    @Test fun eventReady() {
+        val n = EventReady.needs(200.0)
+        assertEquals(140.0, n.longest, 1e-9); assertEquals(150.0, n.weekly, 1e-9); assertEquals(50.0, n.ctl, 1e-9); assertEquals(0.0, n.block3, 1e-9)
+        assertEquals(75.0, EventReady.needs(600.0).ctl, 1e-9); assertEquals(300.0, EventReady.needs(600.0).block3, 1e-9)
+        // five 100 km rides at 25 km/h with 500 m climbing, on consecutive days
+        val acts = (1..5).map { act(it.toLong(), "Ride", 100.0, 240, "2026-10-0$it") }
+        val h = EventReady.history(acts, java.time.LocalDate.parse("2026-10-23"))
+        assertEquals(100.0, h.longestKm, 1e-9); assertEquals(62.5, h.weekly, 1e-9); assertEquals(300.0, h.block3, 1e-9)
+        assertEquals(27.5, h.vEq, 1e-9); assertEquals(5, h.nRef)
+        val f = EventReady.finish(200.0, 2000.0, h)!!
+        // fatigue (100/200)^0.07, stops ×1.12, no night
+        val v = 27.5 * Math.pow(0.5, 0.07)
+        assertEquals(240 / v, f.moving, 1e-9); assertEquals(240 / v * 1.12, f.total, 1e-9); assertEquals(0, f.nights)
+        assertEquals("10h 16m", EventReady.hrs(f.total))
+        assertEquals(56, EventReady.score(EventReady.factors(n, h, 25.0), false))
+        assertEquals(10, EventReady.weeks(n, h, 25.0))
+        // on the Training page
+        cache("activities?limit=500", JSONObject().put("activities", org.json.JSONArray(acts)))
+        cache("me", JSONObject())
+        Training.page(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "EVENT READINESS" in t && "BRM 300" in t && "Plan" in t)
+    }
+
     @Test fun milestones() {
         val b = Milestones.badge(6200.0, "km total", { "%,d".format(Math.round(it)) }, listOf(1000.0 to "1,000 km Club", 5000.0 to "5,000 km Club", 10000.0 to "10,000 km Club"))
         assertEquals("5,000 km Club", b.name); assertEquals(2, b.tier); assertEquals("10,000 km Club", b.next); assertEquals(62, b.pct)

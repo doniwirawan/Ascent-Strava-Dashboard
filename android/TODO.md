@@ -42,7 +42,8 @@ Uses data the API already has:
 - [x] P3. Calendar: month-by-month activity calendar (renderCalendar) — More → Calendar (3.3)
 - [x] P4. Overview extras: sport breakdown, HR-zone + speed-zone rings, insights, streak/consistency (render-overview.js) — Home (3.4; zones are average-HR / average-speed estimates like the website before streams)
 - [x] P5. Training: 7/42-day load, ramp, climbing ability (VAM, best climb), running VDOT, readiness (training.js, sleep.js renderReadiness) — More → Training (3.5; readiness ring was already on Home)
-- [ ] P5b. Training extras: Event ready (event-ready.js), AI training plan (with P19)
+- [x] P5b. Training extras: Event ready (event-ready.js) — More → Training (3.25)
+- [ ] P5c. AI training plan (training.js, through the app's own AI key like P19)
 - [x] P6. Power extras: aerobic efficiency (EF), cadence vs power, flat vs hilly, best NP, climbing power / FTP without a power meter (power.js, climb-ftp.js) — Power tab (3.6; climbing power moved to P15b)
 - [x] P7. Sleep insights: consistency / midpoint, after training vs rest, stress, active kcal, monthly watch metrics (sleep.js) — Sleep tab, findings + trends (3.7)
 - [ ] P7b. Sleep, the rest of sleep.js: records & recipe, health risk, year health, stress, energy, steps, bike ↔ body, patterns, export, AI summary

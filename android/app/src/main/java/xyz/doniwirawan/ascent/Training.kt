@@ -8,7 +8,8 @@ import java.util.Locale
 /**
  * More → Training: the website's Training page (js/training.js) — the load
  * model and fitness chart, form advice, recovery, consistency, FTP, run
- * predictions and the list-data insight cards. The AI plan is not here yet.
+ * predictions, event readiness (EventReady.kt) and the list-data insight
+ * cards. The AI plan is not here yet.
  */
 object Training {
     private fun day(x: JSONObject) = x.optString("start_date_local").ifEmpty { x.optString("start_date") }.take(10)
@@ -146,6 +147,9 @@ object Training {
             addView(Ui.text(a, "Orange: fitness. Bars: form. Load from " + s.basis.entries.sortedByDescending { it.value }.joinToString(" · ") { "${it.value} ${names[it.key]}" } +
                 (if (ftp > 0) " · FTP ${Math.round(ftp)} W" + (if (stravaFtp > 0) "" else " (est.)") else ""), 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 6), 0, 0) })
         })
+
+        // Event readiness (website event-ready.js)
+        EventReady.card(a, col, acts, s.last.ctl)
 
         consistency(rides)?.let { c ->
             col.addView(Ui.heading(a, "Consistency · last ${c.weeks.size} weeks"))
