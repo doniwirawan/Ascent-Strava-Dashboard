@@ -1,0 +1,47 @@
+// JoyoFit's Huawei watch link (AGPL-3.0-or-later), vendored by sync-from-joyofit.mjs.
+// src/main is JoyoFit's code, unchanged; src/ascent is what replaces its Expo side.
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.joyodigitama.huaweiwear'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 30   // UPSERT needs SQLite 3.24+; Android 10 ships 3.22
+        // "play" switches off the SMS / call-log code paths (Distribution.kt); Ascent's manifest
+        // does not ask for those permissions either.
+        buildConfigField "String", "DISTRIBUTION", "\"play\""
+    }
+    sourceSets {
+        main {
+            java.srcDirs += 'src/ascent/java'
+            manifest.srcFile 'src/ascent/AndroidManifest.xml'
+            res.srcDirs += 'src/ascent/res'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = '17' }
+    buildFeatures { buildConfig true }
+    // Robolectric: Android's real SQLite on the JVM, for AscentSqliteTest (no emulator)
+    testOptions { unitTests.includeAndroidResources = true }
+}
+
+dependencies {
+    implementation 'org.slf4j:slf4j-api:2.0.17'
+    implementation 'androidx.annotation:annotation:1.9.1'
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.health.connect:connect-client:1.1.0-alpha08'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    // the Huawei Privacy Centre export importer (AES zip); Apache-2.0
+    implementation 'net.lingala.zip4j:zip4j:2.11.5'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.13'
+    testImplementation 'androidx.test:core:1.6.1'
+}

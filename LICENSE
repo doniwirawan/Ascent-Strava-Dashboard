@@ -28,6 +28,10 @@ the following conditions:
 5. Attribution and notice. The above copyright notice and this license shall be
    included in all copies or substantial portions of the Software.
 
+The Android app in android/ is not covered by this license: it includes
+JoyoFit's Huawei watch link and is licensed under the GNU Affero General Public
+License v3.0 or later — see android/LICENSE.
+
 For any use not expressly permitted above — including any commercial,
 production, or competing use — you must obtain prior written permission from the
 copyright holder.

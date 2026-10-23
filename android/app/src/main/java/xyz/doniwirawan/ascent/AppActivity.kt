@@ -122,6 +122,8 @@ class AppActivity : Activity() {
                 val go = try { HealthSync.available(this) && HealthSync.due(this) && HealthSync.hasSleepPermission(this) } catch (e: Exception) { false }
                 if (go) { runHealthSync(); ui.post { if (current == "sleep") show("sleep") } }
             }
+            // nights the watch sent over the direct link (Watch.kt)
+            io.execute { Watch.uploadIfDue(this) }
         } else showSettings()
     }
 
@@ -400,6 +402,7 @@ class AppActivity : Activity() {
     override fun onRequestPermissionsResult(req: Int, perms: Array<out String>, results: IntArray) {
         super.onRequestPermissionsResult(req, perms, results)
         if (req == REQ_HC) afterHealthPermission()
+        if (req == Watch.REQ_BT && current == "sleep") show("sleep")
     }
 
     private fun afterHealthPermission() {

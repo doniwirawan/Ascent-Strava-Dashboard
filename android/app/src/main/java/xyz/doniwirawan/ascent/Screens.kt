@@ -318,12 +318,13 @@ object Screens {
     // ── Sleep ───────────────────────────────────────────────────────────────
     fun sleep(a: AppActivity): Unit = a.load(listOf("sleep")) { r ->
         val s = r["sleep"]
-        if (s == null) { a.page().addView(a.healthCard()); return@load }
+        if (s == null) { a.page().apply { addView(Watch.card(a)); addView(a.healthCard()) }; return@load }
         val cols = s.optJSONArray("cols")
         val idx = HashMap<String, Int>(); for (i in 0 until (cols?.length() ?: 0)) idx[cols!!.getString(i)] = i
         val rowsArr = s.optJSONArray("rows") ?: JSONArray()
         val nights = (0 until rowsArr.length()).map { rowsArr.getJSONArray(it) }.filter { it.optDouble(idx["asleep"] ?: 1, 0.0) > 0 }
         val col = a.page()
+        col.addView(Watch.card(a))
         col.addView(a.healthCard())
         if (nights.isEmpty()) { col.addView(Ui.text(a, "No sleep data yet — import it on the web dashboard's Sleep page.", 13f, Ui.MUTED)); return@load }
         fun v(n: JSONArray, k: String) = idx[k]?.let { n.optDouble(it, Double.NaN) } ?: Double.NaN

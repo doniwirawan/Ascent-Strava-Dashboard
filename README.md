@@ -297,4 +297,6 @@ You may **not**:
 - use it to build or operate anything that competes with the Ascent dashboard
   (https://ascent-analytics.doniwirawan.xyz/).
 
-See [LICENSE](LICENSE) for the full terms. Not affiliated with Strava, Inc.
+See [LICENSE](LICENSE) for the full terms. The Android app (`android/`) is the exception:
+it includes JoyoFit's Huawei watch link and is **AGPL-3.0-or-later** ([android/LICENSE](android/LICENSE)).
+Not affiliated with Strava, Inc.

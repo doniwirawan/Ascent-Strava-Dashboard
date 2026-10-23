@@ -19,7 +19,7 @@ update through the in-app Update bar (`publish-update.mjs`).
 - [x] 15. Ride page: Segments & PRs; Home: all-time + fun facts; "Updated to" banner (2.8)
 - [x] 16. Sleep card names the apps that wrote sleep + newest night; past-data button only where supported (2.8)
 - [x] 17. 3D maps (ride + all routes, fly-through); map buttons wrap instead of overlapping; Story card button (2.9)
-- [ ] 14. JoyoFit + Ascent as one app — needs the owner's decision first:
+- [x] 14. JoyoFit + Ascent as one app — owner chose b): JoyoFit's watch link in huawei-wear/, Watch card on Sleep; the Android app is now AGPL-3.0 (android/LICENSE), minSdk 30 (3.0)
       a) rebuild JoyoFit's no-watch features (strength logger, manual workouts, gear reminders, run plans) in Ascent — our own code, no licence change;
       b) take JoyoFit's watch link (Kotlin, AGPL-3.0) into Ascent — the whole app then becomes AGPL, and pairing it resets the watch / unpairs Huawei Health, like JoyoFit does;
       c) keep both apps, joined through Health Connect (what works today).

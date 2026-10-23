@@ -258,7 +258,8 @@ object HealthSync {
         return runs.joinToString(", ") { hm(it[0]) + "–" + hm(it[1]) }
     }
 
-    private fun post(ctx: Context, body: JSONObject): JSONObject {
+    /** POST /api/v1/sleep — also used by the direct watch link (Watch.kt). */
+    internal fun post(ctx: Context, body: JSONObject): JSONObject {
         val c = (URL(BuildConfig.API_BASE.trimEnd('/') + "/sleep").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"; doOutput = true; connectTimeout = 15_000; readTimeout = 30_000
             setRequestProperty("Authorization", "Bearer " + Api.token(ctx))

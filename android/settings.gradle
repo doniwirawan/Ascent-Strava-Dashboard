@@ -15,3 +15,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "AscentWidget"
 include ':app'
+// JoyoFit's Huawei watch link (AGPL-3.0-or-later), see huawei-wear/build.gradle
+include ':huawei-wear'

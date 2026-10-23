@@ -65,6 +65,7 @@ open class AscentWidget : AppWidgetProvider() {
                 }
                 // keep the app current even when it isn't opened (Updater.kt)
                 Updater.background(app)
+                Watch.uploadIfDue(app)
             }
         }
 
