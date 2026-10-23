@@ -14,12 +14,14 @@ object More {
         "trends" to ("Trends" to "Weekly distance, year over year, year in review"),
         "calendar" to ("Calendar" to "Every day of a month, and month by month"),
         "training" to ("Training" to "Load, form, recovery, consistency, FTP, run predictions, records"),
+        "milestones" to ("Milestones" to "Records, Strava totals and badges"),
     )
 
     fun show(a: AppActivity, id: String) = when (id) {
         "trends" -> trends(a)
         "calendar" -> calendar(a)
         "training" -> Training.page(a)
+        "milestones" -> Milestones.page(a)
         else -> menu(a)
     }
 

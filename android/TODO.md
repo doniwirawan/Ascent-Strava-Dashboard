@@ -47,7 +47,7 @@ Uses data the API already has:
 - [x] P7. Sleep insights: consistency / midpoint, after training vs rest, stress, active kcal, monthly watch metrics (sleep.js) — Sleep tab, findings + trends (3.7)
 - [ ] P7b. Sleep, the rest of sleep.js: records & recipe, health risk, year health, stress, energy, steps, bike ↔ body, patterns, export, AI summary
 - [x] P8. Gear: bike comparison — usage, cost per km, efficiency, speed on flat rides (gear-maint.js) — Money tab (3.8)
-- [ ] P9. Milestones & trophies (renderMilestones, renderChallenges)
+- [x] P9. Milestones & trophies (renderMilestones, renderChallenges) — More → Milestones (3.9; the KOM list joins P16)
 - [ ] P10. Heatmap extras: ride destinations by regency (regency-map.js)
 - [ ] P11. Huawei-only workouts in the activity list (/huawei)
 - [ ] P12. Data: all activities & sleep as a sortable table (data-table.js)
@@ -59,7 +59,7 @@ Needs ride streams (/activities/{id}?streams=…, shares the Strava limit):
 - [ ] P15b. Climbing power / FTP without a power meter: scans climbs from altitude streams (climb-ftp.js)
 
 Needs a new route in api/_v1.js:
-- [ ] P16. Segments: your starred segments, segment gaps, segment intelligence
+- [ ] P16. Segments: your starred segments, segment gaps, segment intelligence, KOM / QOM list
 - [ ] P17. Photos
 - [ ] P18. Chase routes: AI route generator (/api/route + /api/ai need owner auth that accepts the asc_ token)
 - [ ] P19. AI: overview insight, bulk caption rewrite (writes back to Strava)

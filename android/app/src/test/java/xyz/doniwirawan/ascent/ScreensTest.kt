@@ -216,6 +216,16 @@ class ScreensTest {
         assertTrue(t.toString(), "COST PER KM" in t && "BIKE COMPARISON" in t && "Rp 11.000/km" in t)
     }
 
+    @Test fun milestones() {
+        val b = Milestones.badge(6200.0, "km total", { "%,d".format(Math.round(it)) }, listOf(1000.0 to "1,000 km Club", 5000.0 to "5,000 km Club", 10000.0 to "10,000 km Club"))
+        assertEquals("5,000 km Club", b.name); assertEquals(2, b.tier); assertEquals("10,000 km Club", b.next); assertEquals(62, b.pct)
+        cache("activities?limit=500", JSONObject().put("activities", org.json.JSONArray(listOf(act(1, "Ride", 120.0, 300, "2026-10-01"), act(2, "Ride", 40.0, 90, "2026-10-02")))))
+        cache("strava-stats", JSONObject().put("all_ride_totals", JSONObject().put("count", 120).put("distance", 6_200_000).put("moving_time", 900_000).put("elevation_gain", 50_000)))
+        Milestones.page(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "Milestones" in t && "RECORDS" in t && "BADGES" in t && "★ 5,000 km Club" in t && "★ 5× Everest" in t && "★ Century Rider" in t)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)
