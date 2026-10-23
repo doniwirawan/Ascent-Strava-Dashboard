@@ -20,6 +20,7 @@ object More {
         "data" to ("Data" to "Every activity and night, sorted by anything"),
         "gps" to ("GPS check" to "Rides with impossible top speeds, normalized"),
         "segments" to ("Segments" to "Starred segments, KOMs, and where a PR is close"),
+        "gaps" to ("Segment gaps" to "Road you ride often that no segment covers"),
         "photos" to ("Photos" to "Every photo from your activities"),
         "chase" to ("Chase routes" to "Describe a ride; AI plans it on Bali's roads"),
         "help" to ("Help" to "What the metrics mean, and where your data comes from"),
@@ -35,6 +36,7 @@ object More {
         "data" -> DataPage.page(a)
         "gps" -> GpsCheck.page(a)
         "segments" -> Segments.page(a)
+        "gaps" -> SegmentGaps.page(a)
         "photos" -> Photos.page(a)
         "chase" -> Chase.page(a)
         "help" -> Help.page(a)

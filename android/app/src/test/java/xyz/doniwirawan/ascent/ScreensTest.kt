@@ -292,6 +292,20 @@ class ScreensTest {
         assertEquals(2, JSONObject(SleepData.json(r, "now")).getInt("days"))
     }
 
+    @Test fun segmentGaps() {
+        // a straight 3 km road in the sea off (0, 0) — made-up coordinates — ridden 4 times; a segment covers its first km
+        val road = (0..30).map { doubleArrayOf(0.0, it * 0.001) }
+        val poly = Chase.encode(road)
+        val acts = (1..4).map { act(it.toLong(), "Ride", 3.3, 10, "2026-10-0$it", extra = ",\"map\":{\"summary_polyline\":\"$poly\"},\"start_latlng\":[0.0,0.0]") }
+        val seg = SegmentGaps.Seg(9, "Alpha -> Bravo", doubleArrayOf(0.0, 0.0), doubleArrayOf(0.0, 0.01), 1)
+        val g = SegmentGaps.compute(acts, listOf(seg))
+        assertEquals(1, g.size)
+        assertEquals(4, g[0].rides)
+        assertTrue(g[0].len.toString(), g[0].len > 1500 && g[0].len < 2200)   // ~2 km left uncovered (minus the ±50 m halo)
+        assertEquals("Bravo -> ?", g[0].name)
+        assertTrue(SegmentGaps.compute(acts, listOf(SegmentGaps.Seg(9, "x", doubleArrayOf(0.0, 0.0), doubleArrayOf(0.0, 0.03), 1))).isEmpty())
+    }
+
     @Test fun milestones() {
         val b = Milestones.badge(6200.0, "km total", { "%,d".format(Math.round(it)) }, listOf(1000.0 to "1,000 km Club", 5000.0 to "5,000 km Club", 10000.0 to "10,000 km Club"))
         assertEquals("5,000 km Club", b.name); assertEquals(2, b.tier); assertEquals("10,000 km Club", b.next); assertEquals(62, b.pct)

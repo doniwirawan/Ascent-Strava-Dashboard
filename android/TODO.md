@@ -63,7 +63,7 @@ Needs ride streams (/activities/{id}?streams=…, shares the Strava limit):
 
 Needs a new route in api/_v1.js:
 - [x] P16. Segments: your starred segments, segment gaps, segment intelligence, KOM / QOM list — More → Segments (3.17; new /api/v1/segments + /koms)
-- [ ] P16b. Segment gaps: road you ride often that no segment covers (segment-gaps.js; needs segment geometry from /segments/{id})
+- [x] P16b. Segment gaps (segment-gaps.js) — More → Segment gaps (3.31; ride detail now carries each segment's ends, MCP strips them; checked identical to the website on the real rides; never sent to the AI)
 - [x] P17. Photos — More → Photos (3.18; new ?photos=1 on /api/v1/activities/{id}, no photo locations)
 - [x] P18. Chase routes — More → Chase routes (3.19; AI through the app's own key, no server change; router checked identical to the website on the real road file)
 - [x] P19. AI insight on each page — every app page (3.20; through the app's own AI key)

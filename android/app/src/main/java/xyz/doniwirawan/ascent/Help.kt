@@ -31,7 +31,7 @@ object Help {
         "Ride page" to "Charts, zones, splits, W′ balance, decoupling, where the time went, wind, segments & PRs, AI analysis, Story card.",
         "Power" to "FTP, power-meter rides, power curve and CP, insights, weekly power, efficiency, intensity mix, records, cadence, climbing power, zones.",
         "Sleep" to "Watch link, Health Connect, nights, what your sleep says, the night after training, weekday, spread, trends.",
-        "More" to "Money (spending, bikes, cost per km, bike comparison, bike care), Trends, Calendar, Training, Milestones, Destinations, Data, GPS check, Segments, Photos, Chase routes, Help.",
+        "More" to "Money (spending, bikes, cost per km, bike comparison, bike care), Trends, Calendar, Training, Milestones, Destinations, Data, GPS check, Segments, Segment gaps, Photos, Chase routes, Help.",
     )
     private val DATA = listOf(
         "Where it comes from" to "Your own dashboard's Personal API (/api/v1) with your asc_ token: Strava activities cached by the website, Strava live for streams, segments and photos, sleep from the Huawei export and the watch, purchases from the finance app.",

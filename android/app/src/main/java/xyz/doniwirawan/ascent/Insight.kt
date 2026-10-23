@@ -16,7 +16,7 @@ import org.json.JSONObject
  */
 object Insight {
     private const val MAX_AGE = 7 * 86_400_000L
-    private val SKIP = setOf("more", "more:chase", "more:gps", "more:data", "more:photos")
+    private val SKIP = setOf("more", "more:chase", "more:gps", "more:data", "more:photos", "more:gaps")   // gaps shows coordinates: never to an AI
     private val SYS = "You are a sharp, neutral sports-data analyst. From what is shown on one dashboard page, surface ONE specific, non-obvious insight that CONNECTS multiple numbers — e.g. how speed relates to distance or elevation, a trend across weeks/months, the balance between sports, consistency, or an outlier and what it implies. " +
         "Do NOT just praise a single headline stat (like top speed) and do NOT use motivational filler or exclamations. Use ONLY the numbers given; never invent data or mention metrics that are not present. Reply in English. 1–2 plain sentences, max 40 words. No headings, no preamble."
 
