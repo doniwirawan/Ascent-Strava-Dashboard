@@ -1069,6 +1069,9 @@ function drawLayout(canvas, act, selected, sc, layout) {
         max_heartrate: 'heartrate',
         average_cadence: 'cadence',
         total_elevation_gain: 'altitude',
+        // power stats graph the ride's 30-s power (story-ui.js fetchStreams)
+        average_watts: 'watts_smooth', norm_power: 'watts_smooth', max_watts: 'watts_smooth',
+        w_per_kg: 'watts_smooth', intensity: 'watts_smooth', tss: 'watts_smooth', kilojoules: 'watts_smooth',
       };
 
       // 🔹 CONSISTENT DIVIDER CONFIG
@@ -1121,6 +1124,8 @@ function drawLayout(canvas, act, selected, sc, layout) {
             ctx.textAlign = 'right'; ctx.fillText(Math.round(dmax) + ' bpm max', cx + cInnerW, cy3 + miniH + Math.round(13 * S));
           } else if (streamKey === 'cadence') {
             ctx.textAlign = 'right'; ctx.fillText(Math.round(dmax) + ' rpm peak', cx + cInnerW, cy3 + miniH + Math.round(13 * S));
+          } else if (streamKey === 'watts_smooth') {
+            ctx.textAlign = 'right'; ctx.fillText(Math.round(dmax) + ' W best 30 s', cx + cInnerW, cy3 + miniH + Math.round(13 * S));
           }
           cy3 += miniH + Math.round(18 * S);
         }
@@ -1578,6 +1583,9 @@ function drawLayout(canvas, act, selected, sc, layout) {
         max_heartrate: 'heartrate',
         average_cadence: 'cadence',
         total_elevation_gain: 'altitude',
+        // power stats graph the ride's 30-s power (story-ui.js fetchStreams)
+        average_watts: 'watts_smooth', norm_power: 'watts_smooth', max_watts: 'watts_smooth',
+        w_per_kg: 'watts_smooth', intensity: 'watts_smooth', tss: 'watts_smooth', kilojoules: 'watts_smooth',
       };
 
       selected.forEach((s, i) => {
@@ -1632,11 +1640,11 @@ function drawLayout(canvas, act, selected, sc, layout) {
           const waveY = by + bh - waveH - Math.round(16 * S);
           drawAreaChart(ctx, streamData, waveX, waveY, waveW, waveH, sc.accent, Math.round(2.5 * S));
           const dmax = Math.max(...streamData);
-          if (streamKey === 'altitude' || streamKey === 'heartrate') {
+          if (streamKey === 'altitude' || streamKey === 'heartrate' || streamKey === 'watts_smooth') {
             ctx.fillStyle = sc.muted;
             ctx.font = `600 ${Math.round(9 * S)}px -apple-system,sans-serif`;
             ctx.textAlign = 'right';
-            ctx.fillText(streamKey === 'altitude' ? '▲ ' + Math.round(elevVal(dmax)) + elevUnit() : '♥ ' + Math.round(dmax),
+            ctx.fillText(streamKey === 'altitude' ? '▲ ' + Math.round(elevVal(dmax)) + elevUnit() : streamKey === 'watts_smooth' ? '⚡ ' + Math.round(dmax) + ' W' : '♥ ' + Math.round(dmax),
               bx + bw - bpad * 0.8, waveY + waveH + Math.round(12 * S));
           }
         }
@@ -2458,6 +2466,61 @@ function drawLayout(canvas, act, selected, sc, layout) {
         if (!hideLogo) { ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = `800 ${Math.round(22 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.14em'; ctx.fillText('ASCENT', P, H - P); ctx.letterSpacing = '0'; }
       }
       if (!isRidge && !hideLogo) { ctx.textAlign = 'right'; ctx.fillStyle = sc.muted; ctx.font = `800 ${Math.round(22 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.14em'; ctx.fillText('ASCENT', W - P, P + Math.round(22 * S)); ctx.letterSpacing = '0'; }
+      break;
+    }
+
+    /* POWER — the ride's 30-s power as the hero: bars coloured by training
+       zone (FTP from estimateFtp), NP set large, time in each zone below. */
+    case 'power': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      const pw = currentStreams && currentStreams.watts_smooth && currentStreams.watts_smooth.data;
+      const pp = ridePower(act);
+      const ftpV = (pp && pp.ftp) || 0;
+      const zoneOf = w => (ftpV && typeof powerZoneFor === 'function') ? powerZoneFor(w, ftpV) : -1;
+      const zoneCol = w => { const z = zoneOf(w); return z >= 0 ? POWER_ZONES[z].color : sc.accent; };
+      let ty = P + (hideLogo ? 0 : Math.round(50 * S));     // the logo sits top right, above the title
+      if (!hideTitle) { const nm = act.name || 'Activity'; const fs = fitText(nm, W - P * 2, 56, 800); ctx.fillStyle = sc.text; ctx.textAlign = 'left'; ctx.letterSpacing = '-0.02em'; ctx.fillText(nm, P, ty + fs); ctx.letterSpacing = '0'; ty += fs + Math.round(14 * S); }
+      if (!hideDate) { ctx.fillStyle = sc.muted; ctx.font = F(24, 500); ctx.textAlign = 'left'; ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), P, ty + Math.round(24 * S)); ty += Math.round(46 * S); }
+      // hero: normalized power, else average power, else the first ticked stat
+      const heroS = selected.find(s => s.key === 'norm_power') || selected.find(s => s.key === 'average_watts') || selected[0];
+      if (heroS) { const { num, unit } = statVal(heroS, act); ty += Math.round(30 * S);
+        ctx.fillStyle = sc.accent; ctx.font = F(22, 700); ctx.letterSpacing = '0.1em'; ctx.textAlign = 'left'; ctx.fillText(heroS.label.toUpperCase(), P, ty); ctx.letterSpacing = '0';
+        const hs = Math.round(Math.min(200 * S, H * 0.11)); ctx.font = `900 ${hs}px -apple-system,sans-serif`;
+        ctx.fillStyle = sc.text; ctx.letterSpacing = '-0.04em'; ctx.fillText(num, P - Math.round(6 * S), ty + hs * 0.95); ctx.letterSpacing = '0';
+        if (unit) { const nw = ctx.measureText(num).width; ctx.fillStyle = sc.muted; ctx.font = F(48, 600); ctx.fillText(unit, P + nw + Math.round(10 * S), ty + hs * 0.95); }
+        ty += hs + Math.round(30 * S); }
+      const rest = selected.filter(s => s !== heroS).slice(0, 3);
+      const cTop = Math.max(ty + Math.round(20 * S), H * 0.40), cBot = H - P - Math.round((rest.length ? 260 : 130) * S);
+      const cH = cBot - cTop, cX = P, cW = W - P * 2;
+      if (pw && pw.length > 10 && !hideRoute) {
+        const n = Math.min(160, pw.length), step = pw.length / n, bars = [];
+        for (let i = 0; i < n; i++) { let s = 0, c = 0; for (let k = Math.floor(i * step); k < Math.floor((i + 1) * step); k++) { s += pw[k]; c++; } bars.push(c ? s / c : 0); }
+        const top = Math.max(...bars) || 1, bw = cW / n;
+        if (ftpV && ftpV < top) { const fy = cBot - cH * 0.92 * (ftpV / top); ctx.strokeStyle = sc.muted; ctx.lineWidth = Math.max(1, Math.round(2 * S)); ctx.setLineDash([Math.round(10 * S), Math.round(8 * S)]);
+          ctx.beginPath(); ctx.moveTo(cX, fy); ctx.lineTo(cX + cW, fy); ctx.stroke(); ctx.setLineDash([]);
+          ctx.fillStyle = sc.muted; ctx.font = F(16, 600); ctx.textAlign = 'left'; ctx.fillText('FTP ' + Math.round(ftpV) + ' W', cX, fy - Math.round(8 * S)); }
+        bars.forEach((v, i) => { const h = Math.max(Math.round(2 * S), cH * 0.92 * (v / top)); ctx.fillStyle = zoneCol(v);
+          ctx.beginPath(); ctx.roundRect(cX + i * bw + bw * 0.12, cBot - h, bw * 0.76, h, Math.round(2 * S)); ctx.fill(); });
+        let mi = 0; bars.forEach((v, i) => { if (v > bars[mi]) mi = i; });
+        const mx = cX + (mi + 0.5) * bw; ctx.fillStyle = sc.text; ctx.font = F(22, 700); ctx.textAlign = mx > W * 0.7 ? 'right' : 'left';
+        ctx.fillText('PEAK 30 s ' + Math.round(Math.max(...pw)) + ' W', mx + (mx > W * 0.7 ? -1 : 1) * Math.round(10 * S), cBot - cH * 0.92 - Math.round(14 * S));
+        // time in each zone, as one stacked bar
+        if (ftpV) { const t = POWER_ZONES.map(() => 0); pw.forEach(v => { if (v > 0) t[zoneOf(v)]++; }); const tot = t.reduce((a, b) => a + b, 0) || 1;
+          const zy = cBot + Math.round(26 * S), zh = Math.round(18 * S); let zx = cX;
+          t.forEach((c, z) => { const w = cW * c / tot; if (w <= 0) return; ctx.fillStyle = POWER_ZONES[z].color; ctx.fillRect(zx, zy, w, zh); zx += w; });
+          const best = t.indexOf(Math.max(...t)); ctx.fillStyle = sc.muted; ctx.font = F(17, 600); ctx.textAlign = 'left';
+          ctx.fillText('Most time in Z' + (best + 1) + ' ' + POWER_ZONES[best].name + ' · ' + Math.round(t[best] / tot * 100) + '%', cX, zy + zh + Math.round(26 * S)); }
+      } else if (polyline && polyline.length > 1) {
+        drawRoute(ctx, polyline, cX, cTop, cW, cH, sc.accent, Math.round(6 * S));
+        ctx.fillStyle = sc.muted; ctx.font = F(18, 600); ctx.textAlign = 'center'; ctx.fillText(act.device_watts ? 'Loading power…' : 'No power-meter data on this activity', W / 2, cBot + Math.round(40 * S));
+      }
+      if (rest.length) { const cw = (W - P * 2) / rest.length, y = H - P - Math.round(60 * S);
+        rest.forEach((s, i) => { const { num, unit } = statVal(s, act); const x = P + i * cw;
+          ctx.textAlign = 'left'; ctx.fillStyle = sc.muted; ctx.font = F(17, 700); ctx.letterSpacing = '0.08em'; ctx.fillText(s.label.toUpperCase(), x, y);
+          let vf = Math.round(46 * S); const disp = num + (unit ? ' ' + unit : ''); ctx.font = `800 ${vf}px -apple-system,sans-serif`;
+          while (vf > Math.round(18 * S) && ctx.measureText(disp).width > cw * 0.92) { vf--; ctx.font = `800 ${vf}px -apple-system,sans-serif`; }
+          ctx.fillStyle = sc.text; ctx.letterSpacing = '-0.5px'; ctx.fillText(disp, x, y + Math.round(52 * S)); ctx.letterSpacing = '0'; }); }
+      if (!hideLogo) { ctx.textAlign = 'right'; ctx.fillStyle = sc.muted; ctx.font = `800 ${Math.round(22 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.14em'; ctx.fillText('ASCENT', W - P, P + Math.round(22 * S)); ctx.letterSpacing = '0'; }
       break;
     }
 

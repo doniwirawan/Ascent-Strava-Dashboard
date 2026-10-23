@@ -285,7 +285,10 @@ async function fetchStreams(actId){
   if(!actId) return;
   if(streamsCache[actId]){currentStreams=streamsCache[actId];return;}
   try{
-    const data=await api(`/activities/${actId}/streams?keys=altitude,distance,velocity_smooth,heartrate,cadence&key_by_type=true`);
+    const data=await api(`/activities/${actId}/streams?keys=altitude,distance,velocity_smooth,heartrate,cadence,watts&key_by_type=true`);
+    // raw watts jump every second; graphs use a 30-s rolling average
+    const w=data&&data.watts&&data.watts.data;
+    if(w&&w.length>1){ const sm=[]; let sum=0; for(let i=0;i<w.length;i++){ sum+=w[i]||0; if(i>=30) sum-=w[i-30]||0; sm.push(sum/Math.min(i+1,30)); } data.watts_smooth={data:sm}; }
     streamsCache[actId]=data;
     currentStreams=data;
   }catch(e){

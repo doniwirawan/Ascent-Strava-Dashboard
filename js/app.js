@@ -96,6 +96,16 @@ if (!CONFIG.refreshToken) {
 } else {
   // reopen the Share Story modal if that's where the user left off
   loadData().then(() => {
+    // ?story=<activity id> (the Android app's Story card button) opens the story for that ride
+    const storyId = new URLSearchParams(location.search).get('story');
+    if (storyId && typeof acts !== 'undefined' && acts.length) {
+      history.replaceState(null, '', location.pathname);
+      openStoryModal();
+      const i = acts.slice(0, 50).findIndex(a => String(a.id) === storyId);
+      const picker = document.getElementById('activityPicker');
+      if (i >= 0 && picker) { picker.value = String(i); if (picker.onchange) picker.onchange(); }
+      return;
+    }
     if (localStorage.getItem('story_open') === '1' && typeof acts !== 'undefined' && acts.length) openStoryModal();
   });
 }

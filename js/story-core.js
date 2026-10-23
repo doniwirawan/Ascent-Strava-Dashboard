@@ -195,6 +195,7 @@ const LAYOUTS = [
   { id: 'cover', name: 'Cover' },
   { id: 'numbers', name: 'Numbers' },
   { id: 'climb', name: 'Climb' },
+  { id: 'power', name: 'Power' },
   { id: 'ridge', name: 'Ridge' },
   { id: 'receipt', name: 'Receipt' },
   { id: 'bib', name: 'Bib' },
