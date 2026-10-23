@@ -226,6 +226,23 @@ class ScreensTest {
         assertTrue(t.toString(), "Milestones" in t && "RECORDS" in t && "BADGES" in t && "★ 5,000 km Club" in t && "★ 5× Everest" in t && "★ Century Rider" in t)
     }
 
+    @Test fun destinationsUseTheTurnaround() {
+        // two made-up squares side by side; a ride from the west one out to the east one counts in the east
+        fun sq(name: String, x0: Double) = JSONObject("{\"type\":\"Feature\",\"properties\":{\"name\":\"$name\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[$x0,0],[${x0 + 1},0],[${x0 + 1},1],[$x0,1],[$x0,0]]]}}")
+        val regs = Destinations.parse(JSONObject().put("features", org.json.JSONArray(listOf(sq("West", 0.0), sq("East", 1.0)))))
+        assertEquals("East", Destinations.regencyOf(0.5, 1.5, regs)); assertEquals(null, Destinations.regencyOf(0.5, 5.0, regs))
+        fun enc(v: Double): String { var n = Math.round(v * 1e5).toInt(); n = if (n < 0) (n shl 1).inv() else n shl 1; val sb = StringBuilder(); while (n >= 0x20) { sb.append(((0x20 or (n and 0x1f)) + 63).toChar()); n = n shr 5 }; sb.append((n + 63).toChar()); return sb.toString() }
+        val line = enc(0.5) + enc(0.5) + enc(0.0) + enc(1.0)   // (0.5, 0.5) → (0.5, 1.5)
+        val ride = act(1, "Ride", 40.0, 90, "2026-10-01").put("map", JSONObject().put("summary_polyline", line))
+        val d = Destinations.destination(ride)!!
+        assertEquals(1.5, d[1], 1e-4); assertEquals("East", Destinations.regencyOf(d[0], d[1], regs))
+        // the website's real boundaries (public data in the repo): two town centres
+        val bali = Destinations.parse(JSONObject(java.io.File("../../data/bali-regencies.json").readText()))
+        assertEquals(9, bali.size)
+        assertTrue(Destinations.regencyOf(-8.6705, 115.2126, bali)!!.contains("Denpasar"))
+        assertTrue(Destinations.regencyOf(-8.5410, 115.3253, bali)!!.contains("Gianyar"))
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)

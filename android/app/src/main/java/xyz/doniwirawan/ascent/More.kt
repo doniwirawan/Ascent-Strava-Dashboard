@@ -15,6 +15,7 @@ object More {
         "calendar" to ("Calendar" to "Every day of a month, and month by month"),
         "training" to ("Training" to "Load, form, recovery, consistency, FTP, run predictions, records"),
         "milestones" to ("Milestones" to "Records, Strava totals and badges"),
+        "destinations" to ("Destinations" to "Where your rides turn around, by Bali regency"),
     )
 
     fun show(a: AppActivity, id: String) = when (id) {
@@ -22,6 +23,7 @@ object More {
         "calendar" -> calendar(a)
         "training" -> Training.page(a)
         "milestones" -> Milestones.page(a)
+        "destinations" -> Destinations.page(a)
         else -> menu(a)
     }
 

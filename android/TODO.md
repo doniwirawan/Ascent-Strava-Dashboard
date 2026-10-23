@@ -48,7 +48,7 @@ Uses data the API already has:
 - [ ] P7b. Sleep, the rest of sleep.js: records & recipe, health risk, year health, stress, energy, steps, bike ↔ body, patterns, export, AI summary
 - [x] P8. Gear: bike comparison — usage, cost per km, efficiency, speed on flat rides (gear-maint.js) — Money tab (3.8)
 - [x] P9. Milestones & trophies (renderMilestones, renderChallenges) — More → Milestones (3.9; the KOM list joins P16)
-- [ ] P10. Heatmap extras: ride destinations by regency (regency-map.js)
+- [x] P10. Heatmap extras: ride destinations by regency (regency-map.js) — More → Destinations (3.10; outside Bali is one count, the website looks those up on Nominatim)
 - [ ] P11. Huawei-only workouts in the activity list (/huawei)
 - [ ] P12. Data: all activities & sleep as a sortable table (data-table.js)
 
