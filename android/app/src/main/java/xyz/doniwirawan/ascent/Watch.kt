@@ -135,7 +135,8 @@ object Watch {
         val now = System.currentTimeMillis() / 1000
         val since = now - (if (prefs(ctx).getBoolean("watch_uploaded", false)) 14 else 60) * DAY
         val off = TimeZone.getDefault().getOffset(now * 1000) / 1000L
-        val nights = fold(AscentWatch.sleepSince(ctx, since), AscentWatch.stepsSince(ctx, since, off), AscentWatch.restingHrSince(ctx, since, off), off)
+        val nights = fold(AscentWatch.sleepSince(ctx, since), AscentWatch.stepsSince(ctx, since, off), AscentWatch.restingHrSince(ctx, since, off), off,
+            AscentWatch.dailySince(ctx, since, off))
         val msg = if (nights.length() == 0) "The watch hasn't sent any sleep yet." else {
             val r = HealthSync.post(ctx, JSONObject().put("source", "Huawei watch (Ascent)").put("nights", nights))
             "Uploaded ${nights.length()} nights: ${r.optInt("added")} new, ${r.optInt("updated")} updated."
@@ -174,7 +175,8 @@ object Watch {
      * A piece with no stage (TruSleep window) counts as light sleep, as Gadgetbridge reads it,
      * but any real stage for the same minute wins over it: staged sleep > awake > no stage.
      */
-    internal fun fold(sleep: List<AscentWatch.Sleep>, steps: Map<String, Long>, rhr: Map<String, Int>, offSec: Long): JSONArray {
+    internal fun fold(sleep: List<AscentWatch.Sleep>, steps: Map<String, Long>, rhr: Map<String, Int>, offSec: Long,
+                      daily: Map<String, Map<String, Double>> = emptyMap()): JSONArray {
         class Night { val mins = HashMap<Long, Int>(); val nap = HashSet<Long>() }
         val nights = sortedMapOf<String, Night>()
         fun day(sec: Long) = Instant.ofEpochSecond(sec + offSec).toString().substring(0, 10)
@@ -185,7 +187,7 @@ object Watch {
             val stage = when (s.stage) { "deep" -> 1; "light" -> 2; "rem" -> 3; "awake" -> 4; else -> UNSTAGED }
             for (m in s.start / 60 until (s.end + 59) / 60) { val cur = n.mins[m]; if (cur == null || rank(stage) > rank(cur)) n.mins[m] = stage }
         }
-        val days = (nights.keys + steps.keys + rhr.keys).toSortedSet()
+        val days = (nights.keys + steps.keys + rhr.keys + daily.keys).toSortedSet()
         val out = JSONArray()
         for (d in days) {
             val n = nights[d]
@@ -206,6 +208,8 @@ object Watch {
             }
             steps[d]?.takeIf { it > 0 }?.let { o.put("steps", it) }
             rhr[d]?.let { o.put("rhr", it) }
+            // calories, walking distance, heart rate, blood oxygen, HRV (AscentWatch.dailySince)
+            daily[d]?.forEach { (k, v) -> o.put(k, if (v % 1 == 0.0) v.toLong() else v) }
             if (o.length() > 1) out.put(o)
         }
         return out

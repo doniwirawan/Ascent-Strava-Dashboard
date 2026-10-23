@@ -144,11 +144,14 @@ async function activity(id, q) {
 
 // POST /sleep — nights from the Android app (Health Connect, e.g. JoyoFit + a
 // Huawei watch). Body { source, nights: [{ date, asleep, deep, light, rem, wake,
-// nap, wakeups, bed, up, tib, eff, napt, steps, dist, cal }] } in the same
-// columns as the export import (js/sleep-import.js). Merged into the sleep_data
-// row by date: new nights are added; nights that came from the Huawei export are
-// never overwritten; nights an earlier app sync wrote are replaced (hc_dates).
-const SLEEP_FIELDS = ['asleep', 'deep', 'light', 'rem', 'wake', 'nap', 'wakeups', 'bed', 'up', 'tib', 'eff', 'napt', 'steps', 'dist', 'cal', 'rhr', 'hrv'];
+// nap, wakeups, bed, up, tib, eff, napt, steps, dist, cal, rhr, hrv, … }] } in the
+// same columns as the export import (js/sleep-import.js). Merged into the
+// sleep_data row by date: new nights are added; nights that came from the Huawei
+// export are never overwritten, only their empty columns are filled in (a watch
+// day can add the blood oxygen the export lacked); nights an earlier app sync
+// wrote are replaced (hc_dates).
+const SLEEP_FIELDS = ['asleep', 'deep', 'light', 'rem', 'wake', 'nap', 'wakeups', 'bed', 'up', 'tib', 'eff', 'napt', 'steps', 'dist', 'cal', 'rhr', 'hrv',
+  'hrmin', 'hrmax', 'hrvmin', 'hrvmax', 'spo2', 'spo2min', 'stress', 'smin', 'smax', 'scnt', 'active', 'floors'];
 async function saveSleep(req) {
   let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   const nights = Array.isArray(body && body.nights) ? body.nights.filter(n => n && /^\d{4}-\d{2}-\d{2}$/.test(n.date)) : null;
@@ -160,10 +163,16 @@ async function saveSleep(req) {
   const col = Object.fromEntries(data.cols.map((c, i) => [c, i]));
   const byDate = new Map(data.rows.map(r => [r[0], r]));
   const hc = new Set(data.hc_dates || []);
-  let added = 0, updated = 0, kept = 0;
+  let added = 0, updated = 0, kept = 0, filled = 0;
   for (const n of nights) {
     let r = byDate.get(n.date);
-    if (r && r[col.asleep] > 0 && !hc.has(n.date)) { kept++; continue; }     // the export's night wins
+    if (r && r[col.asleep] > 0 && !hc.has(n.date)) {                          // the export's night wins…
+      kept++;
+      let f = 0;                                                              // …but its empty columns are filled
+      SLEEP_FIELDS.forEach(k => { if (k in col && n[k] != null && r[col[k]] == null) { r[col[k]] = n[k]; f++; } });
+      if (f) filled++;
+      continue;
+    }
     if (!r) { r = data.cols.map(() => null); r[0] = n.date; ['asleep', 'deep', 'light', 'rem', 'wake', 'nap'].forEach(k => { r[col[k]] = 0; }); data.rows.push(r); byDate.set(n.date, r); added++; }
     else updated++;
     SLEEP_FIELDS.forEach(k => { if (k in col && n[k] != null) r[col[k]] = n[k]; });
@@ -175,7 +184,7 @@ async function saveSleep(req) {
   data.hc_synced_at = new Date().toISOString();
   await sb('sleep_data?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({ id: owner, data, synced_at: new Date().toISOString() }) });
-  return { ok: true, added, updated, kept_from_export: kept, last: data.rows[data.rows.length - 1][0] };
+  return { ok: true, added, updated, kept_from_export: kept, filled_in_export: filled, last: data.rows[data.rows.length - 1][0] };
 }
 
 async function sleep() {

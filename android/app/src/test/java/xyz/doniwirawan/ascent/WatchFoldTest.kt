@@ -49,4 +49,12 @@ class WatchFoldTest {
         assertEquals(9000, n.getLong("steps"))
         assertEquals(58, n.getInt("rhr"))
     }
+
+    @Test fun everythingElseTheWatchLogged() {
+        val daily = mapOf("2026-10-23" to mapOf("cal" to 512.0, "dist" to 4100.0, "hrmin" to 48.0, "hrmax" to 151.0, "spo2" to 97.4, "spo2min" to 92.0, "hrv" to 55.0, "hrvmin" to 41.0, "hrvmax" to 63.0))
+        val o = Watch.fold(emptyList(), emptyMap(), emptyMap(), 8 * 3600L, daily).getJSONObject(0)
+        assertEquals("2026-10-23", o.getString("date"))
+        assertEquals(512, o.getInt("cal")); assertEquals(4100, o.getInt("dist")); assertEquals(97.4, o.getDouble("spo2"), 1e-9)
+        assertEquals(55, o.getInt("hrv")); assertEquals(41, o.getInt("hrvmin")); assertEquals(151, o.getInt("hrmax"))
+    }
 }

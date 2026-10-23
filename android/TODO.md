@@ -78,6 +78,8 @@ Stays web-only: landing page, Strava login, PWA install, save page as image, GPX
 editor, Personal API token management and webhook settings (need the Strava login), Huawei
 export upload (the watch link replaces it).
 
+- [x] Watch → Ascent sends everything the watch link stores: sleep, steps, resting HR, calories, distance, heart-rate low/high, SpO2 avg/low, HRV (night + day low/high); the API fills empty columns of export nights (3.30). The watch link stores no daily stress score.
+
 Waiting on the owner / real data:
 - Health Connect on the phone has no sleep after 1 Oct (21–22 Oct steps only): after 2.8 the Sleep card says which app wrote what — check Health Sync → Health Connect → Sleep is on
 - Real Health Sync nights already arrive (29 Sep – 1 Oct + steps seen 22 Oct); keep an eye on 22 Oct's night after the next phone sync

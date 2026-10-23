@@ -112,6 +112,40 @@ object AscentWatch {
         ).use { c -> val out = HashMap<String, Int>(); while (c.moveToNext()) out[c.getString(0)] = c.getInt(1); out }
     }
 
+    /**
+     * Everything else the watch logged, per local day since `sinceSec`, in the website's sleep columns:
+     * cal (kcal; samples are 1/1000 kcal), dist (m), hrmin / hrmax, spo2 (mean) / spo2min, hrv (the
+     * night's RMSSD, dated by the morning it ended) and hrvmin / hrvmax over every HRV reading that day.
+     */
+    fun dailySince(ctx: Context, sinceSec: Long, offsetSec: Long): Map<String, Map<String, Double>> = rt(ctx).syncStore.read { db ->
+        val out = HashMap<String, HashMap<String, Double>>()
+        fun put(d: String, k: String, v: Double) { out.getOrPut(d) { HashMap() }[k] = v }
+        val args = arrayOf(offsetSec.toString(), sinceSec.toString())
+        db.rawQuery(
+            "SELECT date(timestamp + ?, 'unixepoch') d, SUM(calories), SUM(distance), MIN(NULLIF(heart_rate, 0)), MAX(heart_rate)," +
+                " AVG(NULLIF(spo2, 0)), MIN(NULLIF(spo2, 0)) FROM step_samples WHERE timestamp >= ? GROUP BY d", args,
+        ).use { c ->
+            while (c.moveToNext()) {
+                val d = c.getString(0)
+                if (c.getLong(1) > 0) put(d, "cal", Math.round(c.getLong(1) / 1000.0).toDouble())
+                if (c.getLong(2) > 0) put(d, "dist", c.getLong(2).toDouble())
+                if (!c.isNull(3)) put(d, "hrmin", c.getDouble(3)); if (!c.isNull(4) && c.getInt(4) > 0) put(d, "hrmax", c.getDouble(4))
+                if (!c.isNull(5)) put(d, "spo2", Math.round(c.getDouble(5) * 10) / 10.0); if (!c.isNull(6)) put(d, "spo2min", c.getDouble(6))
+            }
+        }
+        db.rawQuery(
+            "SELECT date(\"end\" + ?, 'unixepoch') d, source, rmssd FROM hrv_readings WHERE \"end\" >= ? AND rmssd > 0 ORDER BY \"end\"", args,
+        ).use { c ->
+            while (c.moveToNext()) {
+                val d = c.getString(0); val v = c.getDouble(2)
+                if (c.getString(1) == "night") put(d, "hrv", Math.round(v).toDouble())
+                val m = out.getOrPut(d) { HashMap() }
+                m["hrvmin"] = minOf(m["hrvmin"] ?: v, v); m["hrvmax"] = maxOf(m["hrvmax"] ?: v, v)
+            }
+        }
+        out
+    }
+
     /** `sleep_segments.type` of a daytime nap: the raw kind RAW_TRUSLEEP_NAP (private in SleepSync). */
     private const val NAP_TYPE = 0x5659
 }
