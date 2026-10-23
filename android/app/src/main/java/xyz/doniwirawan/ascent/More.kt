@@ -21,6 +21,7 @@ object More {
         "segments" to ("Segments" to "Starred segments, KOMs, and where a PR is close"),
         "photos" to ("Photos" to "Every photo from your activities"),
         "chase" to ("Chase routes" to "Describe a ride; AI plans it on Bali's roads"),
+        "help" to ("Help" to "What the metrics mean, and where your data comes from"),
     )
 
     fun show(a: AppActivity, id: String) = when (id) {
@@ -34,6 +35,7 @@ object More {
         "segments" -> Segments.page(a)
         "photos" -> Photos.page(a)
         "chase" -> Chase.page(a)
+        "help" -> Help.page(a)
         else -> menu(a)
     }
 

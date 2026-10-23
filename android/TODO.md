@@ -69,7 +69,7 @@ Needs a new route in api/_v1.js:
 
 Settings:
 - [ ] P21. Units (km / mi) and language (English / Indonesian)
-- [ ] P22. Help: what the metrics mean
+- [x] P22. Help: what the metrics mean — More → Help (3.21)
 
 Stays web-only: landing page, Strava login, PWA install, save page as image, GPX repair
 editor, Personal API token management and webhook settings (need the Strava login), Huawei

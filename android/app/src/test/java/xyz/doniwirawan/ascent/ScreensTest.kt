@@ -390,6 +390,15 @@ class ScreensTest {
         Coach.save(app, "deepseek", "", "")
     }
 
+    @Test fun helpAndMoreMenu() {
+        Help.page(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "WHAT THE METRICS MEAN" in t && "Eddington number (E)" in t && "YOUR DATA" in t)
+        More.show(app, "")
+        val m = texts(app.findViewById(android.R.id.content))
+        listOf("Trends", "Calendar", "Training", "Milestones", "Destinations", "Data", "GPS check", "Segments", "Photos", "Chase routes", "Help").forEach { assertTrue(it, it in m) }
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)
