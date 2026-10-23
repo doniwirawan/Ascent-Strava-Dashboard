@@ -206,6 +206,8 @@ code — anyone holding one can read everything below.
 | `/purchases?category=Cycling&after=&before=&cancelled=1` | Purchases from the finance app; cancelled orders hidden unless `cancelled=1` |
 | `/bikes` | Each bike with the parts assigned to it and what they cost |
 | `/ai` | AI analysis + caption per activity; `/ai/chats` for AI Coach conversations |
+| `/segments` | Starred segments (live from Strava); `/segments/{id}` for one with its map and your stats; `/segments/{id}/efforts` for your effort history on it |
+| `/koms` | Your KOM / QOM / CR segments (live from Strava) |
 | `/app` | Newest Android build (`versionCode`, `versionName`, `notes`) with a 10-minute download `url` — the app's self-update. Published by `android/publish-update.mjs` |
 
 ## Errors

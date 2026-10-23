@@ -211,6 +211,29 @@ async function bikes() {
     shared: parts('shared'), note: 'Parts are the purchases assigned to each bike on finance.doniwirawan.xyz/bikes.' };
 }
 
+// Segments, live from Strava: starred, one segment, your effort history on it, and your KOMs.
+async function segments(id, sub) {
+  if (!id) return { segments: await strava('/segments/starred?per_page=200') };
+  const seg = '/segments/' + encodeURIComponent(id);
+  if (sub === 'efforts') {
+    const list = await strava(seg + '/all_efforts?per_page=200');
+    return { efforts: (list || []).map(e => ({ id: e.id, activity_id: e.activity && e.activity.id, elapsed_time: e.elapsed_time, moving_time: e.moving_time,
+      start_date_local: e.start_date_local, average_watts: e.average_watts || null, average_heartrate: e.average_heartrate || null, pr_rank: e.pr_rank || null, kom_rank: e.kom_rank || null })) };
+  }
+  return { segment: await strava(seg) };
+}
+
+async function koms() {
+  let list = [];
+  for (let page = 1; page <= 4; page++) {
+    const r = await strava('/athletes/' + env('OWNER_ATHLETE_ID') + '/koms?page=' + page + '&per_page=50');
+    if (!r || !r.length) break;
+    list = list.concat(r);
+    if (r.length < 50) break;
+  }
+  return { koms: list };
+}
+
 async function ai(sub) {
   if (sub === 'chats') return { chats: await sb('ai_chats?athlete_id=eq.' + encodeURIComponent(env('OWNER_ATHLETE_ID')) + '&select=id,title,ts,messages&order=ts.desc&limit=500') };
   return { activities: await sb('activity_ai?select=*') };
@@ -244,6 +267,8 @@ const INDEX = {
     'GET /api/v1/purchases?category=&after=&before=&cancelled=1': 'Purchases from the finance app',
     'GET /api/v1/bikes': 'Each bike and what its parts cost',
     'GET /api/v1/ai': 'AI analyses and captions per activity (GET /api/v1/ai/chats for coach chats)',
+    'GET /api/v1/segments': 'Starred segments (GET /api/v1/segments/{id} for one, /segments/{id}/efforts for your effort history on it)',
+    'GET /api/v1/koms': 'Your KOM / QOM / CR segments',
     'GET /api/v1/app': 'Newest Android build: versionCode, versionName and a 10-minute download link',
   },
 };
@@ -267,6 +292,8 @@ async function route(req, parts) {
     case 'purchases': return purchases(q);
     case 'bikes': return bikes();
     case 'ai': return ai(id);
+    case 'segments': return segments(id, sub);
+    case 'koms': return koms();
     case 'app': return appRelease();
   }
   throw new HttpError(404, 'unknown_endpoint', { see: '/api/v1' });
