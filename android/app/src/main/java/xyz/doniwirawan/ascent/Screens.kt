@@ -540,7 +540,133 @@ object Screens {
             addView(Ui.text(a, "Easy rides belong in Z2. Sweet spot and Z4 build FTP; keep them to 1–2 sessions a week.", 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 8), 0, 0) })
         })
 
+        powerExtras(a, col, rows, me)
         col.addView(Ui.text(a, "NP = normalized power · IF = NP ÷ FTP · TSS = training stress (100 ≈ an hour at FTP) · VI = NP ÷ average. Set your own FTP on the web dashboard's Power page.", 11f, Ui.MUTED))
+    }
+
+    // ── Power extras (website js/power.js: insights, weekly power, efficiency, mix, records, cadence) ──
+    /** Moving-time weighted average of [f] over [l], like the website's _pwAvg; null when nothing counts. */
+    internal fun timeAvg(l: List<JSONObject>, f: (JSONObject) -> Double): Double? {
+        var s = 0.0; var t = 0.0
+        l.forEach { val v = f(it); val w = it.optDouble("moving_time", 0.0); if (v > 0 && w > 0) { s += v * w; t += w } }
+        return if (t > 0) s / t else null
+    }
+    private fun npOf(p: Pw) = if (p.np > 0) p.np else p.avg
+    private fun efOf(p: Pw) = p.a.optDouble("average_heartrate", 0.0).let { if (it > 0) npOf(p) / it else 0.0 }
+
+    /** The website's "Power insights" sentences. */
+    internal fun powerInsights(rows: List<Pw>, now: Long = System.currentTimeMillis()): List<String> {
+        val day = 86_400_000L; val out = ArrayList<String>()
+        fun within(from: Long, to: Long) = rows.filter { parse(it.a.optString("start_date")).let { t -> t >= from && t < to } }
+        val npw = { x: JSONObject -> rows.first { it.a === x }.let { npOf(it) } }
+        val cur = within(now - 28 * day, now + day); val prev = within(now - 56 * day, now - 28 * day)
+        if (cur.size >= 2 && prev.size >= 2) {
+            val a = timeAvg(cur.map { it.a }, npw)!!; val b = timeAvg(prev.map { it.a }, npw)!!; val d = Math.round((a - b) / b * 100)
+            out += if (Math.abs(d) < 3) "Normalized power is steady: ${Math.round(a)} W over the last 4 weeks, ${Math.round(b)} W the 4 before."
+                else "Normalized power is ${if (d > 0) "up" else "down"} ${Math.abs(d)}% on the 4 weeks before (${Math.round(b)} → ${Math.round(a)} W)."
+            val efw = { x: JSONObject -> rows.first { it.a === x }.let { efOf(it) } }
+            val ea = timeAvg(cur.map { it.a }, efw); val eb = timeAvg(prev.map { it.a }, efw)
+            if (ea != null && eb != null) Math.round((ea - eb) / eb * 100).let { e ->
+                out += if (Math.abs(e) < 3) "Watts per heartbeat are holding steady, so your aerobic fitness is stable."
+                    else if (e > 0) "You make $e% more watts per heartbeat than the 4 weeks before: your aerobic fitness is improving."
+                    else "You make ${-e}% fewer watts per heartbeat than the 4 weeks before: fatigue, heat or lost fitness."
+            }
+        }
+        val vis = rows.map { it.vi }.filter { it > 0 }.sorted()
+        if (vis.size >= 3) vis[vis.size / 2].let { m ->
+            out += when { m <= 1.05 -> String.format(Locale.US, "Your pacing is very steady (typical VI %.2f).", m)
+                m > 1.12 -> String.format(Locale.US, "Your rides are surgy (typical VI %.2f): lots of hard accelerations. Smoother pacing saves energy on long rides.", m)
+                else -> String.format(Locale.US, "Your pacing is fairly steady (typical VI %.2f); the surges are mostly from climbs and junctions.", m) }
+        }
+        val ifs = rows.take(20).map { it.ifac }.filter { it > 0 }
+        if (ifs.size >= 5) {
+            val grey = ifs.count { it >= 0.75 && it < 0.9 }.toDouble() / ifs.size; val easy = ifs.count { it < 0.75 }.toDouble() / ifs.size
+            if (grey >= 0.5) out += "${Math.round(grey * 100)}% of your recent rides are tempo (IF 0.75–0.90): too hard to recover from, too easy to raise FTP. Make easy rides easier and hard ones harder."
+            else if (easy >= 0.6) out += "${Math.round(easy * 100)}% of your recent rides are easy (IF under 0.75), a good aerobic base. One or two harder sessions a week will lift FTP."
+        }
+        val wk = within(now - 7 * day, now + day).sumOf { it.tss }; val avg4 = within(now - 35 * day, now - 7 * day).sumOf { it.tss } / 4
+        if (avg4 > 0 && wk > 0) out += if (wk > avg4 * 1.3) "This week is heavy: ${Math.round(wk)} TSS against your usual ${Math.round(avg4)}. Plan an easy day." else "${Math.round(wk)} TSS in the last 7 days; your usual week is ${Math.round(avg4)}."
+        rows.filter { it.a.optLong("moving_time") >= 1200 }.maxByOrNull { it.wkg }?.let { out += String.format(Locale.US, "Highest average W/kg: %.2f on %s (%s).", it.wkg, it.a.optString("name"), Ui.date(it.a.optString("start_date_local"))) }
+        return out
+    }
+
+    private fun powerExtras(a: AppActivity, col: LinearLayout, rows: List<Pw>, me: JSONObject?) {
+        powerInsights(rows).takeIf { it.isNotEmpty() }?.let { ins ->
+            col.addView(Ui.heading(a, "Power insights"))
+            col.addView(Ui.card(a).apply { ins.forEach { addView(Ui.text(a, "•  $it", 13f, Ui.TEXT).apply { setPadding(0, Ui.dp(a, 3), 0, Ui.dp(a, 3)) }) } })
+        }
+        // weekly TSS and NP, the last 16 Monday-weeks
+        val today = java.time.LocalDate.now()
+        val start = today.minusDays((today.dayOfWeek.value - 1).toLong()).minusWeeks(15)
+        val weeks = (0 until 16).map { i -> start.plusWeeks(i.toLong()) }
+        val byWeek = rows.groupBy { p -> java.time.LocalDate.parse(p.a.optString("start_date_local").take(10)).let { d -> d.minusDays((d.dayOfWeek.value - 1).toLong()) } }
+        col.addView(Ui.heading(a, "Weekly power · last 16 weeks"))
+        col.addView(Ui.card(a).apply {
+            addView(Ui.text(a, "Training stress (TSS)", 12f, Ui.MUTED))
+            addView(chart(a, BarChart(a).apply { set(weeks.map { w -> byWeek[w]?.sumOf { it.tss } ?: 0.0 }.toDoubleArray(), weeks.map { Ui.date(it.toString()).substringBeforeLast(' ') }) }, 130))
+            addView(Ui.text(a, "Normalized power (W), time-weighted", 12f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 8), 0, 0) })
+            addView(chart(a, LineChart(a).apply { set(weeks.map { w -> byWeek[w]?.let { l -> timeAvg(l.map { it.a }) { x -> npOf(l.first { it.a === x }) } } ?: Double.NaN }.toDoubleArray(), Ui.PURPLE, "W") }, 90))
+        })
+        // aerobic efficiency: NP per heartbeat, each ride and a 5-ride average
+        val ef = rows.filter { efOf(it) > 0 }.take(60).reversed().map { efOf(it) }
+        if (ef.size >= 3) {
+            col.addView(Ui.heading(a, "Aerobic efficiency · watts per heartbeat"))
+            col.addView(Ui.card(a).apply {
+                addView(chart(a, LineChart(a).apply { set(ef.indices.map { i -> ef.subList(maxOf(0, i - 4), i + 1).average() }.toDoubleArray(), Ui.GREEN, "W/bpm") }, 110))
+                addView(Ui.text(a, String.format(Locale.US, "5-ride average, latest %.2f W/bpm. Efficiency factor = normalized power ÷ average heart rate: rising means fitter. Heat, hills and fatigue all move it.", ef.takeLast(5).average()), 11f, Ui.MUTED))
+            })
+        }
+        // ride intensity mix by IF
+        val bands = listOf(Triple(0.55, "Recovery", 0xFF94A3B8.toInt()), Triple(0.75, "Endurance", Ui.BLUE), Triple(0.9, "Tempo", Ui.GREEN), Triple(1.05, "Threshold", 0xFFF59E0B.toInt()), Triple(Double.POSITIVE_INFINITY, "Above threshold", Ui.RED))
+        val ifs = rows.map { it.ifac }.filter { it > 0 }
+        if (ifs.isNotEmpty()) {
+            col.addView(Ui.heading(a, "Ride intensity mix · by intensity factor"))
+            col.addView(Ui.card(a).apply {
+                bands.forEachIndexed { i, (hi, n, c) ->
+                    val k = ifs.count { it < hi && (i == 0 || it >= bands[i - 1].first) }
+                    addView(Ui.row(a, n, "$k", "${Math.round(k * 100.0 / ifs.size)}% of rides").apply { ((getChildAt(0) as LinearLayout).getChildAt(0) as android.widget.TextView).setTextColor(c) })
+                }
+            })
+        }
+        // records & breakdown
+        fun tw(l: List<Pw>) = timeAvg(l.map { it.a }) { x -> npOf(l.first { it.a === x }) }
+        val mpk = { p: Pw -> p.a.optDouble("total_elevation_gain") / maxOf(1.0, p.a.optDouble("distance") / 1000) }
+        val hilly = rows.filter { mpk(it) >= 10 }; val flat = rows.filter { mpk(it) < 5 }
+        val bikes = list(me?.optJSONArray("bikes")).associate { it.optString("id") to it.optString("name") }
+        val byGear = rows.filter { it.a.optString("gear_id").isNotEmpty() }.groupBy { it.a.optString("gear_id") }
+        col.addView(Ui.heading(a, "Power records & breakdown"))
+        col.addView(Ui.card(a).apply {
+            listOf(1, 2, 3).forEach { h ->
+                rows.filter { it.a.optLong("moving_time") >= h * 3600 && it.np > 0 }.maxByOrNull { it.np }?.let { addView(Ui.row(a, "Best NP, ${h}h+ ride", "${Math.round(it.np)} W", it.a.optString("name") + " · " + Ui.date(it.a.optString("start_date_local"))).apply { setOnClickListener { _ -> a.openRide(it.a) } }) }
+            }
+            if (hilly.isNotEmpty() && flat.isNotEmpty()) {
+                addView(Ui.divider(a))
+                addView(Ui.row(a, "Hilly rides (10+ m/km)", "${Math.round(tw(hilly) ?: 0.0)} W", "${hilly.size} rides"))
+                addView(Ui.row(a, "Flat rides (under 5 m/km)", "${Math.round(tw(flat) ?: 0.0)} W", "${flat.size} rides"))
+            }
+            if (byGear.size > 1) {
+                addView(Ui.divider(a))
+                byGear.forEach { (id, l) -> addView(Ui.row(a, bikes[id] ?: "Bike", "${Math.round(tw(l) ?: 0.0)} W", "${l.size} rides · " + Ui.kmh(timeAvg(l.map { it.a }) { it.optDouble("average_speed") } ?: 0.0))) }
+            }
+        })
+        // cadence vs power
+        val cad = rows.filter { it.a.optDouble("average_cadence", 0.0) > 0 }
+        if (cad.size >= 3) {
+            val all = timeAvg(cad.map { it.a }) { it.optDouble("average_cadence") }!!
+            var note = "You pedal at ${Math.round(all)} rpm on average."
+            val h = cad.filter { mpk(it) >= 10 }; val f = cad.filter { mpk(it) < 5 }
+            if (h.isNotEmpty() && f.isNotEmpty()) {
+                val hc = timeAvg(h.map { it.a }) { it.optDouble("average_cadence") }!!; val fc = timeAvg(f.map { it.a }) { it.optDouble("average_cadence") }!!
+                note += " On hilly rides ${Math.round(hc)} rpm, on flat rides ${Math.round(fc)} rpm."
+                if (fc - hc >= 8) note += " You drop your cadence a lot on climbs: an easier gear keeps your legs fresher."
+            }
+            if (all < 75) note += " That is on the low side: pushing big gears loads your muscles more than your heart and lungs."
+            col.addView(Ui.heading(a, "Cadence vs power · each dot is a ride"))
+            col.addView(Ui.card(a).apply {
+                addView(chart(a, ScatterChart(a).apply { set(cad.map { it.a.optDouble("average_cadence") }.toDoubleArray(), cad.map { npOf(it) }.toDoubleArray(), "rpm", "W") }, 170))
+                addView(Ui.text(a, note, 11f, Ui.MUTED).apply { setPadding(0, Ui.dp(a, 6), 0, 0) })
+            })
+        }
     }
 
     internal fun parse(iso: String): Long = try {

@@ -150,6 +150,23 @@ class ScreensTest {
         assertTrue(t.toString(), "PERSONAL RECORDS" in t && "RIDE QUALITY · LATEST RIDE" in t && t.any { it.startsWith("CONSISTENCY") })
     }
 
+    @Test fun powerInsightsAndPage() {
+        val now = java.time.LocalDate.now()
+        fun pw(id: Long, back: Long, np: Int, hr: Double) = act(id, "Ride", 30.0, 60, now.minusDays(back).toString(), hr,
+            ",\"device_watts\":true,\"average_watts\":${np - 10},\"weighted_average_watts\":$np,\"max_watts\":600,\"average_cadence\":${80 + id},\"kilojoules\":500")
+        // NP 200 this month against 180 the month before: up 11%
+        val list = listOf(pw(1, 2, 200, 140.0), pw(2, 9, 200, 140.0), pw(3, 33, 180, 140.0), pw(4, 40, 180, 140.0))
+        val rows = list.map { Screens.Pw(it, it.optDouble("average_watts"), it.optDouble("weighted_average_watts"), 600.0, it.optDouble("weighted_average_watts") / 200, 60.0, it.optDouble("weighted_average_watts") / it.optDouble("average_watts"), 2.5) }
+        val ins = Screens.powerInsights(rows)
+        assertTrue(ins.toString(), ins.any { it.startsWith("Normalized power is up 11%") } && ins.any { it.contains("more watts per heartbeat") })
+        cache("activities?limit=300", JSONObject().put("activities", org.json.JSONArray(list)))
+        cache("me", JSONObject().put("ftp", 200).put("weight", 80))
+        Screens.power(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "POWER INSIGHTS" in t && "WEEKLY POWER · LAST 16 WEEKS" in t && "RIDE INTENSITY MIX · BY INTENSITY FACTOR" in t && "CADENCE VS POWER · EACH DOT IS A RIDE" in t)
+        assertTrue("best NP of a 1h+ ride", "200 W" in t)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)

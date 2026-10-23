@@ -43,7 +43,7 @@ Uses data the API already has:
 - [x] P4. Overview extras: sport breakdown, HR-zone + speed-zone rings, insights, streak/consistency (render-overview.js) — Home (3.4; zones are average-HR / average-speed estimates like the website before streams)
 - [x] P5. Training: 7/42-day load, ramp, climbing ability (VAM, best climb), running VDOT, readiness (training.js, sleep.js renderReadiness) — More → Training (3.5; readiness ring was already on Home)
 - [ ] P5b. Training extras: Event ready (event-ready.js), AI training plan (with P19)
-- [ ] P6. Power extras: aerobic efficiency (EF), cadence vs power, flat vs hilly, best NP, climbing power / FTP without a power meter (power.js, climb-ftp.js)
+- [x] P6. Power extras: aerobic efficiency (EF), cadence vs power, flat vs hilly, best NP, climbing power / FTP without a power meter (power.js, climb-ftp.js) — Power tab (3.6; climbing power moved to P15b)
 - [ ] P7. Sleep insights: consistency / midpoint, after training vs rest, stress, active kcal, monthly watch metrics (sleep.js)
 - [ ] P8. Gear: bike comparison — usage, cost per km, efficiency, speed on flat rides (gear-maint.js)
 - [ ] P9. Milestones & trophies (renderMilestones, renderChallenges)
@@ -55,6 +55,7 @@ Needs ride streams (/activities/{id}?streams=…, shares the Strava limit):
 - [ ] P13. Ride page: heart-rate decoupling, wind analysis, time-lost analysis (hr-decoupling.js, wind-analysis.js, time-lost.js)
 - [ ] P14. Ride page: abnormal-speed / GPS spike check (gps-fix.js; the GPX repair suite stays web-only)
 - [ ] P15. Power curve + Morton CP / W′ and W′ balance (power-curve.js, sauce.js)
+- [ ] P15b. Climbing power / FTP without a power meter: scans climbs from altitude streams (climb-ftp.js)
 
 Needs a new route in api/_v1.js:
 - [ ] P16. Segments: your starred segments, segment gaps, segment intelligence

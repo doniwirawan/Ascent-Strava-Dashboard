@@ -180,6 +180,29 @@ class BarChart(ctx: Context) : View(ctx) {
     }
 }
 
+/** Points (x, y) with the axis ranges written in the corners: the website's scatter charts. */
+class ScatterChart(ctx: Context) : View(ctx) {
+    private var xs = DoubleArray(0); private var ys = DoubleArray(0); private var xu = ""; private var yu = ""
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    fun set(xs: DoubleArray, ys: DoubleArray, xUnit: String, yUnit: String) { this.xs = xs; this.ys = ys; xu = xUnit; yu = yUnit; invalidate() }
+
+    override fun onDraw(c: Canvas) {
+        if (xs.isEmpty()) return
+        val d = resources.displayMetrics.density
+        val left = 34 * d; val top = 6 * d; val bottom = height - 14 * d
+        val x0 = xs.minOrNull()!!; val x1 = xs.maxOrNull()!!.let { if (it - x0 < 1e-6) x0 + 1 else it }
+        val y0 = ys.minOrNull()!!; val y1 = ys.maxOrNull()!!.let { if (it - y0 < 1e-6) y0 + 1 else it }
+        p.color = Ui.LINE; c.drawLine(left, bottom, width.toFloat(), bottom, p); c.drawLine(left, top, left, bottom, p)
+        p.color = Ui.GREEN
+        xs.indices.forEach { i -> c.drawCircle((left + (xs[i] - x0) / (x1 - x0) * (width - left - 6 * d)).toFloat(), (bottom - (ys[i] - y0) / (y1 - y0) * (bottom - top)).toFloat(), 3.5f * d, p) }
+        p.color = Ui.MUTED; p.textSize = 9 * d
+        p.textAlign = Paint.Align.RIGHT
+        c.drawText("${Math.round(y1)} $yu", left - 3 * d, top + 8 * d, p); c.drawText("${Math.round(y0)}", left - 3 * d, bottom, p)
+        p.textAlign = Paint.Align.LEFT; c.drawText("${Math.round(x0)} $xu", left, height - 2 * d, p)
+        p.textAlign = Paint.Align.RIGHT; c.drawText("${Math.round(x1)} $xu", width.toFloat(), height - 2 * d, p)
+    }
+}
+
 /** One series as a line, with its min and max written on the left. */
 class LineChart(ctx: Context) : View(ctx) {
     var values = DoubleArray(0)
