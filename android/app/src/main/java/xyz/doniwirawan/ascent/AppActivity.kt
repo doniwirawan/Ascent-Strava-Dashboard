@@ -135,8 +135,12 @@ class AppActivity : Activity() {
         resumed = true
         // a cancelled or failed install comes back here
         if (release != null && !downloading) showBanner(Updater.lastError(this))
-        // updates install themselves: look every 30 minutes while the app is used
-        if (Api.hasToken(this) && !downloading && Updater.due(this, 30 * 60_000L)) checkForUpdate(false)
+        // updates install themselves: look every time the app is opened (at most
+        // every 2 minutes, so moving between screens doesn't keep asking)
+        if (Api.hasToken(this) && !downloading && System.currentTimeMillis() - lastOpenCheck > 2 * 60_000L) {
+            lastOpenCheck = System.currentTimeMillis()
+            checkForUpdate(false)
+        }
     }
 
     override fun onPause() {
@@ -432,5 +436,7 @@ class AppActivity : Activity() {
 
     companion object {
         private const val REQ_HC = 2001
+        /** When the app last looked for an update; per process, so a fresh start always looks. */
+        private var lastOpenCheck = 0L
     }
 }
