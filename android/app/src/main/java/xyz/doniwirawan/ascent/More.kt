@@ -13,11 +13,13 @@ object More {
     private val PAGES = listOf(
         "trends" to ("Trends" to "Weekly distance, year over year, year in review"),
         "calendar" to ("Calendar" to "Every day of a month, and month by month"),
+        "training" to ("Training" to "Load, form, recovery, consistency, FTP, run predictions, records"),
     )
 
     fun show(a: AppActivity, id: String) = when (id) {
         "trends" -> trends(a)
         "calendar" -> calendar(a)
+        "training" -> Training.page(a)
         else -> menu(a)
     }
 
@@ -32,7 +34,7 @@ object More {
         })
     }
 
-    private fun back(a: AppActivity, col: LinearLayout, title: String) {
+    internal fun back(a: AppActivity, col: LinearLayout, title: String) {
         col.addView(Ui.text(a, "‹  More", 13f, Ui.ORANGE, true).apply {
             setPadding(0, Ui.dp(a, 4), 0, Ui.dp(a, 4)); setOnClickListener { a.show("more") }
         })

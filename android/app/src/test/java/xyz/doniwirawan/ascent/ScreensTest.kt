@@ -117,6 +117,39 @@ class ScreensTest {
         assertTrue("Z2 1 h of 3 activities' moving", t.any { it.startsWith("1h 0m · ") })
     }
 
+    @Test fun trainingMaths() {
+        // an hour at FTP is 100 TSS; no power and no HR: 50 an hour
+        val pw = act(1, "Ride", 30.0, 60, "2026-10-01", extra = ",\"device_watts\":true,\"weighted_average_watts\":200")
+        assertEquals(100.0, Training.load(pw, 200.0, 0.0)!!.load, 0.01)
+        assertEquals("time", Training.load(act(2, "Ride", 30.0, 60, "2026-10-01"), 0.0, 0.0)!!.basis)
+        assertEquals(50.0, Training.load(act(2, "Ride", 30.0, 60, "2026-10-01"), 0.0, 0.0)!!.load, 0.01)
+        // a 20:00 5K is VDOT ≈ 49.8, and the inverse gives 20:00 back
+        val v = Training.vdot(5000.0, 20.0)
+        assertEquals(49.8, v, 0.2)
+        assertEquals(20.0, Training.raceMinutes(v, 5000.0), 0.01)
+        // CTL after one 100-load day is 100 × (1 − e^(−1/42))
+        val s = Training.series(listOf(pw), 200.0, 0.0, java.time.LocalDate.parse("2026-10-01"))!!
+        assertEquals(100 * (1 - Math.exp(-1.0 / 42)), s.last.ctl, 1e-6)
+        assertEquals("High fatigue", Training.band(-40.0, 0.0).first)
+        assertTrue(Training.band(10.0, 9.0).third.contains("ramping fast"))
+        // 3 rides this week and none the week before: 50% over 2 weeks
+        val c = Training.consistency(listOf("2026-10-19", "2026-10-20", "2026-10-21", "2026-10-07").mapIndexed { i, d -> act(i.toLong(), "Ride", 20.0, 60, d) }, java.time.LocalDate.parse("2026-10-22"))!!
+        assertEquals(listOf(1, 0, 3), c.weeks); assertEquals(1, c.hit); assertEquals(1, c.missed)
+    }
+
+    @Test fun trainingPage() {
+        val acts = org.json.JSONArray((1..12).map { i -> act(i.toLong(), "Ride", 20.0 + i, 60 + i, java.time.LocalDate.now().minusDays(i * 3L).toString(), 120.0 + i, ",\"max_heartrate\":190") } +
+            act(99, "Run", 5.0, 25, java.time.LocalDate.now().minusDays(2).toString()))
+        cache("activities?limit=500", JSONObject().put("activities", acts))
+        cache("me", JSONObject().put("ftp", 200).put("weight", 78))
+        Training.page(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "Training" in t && "Recovery recommendation" in t && "PERFORMANCE MANAGEMENT CHART" in t)
+        assertTrue("FTP 200 at 78 kg", "200 W" in t && "2.56 W/kg" in t)
+        assertTrue("5K from a 25-min 5K", "25:00" in t)
+        assertTrue(t.toString(), "PERSONAL RECORDS" in t && "RIDE QUALITY · LATEST RIDE" in t && t.any { it.startsWith("CONSISTENCY") })
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)
