@@ -243,6 +243,18 @@ class ScreensTest {
         assertTrue(Destinations.regencyOf(-8.5410, 115.3253, bali)!!.contains("Gianyar"))
     }
 
+    @Test fun huaweiOnly() {
+        assertEquals("2026-09-07T21:48:15", Screens.huaweiLocal("2026-09-07T13:48:15+00:00", "+0800"))
+        assertEquals("2026-09-07T08:48:15", Screens.huaweiLocal("2026-09-07T13:48:15+00:00", "-05:00"))
+        cache("activities?limit=300", JSONObject().put("activities", org.json.JSONArray(listOf(act(1, "Ride", 20.0, 60, "2026-10-01")))))
+        cache("huawei", JSONObject().put("workouts", org.json.JSONArray(listOf(
+            JSONObject().put("sport", "Mountain climbing").put("start_time", "2026-10-02T00:30:00+00:00").put("tz", "+0800").put("duration_s", 5400).put("climb_m", 700).put("strava_id", JSONObject.NULL),
+            JSONObject().put("sport", "Outdoor walk").put("start_time", "2026-10-03T00:30:00+00:00").put("tz", "+0800").put("duration_s", 600).put("strava_id", "123")))))
+        Screens.rides(app)
+        val t = texts(app.findViewById(android.R.id.content))
+        assertTrue(t.toString(), "ONLY ON HUAWEI · 1" in t && "Mountain climbing" in t && "Outdoor walk" !in t)
+    }
+
     @Test fun otherSportsRankByTime() {
         val t = draw(listOf(act(1, "Badminton", 0.0, 90, "2026-10-01").put("average_speed", 0), act(2, "WeightTraining", 0.0, 45, "2026-10-02").put("average_speed", 0)), "other")
         assertTrue(t.toString(), "OTHER SPORTS" in t && "1h 30m" in t && "HOURS PER MONTH" in t)

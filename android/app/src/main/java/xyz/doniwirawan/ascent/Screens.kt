@@ -283,9 +283,10 @@ object Screens {
     private var rideFilter = "all"
     private var rideQuery = ""
 
-    fun rides(a: AppActivity): Unit = a.load(listOf("activities?limit=300")) { r ->
+    fun rides(a: AppActivity): Unit = a.load(listOf("activities?limit=300", "huawei")) { r ->
         val all = list(r["activities?limit=300"]?.optJSONArray("activities"))
         val col = a.page()
+        val huaweiOnly = list(r["huawei"]?.optJSONArray("workouts")).filter { it.optString("strava_id").let { s -> s.isEmpty() || s == "null" } }
 
         col.addView(a.button("Map of all routes") { a.startActivity(android.content.Intent(a, RoutesActivity::class.java)) })
         val search = android.widget.EditText(a).apply {
@@ -346,12 +347,37 @@ object Screens {
             }
         }
         drawChips()
+        huaweiCard(a, col, huaweiOnly)
         search.addTextChangedListener(object : android.text.TextWatcher {
             override fun afterTextChanged(e: android.text.Editable?) { rideQuery = e?.toString().orEmpty(); fill() }
             override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, af: Int) {}
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
         })
         fill()
+    }
+
+    /** Local wall time of a Huawei workout: UTC start + its "+0800" zone, website _hwLocal. */
+    internal fun huaweiLocal(iso: String, tz: String): String {
+        val m = Regex("^([+-])(\\d\\d):?(\\d\\d)$").find(tz) ?: return iso.take(19)
+        val off = (if (m.groupValues[1] == "-") -1 else 1) * (m.groupValues[2].toInt() * 60 + m.groupValues[3].toInt())
+        return java.time.OffsetDateTime.parse(iso).toInstant().plusSeconds(off * 60L).toString().take(19)
+    }
+
+    /** The website's "Only on Huawei": watch workouts that never reached Strava (uploading them needs the web for now). */
+    private fun huaweiCard(a: AppActivity, col: LinearLayout, list: List<JSONObject>) {
+        if (list.isEmpty()) return
+        col.addView(Ui.heading(a, "Only on Huawei · ${list.size}"))
+        col.addView(Ui.card(a).apply {
+            addView(Ui.text(a, "Workouts from your Huawei watch that never reached Strava — Huawei's sync skips some modes. Send them to Strava from the web dashboard's Activities page.", 11f, Ui.MUTED))
+            list.sortedByDescending { it.optString("start_time") }.forEach { w ->
+                val loc = huaweiLocal(w.optString("start_time"), w.optString("tz"))
+                addView(Ui.divider(a))
+                addView(Ui.row(a, w.optString("sport"), if (w.optDouble("distance_m", 0.0) > 0) Ui.km(w.optDouble("distance_m")) else Ui.hm(w.optLong("duration_s")),
+                    Ui.date(loc) + " " + loc.drop(11).take(5) + " · " + Ui.hm(w.optLong("duration_s")) +
+                        (if (w.optDouble("climb_m", 0.0) > 0) " · ↑ ${Math.round(w.optDouble("climb_m"))} m" else "") +
+                        (if (w.optInt("avg_hr") > 0) " · ♥ ${w.optInt("avg_hr")}" + (if (w.optInt("max_hr") > 0) "/${w.optInt("max_hr")}" else "") else "")))
+            }
+        })
     }
 
     // ── Sport pages ─────────────────────────────────────────────────────────

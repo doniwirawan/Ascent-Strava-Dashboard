@@ -49,7 +49,7 @@ Uses data the API already has:
 - [x] P8. Gear: bike comparison — usage, cost per km, efficiency, speed on flat rides (gear-maint.js) — Money tab (3.8)
 - [x] P9. Milestones & trophies (renderMilestones, renderChallenges) — More → Milestones (3.9; the KOM list joins P16)
 - [x] P10. Heatmap extras: ride destinations by regency (regency-map.js) — More → Destinations (3.10; outside Bali is one count, the website looks those up on Nominatim)
-- [ ] P11. Huawei-only workouts in the activity list (/huawei)
+- [x] P11. Huawei-only workouts in the activity list (/huawei) — Rides tab (3.11; sending them to Strava joins P19)
 - [ ] P12. Data: all activities & sleep as a sortable table (data-table.js)
 
 Needs ride streams (/activities/{id}?streams=…, shares the Strava limit):
@@ -62,7 +62,7 @@ Needs a new route in api/_v1.js:
 - [ ] P16. Segments: your starred segments, segment gaps, segment intelligence, KOM / QOM list
 - [ ] P17. Photos
 - [ ] P18. Chase routes: AI route generator (/api/route + /api/ai need owner auth that accepts the asc_ token)
-- [ ] P19. AI: overview insight, bulk caption rewrite (writes back to Strava)
+- [ ] P19. Writes: AI overview insight, bulk caption rewrite, Huawei-only upload to Strava (write routes in _v1.js)
 - [ ] P20. Share: stats image + social post (story card is done)
 
 Settings:
