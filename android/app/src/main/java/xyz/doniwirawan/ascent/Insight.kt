@@ -63,6 +63,6 @@ object Insight {
         }.start()
     }
 
-    private fun label(page: String) = mapOf("home" to "Overview", "rides" to "Activities", "power" to "Power", "sleep" to "Sleep & Recovery", "money" to "Money & gear")[page]
+    private fun label(page: String) = mapOf("home" to "Overview", "rides" to "Activities", "power" to "Power", "sleep" to "Sleep & Recovery", "more:money" to "Money & gear")[page]
         ?: page.substringAfter(':').replaceFirstChar { it.uppercase() }
 }

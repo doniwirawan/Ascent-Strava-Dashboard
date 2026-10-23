@@ -11,6 +11,7 @@ import java.util.Locale
  */
 object More {
     private val PAGES = listOf(
+        "money" to ("Money" to "Spending, bikes, cost per km, bike comparison, bike care"),
         "trends" to ("Trends" to "Weekly distance, year over year, year in review"),
         "calendar" to ("Calendar" to "Every day of a month, and month by month"),
         "training" to ("Training" to "Load, form, recovery, consistency, FTP, run predictions, records"),
@@ -25,6 +26,7 @@ object More {
     )
 
     fun show(a: AppActivity, id: String) = when (id) {
+        "money" -> Screens.money(a)
         "trends" -> trends(a)
         "calendar" -> calendar(a)
         "training" -> Training.page(a)

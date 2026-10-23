@@ -785,8 +785,8 @@ object Screens {
                             android.app.AlertDialog.Builder(a)
                                 .setTitle("${part.name} serviced?")
                                 .setMessage(String.format(Locale.US, "Counts from today's odometer, %,.0f km.", odo / 1000))
-                                .setPositiveButton("Serviced now") { _, _ -> prefs.edit().putFloat(k, odo.toFloat()).apply(); a.show("money") }
-                                .setNeutralButton("Stop tracking") { _, _ -> prefs.edit().remove(k).apply(); a.show("money") }
+                                .setPositiveButton("Serviced now") { _, _ -> prefs.edit().putFloat(k, odo.toFloat()).apply(); a.show("more:money") }
+                                .setNeutralButton("Stop tracking") { _, _ -> prefs.edit().remove(k).apply(); a.show("more:money") }
                                 .setNegativeButton("Cancel", null)
                                 .show()
                         }
@@ -885,6 +885,7 @@ object Screens {
     fun money(a: AppActivity): Unit = a.load(listOf("purchases", "bikes", "me", "activities?limit=500")) { r ->
         val items = list(r["purchases"]?.optJSONArray("items")).sortedByDescending { it.optString("date") }
         val col = a.page()
+        More.back(a, col, "Money")
         val now = Calendar.getInstance()
         val year = String.format(Locale.US, "%04d", now.get(Calendar.YEAR))
         val month = year + String.format(Locale.US, "-%02d", now.get(Calendar.MONTH) + 1)

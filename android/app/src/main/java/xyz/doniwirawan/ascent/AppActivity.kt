@@ -20,7 +20,7 @@ import java.util.concurrent.Executors
 
 /**
  * The app's front door: native screens over the personal API (Home, Rides,
- * Power, Sleep, Money), with the full web dashboard one tap away. Each screen
+ * Power, Sleep, More — Money lives under More), with the full web dashboard one tap away. Each screen
  * draws its saved copy straight away, then redraws when fresh data arrives.
  */
 class AppActivity : Activity() {
@@ -30,7 +30,7 @@ class AppActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var banner: LinearLayout
     private var release: Updater.Release? = null
-    private val tabs = linkedMapOf("home" to "Home", "rides" to "Rides", "power" to "Power", "sleep" to "Sleep", "money" to "Money", "more" to "More")
+    private val tabs = linkedMapOf("home" to "Home", "rides" to "Rides", "power" to "Power", "sleep" to "Sleep", "more" to "More")
     private val tabViews = HashMap<String, TextView>()
     private val tabIcons = HashMap<String, TabIcon>()
     private var current = "home"
@@ -172,7 +172,7 @@ class AppActivity : Activity() {
             "rides" -> Screens.rides(this)
             "power" -> Screens.power(this)
             "sleep" -> Screens.sleep(this)
-            "money" -> Screens.money(this)
+            "money" -> show("more:money")      // was a tab before 3.24
             else -> More.show(this, tab.substringAfter(':', ""))
         }
     }
