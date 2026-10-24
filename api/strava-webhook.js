@@ -215,8 +215,7 @@ async function generateCaption(a, token, withNote = true) {
   return { text: caption, note: nt && nt.note, analysis: nt && nt.analysis };
 }
 
-// Which bike each auto-caption was written for (Supabase auto_captions), so
-// changing the bike afterwards re-captions it — unless I've renamed it myself.
+// Which bike each auto-caption was written for (Supabase auto_captions).
 async function captionRecord(id, rec) {
   const s = sb(); if (!s) return null;
   const url = s.url.replace(/owner_tokens$/, 'auto_captions');
@@ -232,8 +231,8 @@ async function captionRecord(id, rec) {
 }
 
 // → a short outcome for the webhook_events log. A new activity gets title +
-// description + private note; a re-caption (bike change) rewrites only the title
-// and description and leaves the private note as it is.
+// description + private note; captionOnly rewrites only the title and description
+// and leaves the private note as it is.
 async function processActivity(activityId, isUpdate, updates, userToken, captionOnly) {
   const withNote = !isUpdate && !captionOnly;
   const token = userToken || await ownerAccessToken();
@@ -241,20 +240,6 @@ async function processActivity(activityId, isUpdate, updates, userToken, caption
   const ar = await fetch(STRAVA + '/activities/' + activityId, { headers: { Authorization: 'Bearer ' + token } });
   if (!ar.ok) return 'failed: could not read the activity (' + ar.status + ')';
   const act = await ar.json();
-  if (isUpdate) {
-    // our own PUT fires an update too — only act when the bike really changed
-    const rec = await captionRecord(activityId);
-    if (rec) {
-      if (rec.name !== act.name) return 'skipped: title was renamed by hand';
-      if ((rec.gear_id || null) === (act.gear_id || null)) return 'skipped: bike unchanged';
-    } else {
-      // captioned before this log existed, or from the dashboard: re-caption a recent
-      // AI-written ride once (then the record above takes over) — never a manual rename
-      const recent = Date.now() - new Date(act.start_date).getTime() < 2 * 86400000;
-      if (updates && updates.title) return 'skipped: title change';
-      if (!recent || !/AI-written by Ascent/.test(act.description || '')) return 'skipped: not a recent AI-captioned activity';
-    }
-  }
   const { text, note, analysis, stats } = (await generateCaption(act, token, withNote)) || {};
   if (!text) return 'failed: no caption could be built';
   const lines = text.trim().split('\n');
@@ -332,16 +317,15 @@ module.exports = async (req, res) => {
   const owner = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
   const enabled = (process.env.AUTO_CAPTION || 'on').toLowerCase() !== 'off';
   const mine = body.object_type === 'activity' && (!owner || String(body.owner_id) === owner);
-  // Auto-caption a brand-new activity from the owner; on "update", re-caption
-  // only if the bike changed since (processActivity checks, so our own PUT can't loop).
-  // Then, for any change (incl. delete), update the activity cache — after the
-  // caption, so the cache stores the final title.
+  // Auto-caption a brand-new activity from the owner (updates, e.g. a bike change,
+  // never re-caption). Then, for any change (incl. delete), update the activity
+  // cache — after the caption, so the cache stores the final title.
   if (mine && ['create', 'update', 'delete'].includes(body.aspect_type)) {
     if (body.aspect_type === 'update') console.log('strava update event', body.object_id, JSON.stringify(body.updates || {}));
     waitUntil((async () => {
-      if (enabled && body.aspect_type !== 'delete') {
+      if (enabled && body.aspect_type === 'create') {
         const done = await logEvent(body.aspect_type, body.object_id);
-        await done(await processActivity(body.object_id, body.aspect_type === 'update', body.updates)
+        await done(await processActivity(body.object_id, false, body.updates)
           .catch(e => 'failed: ' + ((e && e.message) || e)));
       }
       await cacheActivity(body.object_id, body.aspect_type === 'delete')
@@ -352,7 +336,3 @@ module.exports = async (req, res) => {
   // Ack immediately so Strava doesn't retry (it requires a 200 within ~2s).
   res.status(200).json({ ok: true });
 };
-
-// for the activity pop-up's bike picker (api/ai-chats.js action 'set-bike')
-module.exports.processActivity = processActivity;
-module.exports.captionRecord = captionRecord;

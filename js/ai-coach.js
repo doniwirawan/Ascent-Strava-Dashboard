@@ -874,10 +874,9 @@ async function bulkRun(p, mode) {
   setTimeout(() => { if (bar) bar.style.width = '0%'; }, 1500);
 }
 
-/* Bike picker in the activity pop-up. The owner goes through the server, which
-   also rewrites an AI title + caption for the new bike right away (the private
-   note stays as it is); anyone
-   else just sets the bike. */
+/* Bike picker in the activity pop-up. Only the bike changes — the title and
+   caption are kept. The owner goes through the server; anyone else sets it
+   directly. */
 async function actSetBike(id, sel) {
   const a = (typeof acts !== 'undefined' ? acts : []).find(x => String(x.id) === String(id));
   const status = document.getElementById('actBikeStatus');
@@ -887,8 +886,7 @@ async function actSetBike(id, sel) {
   sel.disabled = true;
   try {
     if (_isAiOwner()) {
-      const ai = /AI-written by Ascent/.test(a.description || '');
-      say('', ai ? tr('Changing the bike and rewriting the caption…') : tr('Changing the bike…'));
+      say('', tr('Changing the bike…'));
       const r = await fetch('/api/ai-chats', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: localStorage.getItem('strava_access_token'), action: 'set-bike', id, gear_id }) });
       const d = await r.json().catch(() => ({}));
@@ -897,10 +895,7 @@ async function actSetBike(id, sel) {
       if (d.name) a.name = d.name;
       if (d.description != null) a.description = d.description;
       const t = document.getElementById('actModalTitle'); if (t && d.name) t.textContent = d.name;
-      _aiStoreP = null; aiStoreLoad(); // the server saved the new caption + analysis
-      if (/^(re-)?captioned/.test(d.result || '')) say('ok', '✓ ' + tr('Bike changed — new title and caption are on Strava.'));
-      else if (/^failed/.test(d.result || '')) say('err', tr('Bike changed, but the caption couldn’t be rewritten:') + ' ' + d.result.replace(/^failed:\s*/, ''));
-      else say('ok', '✓ ' + tr('Bike changed on Strava.'));
+      say('ok', '✓ ' + tr('Bike changed on Strava.'));
     } else {
       say('', tr('Changing the bike…'));
       await apiPut('/activities/' + id, { gear_id });

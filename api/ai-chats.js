@@ -19,34 +19,20 @@
 // And the auto-caption webhook's health, for Settings:
 // POST { token, action: 'webhook-status' } → { subscription, token: {saved_at, write}, events: [...] }
 //
-// Bike picker in the activity pop-up — sets the bike, then rewrites the title and
-// description straight away (private note left as is) if the caption is AI-written:
+// Bike picker in the activity pop-up — sets the bike only (the caption is kept):
 // POST { token, action: 'set-bike', id, gear_id } → { ok, result, name, description }
 //
 // Required env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OWNER_ATHLETE_ID.
-const { saveActivityAi, getOwnerRefreshToken, saveOwnerRefreshToken, logEvent } = require('./_owner-token.js');
-const { processActivity, captionRecord } = require('./strava-webhook.js');
+const { saveActivityAi, getOwnerRefreshToken, saveOwnerRefreshToken } = require('./_owner-token.js');
 
 async function setBike(token, id, gear_id) {
   const STRAVA = 'https://www.strava.com/api/v3/activities/' + id;
   const H = { Authorization: 'Bearer ' + token };
   const ar = await fetch(STRAVA, { headers: H });
   if (!ar.ok) return { status: ar.status, error: 'activity_not_found' };
-  const act = await ar.json();
-  const rec = await captionRecord(id);
-  // our own caption, not renamed by hand since → rewrite it for the new bike
-  const aiWritten = /AI-written by Ascent/.test(act.description || '') && (!rec || rec.name === act.name);
-  // record the new bike first: the update event Strava fires for this change then
-  // reads "bike unchanged" in the webhook instead of captioning a second time
-  await captionRecord(id, { gear_id, name: rec ? rec.name : act.name });
   const pr = await fetch(STRAVA, { method: 'PUT', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ gear_id }) });
   if (!pr.ok) return { status: pr.status, error: 'strava_refused', detail: (await pr.text().catch(() => '')).slice(0, 200) };
-  let result = 'bike changed';
-  if (aiWritten) {
-    const done = await logEvent('bike-picker', id);
-    result = await processActivity(id, false, null, token, true).catch(e => 'failed: ' + ((e && e.message) || e));
-    await done(result);
-  }
+  const result = 'bike changed';
   const after = await (await fetch(STRAVA, { headers: H })).json().catch(() => ({}));
   return { status: 200, ok: true, result, name: after.name, description: after.description };
 }
