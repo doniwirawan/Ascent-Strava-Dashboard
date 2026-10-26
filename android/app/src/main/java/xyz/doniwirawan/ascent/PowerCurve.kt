@@ -18,13 +18,25 @@ object PowerCurve {
     private val FIT = intArrayOf(120, 300, 600, 1200, 1800, 3600)
     private fun label(w: Int) = if (w < 60) "${w}s" else "${w / 60}min"
 
-    /** Best average power per window on a 1 Hz grid (gaps count as 0 W), website _pcBestFromStreams. */
+    /** 1 Hz power from first to last sample. Smart recording logs a sample every few seconds, so each
+     *  value holds until the next sample (as Strava counts it); a gap over 30 s is a stop → 0 W. */
+    private fun grid(watts: DoubleArray, t: DoubleArray): DoubleArray {
+        val t0 = t.first().toInt()
+        val g = DoubleArray(maxOf(t.last().toInt() - t0 + 1, 0))
+        for (i in watts.indices) {
+            if (watts[i].isNaN()) continue
+            val s = t[i].toInt() - t0
+            val e = if (i + 1 < t.size && t[i + 1] - t[i] <= 30) t[i + 1].toInt() - t0 else s + 1
+            for (k in maxOf(s, 0) until minOf(e, g.size)) g[k] = watts[i]
+        }
+        return g
+    }
+    private fun times(watts: DoubleArray, time: DoubleArray?) = if (time != null && time.size == watts.size) time else DoubleArray(watts.size) { it.toDouble() }
+
+    /** Best average power per window on that 1 Hz grid, website _pcBestFromStreams. */
     internal fun bests(watts: DoubleArray, time: DoubleArray?): Map<Int, Double> {
         if (watts.isEmpty()) return emptyMap()
-        val t = if (time != null && time.size == watts.size) time else DoubleArray(watts.size) { it.toDouble() }
-        val maxT = t.last().toInt()
-        val grid = DoubleArray(maxT + 1)
-        for (i in watts.indices) { val s = t[i].toInt(); if (s in 0..maxT && !watts[i].isNaN()) grid[s] = watts[i] }
+        val grid = grid(watts, times(watts, time))
         val out = HashMap<Int, Double>()
         for (w in WINDOWS) {
             if (grid.size < w) continue
@@ -34,6 +46,18 @@ object PowerCurve {
             out[w] = Math.round(mx / w).toDouble()
         }
         return out
+    }
+
+    /** The ride's strongest minute as (first sample, last sample, W), for the purple stretch on the map. */
+    internal fun bestMinute(watts: DoubleArray, time: DoubleArray?): Triple<Int, Int, Int>? {
+        if (watts.isEmpty()) return null
+        val t = times(watts, time); val g = grid(watts, t)
+        var sum = 0.0; var end = -1; var mx = 0.0
+        for (k in g.indices) { sum += g[k]; if (k >= 60) sum -= g[k - 60]; if (k >= 59 && sum > mx) { mx = sum; end = k } }
+        if (end < 0) return null
+        var from = 0; var to = 0
+        for (i in t.indices) { val s = t[i] - t[0]; if (s <= end - 59) from = i; if (s <= end) to = i }
+        return Triple(from, minOf(maxOf(to, from + 1), t.size - 1), Math.round(mx / 60).toInt())
     }
 
     class Fit(val cp: Double, val wPrime: Double)
@@ -77,7 +101,7 @@ object PowerCurve {
         return (LEVELS.firstOrNull { level >= it.first } ?: LEVELS.last()).second
     }
 
-    private fun dir(ctx: Context) = File(ctx.filesDir, "pcurve").apply { mkdirs() }
+    private fun dir(ctx: Context) = File(ctx.filesDir, "pcurve2").apply { mkdirs() }
     /** A ride's saved bests, or null when it has not been read yet. */
     internal fun saved(ctx: Context, id: Long): Map<Int, Double>? = File(dir(ctx), "$id.json").takeIf { it.exists() }?.let { f ->
         runCatching { JSONObject(f.readText()).let { o -> o.keys().asSequence().associate { it.toInt() to o.getDouble(it) } } }.getOrNull()

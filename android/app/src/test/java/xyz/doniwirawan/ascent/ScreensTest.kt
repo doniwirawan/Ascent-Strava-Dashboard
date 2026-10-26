@@ -399,6 +399,14 @@ class ScreensTest {
         val w = DoubleArray(3600) { if (it in 1000 until 1030) 600.0 else 200.0 }
         val b = PowerCurve.bests(w, null)
         assertEquals(600.0, b[5]!!, 0.0); assertEquals(600.0, b[30]!!, 0.0); assertEquals(400.0, b[60]!!, 0.0); assertEquals(Math.round(200 + 400 * 30 / 3600.0).toDouble(), b[3600]!!, 0.0)
+        // smart recording: a sample every 8 s holds until the next one; 60 samples are not a minute
+        val t8 = DoubleArray(450) { it * 8.0 }
+        val w8 = DoubleArray(450) { if (it in 100 until 108) 400.0 else 150.0 }
+        assertEquals(400.0, PowerCurve.bests(w8, t8)[60]!!, 0.0)
+        val bm = PowerCurve.bestMinute(w8, t8)!!
+        assertEquals(400, bm.third); assertTrue(t8[bm.second] - t8[bm.first] in 56.0..64.0)
+        // a long stop is 0 W, not the last value held
+        assertEquals(Math.round(300.0 * 11 / 60).toDouble(), PowerCurve.bests(doubleArrayOf(300.0, 300.0, 0.0), doubleArrayOf(0.0, 10.0, 600.0))[60]!!, 1.0)
         val fit = PowerCurve.morton(listOf(120, 300, 600, 1200, 1800, 3600).map { it to 250 + 20000.0 / it })!!
         assertEquals(250.0, fit.cp, 0.5); assertEquals(20000.0, fit.wPrime, 50.0)
         assertEquals(10000.0, PowerCurve.wBal(DoubleArray(100) { 350.0 }, 250.0, 20000.0).last(), 1e-6)

@@ -222,6 +222,8 @@ class RideActivity : Activity() {
         val ll = st.optJSONObject("latlng")?.optJSONArray("data") ?: return org.json.JSONArray()
         val v = st.optJSONObject("velocity_smooth")?.optJSONArray("data")
         val w = st.optJSONObject("watts")?.optJSONArray("data")
+        val tm = st.optJSONObject("time")?.optJSONArray("data")
+        val best = w?.let { PowerCurve.bestMinute(DoubleArray(it.length()) { i -> it.optDouble(i, 0.0) }, tm?.let { t -> DoubleArray(t.length()) { i -> t.optDouble(i) } }) }
         val out = org.json.JSONArray()
         var sum = 0.0
         for (i in 0 until ll.length()) {
@@ -231,6 +233,7 @@ class RideActivity : Activity() {
                 sum += w.optDouble(i, 0.0)
                 if (i >= 10) sum -= w.optDouble(i - 10, 0.0)
                 row.put(Math.round(sum / Math.min(i + 1, 10)))
+                row.put(if (best != null && i in best.first..best.second) best.third else 0)   // strongest minute's W
             }
             out.put(row)
         }

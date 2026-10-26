@@ -110,8 +110,8 @@ function paint(k){
   if(b!==c){lines.push({p:run,c:col(c/(N-1)),w:5});run=[[pts[j][0],pts[j][1]]];c=b;}}
  if(run.length>1) lines.push({p:run,c:col(c/(N-1)),w:5});
  var best='';
- if(k==='power'){var s=0,bi=-1,bv=0;for(j=0;j<pts.length;j++){s+=pts[j][3]||0;if(j>=60)s-=pts[j-60][3]||0;if(j>=59&&s>bv){bv=s;bi=j;}}
-  if(bi>=0){var seg=pts.slice(bi-59,bi+1).map(function(p){return [p[0],p[1]]});lines.push({p:seg,c:'#fff',w:10});lines.push({p:seg,c:'#a855f7',w:6});best=Math.round(bv/60);}}
+ if(k==='power'){var bs=pts.filter(function(p){return p[4]>0});
+  if(bs.length>1){var seg=bs.map(function(p){return [p[0],p[1]]});lines.push({p:seg,c:'#fff',w:10});lines.push({p:seg,c:'#a855f7',w:6});best=bs[0][4];}}
  layer=L.layerGroup(); lines.forEach(function(l){L.polyline(l.p,{color:l.c,weight:l.w}).addTo(layer)});
  layer.addTo(m); line.setStyle({opacity:0}); casing.setStyle({opacity:0}); M3D.set(lines);
  var u=k==='speed'?function(x){return (x*3.6).toFixed(1)}:function(x){return Math.round(x)};
