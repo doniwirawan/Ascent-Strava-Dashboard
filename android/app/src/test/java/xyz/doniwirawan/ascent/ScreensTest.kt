@@ -405,6 +405,8 @@ class ScreensTest {
         assertEquals(400.0, PowerCurve.bests(w8, t8)[60]!!, 0.0)
         val bm = PowerCurve.bestMinute(w8, t8)!!
         assertEquals(400, bm.third); assertTrue(t8[bm.second] - t8[bm.first] in 56.0..64.0)
+        // W′ drains per second: 8 samples 8 s apart at CP + 100 W cost 64 s × 100 W
+        assertEquals(20000.0 - 6400.0, PowerCurve.wBal(PowerCurve.grid(DoubleArray(9) { 350.0 }, DoubleArray(9) { it * 8.0 }), 250.0, 20000.0)[63], 1e-6)
         // a long stop is 0 W, not the last value held
         assertEquals(Math.round(300.0 * 11 / 60).toDouble(), PowerCurve.bests(doubleArrayOf(300.0, 300.0, 0.0), doubleArrayOf(0.0, 10.0, 600.0))[60]!!, 1.0)
         val fit = PowerCurve.morton(listOf(120, 300, 600, 1200, 1800, 3600).map { it to 250 + 20000.0 / it })!!

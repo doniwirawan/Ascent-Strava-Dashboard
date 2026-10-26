@@ -112,7 +112,7 @@ class RideActivity : Activity() {
                     if (watts != null && ftp > 0 && a.optBoolean("device_watts")) {
                         charts.addView(Ui.heading(this, "Power zones · FTP ${Math.round(ftp)} W"))
                         charts.addView(Zones.view(this, Zones.POWER, ftp, "W", Zones.timeIn(Zones.POWER, ftp, watts, time)))
-                        PowerCurve.wBalView(this, charts, watts, ftp)
+                        PowerCurve.wBalView(this, charts, watts, time, ftp)
                     }
                     val lthr = Zones.lthr(this)
                     val hr = st.optJSONObject("heartrate")?.optJSONArray("data")

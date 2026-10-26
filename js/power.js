@@ -229,7 +229,10 @@ async function _pwAutoAnalyse(rides) {
     catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) { _pwAutoLimited = true; break; } continue; }
     const w = raw && raw.watts && raw.watts.data, t = raw && raw.time && raw.time.data, mv = raw && raw.moving && raw.moving.data;
     try { localStorage.setItem('strava_pcurve_' + a.id, JSON.stringify({ v: 2, best: _pcBestFromStreams(w, t) || null })); } catch {}
-    const h = w && _pwzHist({ series: { watts: { data: mv ? w.filter((_, i) => mv[i]) : w } } }, a.moving_time);
+    // one entry per second (smart recording spaces samples unevenly), moving samples only
+    const ws = w && [];
+    if (w) w.forEach((x, i) => { if (mv && !mv[i]) return; const dt = t && i + 1 < t.length ? Math.min(Math.max(t[i + 1] - t[i], 1), 30) : 1; for (let k = 0; k < dt; k++) ws.push(x); });
+    const h = w && _pwzHist({ series: { watts: { data: ws } } }, a.moving_time);
     if (h) store.acts[a.id] = h;
     n++;
   }
@@ -288,16 +291,14 @@ async function renderActivityWbal(a) {
   const box = document.getElementById('actWbal');
   const m = pwCpModel();
   if (!box || !m || typeof spWPrimeBal !== 'function') { if (box) box.remove(); return; }
-  const sig = Math.round(m.cp) + '|' + Math.round(m.wp), key = 'strava_wbal_' + a.id;
+  const sig = 'v2|' + Math.round(m.cp) + '|' + Math.round(m.wp), key = 'strava_wbal_' + a.id;
   let c = null; try { c = JSON.parse(localStorage.getItem(key)); } catch {}
   if (!c || c.sig !== sig) {
     box.innerHTML = `<div class="hrz-note">${tr('Loading W′ balance…')}</div>`;
     let raw; try { raw = await api(`/activities/${a.id}/streams?keys=time,watts&key_by_type=true`); } catch { box.remove(); return; }
     const w = raw && raw.watts && raw.watts.data, t = raw && raw.time && raw.time.data;
     if (!w || !w.length) { box.remove(); return; }
-    const T = t && t.length === w.length ? t : w.map((_, i) => i), arr = new Float64Array((T[T.length - 1] || w.length) + 1);
-    for (let i = 0; i < w.length; i++) if (w[i] != null) arr[T[i]] = w[i];
-    const bal = spWPrimeBal(Array.from(arr), m.cp, m.wp);
+    const bal = spWPrimeBal(Array.from(pcSeconds(w, t)), m.cp, m.wp);
     const step = Math.max(1, Math.ceil(bal.length / 300)), pts = [];
     for (let i = 0; i < bal.length; i += step) pts.push(Math.round(Math.min(...bal.slice(i, i + step))));   // keep the dips
     let lo = 0; bal.forEach((v, i) => { if (v < bal[lo]) lo = i; });

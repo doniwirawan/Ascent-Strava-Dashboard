@@ -16,13 +16,12 @@ const PC_LABELS = { 5: '5s', 30: '30s', 60: '1min', 300: '5min', 1200: '20min', 
 const PC_MAX_RIDES = 80;               // cap the bulk fetch to protect the rate limit
 const PC_AGG_KEY = 'strava_pcurve_agg';
 
-// Pure: raw watts (+ optional time) stream → best avg power per window. No IO.
-function _pcBestFromStreams(watts, time) {
-  if (!watts || !watts.length) return null;
+// Pure: raw watts (+ optional time) → watts per second, from 0 to the last sample.
+// Smart recording logs a sample every few seconds, so each value holds until the
+// next sample (as Strava counts it); a gap over 30 s is a stop → 0 W.
+function pcSeconds(watts, time) {
   const T = (time && time.length === watts.length) ? time : watts.map((_, i) => i);
   const maxT = T[T.length - 1] || (watts.length - 1);
-  // 1 Hz grid. Smart recording logs a sample every few seconds, so each value
-  // holds until the next sample (as Strava counts it); a gap over 30 s is a stop → 0 W
   const arr = new Float64Array(maxT + 1);
   for (let i = 0; i < watts.length; i++) {
     const t = T[i], w = watts[i];
@@ -30,6 +29,13 @@ function _pcBestFromStreams(watts, time) {
     const end = i + 1 < T.length && T[i + 1] - t <= 30 ? T[i + 1] : t + 1;
     for (let k = t; k < end && k <= maxT; k++) arr[k] = w;
   }
+  return arr;
+}
+
+// Pure: raw watts (+ optional time) stream → best avg power per window. No IO.
+function _pcBestFromStreams(watts, time) {
+  if (!watts || !watts.length) return null;
+  const arr = pcSeconds(watts, time);
   const best = {};
   for (const win of PC_WINDOWS) {
     if (arr.length < win) continue;

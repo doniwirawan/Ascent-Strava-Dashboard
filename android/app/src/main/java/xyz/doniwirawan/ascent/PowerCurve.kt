@@ -20,7 +20,7 @@ object PowerCurve {
 
     /** 1 Hz power from first to last sample. Smart recording logs a sample every few seconds, so each
      *  value holds until the next sample (as Strava counts it); a gap over 30 s is a stop → 0 W. */
-    private fun grid(watts: DoubleArray, t: DoubleArray): DoubleArray {
+    internal fun grid(watts: DoubleArray, t: DoubleArray): DoubleArray {
         val t0 = t.first().toInt()
         val g = DoubleArray(maxOf(t.last().toInt() - t0 + 1, 0))
         for (i in watts.indices) {
@@ -31,7 +31,7 @@ object PowerCurve {
         }
         return g
     }
-    private fun times(watts: DoubleArray, time: DoubleArray?) = if (time != null && time.size == watts.size) time else DoubleArray(watts.size) { it.toDouble() }
+    internal fun times(watts: DoubleArray, time: DoubleArray?) = if (time != null && time.size == watts.size) time else DoubleArray(watts.size) { it.toDouble() }
 
     /** Best average power per window on that 1 Hz grid, website _pcBestFromStreams. */
     internal fun bests(watts: DoubleArray, time: DoubleArray?): Map<Int, Double> {
@@ -154,9 +154,11 @@ object PowerCurve {
     }
 
     /** W′ balance chart for a ride page with a watts stream. */
-    fun wBalView(ctx: android.app.Activity, col: LinearLayout, watts: JSONArray, ftp: Double) {
+    fun wBalView(ctx: android.app.Activity, col: LinearLayout, watts: JSONArray, time: JSONArray?, ftp: Double) {
         val m = cpModel(ctx, ftp) ?: return
-        val bal = wBal(DoubleArray(watts.length()) { watts.optDouble(it, Double.NaN) }, m.cp, m.wPrime)
+        val w = DoubleArray(watts.length()) { watts.optDouble(it, Double.NaN) }
+        if (w.isEmpty()) return
+        val bal = wBal(grid(w, times(w, time?.let { t -> DoubleArray(t.length()) { t.optDouble(it) } })), m.cp, m.wPrime)   // per second, not per sample
         val step = maxOf(1, bal.size / 400)
         col.addView(Ui.heading(ctx, String.format(Locale.US, "W′ balance · CP %d W, W′ %.1f kJ", Math.round(m.cp), m.wPrime / 1000)))
         col.addView(Ui.card(ctx).apply {

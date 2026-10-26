@@ -798,7 +798,7 @@ const POWER_ZONES = [
   { name: 'Anaerobic',       hi: 1.50, color: '#ef4444' },
   { name: 'Neuromuscular',   hi: Infinity, color: '#a855f7' },
 ];
-const _PWZ_V = 1;
+const _PWZ_V = 2;   // 2: power-meter rides re-read per second, not per sample
 const _pwzKey = () => 'strava_pwz_' + (localStorage.getItem('strava_athlete_id') || 'x');
 let _pwzStore = null;
 function _pwzLoad() {
