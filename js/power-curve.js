@@ -21,10 +21,14 @@ function _pcBestFromStreams(watts, time) {
   if (!watts || !watts.length) return null;
   const T = (time && time.length === watts.length) ? time : watts.map((_, i) => i);
   const maxT = T[T.length - 1] || (watts.length - 1);
-  const arr = new Float64Array(maxT + 1);                 // 1 Hz grid; gaps/coasting = 0 W
+  // 1 Hz grid. Smart recording logs a sample every few seconds, so each value
+  // holds until the next sample (as Strava counts it); a gap over 30 s is a stop → 0 W
+  const arr = new Float64Array(maxT + 1);
   for (let i = 0; i < watts.length; i++) {
     const t = T[i], w = watts[i];
-    if (t >= 0 && t <= maxT && w != null && !isNaN(w)) arr[t] = w;
+    if (!(t >= 0 && t <= maxT) || w == null || isNaN(w)) continue;
+    const end = i + 1 < T.length && T[i + 1] - t <= 30 ? T[i + 1] : t + 1;
+    for (let k = t; k < end && k <= maxT; k++) arr[k] = w;
   }
   const best = {};
   for (const win of PC_WINDOWS) {
@@ -42,21 +46,21 @@ function _pcBestFromStreams(watts, time) {
 // caller can stop; returns null when a ride has no usable power stream.
 async function _pcBestForRide(id) {
   const ck = 'strava_pcurve_' + id;
-  try { const c = localStorage.getItem(ck); if (c) { const o = JSON.parse(c); if (o && o.v === 1) return o.best; } } catch {}
+  try { const c = localStorage.getItem(ck); if (c) { const o = JSON.parse(c); if (o && o.v === 2) return o.best; } } catch {}
   let raw;
   try { raw = await api(`/activities/${id}/streams?keys=time,watts&key_by_type=true`); }
   catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) throw e; return null; }
   const watts = raw && raw.watts && raw.watts.data;
   const time = raw && raw.time && raw.time.data;
   const best = _pcBestFromStreams(watts, time);
-  try { localStorage.setItem(ck, JSON.stringify({ v: 1, best: best || null })); } catch {}
+  try { localStorage.setItem(ck, JSON.stringify({ v: 2, best: best || null })); } catch {}
   pcVer++;
   return best;
 }
 
 // A ride's cached bests ({5: W, 60: W, …}) or null when it hasn't been analysed.
 function pcRidePeaks(id) {
-  try { const o = JSON.parse(localStorage.getItem('strava_pcurve_' + id)); return o && o.v === 1 ? o.best : null; } catch { return null; }
+  try { const o = JSON.parse(localStorage.getItem('strava_pcurve_' + id)); return o && o.v === 2 ? o.best : null; } catch { return null; }
 }
 
 // The all-time curve rebuilt from every analysed power-meter ride (no fetching).

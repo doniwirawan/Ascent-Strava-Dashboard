@@ -228,7 +228,7 @@ async function _pwAutoAnalyse(rides) {
     try { raw = await api(`/activities/${a.id}/streams?keys=time,watts,moving&key_by_type=true`); }
     catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) { _pwAutoLimited = true; break; } continue; }
     const w = raw && raw.watts && raw.watts.data, t = raw && raw.time && raw.time.data, mv = raw && raw.moving && raw.moving.data;
-    try { localStorage.setItem('strava_pcurve_' + a.id, JSON.stringify({ v: 1, best: _pcBestFromStreams(w, t) || null })); } catch {}
+    try { localStorage.setItem('strava_pcurve_' + a.id, JSON.stringify({ v: 2, best: _pcBestFromStreams(w, t) || null })); } catch {}
     const h = w && _pwzHist({ series: { watts: { data: mv ? w.filter((_, i) => mv[i]) : w } } }, a.moving_time);
     if (h) store.acts[a.id] = h;
     n++;
