@@ -924,12 +924,23 @@ function openActivityModal(ref){
     ${ride && hasRoute && !a.trainer ? '<div id="actWind"></div>' : ''}
     ${a.id ? `<div class="actd-actions">
       ${actBikeSelect(a)}
-      <button class="btn actd-ai-btn" type="button" onclick="aiAnalyzeActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} Analyze performance</button>
+      ${(() => {
+        // the owner's rides are analysed + captioned by the upload webhook, so the
+        // generators are only for a redo — tucked behind one button
+        const owner = typeof _isAiOwner==='function' && _isAiOwner();
+        const gen = `<button class="btn actd-ai-btn" type="button" onclick="aiAnalyzeActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} Analyze performance</button>
       <button class="btn actd-ai-btn" type="button" onclick="aiCaptionActivity('${a.id}')">${typeof AI_ICON!=='undefined'?AI_ICON:''} AI title &amp; description</button>
       <button class="btn actd-stats-btn" type="button" onclick="aiStatsCaption('${a.id}')">Stats title &amp; description</button>
-      <button class="btn actd-stats-btn" type="button" onclick="openStatsImage('${a.id}')">Stats image</button>
-      ${typeof openSocialPost==='function' ? `<button class="btn actd-ai-btn" type="button" onclick="openSocialPost('${a.id}')">📣 ${tr('Social post')}</button>` : ''}
-      ${hasRoute && typeof openVideo3d==='function' ? `<button class="btn actd-stats-btn" type="button" onclick="openVideo3d('${a.id}')">🎬 ${tr('3D video')}</button>` : ''}
+      <button class="btn actd-stats-btn" type="button" onclick="openStatsImage('${a.id}')">Stats image</button>`;
+        const rest = `${typeof openSocialPost==='function' ? `<button class="btn actd-ai-btn" type="button" onclick="openSocialPost('${a.id}')">📣 ${tr('Social post')}</button>` : ''}
+      ${hasRoute && typeof openVideo3d==='function' ? `<button class="btn actd-stats-btn" type="button" onclick="openVideo3d('${a.id}')">🎬 ${tr('3D video')}</button>` : ''}`;
+        return owner
+          ? `${rest}
+      <button class="btn actd-stats-btn" type="button" onclick="this.nextElementSibling.hidden=false;this.remove()">⋯ ${tr('More options')}</button>
+      <span class="actd-more" hidden>${gen}</span>`
+          : `${gen}
+      ${rest}`;
+      })()}
       <a class="btn btn-primary actd-strava" href="https://www.strava.com/activities/${a.id}" target="_blank" rel="noopener">View on Strava ↗</a>
     </div>
     <div id="actBikeStatus" class="ai-cap-status"></div>

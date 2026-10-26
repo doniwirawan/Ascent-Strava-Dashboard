@@ -928,6 +928,7 @@ body.dev .dev-tag { display: inline-block; }
 
 .actd-stats-btn { border: 1px solid var(--border); color: var(--text); background: transparent; }
 .actd-stats-btn:hover { border-color: var(--border-hover); background: var(--surface2); }
+.actd-more:not([hidden]) { display: contents; }
 
 /* Bulk caption tools (Activities page, collapsible) */
 .bulk-tools { margin-top: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
