@@ -228,7 +228,7 @@ async function _pwAutoAnalyse(rides) {
     try { raw = await api(`/activities/${a.id}/streams?keys=time,watts,moving&key_by_type=true`); }
     catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) { _pwAutoLimited = true; break; } continue; }
     const w = raw && raw.watts && raw.watts.data, t = raw && raw.time && raw.time.data, mv = raw && raw.moving && raw.moving.data;
-    try { localStorage.setItem('strava_pcurve_' + a.id, JSON.stringify({ v: 2, best: _pcBestFromStreams(w, t) || null })); } catch {}
+    try { localStorage.setItem('strava_pcurve_' + a.id, JSON.stringify({ v: 3, best: _pcBestFromStreams(w, t) || null })); } catch {}
     // one entry per second (smart recording spaces samples unevenly), moving samples only
     const ws = w && [];
     if (w) w.forEach((x, i) => { if (mv && !mv[i]) return; const dt = t && i + 1 < t.length ? Math.min(Math.max(t[i + 1] - t[i], 1), 30) : 1; for (let k = 0; k < dt; k++) ws.push(x); });

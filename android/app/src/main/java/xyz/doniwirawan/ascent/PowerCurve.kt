@@ -18,8 +18,8 @@ object PowerCurve {
     private val FIT = intArrayOf(120, 300, 600, 1200, 1800, 3600)
     private fun label(w: Int) = if (w < 60) "${w}s" else "${w / 60}min"
 
-    /** 1 Hz power from first to last sample. Smart recording logs a sample every few seconds, so each
-     *  value holds until the next sample (as Strava counts it); a gap over 30 s is a stop → 0 W. */
+    /** 1 Hz power from first to last sample, for W′ balance. Smart recording logs a sample every few
+     *  seconds, so each value holds until the next sample; a gap over 30 s is a stop → 0 W. */
     internal fun grid(watts: DoubleArray, t: DoubleArray): DoubleArray {
         val t0 = t.first().toInt()
         val g = DoubleArray(maxOf(t.last().toInt() - t0 + 1, 0))
@@ -33,31 +33,34 @@ object PowerCurve {
     }
     internal fun times(watts: DoubleArray, time: DoubleArray?) = if (time != null && time.size == watts.size) time else DoubleArray(watts.size) { it.toDouble() }
 
-    /** Best average power per window on that 1 Hz grid, website _pcBestFromStreams. */
+    /** Best average over [win] seconds as Strava reads a smart-recorded file: the mean of the samples whose
+     *  time falls inside the window, not weighted by the gaps (website pcBestWindow). (first, last, W) */
+    internal fun bestWindow(watts: DoubleArray, t: DoubleArray, win: Int): Triple<Int, Int, Double>? {
+        var a = 0; var sum = 0.0; var mx = -1.0; var from = -1; var to = -1
+        val w = { i: Int -> watts[i].takeIf { !it.isNaN() } ?: 0.0 }
+        for (b in watts.indices) {
+            sum += w(b)
+            while (t[b] - t[a] >= win) { sum -= w(a); a++ }
+            if (t[b] - t[0] >= win - 1) { val v = sum / (b - a + 1); if (v > mx) { mx = v; from = a; to = b } }
+        }
+        return if (mx < 0) null else Triple(from, to, mx)
+    }
+
+    /** Best average power per window, website _pcBestFromStreams. */
     internal fun bests(watts: DoubleArray, time: DoubleArray?): Map<Int, Double> {
         if (watts.isEmpty()) return emptyMap()
-        val grid = grid(watts, times(watts, time))
+        val t = times(watts, time)
         val out = HashMap<Int, Double>()
-        for (w in WINDOWS) {
-            if (grid.size < w) continue
-            var sum = 0.0; for (i in 0 until w) sum += grid[i]
-            var mx = sum
-            for (i in w until grid.size) { sum += grid[i] - grid[i - w]; if (sum > mx) mx = sum }
-            out[w] = Math.round(mx / w).toDouble()
-        }
+        for (win in WINDOWS) bestWindow(watts, t, win)?.let { out[win] = Math.round(it.third).toDouble() }
         return out
     }
 
     /** The ride's strongest minute as (first sample, last sample, W), for the purple stretch on the map. */
     internal fun bestMinute(watts: DoubleArray, time: DoubleArray?): Triple<Int, Int, Int>? {
         if (watts.isEmpty()) return null
-        val t = times(watts, time); val g = grid(watts, t)
-        var sum = 0.0; var end = -1; var mx = 0.0
-        for (k in g.indices) { sum += g[k]; if (k >= 60) sum -= g[k - 60]; if (k >= 59 && sum > mx) { mx = sum; end = k } }
-        if (end < 0) return null
-        var from = 0; var to = 0
-        for (i in t.indices) { val s = t[i] - t[0]; if (s <= end - 59) from = i; if (s <= end) to = i }
-        return Triple(from, minOf(maxOf(to, from + 1), t.size - 1), Math.round(mx / 60).toInt())
+        val t = times(watts, time)
+        val (from, to, w) = bestWindow(watts, t, 60) ?: return null
+        return Triple(from, minOf(maxOf(to, from + 1), t.size - 1), Math.round(w).toInt())
     }
 
     class Fit(val cp: Double, val wPrime: Double)
@@ -101,7 +104,7 @@ object PowerCurve {
         return (LEVELS.firstOrNull { level >= it.first } ?: LEVELS.last()).second
     }
 
-    private fun dir(ctx: Context) = File(ctx.filesDir, "pcurve2").apply { mkdirs() }
+    private fun dir(ctx: Context) = File(ctx.filesDir, "pcurve3").apply { mkdirs() }
     /** A ride's saved bests, or null when it has not been read yet. */
     internal fun saved(ctx: Context, id: Long): Map<Int, Double>? = File(dir(ctx), "$id.json").takeIf { it.exists() }?.let { f ->
         runCatching { JSONObject(f.readText()).let { o -> o.keys().asSequence().associate { it.toInt() to o.getDouble(it) } } }.getOrNull()

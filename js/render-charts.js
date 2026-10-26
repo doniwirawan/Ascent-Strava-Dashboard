@@ -621,18 +621,10 @@ async function _actSpeedTrack(id){
     const pw=pts.map(p=>p[6]).filter(x=>x>0).sort((x,y)=>x-y);
     const pq=f=>pw.length?pw[Math.min(pw.length-1,Math.floor(f*pw.length))]:0;
     trk.plo=pq(.05); trk.phi=pq(.95); if(trk.phi-trk.plo<20) trk.phi=trk.plo+20;
-    // strongest minute on a 1 s grid: smart recording logs a sample every few
-    // seconds, so 60 samples isn't 60 s. Each value holds until the next sample
-    // (a gap over 30 s is a stop → 0 W), the way Strava counts it
-    const T0=pts[0][7], n=pts[pts.length-1][7]-T0+1, g=new Float64Array(Math.max(n,0));
-    pts.forEach((p,i)=>{ const s=p[7]-T0, nx=pts[i+1], e=nx&&nx[7]-p[7]<=30?nx[7]-T0:s+1; for(let k=Math.max(s,0);k<e&&k<n;k++) g[k]=p[5]||0; });
-    let s60=0, be=-1, bv=0;
-    for(let k=0;k<n;k++){ s60+=g[k]; if(k>=60) s60-=g[k-60]; if(k>=59 && s60>bv){ bv=s60; be=k; } }
-    if(be>=0){
-      const t0=T0+be-59, t1=T0+be; let from=0, to=0;
-      pts.forEach((p,i)=>{ if(p[7]<=t0) from=i; if(p[7]<=t1) to=i; });
-      trk.best={from, to:Math.max(to,from+1), w:Math.round(bv/60)};
-    }
+    // strongest minute by time, not sample count (smart recording logs a sample
+    // every few seconds) — same reading as the power curve, see pcBestWindow
+    const bm=typeof pcBestWindow==='function' && pcBestWindow(pts.map(p=>p[5]), pts.map(p=>p[7]), 60);
+    if(bm) trk.best={from:bm.from, to:Math.max(bm.to,bm.from+1), w:Math.round(bm.w)};
   }
   return (_actSpeedTracks[id] = trk);
 }

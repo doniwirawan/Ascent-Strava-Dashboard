@@ -18,7 +18,7 @@ const PC_AGG_KEY = 'strava_pcurve_agg';
 
 // Pure: raw watts (+ optional time) → watts per second, from 0 to the last sample.
 // Smart recording logs a sample every few seconds, so each value holds until the
-// next sample (as Strava counts it); a gap over 30 s is a stop → 0 W.
+// next sample; a gap over 30 s is a stop → 0 W. For W′ balance (time matters).
 function pcSeconds(watts, time) {
   const T = (time && time.length === watts.length) ? time : watts.map((_, i) => i);
   const maxT = T[T.length - 1] || (watts.length - 1);
@@ -32,18 +32,28 @@ function pcSeconds(watts, time) {
   return arr;
 }
 
+// Pure: best average over `win` seconds the way Strava reads a smart-recorded
+// file — the mean of the samples whose time falls inside the window, not weighted
+// by the gaps between them (checked on the owner's rides: it lands where Strava's
+// best minute is). On 1 s data it's the plain rolling average. → {w, from, to} | null
+function pcBestWindow(watts, T, win) {
+  let a = 0, sum = 0, mx = -1, from = -1, to = -1;
+  for (let b = 0; b < watts.length; b++) {
+    sum += watts[b] || 0;
+    while (T[b] - T[a] >= win) { sum -= watts[a] || 0; a++; }
+    if (T[b] - T[0] >= win - 1) { const v = sum / (b - a + 1); if (v > mx) { mx = v; from = a; to = b; } }
+  }
+  return mx < 0 ? null : { w: mx, from, to };
+}
+
 // Pure: raw watts (+ optional time) stream → best avg power per window. No IO.
 function _pcBestFromStreams(watts, time) {
   if (!watts || !watts.length) return null;
-  const arr = pcSeconds(watts, time);
+  const T = (time && time.length === watts.length) ? time : watts.map((_, i) => i);
   const best = {};
   for (const win of PC_WINDOWS) {
-    if (arr.length < win) continue;
-    let sum = 0;
-    for (let i = 0; i < win; i++) sum += arr[i];
-    let mx = sum;
-    for (let i = win; i < arr.length; i++) { sum += arr[i] - arr[i - win]; if (sum > mx) mx = sum; }
-    best[win] = Math.round(mx / win);
+    const r = pcBestWindow(watts, T, win);
+    if (r) best[win] = Math.round(r.w);
   }
   return Object.keys(best).length ? best : null;
 }
@@ -52,21 +62,21 @@ function _pcBestFromStreams(watts, time) {
 // caller can stop; returns null when a ride has no usable power stream.
 async function _pcBestForRide(id) {
   const ck = 'strava_pcurve_' + id;
-  try { const c = localStorage.getItem(ck); if (c) { const o = JSON.parse(c); if (o && o.v === 2) return o.best; } } catch {}
+  try { const c = localStorage.getItem(ck); if (c) { const o = JSON.parse(c); if (o && o.v === 3) return o.best; } } catch {}
   let raw;
   try { raw = await api(`/activities/${id}/streams?keys=time,watts&key_by_type=true`); }
   catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) throw e; return null; }
   const watts = raw && raw.watts && raw.watts.data;
   const time = raw && raw.time && raw.time.data;
   const best = _pcBestFromStreams(watts, time);
-  try { localStorage.setItem(ck, JSON.stringify({ v: 2, best: best || null })); } catch {}
+  try { localStorage.setItem(ck, JSON.stringify({ v: 3, best: best || null })); } catch {}
   pcVer++;
   return best;
 }
 
 // A ride's cached bests ({5: W, 60: W, …}) or null when it hasn't been analysed.
 function pcRidePeaks(id) {
-  try { const o = JSON.parse(localStorage.getItem('strava_pcurve_' + id)); return o && o.v === 2 ? o.best : null; } catch { return null; }
+  try { const o = JSON.parse(localStorage.getItem('strava_pcurve_' + id)); return o && o.v === 3 ? o.best : null; } catch { return null; }
 }
 
 // The all-time curve rebuilt from every analysed power-meter ride (no fetching).
