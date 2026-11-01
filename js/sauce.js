@@ -343,11 +343,28 @@ function spSummary() {
   return { rides, best, fit, hr: top('hr', [60, 300, 1200]), spd: top('spd', [1200, 3600]), vam: top('vam', [600, 1200]), latest: rides[0] };
 }
 
-// Training-load hook: TSS from estimated NP for scanned rides, else null.
+// Estimated NP reads high: GPS speed jitter, raised to the 4th power, inflates
+// it. On the owner's six power-meter rides (21–31 Oct 2026) real NP was 0.65–0.81×
+// the estimate (median ~0.73), so TSS came out nearly 2× and older rides
+// inflated fitness (CTL). Calibrate against rides that have both a real NP and a
+// scan; until there are 3 of those, use the measured 0.73.
+let _spCal = null;
+function spNpCal() {
+  const list = typeof acts !== 'undefined' ? acts : [];
+  if (_spCal && _spCal.n === list.length) return _spCal.k;
+  const r = list.filter(a => a.device_watts === true && a.weighted_average_watts > 0)
+    .map(a => { const c = spRideCache(a.id); return c && c.np ? a.weighted_average_watts / c.np : null; })
+    .filter(x => x > 0.4 && x < 1.5).sort((x, y) => x - y);
+  const k = r.length >= 3 ? r[Math.floor(r.length / 2)] : 0.73;
+  _spCal = { n: list.length, k };
+  return k;
+}
+
+// Training-load hook: TSS from estimated NP (calibrated) for scanned rides, else null.
 function spRideLoad(a, ftp) {
   if (!_spEligible(a) || !(ftp > 0)) return null;
   const r = spRideCache(a.id);
-  const tss = r && r.np ? spTSS(r.np, r.secs, ftp) : null;
+  const tss = r && r.np ? spTSS(r.np * spNpCal(), r.secs, ftp) : null;
   return tss ? { load: tss, basis: 'estpower' } : null;
 }
 
