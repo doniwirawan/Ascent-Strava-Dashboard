@@ -83,7 +83,12 @@ async function loadData(forceRefresh = false) {
         // Silently refresh athlete profile; ignore token errors against cached data
         try {
           if (isTokenExpired()) await doRefresh();
+          const ftpBefore = (typeof estimateFtp === 'function') && (estimateFtp() || {}).value;
           renderAthlete(await api('/athlete'));
+          // cards above were drawn before the athlete's Strava FTP/weight arrived — redraw if FTP changed
+          if (typeof estimateFtp === 'function' && (estimateFtp() || {}).value !== ftpBefore) {
+            [renderTraining, typeof renderPower === 'function' && renderPower].forEach(fn => { try { fn && fn(); } catch (e) { console.error(e); } });
+          }
           // list was drawn before the athlete (and its bikes) loaded — redraw for bike labels
           _renderActList((document.getElementById('actSearch') || {}).value || '');
           await loadHrZones();
