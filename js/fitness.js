@@ -685,6 +685,7 @@ function speedZoneTotalsStreams(set) {
   let have = 0;
   set.forEach(a => {
     const h = store.acts[a.id];
+    if (a.manual || h === 0) return;   // no speed stream to read (manual, or checked: none) — not "missing"
     if (h) { for (let i = 0; i < 5; i++) totals[i] += h[i] || 0; have++; }
     else if (a.moving_time > 0) missing.push(a);
   });
@@ -694,20 +695,24 @@ function speedZoneTotalsStreams(set) {
 /* Fill in the rides that have no histogram yet. One API call each the first
    time (cached forever after), so it runs in explicit batches with progress
    rather than silently on load, and stops clean on a rate limit. */
-let _spdzFetching = false;
+let _spdzFetching = false, _spdzAutoTried = false;
 async function fetchSpeedZoneStreams(list, onProgress) {
   if (_spdzFetching) return { done: 0, limited: false };
   _spdzFetching = true;
   const store = _spdzLoad();
-  let done = 0, limited = false;
+  let done = 0, limited = false, fails = 0;
   try {
     for (const a of list) {
       if (onProgress) onProgress(done, list.length);
       let st;
       try { st = await _getActivityStreams(a.id); }
       catch (e) { if (/ 429 /.test(' ' + ((e && e.message) || '') + ' ')) { limited = true; break; } continue; }
-      const h = st && _spdzHist(st, a.moving_time);
-      if (h) { store.acts[a.id] = h; done++; }
+      // _getActivityStreams returns null on any API error — a run of them means rate limit / offline
+      if (!st) { if (++fails >= 3) { limited = true; break; } continue; }
+      fails = 0;
+      const h = _spdzHist(st, a.moving_time);
+      store.acts[a.id] = h || 0;   // 0 = streams fetched but no speed (indoor) — don't retry forever
+      if (h) done++;
       if (done % 10 === 0) _spdzSave();
     }
   } finally { _spdzSave(); _spdzFetching = false; }
@@ -781,6 +786,12 @@ function renderOverviewSpeedZones() {
     if (r.limited) setStatus(tr('Strava rate limit reached — analyse the rest in 15 minutes.'));
     renderOverviewSpeedZones();
   };
+  // A few new activities (the usual case after a ride) are analysed on their own,
+  // once per page load; a big backlog still waits for the button.
+  if (btn && left <= 30 && !_spdzAutoTried && !_spdzFetching) {
+    _spdzAutoTried = true;
+    btn.click();
+  }
 }
 
 /* ── TIME IN POWER ZONES ─────────────────────────────────────────────────────
