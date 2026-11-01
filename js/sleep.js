@@ -2673,31 +2673,62 @@ async function renderActivitySleep(a) {
 }
 
 /* ── DAILY READINESS ─────────────────────────────────────────────────────────
-   Owner-only Whoop/Oura-style readiness on the Overview: blends last recorded
-   night's sleep score, HRV and RHR vs your own baseline, and current training
-   freshness (reusing the Training load model). Honest about staleness — it is
-   anchored to the last night on file. ── */
+   Owner-only Whoop/Oura-style readiness on the Overview: blends last night's
+   sleep score, HRV and RHR vs your own baseline, and current training
+   freshness (reusing the Training load model). Huawei sleep isn't synced every
+   day, so when the last night on file is older than yesterday it says nothing
+   about today — the score then comes from the last session (when it ended and
+   how hard it was) plus training freshness instead. ── */
+
+// Last session: when it started/ended, its load, and how recovered you are
+// from it now. Recovery time scales with load (~28 h after a 100-TSS ride) and
+// stretches further when the ride is big for your fitness — a 330-TSS day on a
+// CTL of 44 takes ~5 days to clear fully, not the ~2.5 a fit rider would need.
+function _rdyLastSession(ctl) {
+  const list = (typeof acts !== 'undefined' ? acts : []).filter(a => a.start_date && (a.elapsed_time || a.moving_time));
+  if (!list.length) return null;
+  const dur = a => a.elapsed_time || a.moving_time;
+  const endOf = a => Date.parse(a.start_date) + dur(a) * 1000;
+  const a = list.reduce((m, x) => endOf(x) > endOf(m) ? x : m);
+  const ftp = ((typeof estimateFtp === 'function' && estimateFtp()) || {}).value || 0;
+  const hrMax = (typeof observedMaxHr === 'function' && observedMaxHr()) || 0;
+  const ld = (typeof _trActivityLoad === 'function' && _trActivityLoad(a, ftp, hrMax, window._ownerRestHr || 60)) || { load: 0 };
+  const hrs = Math.max(0, (Date.now() - endOf(a)) / 36e5);
+  const need = (12 + 0.16 * ld.load) * Math.max(1, Math.sqrt(ld.load / (2 * Math.max(ctl || 0, 20))));
+  const rec = Math.max(1, Math.min(99, Math.round(100 * (1 - Math.exp(-3 * hrs / need)))));
+  // When session recovery reaches 50 (easy ride OK) and 80 (hard session OK).
+  const at = pct => endOf(a) + (-need * Math.log(1 - pct / 100) / 3) * 36e5;
+  // start_date_local carries the local wall clock with a fake 'Z' — read it as UTC.
+  const loc = a.start_date_local || a.start_date;
+  const hm = ms => new Date(ms).toISOString().slice(11, 16);
+  return { hrs, rec, load: ld.load, easyAt: at(50), hardAt: at(80),
+    date: loc.slice(0, 10), start: hm(Date.parse(loc)), end: hm(Date.parse(loc) + dur(a) * 1000) };
+}
+
 async function renderReadiness() {
   const el = document.getElementById('readinessCard');
   if (!el) return;
   if (typeof _slpIsOwner === 'function' && !_slpIsOwner()) { el.style.display = 'none'; el.innerHTML = ''; return; }
   const T = (typeof tr === 'function') ? tr : (x => x);
-  let nights;
-  try { nights = await _slpLoad(); } catch { el.style.display = 'none'; return; }
+  let nights = [];
+  try { nights = await _slpLoad(); } catch {}
   const real = nights.filter(n => n.asleep >= 60);
-  if (!real.length) { el.style.display = 'none'; return; }
+  const last = real.length ? real[real.length - 1] : null;
+  // A night is dated by the morning you woke up, so today's or yesterday's still counts.
+  const sleepFresh = !!last && last.date >= _trAddDays(_trToday(), -1);
+  let trainRec = null, series = null, ctl = 0;
+  try { const d = (typeof _trBuildSeries === 'function') ? _trBuildSeries() : null; const r = d ? _trRecovery(d) : null; if (r) { trainRec = r.recovery; series = d.series; ctl = d.ctl; } } catch {}
+  const sess = sleepFresh ? null : _rdyLastSession(ctl);
+  if (!sleepFresh && !sess) { el.style.display = 'none'; return; }
 
-  const last = real[real.length - 1];
-  const sleepScore = _slpNightScore(last);
+  const sleepScore = sleepFresh ? _slpNightScore(last) : null;
   // Body signals come from the per-night recovery score (HRV + RHR vs your
   // previous 30 days, plus a little sleep); sleep alone only when it's missing.
-  const recMap = _slpRecoveryMap(nights), rec = recMap.get(last.date) || null;
+  const recMap = _slpRecoveryMap(nights), rec = sleepFresh ? (recMap.get(last.date) || null) : null;
   const hrvBase = rec && rec.hrvBase;
 
-  const comps = [rec ? ['rec', rec.score, 0.75] : ['sleep', sleepScore, 0.75]];
-  let trainRec = null;
-  try { const d = (typeof _trBuildSeries === 'function') ? _trBuildSeries() : null; const r = d ? _trRecovery(d) : null; if (r) trainRec = r.recovery; } catch {}
-  if (trainRec != null) comps.push(['load', trainRec, 0.25]);
+  const comps = sleepFresh ? [rec ? ['rec', rec.score, 0.75] : ['sleep', sleepScore, 0.75]] : [['session', sess.rec, 0.5]];
+  if (trainRec != null) comps.push(['load', trainRec, sleepFresh ? 0.25 : 0.5]);
   const wsum = comps.reduce((s, c) => s + c[2], 0);
   const readiness = Math.round(comps.reduce((s, c) => s + c[1] * c[2], 0) / wsum);
 
@@ -2706,21 +2737,27 @@ async function renderReadiness() {
                                : { c: '#ff0026', l: T('Rest'), advice: T('Prioritise recovery today; the signals are low.') };
 
   const chip = (ico, label, val, extra) => '<span class="rdy-chip"><b>' + ico + ' ' + val + '</b>' + (extra ? '<small>' + extra + '</small>' : '') + '<small>' + label + '</small></span>';
-  const hrvTrend = (last.hrv != null && hrvBase) ? (last.hrv >= hrvBase ? '↑' : '↓') : '';
-  const chips = [
+  const ago = sess ? (sess.hrs < 48 ? trf('{0} h ago', Math.round(sess.hrs)) : trf('{0} d ago', Math.floor(sess.hrs / 24))) : '';
+  const hrvTrend = (sleepFresh && last.hrv != null && hrvBase) ? (last.hrv >= hrvBase ? '↑' : '↓') : '';
+  const chips = (sleepFresh ? [
     chip('🌙', T('Sleep'), sleepScore, _slpHM(last.asleep)),
     rec ? chip('🔋', T('Recovery'), rec.score, '') : '',
     (last.hrv != null) ? chip('📈', 'HRV', last.hrv + hrvTrend, 'ms') : '',
     (last.rhr != null) ? chip('❤️', T('Resting HR'), last.rhr, 'bpm') : '',
+  ] : [chip('🕒', T('Since last session'), sess.rec, ago)]).concat([
     (trainRec != null) ? chip('🚴', T('Freshness'), trainRec, '') : '',
-  ].filter(Boolean).join('');
+  ]).filter(Boolean).join('');
 
   const ring = (typeof _trRingSVG === 'function')
     ? _trRingSVG(readiness / 100, band.c, 116, 12)
     : '<div class="rdy-num-fallback">' + readiness + '</div>';
 
-  // 14-night sparkline: each night's recovery score (sleep score if it has none).
-  const sparkVals = real.slice(-14).map(n => { const r = recMap.get(n.date); return r ? r.score : _slpNightScore(n); });
+  // 14-point sparkline: each night's recovery score (sleep score if it has none),
+  // or — without fresh sleep — each day's training freshness (same maths as _trRecovery).
+  const dayFresh = p => (100 / (1 + Math.exp(-p.tsb / 12)) + 100 / (1 + Math.exp(((p.stl || 0) / Math.max(p.ctl, 10) - 0.85) * 5))) / 2;
+  const sparkVals = sleepFresh
+    ? real.slice(-14).map(n => { const r = recMap.get(n.date); return r ? r.score : _slpNightScore(n); })
+    : (series || []).slice(-14).map(dayFresh);
   const spark = _rdySpark(sparkVals, band.c);
 
   // Smarter suggestion: fold in how long since your last hard effort.
@@ -2747,6 +2784,18 @@ async function renderReadiness() {
   }
   if (rec && rec.unwell) note = '⚠️ ' + trf('Possibly unwell: long sleep, but HRV {0} ms (usually {1}) and resting HR {2} bpm (usually {3}).', last.hrv, rec.hrvBase, last.rhr, rec.rhrBase);
 
+  // Without fresh sleep, say when you can go again (from the last session's end + load).
+  if (sess) {
+    const when = ms => ms <= Date.now() ? T('now')
+      : new Date(ms).toLocaleString(window.LANG === 'id' ? 'id-ID' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    note += ' ' + trf('Easy ride: {0} · hard session: {1}.', when(sess.easyAt), when(sess.hardAt));
+  }
+
+  const asof = sleepFresh
+    ? T('Based on your last recorded night') + ' · ' + _slpDt(last.date)
+    : T('Based on your last session') + ' · ' + _slpDt(sess.date) + ', ' + sess.start + '–' + sess.end
+      + (last ? ' · ' + trf('sleep data runs to {0}', _slpDt(last.date)) : '');
+
   // Only reveal it if the Overview is still the section on screen — this render
   // is async, so the user may have navigated elsewhere while sleep data loaded.
   el.style.display = (typeof isOverviewVisible === 'function' && !isOverviewVisible()) ? 'none' : '';
@@ -2756,9 +2805,9 @@ async function renderReadiness() {
     + '<div class="rdy-body">'
     +   '<div class="rdy-h">' + T('Readiness') + ' · <span style="color:' + band.c + '">' + band.l + '</span></div>'
     +   '<div class="rdy-chips">' + chips + '</div>'
-    +   (spark ? '<div class="rdy-spark-wrap">' + spark + '<span class="rdy-spark-lbl">' + T('last 14 nights') + '</span></div>' : '')
+    +   (spark ? '<div class="rdy-spark-wrap">' + spark + '<span class="rdy-spark-lbl">' + T(sleepFresh ? 'last 14 nights' : 'last 14 days') + '</span></div>' : '')
     +   '<div class="rdy-note">' + note + '</div>'
-    +   '<div class="rdy-asof">' + T('Based on your last recorded night') + ' · ' + _slpDt(last.date) + '</div>'
+    +   '<div class="rdy-asof">' + asof + '</div>'
     + '</div>'
     + '</div>';
   // Day Strain shares this row — re-run it now that the markup above exists.
