@@ -149,6 +149,9 @@
 .actd-stream-modes button { background: var(--surface2); color: var(--muted); border: 0; font-size: 11px; font-weight: 600; padding: 4px 10px; cursor: pointer; text-transform: none; letter-spacing: 0; }
 .actd-stream-modes button.on { background: var(--orange); color: #fff; }
 .actd-stream-overlay { padding: 12px; }
+.actd-stream-checks { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -2px 0 10px; font-size: 12px; color: var(--text-2); }
+.actd-stream-checks label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.ech-box { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 
 /* Segment big-map modal */
 .segmap-modal { max-width: 900px; gap: 14px; }

@@ -969,6 +969,7 @@ function openActivityModal(ref){
 
 function closeActivityModal(){
   document.getElementById('actModal').classList.remove('open');
+  if(typeof _echDispose==='function') _echDispose();
   if(_actBigMap){try{_actBigMap.remove();}catch{} _actBigMap=null;}
 }
 document.getElementById('actModal').addEventListener('click', e=>{ if(e.target.id==='actModal') closeActivityModal(); });
@@ -1052,6 +1053,11 @@ function setStreamMode(m){
 }
 
 async function renderActivityStreams(a){
+  // Settings → Charts: ECharts track analysis (js/act-echarts.js) unless the classic view is chosen
+  if(typeof renderActivityEcharts==='function' && chartEngine()==='echarts') return renderActivityEcharts(a);
+  return _renderActivityStreamsChartjs(a);
+}
+async function _renderActivityStreamsChartjs(a){
   const wrap=document.getElementById('actStreams');
   if(!wrap) return;
   _curRide=isRide(a); _curStreams=null;

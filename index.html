@@ -988,6 +988,17 @@
         <div id="viewSettings" class="view-settings"></div>
       </div>
       <div class="help-card">
+        <h3>Charts</h3>
+        <p class="ai-intro">Which charts the activity detail uses for speed, heart rate, cadence, elevation and power. Saved on this device only.</p>
+        <div class="ai-provider">
+          <label for="chartEngine">Activity charts</label>
+          <select id="chartEngine" class="ai-select">
+            <option value="echarts">Track analysis (ECharts): linked panels, time/distance, map cursor</option>
+            <option value="chartjs">Classic (Chart.js): separate or overlay</option>
+          </select>
+        </div>
+      </div>
+      <div class="help-card">
         <h3>AI provider</h3>
         <p class="ai-intro">Choose which AI analyses your data in the AI Coach, and paste your own API key below. Everything here is saved on this device only — your key never leaves your browser except to call the provider through this app.</p>
         <div class="ai-provider">
@@ -1405,6 +1416,7 @@
 <script src="js/auth.js"></script>
 <script src="js/render-overview.js"></script>
 <script src="js/render-charts.js"></script>
+<script src="js/act-echarts.js"></script>
 <script src="js/render-sections.js"></script>
 <script src="js/map3d.js"></script>
 <script src="js/video3d.js"></script>

@@ -744,6 +744,9 @@ const TR_ID = {
   'Prioritise recovery today; the signals are low.': 'Utamakan pemulihan hari ini; sinyalnya rendah.',
   'Based on your last recorded night': 'Berdasarkan malam terakhir yang tercatat', 'Sleep': 'Tidur',
   'last 14 nights': '14 malam terakhir',
+  // Activity track analysis (act-echarts.js)
+  'Track analysis': 'Analisis trek', 'Speed': 'Kecepatan', 'Time': 'Waktu', 'Average': 'Rata-rata', 'Max': 'Maks', 'Stopped': 'Berhenti',
+  'Heart Rate': 'Detak jantung', 'Cadence': 'Kadens', 'Temp': 'Suhu', 'Loading stream data…': 'Memuat data stream…',
   'last 14 days': '14 hari terakhir', 'Since last session': 'Sejak sesi terakhir', '{0} h ago': '{0} jam lalu', '{0} d ago': '{0} hari lalu',
   'Based on your last session': 'Berdasarkan sesi terakhir', 'now': 'sekarang',
   'Easy ride: {0} · hard session: {1}.': 'Gowes santai: {0} · sesi berat: {1}.',
