@@ -10,7 +10,8 @@
 //
 // Tokens are random, shown once, and stored only as a SHA-256 hash in the
 // Supabase table api_tokens (RLS on, no policies: service-role only). Revoked
-// tokens stop working immediately. Everything is read-only and never cached.
+// tokens stop working immediately. Read-only except two narrow writes (sleep nights, the GPS-glitch
+// note in a Strava description); nothing is cached.
 // API.md has the full reference.
 //
 // Required env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OWNER_ATHLETE_ID.
@@ -45,10 +46,12 @@ async function neon(id) {
 
 // Live Strava calls with the owner's own token (memoised per warm instance).
 let stravaTok = { at: 0, t: null };
-async function strava(path) {
+async function strava(path, put) {
   if (!stravaTok.t || Date.now() - stravaTok.at > 3600000) stravaTok = { at: Date.now(), t: await ownerAccessToken() };
   if (!stravaTok.t) throw new HttpError(502, 'strava_unavailable');
-  const r = await fetch('https://www.strava.com/api/v3' + path, { headers: { Authorization: 'Bearer ' + stravaTok.t } });
+  const r = await fetch('https://www.strava.com/api/v3' + path, put
+    ? { method: 'PUT', headers: { Authorization: 'Bearer ' + stravaTok.t, 'Content-Type': 'application/json' }, body: JSON.stringify(put) }
+    : { headers: { Authorization: 'Bearer ' + stravaTok.t } });
   if (r.status === 404) throw new HttpError(404, 'not_found');
   if (r.status === 429) throw new HttpError(429, 'strava_rate_limited');
   if (!r.ok) throw new HttpError(502, 'strava_unavailable', { status: r.status });
@@ -253,6 +256,22 @@ async function koms() {
   return { koms: list };
 }
 
+// Strava's API can't edit max_speed, so a GPS glitch gets a note in the
+// description instead — same text and tag as the web's GPS Fix page, any older
+// note line replaced. Only this note can be written, never free text.
+const GPS_NOTE_TAG = '⚠️ GPS glitch:';
+async function gpsNote(id, body) {
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+  const raw = +(body && body.raw), fixed = +(body && body.fixed);   // m/s
+  if (!(fixed > 0 && raw > fixed && raw < 200)) throw new HttpError(400, 'bad_request', { need: ['raw', 'fixed'], rule: '0 < fixed < raw < 200 m/s' });
+  const path = '/activities/' + encodeURIComponent(id);
+  const d = await strava(path);
+  const note = `${GPS_NOTE_TAG} recorded max ${(raw * 3.6).toFixed(1)} km/h → real max ≈ ${(fixed * 3.6).toFixed(1)} km/h (normalized in dashboard)`;
+  const desc = String(d.description || '').split('\n').filter(l => !l.includes(GPS_NOTE_TAG)).join('\n').replace(/\s+$/, '');
+  await strava(path, { description: desc ? desc + '\n\n' + note : note });
+  return { ok: true, note };
+}
+
 async function ai(sub) {
   if (sub === 'chats') return { chats: await sb('ai_chats?athlete_id=eq.' + encodeURIComponent(env('OWNER_ATHLETE_ID')) + '&select=id,title,ts,messages&order=ts.desc&limit=500') };
   return { activities: await sb('activity_ai?select=*') };
@@ -288,6 +307,7 @@ const INDEX = {
     'GET /api/v1/ai': 'AI analyses and captions per activity (GET /api/v1/ai/chats for coach chats)',
     'GET /api/v1/segments': 'Starred segments (GET /api/v1/segments/{id} for one, /segments/{id}/efforts for your effort history on it)',
     'GET /api/v1/koms': 'Your KOM / QOM / CR segments',
+    'POST /api/v1/activities/{id}/gps-note': 'Body {raw, fixed} in m/s — adds (or replaces) the GPS-glitch max-speed note in the Strava description',
     'GET /api/v1/app': 'Newest Android build: versionCode, versionName and a 10-minute download link',
   },
 };
@@ -295,8 +315,10 @@ const INDEX = {
 async function route(req, parts) {
   const [head, id, sub] = parts;
   if (head === 'tokens') return tokens(req, id);
-  // the one write: the Android app adding sleep nights from Health Connect
+  // writes: the Android app adding sleep nights from Health Connect
   if (head === 'sleep' && req.method === 'POST') { await requireApiToken(req); return saveSleep(req); }
+  // the app's GPS check: a glitch note in the Strava description
+  if (head === 'activities' && id && sub === 'gps-note' && req.method === 'POST') { await requireApiToken(req); return gpsNote(id, req.body); }
   if (req.method !== 'GET') throw new HttpError(405, 'method_not_allowed');
   await requireApiToken(req);
   const q = req.query || {};

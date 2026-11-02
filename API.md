@@ -188,9 +188,9 @@ curl -H "Authorization: Bearer asc_…" https://ascent-analytics.doniwirawan.xyz
 
 Responses are JSON, never cached (`Cache-Control: private, no-store`), and CORS is
 open (`*`) because auth is the bearer token, not cookies. Keep tokens out of public
-code — anyone holding one can read everything below.
+code — anyone holding one can read everything below and make the two writes.
 
-## Endpoints (all `GET`)
+## Endpoints (`GET` unless marked)
 
 | Path | Returns |
 |---|---|
@@ -201,7 +201,8 @@ code — anyone holding one can read everything below.
 | `/stats` | Totals, YTD, last 7/30 days, bests, by month / sport, calendar, streak, fitness |
 | `/strava-stats` | Strava's own all-time / YTD / 4-week totals |
 | `/sleep` | Sleep nights (Huawei export + the Android app's Health Connect sync): `{ cols, rows, … }` |
-| `POST /sleep` | The one write: `{ source, nights: [{ date, asleep, deep, light, rem, wake, nap, wakeups, bed, up, tib, eff, napt, steps, dist, cal }] }` (minutes; `bed`/`up` local hours, bed negative before midnight; a night is dated by the morning you woke). New nights are added, nights from the Huawei export are never overwritten, nights an earlier app sync wrote are replaced. |
+| `POST /sleep` | Write: `{ source, nights: [{ date, asleep, deep, light, rem, wake, nap, wakeups, bed, up, tib, eff, napt, steps, dist, cal }] }` (minutes; `bed`/`up` local hours, bed negative before midnight; a night is dated by the morning you woke). New nights are added, nights from the Huawei export are never overwritten, nights an earlier app sync wrote are replaced. |
+| `POST /activities/{id}/gps-note` | Write: `{ raw, fixed }` max speeds in m/s (`0 < fixed < raw < 200`). Adds `⚠️ GPS glitch: recorded max … km/h → real max ≈ … km/h` to the Strava description, replacing an older note line; nothing else in the activity changes. Returns `{ ok, note }`. |
 | `/huawei` | Huawei workouts (no tracks); `/huawei/{record_id}` for one with its track |
 | `/purchases?category=Cycling&after=&before=&cancelled=1` | Purchases from the finance app; cancelled orders hidden unless `cancelled=1` |
 | `/bikes` | Each bike with the parts assigned to it and what they cost |
