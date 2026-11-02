@@ -76,7 +76,8 @@ Settings:
 
 Stays web-only: landing page, Strava login, PWA install, save page as image, GPX repair
 editor, Personal API token management and webhook settings (need the Strava login), Huawei
-export upload (the watch link replaces it).
+export upload (the watch link replaces it), Power meter vs estimate (the app has no physics
+power estimate — its load goes real power → Relative Effort — and no gear weights via the API).
 
 - [x] Watch → Ascent sends everything the watch link stores: sleep, steps, resting HR, calories, distance, heart-rate low/high, SpO2 avg/low, HRV (night + day low/high); the API fills empty columns of export nights (3.30). The watch link stores no daily stress score.
 
