@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "test": "node --test tests/"
   },
   "dependencies": {
     "@vercel/functions": "^1.6.0",
