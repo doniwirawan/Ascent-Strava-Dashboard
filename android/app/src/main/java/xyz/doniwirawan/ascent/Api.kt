@@ -34,15 +34,22 @@ object Api {
     }
 
     /** GET /api/v1/<path>. Throws with a message meant for the screen. */
-    fun get(ctx: Context, path: String): JSONObject {
+    fun get(ctx: Context, path: String): JSONObject = send(ctx, path, null)
+
+    /** POST /api/v1/<path> with a JSON body (the API's few writes). Not cached. */
+    fun post(ctx: Context, path: String, body: JSONObject): JSONObject = send(ctx, path, body)
+
+    private fun send(ctx: Context, path: String, body: JSONObject?): JSONObject {
         val token = token(ctx)
         if (!token.startsWith("asc_")) throw IllegalStateException("Add your Personal API token first.")
         val c = (URL(BuildConfig.API_BASE.trimEnd('/') + if (path.isEmpty()) "" else "/$path").openConnection() as HttpURLConnection).apply {
             connectTimeout = 10_000
             readTimeout = 30_000
             setRequestProperty("Authorization", "Bearer $token")
+            if (body != null) { requestMethod = "POST"; doOutput = true; setRequestProperty("Content-Type", "application/json") }
         }
         try {
+            if (body != null) c.outputStream.use { it.write(body.toString().toByteArray()) }
             val code = c.responseCode
             val text = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() } ?: ""
             if (code == 401) throw IllegalStateException("Token not accepted — make a new one in the dashboard: Settings → Personal API.")
@@ -50,7 +57,7 @@ object Api {
                 val err = try { JSONObject(text).optString("error") } catch (e: Exception) { "" }
                 throw IllegalStateException("Server error $code${if (err.isNotEmpty()) " ($err)" else ""}")
             }
-            cacheFile(ctx, path).apply { parentFile?.mkdirs() }.writeText(text)
+            if (body == null) cacheFile(ctx, path).apply { parentFile?.mkdirs() }.writeText(text)
             return JSONObject(text)
         } finally {
             c.disconnect()

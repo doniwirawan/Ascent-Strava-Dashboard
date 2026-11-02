@@ -393,6 +393,14 @@ class ScreensTest {
         GpsCheck.load(app)
         val fixed = Screens.list(org.json.JSONArray(listOf(act(1, "Ride", 30.0, 60, "2026-10-01").put("max_speed", 30.0))))[0]
         assertEquals(15.0, fixed.optDouble("max_speed"), 0.0)
+        // a normalized ride offers the Strava description note; once noted, it says so and the button goes
+        GpsCheck.page(app)
+        assertTrue("Add the note on Strava (1)" in texts(app.findViewById(android.R.id.content)).toString())
+        java.io.File(app.filesDir, "maxfix.json").writeText("{\"1\":{\"raw\":30,\"fixed\":15,\"noted\":true}}")
+        GpsCheck::class.java.getDeclaredField("fixes").apply { isAccessible = true }.set(GpsCheck, null)
+        GpsCheck.load(app); GpsCheck.page(app)
+        val t2 = texts(app.findViewById(android.R.id.content)).toString()
+        assertTrue(t2, "noted on Strava" in t2 && "Add the note on Strava" !in t2)
     }
 
     @Test fun powerCurveMaths() {

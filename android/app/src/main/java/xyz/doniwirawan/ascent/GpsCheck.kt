@@ -58,6 +58,15 @@ object GpsCheck {
         return true
     }
 
+    /** Strava can't edit max_speed, so the API writes a GPS-glitch note into the description (POST /activities/{id}/gps-note). */
+    private fun pushNote(ctx: Context, id: String): Boolean {
+        val f = fixes?.optJSONObject(id) ?: return false
+        Api.post(ctx, "activities/$id/gps-note", JSONObject().put("raw", f.optDouble("raw")).put("fixed", f.optDouble("fixed")))
+        f.put("noted", true); save(ctx)
+        return true
+    }
+    private fun noteable(f: JSONObject?) = f != null && !f.optBoolean("noted") && f.optDouble("raw") > f.optDouble("fixed")
+
     private var busy = false
     private var note = ""
 
@@ -83,16 +92,36 @@ object GpsCheck {
         col.addView(Ui.text(a, "${bad.size} activities with a top speed above 65 km/h — a GPS glitch. Normalizing reads each ride's speed stream, removes the spikes and keeps the real top speed on this phone (records and charts use it).", 12f, Ui.MUTED))
         val todo = bad.filter { fixes?.has(it.optString("id")) != true }
         if (todo.isNotEmpty() && !busy) col.addView(a.button("Normalize all ${todo.size}") { run(todo) })
+        val unnoted = bad.filter { noteable(fixes?.optJSONObject(it.optString("id"))) }
+        if (unnoted.isNotEmpty() && !busy) col.addView(a.button("Add the note on Strava (${unnoted.size})") {
+            android.app.AlertDialog.Builder(a).setTitle("Add a GPS-glitch note?")
+                .setMessage("Adds a line to the Strava description of ${unnoted.size} ${if (unnoted.size == 1) "activity" else "activities"}. Only the description text changes — the activity, its date, kudos and comments stay untouched.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Add note") { _, _ ->
+                    busy = true; note = "Adding notes…"; a.show("more:gps")
+                    Thread {
+                        var done = 0; var failed = 0
+                        unnoted.forEach { x -> if (runCatching { pushNote(a, x.optString("id")) }.getOrDefault(false)) done++ else failed++ }
+                        busy = false
+                        note = "Noted $done on Strava." + if (failed > 0) " $failed failed (Strava's limit, or the ride is gone)." else ""
+                        a.ui.post { a.show("more:gps") }
+                    }.start()
+                }.show()
+        })
         col.addView(Ui.card(a).apply {
             bad.forEachIndexed { i, x ->
                 if (i > 0) addView(Ui.divider(a))
                 val f = fixes?.optJSONObject(x.optString("id"))
                 addView(Ui.row(a, x.optString("name"), Ui.kmh(raw(x)) + (f?.let { " → " + Ui.kmh(it.optDouble("fixed")) } ?: ""),
-                    Ui.date(x.optString("start_date_local")) + if (f != null) " · normalized" else " · tap to normalize").apply {
+                    Ui.date(x.optString("start_date_local")) + when {
+                        f == null -> " · tap to normalize"
+                        f.optBoolean("noted") -> " · normalized · noted on Strava"
+                        else -> " · normalized"
+                    }).apply {
                     setOnClickListener { if (f == null) run(listOf(x)) else a.openRide(x) }
                 })
             }
         })
-        col.addView(Ui.text(a, "Adding a note to the Strava description, and the GPX repair tool, are on the web dashboard's GPS Fix page.", 11f, Ui.MUTED))
+        col.addView(Ui.text(a, "Strava can't change a top speed, so the note goes in the description instead. The GPX repair tool is on the web dashboard's GPS Fix page.", 11f, Ui.MUTED))
     }
 }
