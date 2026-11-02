@@ -11,7 +11,7 @@
 // Tokens are random, shown once, and stored only as a SHA-256 hash in the
 // Supabase table api_tokens (RLS on, no policies: service-role only). Revoked
 // tokens stop working immediately. Read-only except narrow writes (sleep nights, the GPS-glitch
-// note, an AI re-caption of one activity); nothing is cached.
+// note, an AI re-caption, a Huawei-only workout upload); nothing is cached.
 // API.md has the full reference.
 //
 // Required env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OWNER_ATHLETE_ID.
@@ -46,12 +46,14 @@ async function neon(id) {
 
 // Live Strava calls with the owner's own token (memoised per warm instance).
 let stravaTok = { at: 0, t: null };
-async function strava(path, put) {
+// With a body it writes (PUT by default); a FormData body goes as multipart.
+async function strava(path, body, method = 'PUT') {
   if (!stravaTok.t || Date.now() - stravaTok.at > 3600000) stravaTok = { at: Date.now(), t: await ownerAccessToken() };
   if (!stravaTok.t) throw new HttpError(502, 'strava_unavailable');
-  const r = await fetch('https://www.strava.com/api/v3' + path, put
-    ? { method: 'PUT', headers: { Authorization: 'Bearer ' + stravaTok.t, 'Content-Type': 'application/json' }, body: JSON.stringify(put) }
-    : { headers: { Authorization: 'Bearer ' + stravaTok.t } });
+  const auth = { Authorization: 'Bearer ' + stravaTok.t };
+  const r = await fetch('https://www.strava.com/api/v3' + path, !body ? { headers: auth }
+    : body instanceof FormData ? { method, headers: auth, body }
+    : { method, headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (r.status === 404) throw new HttpError(404, 'not_found');
   if (r.status === 429) throw new HttpError(429, 'strava_rate_limited');
   if (!r.ok) throw new HttpError(502, 'strava_unavailable', { status: r.status });
@@ -200,13 +202,59 @@ async function sleep() {
   try { return require('../private/sleep.json'); } catch { throw new HttpError(404, 'no_sleep_data'); }
 }
 
-const HUAWEI_COLS = 'record_id,sport_type,sport,start_time,end_time,tz,duration_s,distance_m,climb_m,min_alt_m,max_alt_m,avg_hr,max_hr,calories,steps,polyline,start_latlng,strava_id,strava_kind';
+const HUAWEI_COLS = 'record_id,sport_type,sport,start_time,end_time,tz,duration_s,distance_m,climb_m,min_alt_m,max_alt_m,avg_hr,max_hr,calories,steps,polyline,start_latlng,strava_id,strava_kind,hr_samples';
 async function huawei(id) {
   const base = 'huawei_workouts?athlete_id=eq.' + encodeURIComponent(env('OWNER_ATHLETE_ID'));
   if (!id) return { workouts: await sb(base + '&select=' + HUAWEI_COLS + '&order=start_time.desc') };
   const [row] = await sb(base + '&record_id=eq.' + encodeURIComponent(id) + '&select=*');
   if (!row) throw new HttpError(404, 'not_found');
   return { workout: row };
+}
+
+// Send a Huawei-only workout to Strava — the web Activities-page flow, with the
+// same builders (js/huawei-upload.js): a GPX with GPS, a TCX with heart rate
+// only, else a manual activity; then the sport and the watch-stats line, and
+// the workout is linked to its new activity. Only workouts not on Strava yet.
+async function huaweiUpload(id, body) {
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+  const hw = require('../js/huawei-upload.js');
+  const one = 'huawei_workouts?athlete_id=eq.' + encodeURIComponent(env('OWNER_ATHLETE_ID')) + '&record_id=eq.' + encodeURIComponent(id);
+  const [w] = await sb(one + '&select=*');
+  if (!w) throw new HttpError(404, 'not_found');
+  if (w.strava_id) throw new HttpError(409, 'already_on_strava', { strava_id: w.strava_id, kind: w.strava_kind });
+  const name = String((body && body.name) || '').trim().slice(0, 100) || hw._hwDefaultName(w);
+  const [sport, trainer] = hw._hwSport(w);
+  let res;
+  if (w.polyline || w.hr_samples > 0) {
+    const track = w.track, gps = !!w.polyline, ext = gps ? 'gpx' : 'tcx';
+    if (!track || !track.rows || track.rows.length < 2) throw new HttpError(422, 'no_track');
+    const tag = 'huawei-' + String(w.record_id).replace(/\W/g, '');
+    const fd = new FormData();
+    fd.append('file', new Blob([gps ? hw._hwGpx(w, name, track) : hw._hwTcx(w, track)], { type: 'application/xml' }), tag + '.' + ext);
+    fd.append('data_type', ext); fd.append('name', name); fd.append('external_id', tag);
+    let up = await strava('/uploads', fd, 'POST');
+    // Strava processes uploads asynchronously — poll until it has an activity
+    for (let i = 0; i < 40 && !up.activity_id && !up.error; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      up = await strava('/uploads/' + up.id_str);
+    }
+    if (up.error) {
+      const dup = /duplicate of .*?activities\/(\d+)/.exec(up.error);
+      if (!dup) throw new HttpError(422, 'upload_rejected', { detail: String(up.error).replace(/<[^>]+>/g, '').trim() });
+      res = { id: dup[1], kind: 'file', duplicate: true };          // already on Strava — just link it
+    } else {
+      if (!up.activity_id) throw new HttpError(504, 'strava_still_processing');
+      await strava('/activities/' + up.activity_id, { sport_type: sport, trainer: !!trainer, description: hw._hwDesc(w, null) });
+      res = { id: String(up.activity_id), kind: 'file' };
+    }
+  } else {
+    const a = await strava('/activities', { name, sport_type: sport, trainer: trainer ? 1 : 0,
+      start_date_local: hw._hwLocal(w.start_time, w.tz), elapsed_time: w.duration_s || Math.round((Date.parse(w.end_time) - Date.parse(w.start_time)) / 1000),
+      distance: w.distance_m || 0, description: hw._hwDesc(w, null) }, 'POST');
+    res = { id: String(a.id), kind: 'manual' };
+  }
+  await sb(one, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ strava_id: res.id, strava_kind: res.kind }) });
+  return { ok: true, strava_id: res.id, kind: res.kind, name, duplicate: !!res.duplicate };
 }
 
 async function purchases(q) {
@@ -321,6 +369,7 @@ const INDEX = {
     'GET /api/v1/koms': 'Your KOM / QOM / CR segments',
     'POST /api/v1/activities/{id}/gps-note': 'Body {raw, fixed} in m/s — adds (or replaces) the GPS-glitch max-speed note in the Strava description',
     'POST /api/v1/activities/{id}/caption': 'Rewrites the Strava title + description with AI (same as on upload); the private note is kept',
+    'POST /api/v1/huawei/{record_id}/upload': 'Body {name?} — sends a Huawei-only workout to Strava (GPX / TCX / manual) and links it',
     'GET /api/v1/app': 'Newest Android build: versionCode, versionName and a 10-minute download link',
   },
 };
@@ -334,6 +383,8 @@ async function route(req, parts) {
   if (head === 'activities' && id && sub === 'gps-note' && req.method === 'POST') { await requireApiToken(req); return gpsNote(id, req.body); }
   // the app's bulk caption rewrite, one activity per call
   if (head === 'activities' && id && sub === 'caption' && req.method === 'POST') { await requireApiToken(req); return recaption(id); }
+  // the app sending a Huawei-only workout to Strava
+  if (head === 'huawei' && id && sub === 'upload' && req.method === 'POST') { await requireApiToken(req); return huaweiUpload(id, req.body); }
   if (req.method !== 'GET') throw new HttpError(405, 'method_not_allowed');
   await requireApiToken(req);
   const q = req.query || {};

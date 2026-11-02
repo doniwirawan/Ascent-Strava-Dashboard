@@ -215,3 +215,6 @@ async function renderHuaweiCard(force) {
     };
   });
 }
+
+// Also loaded by api/_v1.js (the app's upload), hence the guarded export of the pure builders.
+if (typeof module !== 'undefined') module.exports = { HW_SPORT, _hwSport, _hwLocal, _hwDefaultName, _hwGpx, _hwTcx, _hwDesc };
