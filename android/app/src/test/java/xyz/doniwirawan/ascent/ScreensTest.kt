@@ -403,6 +403,26 @@ class ScreensTest {
         assertTrue(t2, "noted on Strava" in t2 && "Add the note on Strava" !in t2)
     }
 
+    @Test fun captionsPicksDefaultTitles() {
+        assertTrue(Captions.isDefaultTitle("Morning Ride") && Captions.isDefaultTitle("Bersepeda Sore") && Captions.isDefaultTitle("Evening Gravel Ride"))
+        assertTrue(!Captions.isDefaultTitle("Rode out to Tanah Lot") && !Captions.isDefaultTitle("Morning Ride with Ana"))
+        cache("activities?limit=500", JSONObject().put("activities", org.json.JSONArray(listOf(
+            act(1, "Ride", 30.0, 60, "2026-10-01").put("name", "Morning Ride"),
+            act(2, "Ride", 30.0, 60, "2026-10-02").put("name", "Rode out to Tanah Lot")))))
+        Captions.page(app)
+        val root = app.findViewById<ViewGroup>(android.R.id.content)
+        val t = texts(root).toString()
+        assertTrue(t, "Morning Ride" in t && "Tanah Lot" !in t && "Rewrite 1 with AI" !in t)
+        // tapping a row selects it in place and shows the rewrite button
+        fun find(v: View, s: String): View? = when {
+            v is ViewGroup && v.childCount > 0 && v.getChildAt(0) is ViewGroup && texts(v.getChildAt(0)).firstOrNull() == s && v.hasOnClickListeners() -> v
+            v is ViewGroup -> (0 until v.childCount).firstNotNullOfOrNull { find(v.getChildAt(it), s) }
+            else -> null
+        }
+        find(root, "Morning Ride")!!.performClick()
+        assertTrue("Rewrite 1 with AI" in texts(root).toString() && "✓" in texts(root))
+    }
+
     @Test fun powerCurveMaths() {
         val w = DoubleArray(3600) { if (it in 1000 until 1030) 600.0 else 200.0 }
         val b = PowerCurve.bests(w, null)

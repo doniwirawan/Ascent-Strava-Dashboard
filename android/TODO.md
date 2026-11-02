@@ -69,7 +69,7 @@ Needs a new route in api/_v1.js:
 - [x] P19. AI insight on each page — every app page (3.20; through the app's own AI key)
 - [ ] P19b. Writes back to Strava (write routes in _v1.js):
   - [x] GPS-glitch note in the description — More → GPS check (3.35; POST /api/v1/activities/{id}/gps-note)
-  - [ ] bulk AI caption rewrite
+  - [x] bulk AI caption rewrite — More → Captions (3.36; POST /api/v1/activities/{id}/caption, the webhook's pipeline)
   - [ ] Huawei-only upload
 - [x] P20. Share: stats image + social post — ride page buttons (3.22; the website's own drawing in the web view via ?stats= / ?social=, share sheet now sends every page + caption)
 
