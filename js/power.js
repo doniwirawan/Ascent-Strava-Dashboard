@@ -341,6 +341,7 @@ function renderPower() {
     ${typeof _trPowerCurveHTML === 'function' ? _trPowerCurveHTML() : ''}
     ${typeof _trClimbPowerHTML === 'function' ? _trClimbPowerHTML() : ''}
     ${typeof _trSauceHTML === 'function' ? _trSauceHTML() : ''}
+    ${typeof _trMeterCmpHTML === 'function' ? _trMeterCmpHTML() : ''}
     ${_pwRidesHTML(rides)}`;
   _pwDrawCharts(rides);
   _pwDrawCadence(rides);

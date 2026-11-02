@@ -349,12 +349,18 @@ function spSummary() {
 // inflated fitness (CTL). Calibrate against rides that have both a real NP and a
 // scan; until there are 3 of those, use the measured 0.73.
 let _spCal = null;
+// Power-meter rides that also have a physics scan → {a, c, k: real NP ÷ estimated NP}.
+// Ratios outside 0.4–1.5 are a broken scan or a meter dropout, not the model.
+function spMeterPairs() {
+  return (typeof acts !== 'undefined' ? acts : [])
+    .filter(a => a.device_watts === true && a.weighted_average_watts > 0)
+    .map(a => { const c = spRideCache(a.id); return c && c.np ? { a, c, k: a.weighted_average_watts / c.np } : null; })
+    .filter(p => p && p.k > 0.4 && p.k < 1.5);
+}
 function spNpCal() {
   const list = typeof acts !== 'undefined' ? acts : [];
   if (_spCal && _spCal.n === list.length) return _spCal.k;
-  const r = list.filter(a => a.device_watts === true && a.weighted_average_watts > 0)
-    .map(a => { const c = spRideCache(a.id); return c && c.np ? a.weighted_average_watts / c.np : null; })
-    .filter(x => x > 0.4 && x < 1.5).sort((x, y) => x - y);
+  const r = spMeterPairs().map(p => p.k).sort((x, y) => x - y);
   const k = r.length >= 3 ? r[Math.floor(r.length / 2)] : 0.73;
   _spCal = { n: list.length, k };
   return k;
@@ -464,6 +470,58 @@ async function computeSaucePower() {
   try { localStorage.setItem(SP_AGG_KEY, JSON.stringify({ v: SP_V, sig: _spSig(), partial: stopped })); } catch {}
   _spRunning = false;
   // Training load and the fitness chart read these rides now — redraw the page.
+  if (typeof renderTraining === 'function') renderTraining();
+  if (typeof renderPower === 'function') renderPower();
+}
+
+/* ── Power meter vs estimate: how far the physics model sits from real watts.
+   The median ratio is the factor spNpCal() applies to pre-meter rides' TSS. ── */
+const SP_CMP_MAX = 20;   // newest meter rides to scan — one stream call each
+function _spMeterRides() {
+  return (typeof acts === 'undefined' ? [] : acts)
+    .filter(a => _spEligible(a) && a.device_watts === true && a.weighted_average_watts > 0)
+    .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || '')).slice(0, SP_CMP_MAX);
+}
+function _spCmpMarkup(progress) {
+  const pairs = spMeterPairs().sort((x, y) => (y.a.start_date || '').localeCompare(x.a.start_date || ''));
+  const todo = _spMeterRides().filter(a => !spRideCache(a.id)).length;
+  const pct = k => Math.round((1 / k - 1) * 100);
+  let html = '';
+  if (pairs.length) {
+    const ks = pairs.map(p => p.k).sort((x, y) => x - y), k = spNpCal();
+    const using = ks.length >= 3;
+    html += `<div class="cp-row"><span class="cp-lbl">${tr('Estimate reads')}</span><span class="cp-w">${pct(k) >= 0 ? '+' : ''}${pct(k)}%</span><span class="cp-ctx">${trf('median NP over {0} {1} (range {2}% to {3}%)', pairs.length, tr(pairs.length === 1 ? 'ride' : 'rides'), pct(ks[ks.length - 1]), pct(ks[0]))}</span></div>`;
+    html += `<div class="cp-row"><span class="cp-lbl">${tr('Calibration')}</span><span class="cp-w">×${k.toFixed(2)}</span><span class="cp-ctx">${using ? tr('applied to estimated NP, so older rides without a meter count the right TSS') : tr('default until 3 rides are compared')}</span></div>`;
+    html += pairs.slice(0, 8).map(({ a, c, k: r }) =>
+      `<div class="cp-row"><span class="cp-lbl">${fmtDt(a.start_date_local || a.start_date)}</span><span class="cp-w">${Math.round(a.weighted_average_watts)} / ${c.np} W</span><span class="cp-ctx"><a href="#" onclick="openActivityModal('${a.id}');return false">${a.name || 'Ride'}</a> · ${tr('real / estimated NP')} · ${pct(r) >= 0 ? '+' : ''}${pct(r)}%</span></div>`).join('');
+  } else html += `<div class="tr-basis-note">${tr('Scan your power-meter rides to see how close the physics estimate gets to real watts.')}</div>`;
+  html += `<div class="tr-basis-note">${progress ? trf('Estimating… {0}', progress)
+    : tr('Same physics as the estimate for rides without a meter: speed, grade, your weight and your bike. GPS jitter makes it read high; the calibration corrects that.')}</div>`;
+  if (_spOwner() && todo && !progress) html += `<button class="tr-ai-btn" style="margin-top:10px" onclick="computeMeterCompare()">${trf('Compare {0} new {1}', todo, tr(todo === 1 ? 'ride' : 'rides'))}</button>`;
+  return html;
+}
+// Only with a power meter, and once there's something to show or scan.
+function _trMeterCmpHTML() {
+  if (!_spMeterRides().length) return '';
+  if (!spMeterPairs().length && !_spOwner()) return '';
+  return `<div class="card tr-pc tr-sp">
+    <div class="tr-chart-title">${tr('Power meter vs estimate')} <span class="gm-hint">${tr('how good the physics model is')}</span></div>
+    <div id="spCmpBody">${_spCmpMarkup()}</div>
+  </div>`;
+}
+async function computeMeterCompare() {
+  const body = document.getElementById('spCmpBody');
+  if (!body || _spRunning || !_spOwner()) return;
+  const todo = _spMeterRides().filter(a => !spRideCache(a.id));
+  _spRunning = true;
+  let done = 0;
+  body.innerHTML = _spCmpMarkup(`0/${todo.length}`);
+  for (const a of todo) {
+    try { await spRide(a); } catch { break; }   // 429: stop, the done rides are cached
+    body.innerHTML = _spCmpMarkup(`${++done}/${todo.length}`);
+  }
+  _spRunning = false;
+  _spCal = null;   // new pairs → new calibration → training load changes
   if (typeof renderTraining === 'function') renderTraining();
   if (typeof renderPower === 'function') renderPower();
 }

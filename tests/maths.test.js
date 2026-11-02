@@ -196,3 +196,17 @@ test('_trAddDays crosses months, leap days and years', () => {
   assert.equal(g._trAddDays('2026-12-31', 1), '2027-01-01');
   assert.equal(g._trAddDays('2026-03-01', -1), '2026-02-28');
 });
+
+test('meter calibration is the median real ÷ estimated NP, ignoring broken scans', () => {
+  const rides = [[180, 250], [190, 240], [170, 260], [200, 100]]   // last one: ratio 2.0 → dropped
+    .map(([real, est], i) => {
+      store['strava_sauce_' + (900 + i)] = JSON.stringify({ v: 1, np: est });
+      return { id: 900 + i, device_watts: true, weighted_average_watts: real };
+    });
+  ctx.acts = rides;
+  assert.equal(g.spMeterPairs().length, 3);
+  near(g.spNpCal(), 180 / 250, 1e-9);           // sorted 0.654, 0.72, 0.792 → 0.72
+  ctx.acts = rides.slice(0, 2);
+  assert.equal(g.spNpCal(), 0.73);               // under 3 pairs → default
+  delete ctx.acts;
+});
