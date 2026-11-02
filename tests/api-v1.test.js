@@ -16,7 +16,8 @@ global.fetch = async (url, init = {}) => {
   if (url === 'https://www.strava.com/oauth/token') return json({ access_token: 'a', refresh_token: 'r' });
   if (url === 'https://www.strava.com/api/v3/activities/42') {
     if (init.method === 'PUT') { const b = JSON.parse(init.body); puts.push(b); description = b.description; return json({}); }
-    return json({ description });
+    return json({ description, id: 42, name: 'Morning Ride', sport_type: 'Ride', type: 'Ride', distance: 40000, moving_time: 5400, elapsed_time: 6000,
+      total_elevation_gain: 300, average_speed: 7.4, max_speed: 14, start_date: '2026-10-30T23:00:00Z', start_date_local: '2026-10-31T07:00:00Z' });
   }
   return { ok: false, status: 404, json: async () => ({}), text: async () => '' };
 };
@@ -51,4 +52,16 @@ test('gps-note rejects bad numbers, missing tokens and GET', async () => {
   assert.equal((await call('activities/42/gps-note', 'POST', { raw: 30, fixed: 15 }, '')).code, 401);
   assert.equal((await call('activities/42/gps-note', 'PUT', { raw: 30, fixed: 15 })).code, 405);
   assert.equal(puts.length, n);
+});
+
+test('caption rewrites title + description through the webhook pipeline (stats fallback without an AI key)', async () => {
+  delete process.env.DEEPSEEK_API_KEY;
+  const n = puts.length;
+  const r = await call('activities/42/caption', 'POST', {});
+  assert.equal(r.code, 200, JSON.stringify(r.body));
+  assert.ok(r.body.ok && r.body.name);
+  const sent = puts.slice(n);
+  assert.ok(sent.length >= 1);
+  assert.ok(sent.every(b => !('private_note' in b)), 'the private note is never touched');
+  assert.equal(sent.at(-1).name, r.body.name);
 });

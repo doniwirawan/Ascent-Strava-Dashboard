@@ -188,7 +188,7 @@ curl -H "Authorization: Bearer asc_…" https://ascent-analytics.doniwirawan.xyz
 
 Responses are JSON, never cached (`Cache-Control: private, no-store`), and CORS is
 open (`*`) because auth is the bearer token, not cookies. Keep tokens out of public
-code — anyone holding one can read everything below and make the two writes.
+code — anyone holding one can read everything below and make the writes.
 
 ## Endpoints (`GET` unless marked)
 
@@ -203,6 +203,7 @@ code — anyone holding one can read everything below and make the two writes.
 | `/sleep` | Sleep nights (Huawei export + the Android app's Health Connect sync): `{ cols, rows, … }` |
 | `POST /sleep` | Write: `{ source, nights: [{ date, asleep, deep, light, rem, wake, nap, wakeups, bed, up, tib, eff, napt, steps, dist, cal }] }` (minutes; `bed`/`up` local hours, bed negative before midnight; a night is dated by the morning you woke). New nights are added, nights from the Huawei export are never overwritten, nights an earlier app sync wrote are replaced. |
 | `POST /activities/{id}/gps-note` | Write: `{ raw, fixed }` max speeds in m/s (`0 < fixed < raw < 200`). Adds `⚠️ GPS glitch: recorded max … km/h → real max ≈ … km/h` to the Strava description, replacing an older note line; nothing else in the activity changes. Returns `{ ok, note }`. |
+| `POST /activities/{id}/caption` | Write: rewrites the Strava title and description with AI — the same pipeline as the upload webhook (server AI key, falls back to a stats caption; only the destination is ever named). The private note is kept. Returns `{ ok, outcome, name }`; `502 caption_failed` with `detail` when it couldn't. |
 | `/huawei` | Huawei workouts (no tracks); `/huawei/{record_id}` for one with its track |
 | `/purchases?category=Cycling&after=&before=&cancelled=1` | Purchases from the finance app; cancelled orders hidden unless `cancelled=1` |
 | `/bikes` | Each bike with the parts assigned to it and what they cost |

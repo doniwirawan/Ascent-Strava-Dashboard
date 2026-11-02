@@ -336,3 +336,7 @@ module.exports = async (req, res) => {
   // Ack immediately so Strava doesn't retry (it requires a 200 within ~2s).
   res.status(200).json({ ok: true });
 };
+
+// The Personal API (api/_v1.js) re-captions on request through the same pipeline.
+module.exports.processActivity = processActivity;
+module.exports.cacheActivity = cacheActivity;

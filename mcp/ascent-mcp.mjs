@@ -2,7 +2,7 @@
 // Ascent MCP server — the owner's own data (Personal API, /api/v1) as tools for Claude.
 //
 //   Runs locally over stdio (newline-delimited JSON-RPC), no dependencies. Read-only:
-//   the API's writes (POST /sleep, POST /activities/{id}/gps-note) are left out on purpose.
+//   the API's writes (POST /sleep, /activities/{id}/gps-note, /activities/{id}/caption) are left out on purpose.
 //
 //   Token: ASCENT_API_TOKEN, else API_TOKEN from android/personal.properties
 //   (gitignored). Make / revoke tokens in Settings → Personal API.

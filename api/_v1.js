@@ -10,8 +10,8 @@
 //
 // Tokens are random, shown once, and stored only as a SHA-256 hash in the
 // Supabase table api_tokens (RLS on, no policies: service-role only). Revoked
-// tokens stop working immediately. Read-only except two narrow writes (sleep nights, the GPS-glitch
-// note in a Strava description); nothing is cached.
+// tokens stop working immediately. Read-only except narrow writes (sleep nights, the GPS-glitch
+// note, an AI re-caption of one activity); nothing is cached.
 // API.md has the full reference.
 //
 // Required env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OWNER_ATHLETE_ID.
@@ -272,6 +272,18 @@ async function gpsNote(id, body) {
   return { ok: true, note };
 }
 
+// Re-caption one activity with AI: the upload webhook's own pipeline (server AI
+// key, destination-only places), title + description only — the private note
+// stays. The activity cache is refreshed so the new title shows everywhere.
+async function recaption(id) {
+  const wh = require('./strava-webhook.js');
+  const outcome = String(await wh.processActivity(id, false, null, null, true).catch(e => 'failed: ' + ((e && e.message) || e)));
+  if (/^(failed|skipped)/.test(outcome)) throw new HttpError(502, 'caption_failed', { detail: outcome });
+  await wh.cacheActivity(id, false).catch(() => {});
+  cacheMemo.at = 0;
+  return { ok: true, outcome, name: outcome.replace(/^[^:]*:\s*/, '') };
+}
+
 async function ai(sub) {
   if (sub === 'chats') return { chats: await sb('ai_chats?athlete_id=eq.' + encodeURIComponent(env('OWNER_ATHLETE_ID')) + '&select=id,title,ts,messages&order=ts.desc&limit=500') };
   return { activities: await sb('activity_ai?select=*') };
@@ -308,6 +320,7 @@ const INDEX = {
     'GET /api/v1/segments': 'Starred segments (GET /api/v1/segments/{id} for one, /segments/{id}/efforts for your effort history on it)',
     'GET /api/v1/koms': 'Your KOM / QOM / CR segments',
     'POST /api/v1/activities/{id}/gps-note': 'Body {raw, fixed} in m/s — adds (or replaces) the GPS-glitch max-speed note in the Strava description',
+    'POST /api/v1/activities/{id}/caption': 'Rewrites the Strava title + description with AI (same as on upload); the private note is kept',
     'GET /api/v1/app': 'Newest Android build: versionCode, versionName and a 10-minute download link',
   },
 };
@@ -319,6 +332,8 @@ async function route(req, parts) {
   if (head === 'sleep' && req.method === 'POST') { await requireApiToken(req); return saveSleep(req); }
   // the app's GPS check: a glitch note in the Strava description
   if (head === 'activities' && id && sub === 'gps-note' && req.method === 'POST') { await requireApiToken(req); return gpsNote(id, req.body); }
+  // the app's bulk caption rewrite, one activity per call
+  if (head === 'activities' && id && sub === 'caption' && req.method === 'POST') { await requireApiToken(req); return recaption(id); }
   if (req.method !== 'GET') throw new HttpError(405, 'method_not_allowed');
   await requireApiToken(req);
   const q = req.query || {};
