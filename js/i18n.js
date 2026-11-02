@@ -745,7 +745,7 @@ const TR_ID = {
   'Based on your last recorded night': 'Berdasarkan malam terakhir yang tercatat', 'Sleep': 'Tidur',
   'last 14 nights': '14 malam terakhir',
   // Activity track analysis (act-echarts.js)
-  'Track analysis': 'Analisis trek', 'Speed': 'Kecepatan', 'Time': 'Waktu', 'Average': 'Rata-rata', 'Max': 'Maks', 'Stopped': 'Berhenti',
+  'Track analysis': 'Analisis trek', 'Speed': 'Kecepatan', 'Time': 'Waktu', 'Average': 'Rata-rata', 'Max': 'Maks', 'Stopped': 'Berhenti', 'Separate': 'Terpisah', 'Overlay': 'Gabung',
   'Heart Rate': 'Detak jantung', 'Cadence': 'Kadens', 'Temp': 'Suhu', 'Loading stream data…': 'Memuat data stream…',
   'last 14 days': '14 hari terakhir', 'Since last session': 'Sejak sesi terakhir', '{0} h ago': '{0} jam lalu', '{0} d ago': '{0} hari lalu',
   'Based on your last session': 'Berdasarkan sesi terakhir', 'now': 'sekarang',

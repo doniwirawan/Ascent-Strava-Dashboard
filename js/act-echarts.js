@@ -2,7 +2,8 @@
    Head-unit-style stacked charts on the activity detail: one ECharts instance,
    one panel per metric, x axes linked so the cursor and zoom move together.
    Full-resolution streams (in memory only, never localStorage), Time/Distance
-   axis, metric checkboxes, stops drawn dashed, and the cursor moves a dot on
+   axis, Separate/Overlay (all metrics on one panel, each on its own hidden
+   y-axis — shares the classic view's 'streamMode'), metric checkboxes, stops drawn dashed, and the cursor moves a dot on
    the activity map. Settings → Charts picks this or the classic Chart.js view
    (localStorage 'chart_engine': 'echarts' | 'chartjs'). ECharts is loaded on
    first use, so other pages don't pay for it. ── */
@@ -11,6 +12,7 @@ const ECH_PAUSE = 10;                         // s: a longer gap between samples
 const _echFull = {};                          // id → parsed streams
 let _echChart = null, _echLoad = null, _echDot = null;
 let _echX = localStorage.getItem('streamX') === 'dist' ? 'dist' : 'time';
+let _echMode = localStorage.getItem('streamMode') === 'overlay' ? 'overlay' : 'sep';
 let _echHide = new Set(); try { _echHide = new Set(JSON.parse(localStorage.getItem('streamHide') || '[]')); } catch {}
 
 function chartEngine() { try { return localStorage.getItem('chart_engine') === 'chartjs' ? 'chartjs' : 'echarts'; } catch { return 'echarts'; } }
@@ -99,10 +101,12 @@ function _echDraw(wrap, a, S) {
   const cv = (k, d) => (css.getPropertyValue(k) || '').trim() || d;
   const TXT = cv('--text', '#eee'), TXT2 = cv('--text-2', '#999'), MUTED = cv('--text-3', '#555'), GRID = cv('--border', '#252525');
 
-  const H = 92, HEAD = 34, GAP = 14, TOP = 6, SLIDER = 44;
-  const grids = [], xAxis = [], yAxis = [], series = [], titles = [];
+  const H = 92, HEAD = 34, GAP = 14, TOP = 6, SLIDER = 44, OVH = 320;
+  const ov = _echMode === 'overlay';
+  const grids = [], xAxis = [], yAxis = [], series = [], titles = [], ovStats = [];
   cfg.forEach((c, k) => {
-    const top = TOP + k * (H + HEAD + GAP) + HEAD;
+    const top = ov ? TOP + 8 : TOP + k * (H + HEAD + GAP) + HEAD;
+    const gi = ov ? 0 : k;
     const s = S.series[c.key], st = stat(c);
     const main = src.map(i => i == null || s[i] == null ? null : +c.conv(s[i]).toFixed(c.dp + 1));
     const dash = new Array(xs.length).fill(null);
@@ -112,36 +116,38 @@ function _echDraw(wrap, a, S) {
       dash[r - 2] = main[r - 2]; dash[r] = main[r];
       dash[r - 1] = +((c.conv(a0) + c.conv(b0)) / 2).toFixed(c.dp + 1);
     });
-    grids.push({ left: 46, right: 14, top, height: H });
-    xAxis.push({ gridIndex: k, type: 'value', min: xs[0], max: xs[xs.length - 1], axisLine: { lineStyle: { color: GRID } },
+    if (!ov || !k) grids.push(ov ? { left: 14, right: 14, top, height: OVH } : { left: 46, right: 14, top, height: H });
+    if (!ov || !k) xAxis.push({ gridIndex: gi, type: 'value', min: xs[0], max: xs[xs.length - 1], axisLine: { lineStyle: { color: GRID } },
       axisTick: { show: false }, splitLine: { show: false },
       axisLabel: { color: MUTED, fontSize: 10, hideOverlap: true, showMaxLabel: false, formatter: v => byTime ? fmtHMS(v) : (+v).toFixed(0) },
       axisPointer: { label: { show: false } } });
-    yAxis.push({ gridIndex: k, type: 'value', scale: c.key === 'altitude' || c.key === 'temp' || c.key === 'hr', splitNumber: 3,
+    yAxis.push(ov ? { gridIndex: 0, type: 'value', scale: true, show: false } : { gridIndex: k, type: 'value', scale: c.key === 'altitude' || c.key === 'temp' || c.key === 'hr', splitNumber: 3,
       axisLabel: { color: MUTED, fontSize: 10 }, splitLine: { lineStyle: { type: 'dashed', color: GRID } } });
     const area = new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: c.color + '66' }, { offset: 1, color: c.color + '05' }]);
-    series.push({ name: c.label, type: 'line', xAxisIndex: k, yAxisIndex: k, data: xs.map((x, r) => [x, main[r]]),
+    series.push({ name: c.label, type: 'line', xAxisIndex: gi, yAxisIndex: k, data: xs.map((x, r) => [x, main[r]]),
       symbol: 'none', connectNulls: false, lineStyle: { width: 1.2, color: c.color }, itemStyle: { color: c.color },
-      areaStyle: { color: area, origin: 'start' }, emphasis: { disabled: true }, _c: c });
-    if (gapRow.length) series.push({ name: c.label + ' ·', type: 'line', xAxisIndex: k, yAxisIndex: k, data: xs.map((x, r) => [x, dash[r]]),
-      symbol: 'none', connectNulls: false, lineStyle: { width: 1, color: c.color, type: 'dashed', opacity: .7 }, areaStyle: { color: c.color + '14', origin: 'start' }, emphasis: { disabled: true }, silent: true, tooltip: { show: false } });
+      areaStyle: ov ? undefined : { color: area, origin: 'start' }, emphasis: { disabled: true }, _c: c });
+    if (gapRow.length) series.push({ name: c.label + ' ·', type: 'line', xAxisIndex: gi, yAxisIndex: k, data: xs.map((x, r) => [x, dash[r]]),
+      symbol: 'none', connectNulls: false, lineStyle: { width: 1, color: c.color, type: 'dashed', opacity: .7 }, areaStyle: ov ? undefined : { color: c.color + '14', origin: 'start' }, emphasis: { disabled: true }, silent: true, tooltip: { show: false } });
     const f = v => v == null ? '–' : v.toFixed(c.dp);
+    if (ov) { ovStats.push(`<span><b style="color:${c.color}">${tr(c.label)}</b> <b>${f(st.avg)}</b> / ${f(st.max)} ${c.unit}</span>`); return; }
     titles.push({ left: 6, top: top - HEAD + 8, text: '{n|' + tr(c.label) + '} {u|(' + c.unit + ')}   {l|' + tr('Average') + '} {v|' + f(st.avg) + '}   {l|' + tr('Max') + '} {v|' + f(st.max) + '}',
       textStyle: { rich: { n: { color: c.color, fontSize: 13, fontWeight: 700 }, u: { color: MUTED, fontSize: 11 }, l: { color: TXT2, fontSize: 11 }, v: { color: TXT, fontSize: 12, fontWeight: 700 } } } });
   });
-  const height = TOP + cfg.length * (H + HEAD + GAP) + SLIDER;
+  const height = ov ? TOP + 8 + OVH + 24 + SLIDER : TOP + cfg.length * (H + HEAD + GAP) + SLIDER;
 
   const seg = (on, a, b) => `<button type="button" class="${on ? 'on' : ''}" onclick="${a}">${b}</button>`;
   const head = `<div class="actd-stream-title">${tr('Track analysis')}`
-    + (S.d ? `<div class="actd-stream-modes">${seg(byTime, "echSetX('time')", tr('Time'))}${seg(!byTime, "echSetX('dist')", tr('Distance'))}</div>` : '') + '</div>'
+    + `<div class="actd-stream-modes">${seg(!ov, "echSetMode('sep')", tr('Separate'))}${seg(ov, "echSetMode('overlay')", tr('Overlay'))}</div>`
+    + (S.d ? `<div class="actd-stream-modes" style="margin-left:0">${seg(byTime, "echSetX('time')", tr('Time'))}${seg(!byTime, "echSetX('dist')", tr('Distance'))}</div>` : '') + '</div>'
     + `<div class="actd-stream-checks">${all.map(c => `<label><input type="checkbox" ${_echHide.has(c.key) ? '' : 'checked'} onchange="echToggle('${c.key}',this.checked)" style="accent-color:${c.color}">${tr(c.label)}</label>`).join('')}</div>`;
-  wrap.innerHTML = head + (cfg.length ? `<div class="ech-box" style="height:${height}px"></div>` : '');
+  wrap.innerHTML = head + (ov && cfg.length ? `<div class="actd-stream-checks">${tr('Average')} / ${tr('Max')}: ${ovStats.join('')}</div>` : '') + (cfg.length ? `<div class="ech-box" style="height:${height}px"></div>` : '');
   wrap._echA = a; wrap._echS = S;
   if (!cfg.length) return;
 
   const chart = echarts.init(wrap.querySelector('.ech-box'), null, { renderer: 'canvas' });
   _echChart = chart;
-  const idx = cfg.map((_, k) => k);
+  const idx = ov ? [0] : cfg.map((_, k) => k);
   chart.setOption({
     animation: false, title: titles, grid: grids, xAxis, yAxis, series,
     axisPointer: { link: [{ xAxisIndex: 'all' }], lineStyle: { type: 'dashed', color: TXT2, width: 1 } },
@@ -182,6 +188,7 @@ function _echRedraw() {
   const wrap = document.getElementById('actStreams');
   if (wrap && wrap._echS) _echDraw(wrap, wrap._echA, wrap._echS);
 }
+function echSetMode(m) { _echMode = m; try { localStorage.setItem('streamMode', m); } catch {} _echRedraw(); }
 function echSetX(m) { _echX = m; try { localStorage.setItem('streamX', m); } catch {} _echRedraw(); }
 function echToggle(k, on) {
   on ? _echHide.delete(k) : _echHide.add(k);
