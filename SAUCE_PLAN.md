@@ -168,7 +168,11 @@ How Sauce works: Manifest V3 content scripts on `strava.com/*` read the data the
 already loaded and add panels into the DOM. A background service worker handles
 storage and network.
 
-### Scope v0 (personal, loaded unpacked)
+### Scope v0 (personal, loaded unpacked) — ✅ BUILT 2026-11-02 in `extension/`
+
+Built as a plain link: the button opens the dashboard's existing `?story=<id>` deep link,
+so the extension needs no permissions, tokens or shared code. See `extension/README.md`.
+
 
 - `extension/` folder:
   - `manifest.json` (MV3)

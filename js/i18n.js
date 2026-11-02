@@ -1264,6 +1264,7 @@ const TR_ID = {
   'Scan your power-meter rides to see how close the physics estimate gets to real watts.': 'Pindai gowes dengan power meter untuk melihat seberapa dekat estimasi fisika dengan watt asli.',
   'Same physics as the estimate for rides without a meter: speed, grade, your weight and your bike. GPS jitter makes it read high; the calibration corrects that.': 'Fisika yang sama dengan estimasi untuk gowes tanpa power meter: kecepatan, tanjakan, berat badan, dan sepeda Anda. Getaran GPS membuatnya terbaca tinggi; kalibrasi memperbaikinya.',
   'Compare {0} new {1}': 'Bandingkan {0} {1} baru',
+  'That activity isn’t among your 50 latest, so the story shows the latest one.': 'Aktivitas itu tidak termasuk 50 terbaru Anda, jadi story menampilkan yang terbaru.',
   'Peak efforts': 'Upaya puncak',
   'heart rate, speed and climbing — all-time vs the last 6 weeks': 'detak jantung, kecepatan, dan tanjakan — sepanjang masa vs 6 minggu terakhir',
   'new best in the last 6 weeks': 'rekor baru dalam 6 minggu terakhir',

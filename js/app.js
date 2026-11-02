@@ -104,6 +104,8 @@ if (!CONFIG.refreshToken) {
       const i = acts.slice(0, 50).findIndex(a => String(a.id) === storyId);
       const picker = document.getElementById('activityPicker');
       if (i >= 0 && picker) { picker.value = String(i); if (picker.onchange) picker.onchange(); }
+      // the browser extension links any Strava activity, not only the latest 50 of yours
+      else if (i < 0) setStatus(tr('That activity isn’t among your 50 latest, so the story shows the latest one.'));
       return;
     }
     // ?stats=<id> / ?social=<id> (the app's ride page) open that activity with the tool already open

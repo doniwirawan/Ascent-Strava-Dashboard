@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Ascent for Strava",
+  "version": "0.1.0",
+  "description": "Adds a Story card button to your Strava activity pages that opens the Ascent story generator for that activity.",
+  "content_scripts": [
+    {
+      "matches": ["https://www.strava.com/activities/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
