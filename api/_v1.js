@@ -377,6 +377,12 @@ const INDEX = {
 async function route(req, parts) {
   const [head, id, sub] = parts;
   if (head === 'tokens') return tokens(req, id);
+  // iGPSPORT's sports-data callback — unauthenticated (they can't send an asc_ token);
+  // only acknowledged and logged until the import is built on their real payload format
+  if (head === 'igpsport' && id === 'webhook') {
+    if (req.method === 'POST') console.log('igpsport webhook', JSON.stringify(req.body || null).slice(0, 4000));
+    return { ok: true };
+  }
   // writes: the Android app adding sleep nights from Health Connect
   if (head === 'sleep' && req.method === 'POST') { await requireApiToken(req); return saveSleep(req); }
   // the app's GPS check: a glitch note in the Strava description
