@@ -59,8 +59,8 @@ Server-side calls (SSR, build-time, curl) work from anywhere.
 }
 ```
 
-**Important caveat for `totals`:** the Strava cache holds the **most recent 200
-activities**, not the full career. So `totals` means "over the last 200 activities"
+**Important caveat for `totals`:** the Strava cache holds only **recent
+activities** (`sample.activities`), not the full career. So `totals` means "over the cached activities"
 (see `sample.first` / `sample.last` for the actual window) — don't label it "all
 time" in the UI. `ytd`, `last_30_days` and `last_7_days` are exact as long as the
 window covers them, which it does at normal riding volume.

@@ -1,7 +1,7 @@
 # Strava Dashboard — CLAUDE.md
 
 ## Current work in progress
-See **[STATUS.md](STATUS.md)** — the public stats API (`/api/stats`, for doniwirawan.xyz) is deployed but blocked on a Supabase project restore. Read it before touching `api/stats.js` or anything Supabase.
+See **[STATUS.md](STATUS.md)** — the public stats API (`/api/stats`, for doniwirawan.xyz) is live (restored 2026-09-21). Read it before touching `api/stats.js` or anything Supabase.
 
 ## Bikes
 See **[BIKES.md](BIKES.md)** — the owner's three bikes, their components and weights.

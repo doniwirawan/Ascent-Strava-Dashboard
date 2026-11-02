@@ -256,7 +256,7 @@ async function loadStats({ strava = true } = {}) {
       activities: acts.length,
       first: (acts.reduce((m, a) => { const d = (a.start_date_local || a.start_date).slice(0, 10); return !m || d < m ? d : m; }, null)),
       last: (acts.reduce((m, a) => { const d = (a.start_date_local || a.start_date).slice(0, 10); return !m || d > m ? d : m; }, null)),
-      note: 'Strava cache holds the most recent 200 activities; totals are over that window, not all time.',
+      note: 'Totals cover the cached activities (see first/last), not all time.',
     },
     totals: totals(acts),
     ytd: totals(ytd),
