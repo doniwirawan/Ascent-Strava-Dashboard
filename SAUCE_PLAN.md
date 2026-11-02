@@ -101,7 +101,7 @@ then HR-TRIMP (`js/training.js`), HR decoupling (`js/hr-decoupling.js`), wind
 - **Why:** a more standard HR load than our scaled Banister TRIMP. It uses the full HR
   stream instead of average HR. Use it as a fallback level in the training-load chain.
 
-#### 7. Peak efforts for more than power
+#### 7. Peak efforts for more than power — ✅ BUILT (Training → Peak efforts: HR, speed, VAM; cadence not scanned)
 - **Source:** `src/bg/hist/peaks.mjs`, `lib.js`: `RollingPace`, `bestPace`,
   `createVAMStream`.
 - **What:** all-time and per-period bests for HR, speed, VAM and cadence over standard

@@ -509,22 +509,83 @@ function _trMeterCmpHTML() {
     <div id="spCmpBody">${_spCmpMarkup()}</div>
   </div>`;
 }
-async function computeMeterCompare() {
-  const body = document.getElementById('spCmpBody');
+// Scan the given rides one by one into #bodyId, redrawing with markup(progress).
+async function _spScan(bodyId, todo, markup) {
+  const body = document.getElementById(bodyId);
   if (!body || _spRunning || !_spOwner()) return;
-  const todo = _spMeterRides().filter(a => !spRideCache(a.id));
   _spRunning = true;
   let done = 0;
-  body.innerHTML = _spCmpMarkup(`0/${todo.length}`);
+  body.innerHTML = markup(`0/${todo.length}`);
   for (const a of todo) {
     try { await spRide(a); } catch { break; }   // 429: stop, the done rides are cached
-    body.innerHTML = _spCmpMarkup(`${++done}/${todo.length}`);
+    body.innerHTML = markup(`${++done}/${todo.length}`);
   }
   _spRunning = false;
   _spCal = null;   // new pairs → new calibration → training load changes
   if (typeof renderTraining === 'function') renderTraining();
   if (typeof renderPower === 'function') renderPower();
 }
+function computeMeterCompare() { return _spScan('spCmpBody', _spMeterRides().filter(a => !spRideCache(a.id)), _spCmpMarkup); }
+
+/* ── Peak efforts beyond power: best heart rate, speed and climbing rate per
+   duration, from the same per-ride scan (spAnalyze) — all-time vs recent. ── */
+const SP_PEAKS = [
+  ['hr', [60, 300, 1200], 'Heart rate', v => v + ' bpm'],
+  ['spd', [60, 300, 1200, 3600], 'Speed', v => kmh(v) + ' ' + speedUnit()],
+  ['vam', [300, 600, 1200], 'Climbing', v => v + ' m/h'],
+];
+const SP_PEAK_RECENT_DAYS = 42;
+// Pure: [{a, r}] → {hr: {60: {all: {v, a}, recent: {v, a} | null}}, …}. E-bikes don't
+// count for speed or climbing, and a speed peak over the GPS ceiling is a glitch.
+function spPeaks(rides, sinceIso) {
+  const cap = typeof MAX_SPEED_CEILING !== 'undefined' ? MAX_SPEED_CEILING : Infinity;
+  const out = {};
+  for (const [field, durs] of SP_PEAKS) {
+    out[field] = {};
+    for (const d of durs) {
+      let all = null, recent = null;
+      for (const { a, r } of rides) {
+        const v = r[field] && r[field][d];
+        if (!(v > 0) || (field !== 'hr' && a.sport_type === 'EBikeRide') || (field === 'spd' && v > cap)) continue;
+        if (!all || v > all.v) all = { v, a };
+        if ((a.start_date || '') >= sinceIso && (!recent || v > recent.v)) recent = { v, a };
+      }
+      if (all) out[field][d] = { all, recent };
+    }
+  }
+  return out;
+}
+function _spPeaksMarkup(progress) {
+  const rides = (typeof acts === 'undefined' ? [] : acts).filter(_spEligible)
+    .map(a => ({ a, r: spRideCache(a.id) })).filter(x => x.r);
+  const since = new Date(Date.now() - SP_PEAK_RECENT_DAYS * 864e5).toISOString();
+  const pk = spPeaks(rides, since);
+  const link = a => `<a href="#" onclick="openActivityModal('${a.id}');return false">${a.name || 'Ride'}</a>`;
+  let html = '';
+  for (const [field, durs, label, fmt] of SP_PEAKS) {
+    const rows = durs.filter(d => pk[field][d]).map(d => {
+      const { all, recent } = pk[field][d];
+      const now = recent && recent.a === all.a ? `<b>${tr('new best in the last 6 weeks')}</b>` : recent ? `${tr('last 6 wk')} <b>${fmt(recent.v)}</b> (${Math.round(recent.v / all.v * 100)}%)` : tr('none in the last 6 weeks');
+      return `<div class="cp-row"><span class="cp-lbl">${tr(label)} · ${SP_LABELS[d]}</span><span class="cp-w">${fmt(all.v)}</span><span class="cp-ctx">${link(all.a)} · ${fmtDt(all.a.start_date_local || all.a.start_date)} · ${now}</span></div>`;
+    }).join('');
+    html += rows;
+  }
+  if (!html) html = `<div class="tr-basis-note">${tr('Scan your rides to find your best heart rate, speed and climbing rate over 1 to 60 minutes.')}</div>`;
+  const todo = _spPool().filter(a => !spRideCache(a.id)).length;
+  html += `<div class="tr-basis-note">${progress ? trf('Estimating… {0}', progress)
+    : trf('Best sustained effort over each duration across {0} scanned {1}, stops removed; e-bike rides skip speed and climbing.', rides.length, tr(rides.length === 1 ? 'ride' : 'rides'))}</div>`;
+  if (_spOwner() && todo && !progress) html += `<button class="tr-ai-btn" style="margin-top:10px" onclick="computePeaks()">${trf('Scan {0} more {1}', todo, tr(todo === 1 ? 'ride' : 'rides'))}</button>`;
+  return html;
+}
+function _trPeaksHTML() {
+  if (!_spPool().length) return '';
+  if (!_spOwner() && !_spPool().some(a => spRideCache(a.id))) return '';
+  return `<div class="card tr-pc tr-sp">
+    <div class="tr-chart-title">${tr('Peak efforts')} <span class="gm-hint">${tr('heart rate, speed and climbing — all-time vs the last 6 weeks')}</span></div>
+    <div id="spPkBody">${_spPeaksMarkup()}</div>
+  </div>`;
+}
+function computePeaks() { return _spScan('spPkBody', _spPool().filter(a => !spRideCache(a.id)), _spPeaksMarkup); }
 
 /* ── Activity modal block: this ride's estimated power, W′ balance, food ── */
 async function renderActivitySauce(a) {

@@ -774,6 +774,7 @@ function _trTrendsHTML() {
       <div class="tr-pr-grid">${tiles}</div>
     </div>`;
   }
+  if (typeof _trPeaksHTML === 'function') html += _trPeaksHTML();
 
   // Ride Quality Score
   const rq = _trRideQuality();

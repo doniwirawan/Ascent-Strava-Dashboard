@@ -71,7 +71,7 @@ Needs a new route in api/_v1.js:
 - [x] P20. Share: stats image + social post — ride page buttons (3.22; the website's own drawing in the web view via ?stats= / ?social=, share sheet now sends every page + caption)
 
 Settings:
-- [ ] P21. Units (km / mi) and language (English / Indonesian)
+- [~] P21. Units (km / mi) and language (English / Indonesian) — skipped (owner, 2026-11-02): one-user app, rides in km
 - [x] P22. Help: what the metrics mean — More → Help (3.21)
 
 Stays web-only: landing page, Strava login, PWA install, save page as image, GPX repair

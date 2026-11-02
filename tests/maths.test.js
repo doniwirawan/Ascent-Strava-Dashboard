@@ -210,3 +210,20 @@ test('meter calibration is the median real ÷ estimated NP, ignoring broken scan
   assert.equal(g.spNpCal(), 0.73);               // under 3 pairs → default
   delete ctx.acts;
 });
+
+test('spPeaks: all-time vs recent bests, e-bikes and GPS glitches excluded from speed', () => {
+  const ride = (id, date, sport, r) => ({ a: { id, start_date: date, sport_type: sport }, r });
+  const rides = [
+    ride(1, '2026-01-10T00:00:00Z', 'Ride', { hr: { 1200: 172 }, spd: { 60: 12 }, vam: { 600: 900 } }),
+    ride(2, '2026-10-20T00:00:00Z', 'Ride', { hr: { 1200: 165 }, spd: { 60: 11 }, vam: { 600: 700 } }),
+    ride(3, '2026-10-25T00:00:00Z', 'EBikeRide', { hr: { 1200: 150 }, spd: { 60: 15 }, vam: { 600: 1500 } }),
+    ride(4, '2026-10-26T00:00:00Z', 'Ride', { spd: { 60: 40 } }),   // 144 km/h: a glitch
+  ];
+  const p = g.spPeaks(rides, '2026-09-21');
+  assert.equal(p.hr[1200].all.v, 172);
+  assert.equal(p.hr[1200].recent.v, 165);
+  assert.equal(p.spd[60].all.a.id, 1);
+  assert.equal(p.spd[60].recent.v, 11);
+  assert.equal(p.vam[600].all.v, 900);
+  assert.equal(p.hr[60], undefined);
+});
