@@ -343,6 +343,18 @@ class ScreensTest {
         Screens.rides(app)
         val t = texts(app.findViewById(android.R.id.content))
         assertTrue(t.toString(), "ONLY ON HUAWEI · 1" in t && "Mountain climbing" in t && "Outdoor walk" !in t)
+        assertTrue(t.toString(), t.any { "Tap one to send it to Strava" in it } && t.any { it.endsWith(" · no GPS") })
+        // tapping the workout asks before uploading (manual: no track, no heart rate)
+        fun row(v: View): View? = when {
+            v is ViewGroup && v.hasOnClickListeners() && texts(v).firstOrNull() == "Mountain climbing" -> v
+            v is ViewGroup -> (0 until v.childCount).firstNotNullOfOrNull { row(v.getChildAt(it)) }
+            else -> null
+        }
+        row(app.findViewById(android.R.id.content))!!.performClick()
+        val dlg = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+        assertTrue(dlg != null && dlg.isShowing)
+        assertTrue(org.robolectric.Shadows.shadowOf(dlg).message.toString().contains("as a manual activity"))
+        dlg.dismiss()
     }
 
     @Test fun dataTable() {

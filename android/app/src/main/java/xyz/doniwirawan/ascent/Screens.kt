@@ -369,16 +369,44 @@ object Screens {
         if (list.isEmpty()) return
         col.addView(Ui.heading(a, "Only on Huawei · ${list.size}"))
         col.addView(Ui.card(a).apply {
-            addView(Ui.text(a, "Workouts from your Huawei watch that never reached Strava — Huawei's sync skips some modes. Send them to Strava from the web dashboard's Activities page.", 11f, Ui.MUTED))
+            addView(Ui.text(a, "Workouts from your Huawei watch that never reached Strava — Huawei's sync skips some modes. Tap one to send it to Strava.", 11f, Ui.MUTED))
             list.sortedByDescending { it.optString("start_time") }.forEach { w ->
                 val loc = huaweiLocal(w.optString("start_time"), w.optString("tz"))
+                val id = w.optString("record_id")
                 addView(Ui.divider(a))
-                addView(Ui.row(a, w.optString("sport"), if (w.optDouble("distance_m", 0.0) > 0) Ui.km(w.optDouble("distance_m")) else Ui.hm(w.optLong("duration_s")),
+                addView(Ui.row(a, w.optString("sport"), hwState[id] ?: if (w.optDouble("distance_m", 0.0) > 0) Ui.km(w.optDouble("distance_m")) else Ui.hm(w.optLong("duration_s")),
                     Ui.date(loc) + " " + loc.drop(11).take(5) + " · " + Ui.hm(w.optLong("duration_s")) +
                         (if (w.optDouble("climb_m", 0.0) > 0) " · ↑ ${Math.round(w.optDouble("climb_m"))} m" else "") +
-                        (if (w.optInt("avg_hr") > 0) " · ♥ ${w.optInt("avg_hr")}" + (if (w.optInt("max_hr") > 0) "/${w.optInt("max_hr")}" else "") else "")))
+                        (if (w.optInt("avg_hr") > 0) " · ♥ ${w.optInt("avg_hr")}" + (if (w.optInt("max_hr") > 0) "/${w.optInt("max_hr")}" else "") else "") +
+                        if (w.optString("polyline").let { it.isNotEmpty() && it != "null" }) " · GPS" else " · no GPS").apply {
+                    setOnClickListener { if (hwState[id] == null) huaweiUpload(a, w) }
+                })
             }
         })
+    }
+
+    private val hwState = HashMap<String, String>()   // record id → "Uploading…" while it runs
+
+    /** Asks for a name, then POST /api/v1/huawei/{id}/upload — the website's Activities-page upload, done by the server. */
+    private fun huaweiUpload(a: AppActivity, w: JSONObject) {
+        val id = w.optString("record_id")
+        val name = android.widget.EditText(a).apply { hint = "Name (blank: e.g. \"Morning ${w.optString("sport")}\")"; setSingleLine(true) }
+        android.app.AlertDialog.Builder(a).setTitle("Send to Strava?")
+            .setMessage("Uploads this ${w.optString("sport")} to Strava" + if (w.optInt("hr_samples") > 0 || w.optString("polyline").let { it.isNotEmpty() && it != "null" }) " with its track / heart rate." else " as a manual activity (no heart rate recorded).")
+            .setView(name)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Upload") { _, _ ->
+                hwState[id] = "Uploading…"; a.show("rides")
+                Thread {
+                    val r = runCatching { Api.post(a, "huawei/$id/upload", JSONObject().put("name", name.text.toString().trim())) }
+                    hwState.remove(id)
+                    a.ui.post {
+                        android.widget.Toast.makeText(a, r.fold({ "On Strava: " + it.optString("name") + if (it.optBoolean("duplicate")) " (it was already there — linked)" else "" },
+                            { "Upload failed: " + it.message }), android.widget.Toast.LENGTH_LONG).show()
+                        a.show("rides")
+                    }
+                }.start()
+            }.show()
     }
 
     // ── Sport pages ─────────────────────────────────────────────────────────
