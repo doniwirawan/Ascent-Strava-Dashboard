@@ -68,14 +68,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ascent">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <!-- Hammer first: chartjs-plugin-zoom needs it for pinch-zoom on touch devices -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
-  <!-- html2canvas-pro: drop-in fork that supports modern CSS colors (color-mix, oklch, color()) which break classic html2canvas 1.4.1 -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
+  <!-- html2canvas-pro: drop-in fork that supports modern CSS colors (color-mix, oklch, color()) which break classic html2canvas 1.4.1 — loaded on demand by js/export-image.js -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/nav.css">
   <link rel="stylesheet" href="css/buttons.css">
@@ -1408,55 +1407,55 @@
   </div>
 </div>
 
-<script src="js/config.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/landmarks.js"></script>
-<script src="js/gps-fix.js"></script>
-<script src="js/fitness.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/render-overview.js"></script>
-<script src="js/render-charts.js"></script>
-<script src="js/act-echarts.js"></script>
-<script src="js/render-sections.js"></script>
-<script src="js/map3d.js"></script>
-<script src="js/video3d.js"></script>
-<script src="js/gear-maint.js"></script>
-<script src="js/story-core.js"></script>
-<script src="js/story-draw.js"></script>
-<script src="js/story-layouts.js"></script>
-<script src="js/story-ui.js"></script>
-<script src="js/export-image.js"></script>
-<script src="js/pwa-install.js"></script>
-<script src="js/i18n.js"></script>
-<script src="js/ai-coach.js"></script>
-<script src="js/stats-image.js"></script>
-<script src="js/social-post.js"></script>
-<script src="js/regency-map.js"></script>
-<script src="js/huawei-upload.js"></script>
-<script src="js/settings-view.js"></script>
-<script src="js/manual-place.js"></script>
-<script src="js/training.js"></script>
-<script src="js/event-ready.js"></script>
-<script src="js/sleep.js"></script>
-<script src="js/data-table.js"></script>
-<script src="js/cycling-buys.js"></script>
-<script src="js/sleep-import.js"></script>
-<script src="js/power-curve.js"></script>
-<script src="js/climb-ftp.js"></script>
-<script src="js/sauce.js"></script>
-<script src="js/power.js"></script>
-<script src="js/personal-api.js"></script>
-<script src="js/hr-decoupling.js"></script>
-<script src="js/time-lost.js"></script>
-<script src="js/wind-analysis.js"></script>
-<script src="js/segment-intel.js"></script>
-<script src="js/segment-legend.js"></script>
-<script src="js/segment-gaps.js"></script>
-<script src="js/routes.js"></script>
-<script src="js/chase-routes.js"></script>
-<script src="js/route-suggest.js"></script>
-<script src="js/chase-ai.js"></script>
-<script src="js/app.js"></script>
+<script defer src="js/config.js"></script>
+<script defer src="js/utils.js"></script>
+<script defer src="js/landmarks.js"></script>
+<script defer src="js/gps-fix.js"></script>
+<script defer src="js/fitness.js"></script>
+<script defer src="js/auth.js"></script>
+<script defer src="js/render-overview.js"></script>
+<script defer src="js/render-charts.js"></script>
+<script defer src="js/act-echarts.js"></script>
+<script defer src="js/render-sections.js"></script>
+<script defer src="js/map3d.js"></script>
+<script defer src="js/video3d.js"></script>
+<script defer src="js/gear-maint.js"></script>
+<script defer src="js/story-core.js"></script>
+<script defer src="js/story-draw.js"></script>
+<script defer src="js/story-layouts.js"></script>
+<script defer src="js/story-ui.js"></script>
+<script defer src="js/export-image.js"></script>
+<script defer src="js/pwa-install.js"></script>
+<script defer src="js/i18n.js"></script>
+<script defer src="js/ai-coach.js"></script>
+<script defer src="js/stats-image.js"></script>
+<script defer src="js/social-post.js"></script>
+<script defer src="js/regency-map.js"></script>
+<script defer src="js/huawei-upload.js"></script>
+<script defer src="js/settings-view.js"></script>
+<script defer src="js/manual-place.js"></script>
+<script defer src="js/training.js"></script>
+<script defer src="js/event-ready.js"></script>
+<script defer src="js/sleep.js"></script>
+<script defer src="js/data-table.js"></script>
+<script defer src="js/cycling-buys.js"></script>
+<script defer src="js/sleep-import.js"></script>
+<script defer src="js/power-curve.js"></script>
+<script defer src="js/climb-ftp.js"></script>
+<script defer src="js/sauce.js"></script>
+<script defer src="js/power.js"></script>
+<script defer src="js/personal-api.js"></script>
+<script defer src="js/hr-decoupling.js"></script>
+<script defer src="js/time-lost.js"></script>
+<script defer src="js/wind-analysis.js"></script>
+<script defer src="js/segment-intel.js"></script>
+<script defer src="js/segment-legend.js"></script>
+<script defer src="js/segment-gaps.js"></script>
+<script defer src="js/routes.js"></script>
+<script defer src="js/chase-routes.js"></script>
+<script defer src="js/route-suggest.js"></script>
+<script defer src="js/chase-ai.js"></script>
+<script defer src="js/app.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

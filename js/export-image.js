@@ -234,6 +234,19 @@ async function _freezeMapsIn(section) {
   return () => restores.forEach(r => { try { r(); } catch {} });
 }
 
+// html2canvas-pro (~400 KB) is only needed here, so it loads on first save, not with the page.
+const H2C_SRC = 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js';
+let _h2cLoad = null;
+function _h2cLib() {
+  if (window.html2canvas) return Promise.resolve(window.html2canvas);
+  if (!_h2cLoad) _h2cLoad = new Promise((ok, no) => {
+    const s = document.createElement('script');
+    s.src = H2C_SRC; s.onload = () => ok(window.html2canvas); s.onerror = () => { _h2cLoad = null; no(new Error('html2canvas')); };
+    document.head.appendChild(s);
+  });
+  return _h2cLoad;
+}
+
 async function _doSaveImg() {
   const section = _currentSectionEl();
   if (!section) return;
@@ -242,7 +255,7 @@ async function _doSaveImg() {
   // simulated-viewport relayout can't stretch it (which would visibly drift the
   // basemap from the routes). Other sections keep the html2canvas path.
   const isHeatmap = section.id === 'heatSection' && typeof leafletMapInst !== 'undefined' && leafletMapInst;
-  if (!isHeatmap && typeof html2canvas === 'undefined') { setStatus(tr('Image export unavailable — refresh and try again.'), ''); return; }
+  if (!isHeatmap && !(await _h2cLib().catch(() => null))) { setStatus(tr('Image export unavailable — refresh and try again.'), ''); return; }
 
   const go = document.getElementById('saveImgGo');
   const prev = go.textContent;
