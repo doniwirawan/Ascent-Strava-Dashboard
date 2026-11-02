@@ -62,7 +62,7 @@ Extends the **Gear** section. Per bike (grouped by `gear_id`, named from `curren
 Numbered roughly as raised. Reassess priority when we get here.
 
 - **Fitness Trend (not Distance Trend)** ✅ — **BUILT** (js/training.js) — track avg power & speed on **Zone-2 rides** over time (monthly buckets). Rising W / km-h at the same aerobic zone = real fitness gain.
-- **Climbing Ability** ✅ (list) — **BUILT** (js/training.js) — climb rate (m/h), avg gradient, elevation density, best-ride VAM. Per-climb VAM from grade streams is the future 🔶 upgrade.
+- **Climbing Ability** ✅ (list) — **BUILT** (js/training.js) — climb rate (m/h), avg gradient, elevation density, best-ride VAM. Per-climb VAM: ✅ covered by Training → Peak efforts (best 5/10/20-min VAM from altitude streams, js/sauce.js).
 - **Wind Analysis** 🌦 🔶 — **BUILT** (js/wind-analysis.js) — headwind/tailwind/crosswind % and net along-travel wind component, from GPS bearings joined to Open-Meteo historical wind (speed+direction). Reframes a "slow" ride as actually strong.
 - **Segment Intelligence** 🔶 — **BUILT** (js/segment-intel.js) — fetches per-segment effort history for starred segments; ranks closest-to-PR (with next-PR % estimate), improving fastest, and stagnating. Owner-gated + on-demand, cached.
 - **Heart Rate Decoupling** 🔶 — **BUILT** (js/hr-decoupling.js) — first-vs-second-half efficiency (output÷HR) drift on the latest long ride, with a coupled/moderate/high band. Reuses the existing compact stream cache (single cached fetch).
