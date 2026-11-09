@@ -32,6 +32,7 @@ object Coach {
         "(a few short paragraphs or bullets with '•'). Stay under ~250 words unless asked for more. " +
         "Distances are km, elevation m, speed km/h, power W. avg_kmh is average speed, max_kmh is top speed — never confuse them. " +
         "Power numbers are real only when power_meter is true; otherwise never build advice on watts. " +
+        "If training_plan is present it is the athlete's own plan — coach against it. " +
         "Rides with an indoor field (Zwift, MyWhoosh…) were on a smart trainer: power, heart rate and time are real, speed and distance are game physics — never compare their speed with outdoor rides. " +
         "Sleep nights are dated by the morning the athlete woke up. Never mention or guess where the athlete lives or starts rides."
 
@@ -97,6 +98,15 @@ object Coach {
     /** What the coach sees — built from saved API responses, no location data. */
     private fun context(ctx: Context): JSONObject {
         val o = JSONObject()
+        // the training plan from the website's Plan section: event, season weeks, the next 14 days
+        Api.cached(ctx, "plan")?.let { p ->
+            val today = java.time.LocalDate.now(); val end = today.plusDays(14).toString()
+            val ws = p.optJSONArray("workouts") ?: JSONArray()
+            val next = JSONArray()
+            for (i in 0 until ws.length()) ws.getJSONObject(i).let { w -> val d = w.optString("date"); if (d >= today.toString() && d <= end) next.put(JSONObject().put("date", d).put("title", w.optString("title")).put("min", w.optLong("secs") / 60).put("tss", w.optInt("tss")).put("steps", w.optString("text"))) }
+            if (next.length() > 0 || p.optJSONObject("event") != null)
+                o.put("training_plan", JSONObject().put("_README", "The athlete's own training plan; coach against it.").putOpt("event", p.optJSONObject("event")).put("next_14_days", next))
+        }
         Api.cached(ctx, "stats")?.let { s ->
             listOf("last_7_days", "last_30_days", "ytd", "totals", "bests", "fitness", "streak").forEach { k ->
                 s.opt(k)?.let { v -> o.put(k, if (k == "fitness" && v is JSONObject) JSONObject(v.toString()).apply { remove("last_90_days") } else v) }

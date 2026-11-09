@@ -15,6 +15,7 @@ object More {
         "trends" to ("Trends" to "Weekly distance, year over year, year in review"),
         "calendar" to ("Calendar" to "Every day of a month, and month by month"),
         "training" to ("Training" to "Load, form, event readiness, recovery, consistency, FTP, run predictions"),
+        "plan" to ("Plan" to "Your season plan, today's workout and the next 14 days; send a workout's .fit to your head unit"),
         "milestones" to ("Milestones" to "Records, Strava totals and badges"),
         "destinations" to ("Destinations" to "Where your rides turn around, by Bali regency"),
         "data" to ("Data" to "Every activity and night, sorted by anything"),
@@ -32,6 +33,7 @@ object More {
         "trends" -> trends(a)
         "calendar" -> calendar(a)
         "training" -> Training.page(a)
+        "plan" -> Plan.page(a)
         "milestones" -> Milestones.page(a)
         "destinations" -> Destinations.page(a)
         "data" -> DataPage.page(a)

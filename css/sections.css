@@ -1778,3 +1778,19 @@ body.on-coach .fab-group { display: none !important; }
   .pl-ev-form input[type=text] { width: 100%; }
   .pl-ev-form label:first-child { flex: 1 1 100%; }
 }
+
+/* Plan: my library chips, today's workout, plan note in the activity pop-up */
+.pl-chip-mine { display: inline-flex; padding: 0; overflow: hidden; border-color: var(--orange-mid); }
+.pl-chip-mine button { background: none; border: 0; color: var(--text); font: inherit; font-size: 11px; font-weight: 600; padding: 4px 8px; cursor: pointer; }
+.pl-chip-mine button + button { padding: 4px 8px 4px 2px; color: var(--muted); }
+.pl-chip-mine button:hover { color: var(--orange); }
+.pl-today { margin-bottom: 16px; }
+.pl-today-item + .pl-today-item { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.pl-today-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; }
+.pl-today-row b { font-size: 15px; font-weight: 800; }
+.pl-today-row span { font-size: 12px; color: var(--text-2); }
+.pl-today .pl-prof { height: 44px; }
+.pl-today-act { display: flex; gap: 6px; margin-top: 8px; }
+.pl-today-done { font-size: 12px; font-weight: 700; margin-left: auto; margin-right: 8px; }
+.pl-actnote { display: flex; align-items: center; gap: 7px; }
+.pl-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }

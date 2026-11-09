@@ -216,6 +216,33 @@ async function sleep() {
   try { return require('../private/sleep.json'); } catch { throw new HttpError(404, 'no_sleep_data'); }
 }
 
+// GET /plan — the training plan from the website's Plan section (training_plan):
+// event, season weeks and every workout with duration / TSS / IF from js/plan.js.
+// GET /plan/{workout_id}?fit=1 — one workout, with the .fit file (base64) for a head unit.
+async function plan(id, q) {
+  const [row] = await sb('training_plan?athlete_id=eq.' + encodeURIComponent(env('OWNER_ATHLETE_ID')) + '&select=data,ts');
+  const data = (row && row.data) || {};
+  const P = require('../js/plan.js');
+  const ws = (data.workouts || []).map(w => {
+    const m = P.plWkMetrics(w);
+    return { id: w.id, date: w.date, title: w.title || 'Workout', text: w.text || '', notes: w.notes || '',
+      secs: Math.round(m.secs), tss: Math.round(m.tss), if: +(m.if || 0).toFixed(2), structured: m.blocks.length > 0 };
+  }).sort((a, b) => a.date.localeCompare(b.date));
+  if (id) {
+    const w = ws.find(x => x.id === id);
+    if (!w) throw new HttpError(404, 'not_found');
+    if (q.fit !== '1') return w;
+    const { blocks } = P.plParse(w.text);
+    if (!blocks.length) throw new HttpError(400, 'no_steps', { hint: 'Only structured workouts have a .fit file.' });
+    const name = (w.title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '_') || 'workout') + '.fit';
+    return { ...w, filename: name, fit_base64: Buffer.from(P.plFit(w.title, blocks)).toString('base64') };
+  }
+  const ev = data.event || null;
+  return { updated: row ? +row.ts || null : null,
+    event: ev ? { name: ev.name || null, date: ev.date || null, target_ctl: ev.target || null, ramp: ev.ramp || null } : null,
+    weeks: (ev && ev.weeks) || [], workouts: ws };
+}
+
 const HUAWEI_COLS = 'record_id,sport_type,sport,start_time,end_time,tz,duration_s,distance_m,climb_m,min_alt_m,max_alt_m,avg_hr,max_hr,calories,steps,polyline,start_latlng,strava_id,strava_kind,hr_samples';
 async function huawei(id) {
   const base = 'huawei_workouts?athlete_id=eq.' + encodeURIComponent(env('OWNER_ATHLETE_ID'));
@@ -385,6 +412,7 @@ const INDEX = {
     'POST /api/v1/activities/{id}/caption': 'Rewrites the Strava title + description with AI (same as on upload); the private note is kept',
     'POST /api/v1/huawei/{record_id}/upload': 'Body {name?} — sends a Huawei-only workout to Strava (GPX / TCX / manual) and links it',
     'GET /api/v1/app': 'Newest Android build: versionCode, versionName and a 10-minute download link',
+    'GET /api/v1/plan': 'The training plan (Plan section): event, season weeks with TSS targets, workouts with duration / TSS / IF (GET /api/v1/plan/{id}?fit=1 for one workout as a .fit file, base64)',
   },
 };
 
@@ -422,6 +450,7 @@ async function route(req, parts) {
     case 'segments': return segments(id, sub);
     case 'koms': return koms();
     case 'app': return appRelease();
+    case 'plan': return plan(id, q);
   }
   throw new HttpError(404, 'unknown_endpoint', { see: '/api/v1' });
 }

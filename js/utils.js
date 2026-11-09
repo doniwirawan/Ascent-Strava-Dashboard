@@ -229,6 +229,7 @@ function navScrollTo(id, btn) {
   // them there when they have content, hide everywhere else (not on every page).
   const ovSport=document.getElementById('sportBreakdown'); if(ovSport) ovSport.style.display = (id==='statRow' && ovSport.innerHTML.trim()) ? '' : 'none';
   const ovRdy=document.getElementById('readinessCard'); if(ovRdy) ovRdy.style.display = (id==='statRow' && ovRdy.innerHTML.trim()) ? '' : 'none';
+  const ovPlan=document.getElementById('planToday'); if(ovPlan) ovPlan.style.display = (id==='statRow' && ovPlan.innerHTML.trim()) ? '' : 'none';
   const ovAi=document.getElementById('ovAiInsight'); if(ovAi) ovAi.style.display = (id==='statRow' && ovAi.innerHTML.trim()) ? '' : 'none';
   const ovInst=document.getElementById('ovInstall');
   if(ovInst) ovInst.style.display = (id==='statRow' && window._pwaInstallReady) ? '' : 'none';

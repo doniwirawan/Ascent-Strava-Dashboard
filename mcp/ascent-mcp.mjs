@@ -105,6 +105,16 @@ const TOOLS = [
   { name: 'koms', description: 'Your KOM / QOM / CR segments.',
     inputSchema: { type: 'object', properties: {} }, run: () => api('/koms') },
 
+  { name: 'plan', description: 'The training plan from the Plan section: target event, season weeks (phase + weekly TSS target), and planned workouts with duration (secs), TSS and IF. Workout steps are text, power as % of FTP (e.g. "3x(15m 90%, 5m 55%)").',
+    inputSchema: { type: 'object', properties: { after: { type: 'string', description: 'Workouts on or after YYYY-MM-DD' }, before: { type: 'string', description: 'Workouts before YYYY-MM-DD' } } },
+    run: async a => {
+      const p = await api('/plan');
+      let w = p.workouts || [];
+      if (a.after) w = w.filter(x => x.date >= a.after);
+      if (a.before) w = w.filter(x => x.date < a.before);
+      return { ...p, workouts: w };
+    } },
+
   { name: 'app_release', description: 'Newest published Android build (versionCode, versionName, notes).',
     inputSchema: { type: 'object', properties: {} },
     run: async () => { const { url, ...r } = await api('/app'); return r; } },

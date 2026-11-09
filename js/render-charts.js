@@ -914,6 +914,7 @@ function openActivityModal(ref){
     ${loc?`<div class="actd-loc">📍 ${loc}</div>`:''}
     ${hasRoute?'<div class="actd-loc" id="actRoutePlaces"></div>':''}
     ${!hasRoute && a.id && !isVirtual(a) && typeof renderManualPlace==='function' ? '<div class="actd-loc" id="actManualPlace"></div>' : ''}
+    ${typeof plActivityNote==='function' ? plActivityNote(a) : ''}
     <div class="actd-grid">${stats}</div>
     <div class="actd-sleep" id="actSleep"></div>
     ${a.id ? '<div class="actd-streams" id="actStreams"></div>' : ''}

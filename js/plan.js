@@ -15,11 +15,18 @@
    Kept in localStorage; the owner's copy also syncs to Supabase through
    /api/ai-chats (plan-get / plan-save) so it follows across devices. */
 
-const PL_KEY = 'plan_v1';
-let _pl = null;
+// one plan per Strava athlete on this browser
+const _plKey = () => { try { return 'plan_v1_' + (localStorage.getItem('strava_athlete_id') || 'x'); } catch { return 'plan_v1_x'; } };
+let _pl = null, _plFor = null, _plPulled = false;
 function plLoad() {
-  if (_pl) return _pl;
-  try { _pl = JSON.parse(localStorage.getItem(PL_KEY) || 'null'); } catch {}
+  if (_pl && _plFor === _plKey()) return _pl;
+  _pl = null; _plFor = _plKey(); _plPulled = false;
+  try {
+    // first version kept one plan per browser under 'plan_v1': hand it to whoever is logged in
+    const old = localStorage.getItem('plan_v1');
+    if (old && !localStorage.getItem(_plFor) && !_plFor.endsWith('_x')) { localStorage.setItem(_plFor, old); localStorage.removeItem('plan_v1'); }
+    _pl = JSON.parse(localStorage.getItem(_plFor) || 'null');
+  } catch {}
   if (!_pl || typeof _pl !== 'object') _pl = {};
   if (!Array.isArray(_pl.workouts)) _pl.workouts = [];
   _pl.ts = +_pl.ts || 0;
@@ -28,7 +35,7 @@ function plLoad() {
 function plSave() {
   const p = plLoad();
   p.ts = Date.now();
-  try { localStorage.setItem(PL_KEY, JSON.stringify(p)); } catch {}
+  try { localStorage.setItem(_plKey(), JSON.stringify(p)); } catch {}
   _plPush();
 }
 const _plEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -357,7 +364,7 @@ async function _plCloud(body, retry) {
   if (!r.ok) throw new Error('plan ' + r.status);
   return r.json();
 }
-let _plPushT = null, _plPulled = false;
+let _plPushT = null;
 function _plPush() {
   if (!_plCloudOn()) return;
   clearTimeout(_plPushT);
@@ -371,7 +378,7 @@ async function plCloudPull() {
     const remote = r && r.plan, local = plLoad();
     if (remote && +remote.ts > local.ts) {
       _pl = null;
-      try { localStorage.setItem(PL_KEY, JSON.stringify(remote)); } catch {}
+      try { localStorage.setItem(_plKey(), JSON.stringify(remote)); } catch {}
       plLoad();
       renderPlan();
     } else if (local.ts > (remote ? +remote.ts || 0 : 0)) _plPush();
@@ -450,6 +457,7 @@ function _plCalendarHTML(p, d, today) {
       ${ph ? `<div class="pl-phase" style="color:${PL_PHASE_COLOR[ph]}">${_plPhaseName(ph)}</div>` : ''}
       <div>${tr('Plan')} <b>${Math.round(planWk)}</b>${s ? ` <small>/ ${s.tss}</small>` : ''}</div>
       <div>${tr('Done')} <b>${Math.round(doneWk)}</b></div>
+      ${[0, 1, 2, 3, 4, 5, 6].some(i => byDate.has(_trAddDays(mon, i))) ? `<button class="pl-btn pl-btn-sm pl-btn-ghost" onclick="plCopyWeek('${mon}')" title="${tr('Copies this week’s workouts to the empty days of the next week')}">${tr('Copy to next week')}</button>` : ''}
       ${canFill ? `<button class="pl-btn pl-btn-sm" onclick="plFillWeek('${mon}')" title="${tr('Adds workouts to the empty days, sized to the week’s target')}">${tr('Fill week')}</button>` : ''}
     </div></div>`;
   }
@@ -499,6 +507,7 @@ function renderPlan() {
   _plDrawForecast(d, fc, ev.date);
   if (sw.size) _plDrawWeeks(d, [...sw.values()], planned);
   if (_plEdit) _plRenderEditor();
+  renderPlanToday();
   plCloudPull();
 }
 
@@ -588,9 +597,10 @@ function plEdSet(k, v) {
   if (k === 'text' || k === 'secs' || k === 'tss') _plRenderPreview();
 }
 function plUsePreset(id) {
-  const x = _plLib(id); if (!x || !_plEdit) return;
+  const mine = plLoad().lib || [];
+  const x = _plLib(id) || mine.find(l => l.id === id); if (!x || !_plEdit) return;
   _plEdit.text = x.text;
-  if (!_plEdit.title || PL_LIB.some(l => tr(l.name) === _plEdit.title)) _plEdit.title = tr(x.name);
+  if (!_plEdit.title || PL_LIB.some(l => tr(l.name) === _plEdit.title) || mine.some(l => l.name === _plEdit.title)) _plEdit.title = _plLib(id) ? tr(x.name) : x.name;
   _plRenderEditor();
 }
 function _plRenderPreview() {
@@ -621,7 +631,7 @@ function _plRenderEditor(scroll) {
       <input type="text" class="pl-ed-title" maxlength="60" placeholder="${tr('Workout name')}" value="${_plEsc(e.title)}" oninput="plEdSet('title',this.value)">
       <input type="date" value="${_plEsc(e.date)}" onchange="plEdSet('date',this.value)">
     </div>
-    <div class="pl-chips">${PL_LIB.map(x => `<button class="pl-chip" onclick="plUsePreset('${x.id}')">${tr(x.name)}</button>`).join('')}</div>
+    <div class="pl-chips">${PL_LIB.map(x => `<button class="pl-chip" onclick="plUsePreset('${x.id}')">${tr(x.name)}</button>`).join('')}${(plLoad().lib || []).map(x => `<span class="pl-chip pl-chip-mine"><button onclick="plUsePreset('${x.id}')">${_plEsc(x.name)}</button><button onclick="plLibDelete('${x.id}')" aria-label="${tr('Remove from my library')}" title="${tr('Remove from my library')}">×</button></span>`).join('')}</div>
     <textarea class="pl-ed-text" rows="5" spellcheck="false" placeholder="10m 50-75%&#10;3x(15m 90%, 5m 55%)&#10;10m 50%" oninput="plEdSet('text',this.value)">${_plEsc(e.text)}</textarea>
     <div class="tr-basis-note" style="margin-top:4px">${tr('One step per line, power as % of FTP: 20m 90% · ramp 10m 50-75% · repeats 5x(4m 115%, 4m 50%) · durations 30s, 4m30s, 1h30m.')}</div>
     <div id="plManual" class="pl-ed-row" style="display:none">
@@ -633,6 +643,7 @@ function _plRenderEditor(scroll) {
     <div class="pl-ed-row pl-ed-actions">
       <button class="pl-btn pl-btn-primary" onclick="plEdSave()">${tr('Save')}</button>
       ${e.isNew ? '' : `<button class="pl-btn" onclick="plEdDelete()">${tr('Delete')}</button>`}
+      <button class="pl-btn pl-btn-ghost pl-exp" onclick="plLibSave()" title="${tr('Keep this workout as a button above, for any day')}">${tr('Save to my library')}</button>
       <span class="pl-sp"></span>
       <button class="pl-btn pl-exp" onclick="plExport('fit')" title="${tr('Garmin, Wahoo, iGPSport, Hammerhead…')}">.fit</button>
       <button class="pl-btn pl-exp" onclick="plExport('zwo')" title="Zwift, MyWhoosh, TrainerDay…">.zwo</button>
@@ -661,8 +672,9 @@ function plEdDelete() {
   plSave(); renderPlan();
 }
 function plEdClose() { _plEdit = null; _plRenderEditor(); }
-function plExport(kind) {
-  const e = _plEdit; if (!e) return;
+function plExport(kind) { if (_plEdit) _plDownload(_plEdit, kind); }
+function plExportId(id, kind) { const w = plLoad().workouts.find(x => x.id === id); if (w) _plDownload(w, kind); }
+function _plDownload(e, kind) {
   const { blocks } = plParse(e.text);
   if (!blocks.length) return;
   const title = e.title || tr('Workout');
@@ -693,3 +705,86 @@ function plAiSummary() {
       .map(w => { const m = plWkMetrics(w); return { date: w.date, title: w.title, min: Math.round(m.secs / 60), tss: Math.round(m.tss), steps: w.text || undefined }; }),
   };
 }
+
+/* ── My library, copy week ───────────────────────────────────────────────────── */
+function plLibSave() {
+  const e = _plEdit; if (!e || !plParse(e.text).blocks.length) return;
+  const p = plLoad(), name = String(e.title || tr('Workout')).slice(0, 60);
+  p.lib = (p.lib || []).filter(x => x.name !== name);
+  p.lib.push({ id: 'L' + Date.now().toString(36), name, text: String(e.text).slice(0, 2000) });
+  if (p.lib.length > 40) p.lib = p.lib.slice(-40);
+  plSave(); _plRenderEditor();
+}
+function plLibDelete(id) {
+  const p = plLoad();
+  p.lib = (p.lib || []).filter(x => x.id !== id);
+  plSave(); _plRenderEditor();
+}
+function plCopyWeek(mon) {
+  const p = plLoad(), today = _trToday();
+  const busy = new Set(p.workouts.map(w => w.date));
+  const add = p.workouts.filter(w => w.date >= mon && w.date <= _trAddDays(mon, 6))
+    .map(w => ({ ...w, id: 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date: _trAddDays(w.date, 7) }))
+    .filter(w => w.date >= today && !busy.has(w.date));
+  if (!add.length) return;
+  p.workouts.push(...add);
+  plSave(); renderPlan();
+}
+
+/* ── Today's workout (Overview) + plan vs done (activity pop-up) ──────────── */
+// Planned vs done for one day: {list, planned, done, pct, comp}, or null when nothing was planned.
+function plDayStatus(key) {
+  const list = plLoad().workouts.filter(w => w.date === key);
+  if (!list.length) return null;
+  const d = typeof _trBuildSeries === 'function' ? _trBuildSeries() : null;
+  const planned = list.reduce((s, w) => s + plWkMetrics(w).tss, 0), done = d ? (d.byDay.get(key) || 0) : 0;
+  return { list, planned, done, pct: planned ? Math.round(done / planned * 100) : 0, comp: plCompliance(planned, done, key, _trToday()) };
+}
+const PL_COMP_COLOR = { green: '#22c55e', yellow: '#eab308', orange: '#f97316', red: '#ef4444', future: '#888' };
+function plActivityNote(a) {
+  const st = a && plDayStatus(_trDayKey(a));
+  if (!st) return '';
+  return `<div class="actd-loc pl-actnote"><span class="pl-dot" style="background:${PL_COMP_COLOR[st.comp] || '#888'}"></span>${tr('Planned')}: ${st.list.map(w => _plEsc(w.title)).join(', ')} · ${Math.round(st.planned)} TSS — ${trf('done {0} TSS that day ({1}%)', Math.round(st.done), st.pct)}</div>`;
+}
+// Swap a hard planned session for a recovery spin of about the same length.
+function plSwapEasy(id) {
+  const p = plLoad(), w = p.workouts.find(x => x.id === id); if (!w) return;
+  const mins = Math.max(30, Math.min(90, Math.round(plWkMetrics(w).secs / 60 / 5) * 5));
+  w.notes = (w.notes ? w.notes + '\n' : '') + trf('Swapped from “{0}” (too tired).', w.title);
+  w.title = tr('Recovery spin'); w.text = `${mins}m 50%`; delete w.secs; delete w.tss;
+  plSave(); renderPlan();
+}
+function renderPlanToday() {
+  const el = document.getElementById('planToday');
+  if (!el) return;
+  const d = typeof _trBuildSeries === 'function' ? _trBuildSeries() : null;
+  const p = plLoad(), today = _trToday();
+  let key = today, list = p.workouts.filter(w => w.date === today);
+  if (!list.length) {   // nothing today: the next planned day within a week
+    const next = p.workouts.filter(w => w.date > today && w.date <= _trAddDays(today, 7)).sort((a, b) => a.date.localeCompare(b.date))[0];
+    if (next) { key = next.date; list = p.workouts.filter(w => w.date === key); }
+  }
+  if (!d || !list.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  const st = plDayStatus(key), isToday = key === today, band = _trFormBand(d.tsb, d.ramp);
+  const head = isToday ? tr('Today’s workout') : trf('Next workout · {0}', _plFmtDay(key, { weekday: 'long', day: 'numeric', month: 'short' }));
+  const items = list.map(w => {
+    const m = plWkMetrics(w), steps = m.blocks.length;
+    const tired = isToday && d.tsb < -25 && m.if >= 0.85 && !(st && st.done);
+    return `<div class="pl-today-item">
+      <div class="pl-today-row"><b>${_plEsc(w.title)}</b><span>${m.secs ? _plHm(m.secs) + ' · ' : ''}${Math.round(m.tss)} TSS${m.if ? ' · IF ' + m.if.toFixed(2) : ''}</span></div>
+      ${steps ? plProfileSVG(m.blocks, 44) : ''}
+      ${w.notes ? `<div class="tr-basis-note" style="margin-top:6px">${_plEsc(w.notes)}</div>` : ''}
+      ${tired ? `<div class="tr-note" style="margin:8px 0 0">${trf('Form is {0} ({1}). A hard session today adds more fatigue than fitness — consider an easy spin instead.', Math.round(d.tsb), band.label)} <button class="pl-btn pl-btn-sm" onclick="plSwapEasy('${w.id}')">${tr('Swap for a recovery spin')}</button></div>` : ''}
+      ${steps ? `<div class="pl-today-act"><button class="pl-btn pl-btn-sm" onclick="plExportId('${w.id}','fit')">.fit</button><button class="pl-btn pl-btn-sm" onclick="plExportId('${w.id}','zwo')">.zwo</button></div>` : ''}
+    </div>`;
+  }).join('');
+  const done = isToday && st && st.done ? `<span class="pl-today-done" style="color:${PL_COMP_COLOR[st.comp]}">✓ ${trf('{0}% of plan done', st.pct)}</span>` : '';
+  el.innerHTML = `<div class="card pl-card pl-today">
+    <div class="pl-cal-head"><div class="tr-chart-title" style="margin:0">${head}</div>${done}
+      <button class="pl-btn pl-btn-sm pl-btn-ghost" onclick="navScrollTo('planSection',document.querySelector('.nav-link[onclick*=planSection]'))">${tr('Open plan')}</button></div>
+    ${items}</div>`;
+  el.style.display = isOverviewVisible() ? '' : 'none';
+}
+
+// Node (api/_v1.js): the parser, maths and file writers, so the app gets the same numbers and .fit files.
+if (typeof module !== 'undefined') module.exports = { plParse, plMetrics, plWkMetrics, plFit, plZwo, plMrc };
