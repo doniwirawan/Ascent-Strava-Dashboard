@@ -22,6 +22,10 @@ test('virtual rides are rides, but not real speed', () => {
   assert.equal(g.cleanMax(a), 0);
   assert.ok(g.isVirtual({ type: 'Ride', trainer: true }));
   assert.ok(!g.isVirtual({ type: 'Ride', max_speed: 15 }));
+  // a treadmill run or pool swim keeps its real pace
+  assert.ok(!g.isVirtual({ type: 'Run', trainer: true }));
+  assert.ok(!g.isVirtual({ type: 'Swim', trainer: true }));
+  assert.ok(g.isVirtual({ type: 'VirtualRun' }));
   assert.equal(g.cleanMax({ type: 'Ride', max_speed: 15 }), 15);
 });
 

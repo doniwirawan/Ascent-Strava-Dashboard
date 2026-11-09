@@ -51,7 +51,7 @@ function bests(list) {
     longest_ride_km: km(max(a => a.distance)),
     biggest_climb_m: Math.round(max(a => a.total_elevation_gain)),
     // Zwift / MyWhoosh speed is game physics — real-world rides only
-    fastest_avg_kmh: kmh(max(a => a.trainer === true || /^Virtual/.test(a.sport_type || a.type || '') ? 0 : a.average_speed)),
+    fastest_avg_kmh: kmh(max(a => (/^Virtual/.test(a.sport_type || a.type || '') || (a.trainer === true && /^(Ride|EBikeRide|GravelRide|MountainBikeRide|VirtualRide)$/.test(a.sport_type || a.type || ''))) ? 0 : a.average_speed)),
     longest_moving_hours: hrs(max(a => a.moving_time)),
     highest_avg_watts: Math.round(max(a => a.average_watts)) || null,
   };

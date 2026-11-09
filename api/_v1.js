@@ -103,7 +103,7 @@ async function tokens(req, id) {
    separateVirtualGps in js/utils.js) so the app's maps and the MCP never
    treat it as a real place. Power, HR, time and distance stay as they are. */
 function separateVirtual(a) {
-  if (!a || !(a.trainer === true || /^Virtual/.test(a.sport_type || a.type || ''))) return;
+  if (!a || !(/^Virtual/.test(a.sport_type || a.type || '') || (a.trainer === true && /^(Ride|EBikeRide|GravelRide|MountainBikeRide|VirtualRide)$/.test(a.sport_type || a.type || '')))) return;   // rides only: a treadmill run's pace is real
   a.virtual = true;
   const t = ((a.device_name || '') + ' ' + (a.name || '')).toLowerCase();
   const hit = [['zwift', 'Zwift'], ['whoosh', 'MyWhoosh'], ['rouvy', 'ROUVY'], ['trainerroad', 'TrainerRoad'], ['systm', 'Wahoo SYSTM'], ['fulgaz', 'FulGaz'], ['bkool', 'Bkool']].find(([k]) => t.includes(k));

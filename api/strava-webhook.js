@@ -177,7 +177,7 @@ function statsCaption(a, wx, rp) {
 
 // Zwift / MyWhoosh / trainer ride: real power and HR, but game-world GPS and
 // speed — no place, no weather, no top speed (same rule as isVirtual in js/utils.js).
-const isVirtual = a => !!a && (a.trainer === true || /^Virtual/.test(a.sport_type || a.type || ''));
+const isVirtual = a => !!a && (/^Virtual/.test(a.sport_type || a.type || '') || (a.trainer === true && /^(Ride|EBikeRide|GravelRide|MountainBikeRide|VirtualRide)$/.test(a.sport_type || a.type || '')));   // rides only
 function virtualApp(a) {
   const t = ((a.device_name || '') + ' ' + (a.name || '')).toLowerCase();
   const hit = [['zwift', 'Zwift'], ['whoosh', 'MyWhoosh'], ['rouvy', 'ROUVY'], ['trainerroad', 'TrainerRoad'], ['systm', 'Wahoo SYSTM'], ['fulgaz', 'FulGaz'], ['bkool', 'Bkool']].find(([k]) => t.includes(k));

@@ -16,6 +16,7 @@ class VirtualRideTest {
         assertTrue(Screens.isVirtual(act("Ride", 30.0, ""","trainer":true""")))
         assertTrue(Screens.isVirtual(act("Ride", 30.0, ""","virtual":true""")))
         assertFalse(Screens.isVirtual(act("Ride", 30.0)))
+        assertFalse(Screens.isVirtual(act("Run", 12.0, ""","trainer":true""")))   // treadmill pace is real
         assertTrue(Screens.isRide(act("VirtualRide", 38.0)))
     }
 

@@ -128,10 +128,12 @@ const localDayStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'
 // the wall-clock year/month/weekday regardless of the viewer's timezone.
 const actLocalDate = a => new Date((((a&&(a.start_date_local||a.start_date))||'').slice(0,10)||'1970-01-01')+'T00:00:00Z');
 const isRide= a   => ['Ride','VirtualRide','EBikeRide','GravelRide','MountainBikeRide'].includes(a.type);
-// Zwift / MyWhoosh / trainer rides (Strava: type VirtualRide or trainer: true).
-// Power, HR, time, distance and load are real; speed is game physics and the
-// GPS track is a game world, so they stay out of speed records, maps and places.
-const isVirtual = a => !!a && (a.trainer === true || /^Virtual/.test(a.sport_type || a.type || ''));
+// Zwift / MyWhoosh / trainer RIDES (Strava: VirtualRide / VirtualRun, or a ride
+// with trainer: true). Power, HR, time, distance and load are real; speed is game
+// physics and the GPS track is a game world, so they stay out of speed records,
+// maps and places. A treadmill run or pool swim (trainer: true) is not virtual:
+// its pace is real.
+const isVirtual = a => !!a && (/^Virtual/.test(a.sport_type || a.type || '') || (a.trainer === true && isRide(a)));
 // Speed is comparable across rides: real-world rides only.
 const realSpeed = a => !isVirtual(a);
 const VIRTUAL_APPS = [['zwift', 'Zwift'], ['mywhoosh', 'MyWhoosh'], ['whoosh', 'MyWhoosh'], ['rouvy', 'ROUVY'], ['trainerroad', 'TrainerRoad'], ['wahoo systm', 'Wahoo SYSTM'], ['fulgaz', 'FulGaz'], ['bkool', 'Bkool']];

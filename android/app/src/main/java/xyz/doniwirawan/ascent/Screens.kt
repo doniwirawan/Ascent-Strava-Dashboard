@@ -20,7 +20,7 @@ object Screens {
     private val RIDE_TYPES = setOf("Ride", "VirtualRide", "EBikeRide", "GravelRide", "MountainBikeRide")
     internal fun isRide(a: JSONObject) = (a.optString("sport_type").ifEmpty { a.optString("type") }) in RIDE_TYPES
     /** Zwift / MyWhoosh / trainer ride (the API marks it `virtual`): power, HR and time are real, speed is game physics. */
-    internal fun isVirtual(a: JSONObject) = a.optBoolean("virtual") || a.optBoolean("trainer") || a.optString("sport_type").ifEmpty { a.optString("type") }.startsWith("Virtual")
+    internal fun isVirtual(a: JSONObject) = a.optBoolean("virtual") || a.optString("sport_type").ifEmpty { a.optString("type") }.startsWith("Virtual") || (a.optBoolean("trainer") && isRide(a))   // rides only: a treadmill run's pace is real
     /** Speed that can be compared between rides — real-world rides only. */
     internal fun realSpeed(a: JSONObject) = !isVirtual(a)
     // saved GPS-glitch corrections replace Strava's top speed wherever an activity is read (GpsCheck)
