@@ -76,6 +76,7 @@ Needs a new route in api/_v1.js:
 Settings:
 - [~] P21. Units (km / mi) and language (English / Indonesian) — skipped (owner, 2026-11-02): one-user app, rides in km
 - [x] P22. Help: what the metrics mean — More → Help (3.21)
+- [ ] P23. Plan (web 2026-11-09, js/plan.js): season plan, workout calendar with compliance, workout builder + .fit export, fitness forecast — needs a /api/v1 route reading training_plan
 
 Stays web-only: landing page, Strava login, PWA install, save page as image, GPX repair
 editor, Personal API token management and webhook settings (need the Strava login), Huawei

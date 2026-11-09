@@ -84,3 +84,13 @@ Numbered roughly as raised. Reassess priority when we get here.
 - **Charts:** Chart.js is already loaded and wrapped in `js/render-charts.js`; destroy instances before re-render (`charts` map).
 - **Streams infra** already exists (`clearStreamCache`) — reuse it for the 🔶 features rather than adding a new fetch layer.
 - **Units:** metres/`m·s⁻¹` internally; `fmtD()`/`kmh()` for display. `isRide()` for cycling types.
+
+---
+
+## Plan section (2026-11-09) — replaces TrainingPeaks' planning side — **BUILT** (js/plan.js)
+- **Season plan (ATP):** event + date + optional target CTL + ramp/week → Base / Build / Peak / Taper / Race weeks with weekly TSS targets (exact EWMA maths, every 4th week recovery). Saved when made, so past weeks keep their target.
+- **Calendar:** 4 weeks, planned workouts per day, TrainingPeaks-style compliance (planned vs done TSS: green 80–120 %, yellow 50–150 %, orange, red = missed). "Fill week" adds phase-matched workouts sized to the week's target.
+- **Workout builder:** text steps (`10m 50-75%`, `5x(4m 115%, 4m 50%)`), live profile, TSS / IF / NP / kJ, export .fit (checked with Garmin's FIT SDK), .zwo, .mrc.
+- **Forecast:** PMC carried forward through planned workouts (season target for unplanned weeks) → race-day CTL / form.
+- Sync: owner's plan in Supabase `training_plan` via `/api/ai-chats` plan-get / plan-save. Tests: tests/plan.test.js.
+

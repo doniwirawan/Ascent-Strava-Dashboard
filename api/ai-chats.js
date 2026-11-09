@@ -22,6 +22,11 @@
 // Bike picker in the activity pop-up — sets the bike only (the caption is kept):
 // POST { token, action: 'set-bike', id, gear_id } → { ok, result, name, description }
 //
+// Training plan (js/plan.js: season plan + planned workouts), one JSON blob per
+// owner in training_plan; the newer copy (ts) wins on the browser side:
+// POST { token, action: 'plan-get' }        → { plan: {...} | null }
+// POST { token, action: 'plan-save', plan } → { ok }
+//
 // Required env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OWNER_ATHLETE_ID.
 const { saveActivityAi, getOwnerRefreshToken, saveOwnerRefreshToken } = require('./_owner-token.js');
 
@@ -77,7 +82,7 @@ module.exports = async (req, res) => {
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
   const { token, action } = body;
-  if (!token || !['list', 'save', 'delete', 'act-list', 'act-save', 'webhook-status', 'set-bike'].includes(action)) { res.status(400).json({ error: 'bad_request' }); return; }
+  if (!token || !['list', 'save', 'delete', 'act-list', 'act-save', 'webhook-status', 'set-bike', 'plan-get', 'plan-save'].includes(action)) { res.status(400).json({ error: 'bad_request' }); return; }
 
   // Gate to the owner: a valid Strava token that resolves to OWNER_ATHLETE_ID.
   let athleteId = null;
@@ -105,6 +110,28 @@ module.exports = async (req, res) => {
       if (!id || !gear) { res.status(400).json({ error: 'bad_request', need: ['id', 'gear_id'] }); return; }
       const { status, ...out } = await setBike(token, id, gear);
       res.status(status).json(out);
+      return;
+    }
+    if (action === 'plan-get') {
+      const r = await fetch(url + '/rest/v1/training_plan?' + mine + '&select=data', { headers: H });
+      if (!r.ok) throw new Error('supabase ' + r.status);
+      const row = (await r.json())[0];
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.status(200).json({ plan: row ? row.data : null });
+      return;
+    }
+    if (action === 'plan-save') {
+      const plan = body.plan;
+      const json = plan && typeof plan === 'object' ? JSON.stringify(plan) : '';
+      if (!json || json.length > 300000 || !Array.isArray(plan.workouts)) { res.status(400).json({ error: 'bad_request', need: ['plan.workouts (under 300 KB)'] }); return; }
+      const row = { athlete_id: owner, data: plan, ts: +plan.ts || Date.now(), updated_at: new Date().toISOString() };
+      const r = await fetch(url + '/rest/v1/training_plan?on_conflict=athlete_id', {
+        method: 'POST',
+        headers: { ...H, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(row),
+      });
+      if (!r.ok) throw new Error('supabase ' + r.status + ' ' + (await r.text().catch(() => '')).slice(0, 200));
+      res.status(200).json({ ok: true });
       return;
     }
     if (action === 'webhook-status') {

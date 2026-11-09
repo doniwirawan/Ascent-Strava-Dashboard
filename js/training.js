@@ -96,7 +96,8 @@ function _trBuildSeries() {
   const ago7 = series[series.length - 8]; // ~7 days back
   const ramp = ago7 ? last.ctl - ago7.ctl : 0;
   return {
-    series, basis, ftpEst,
+    series, basis, ftpEst, byDay,
+    loadOf: a => _trActivityLoad(a, ftp, hrMax, hrRest),   // used by plan.js
     ctl: last.ctl, atl: last.atl, stl: last.stl, tsb: last.tsb, ramp,
   };
 }
