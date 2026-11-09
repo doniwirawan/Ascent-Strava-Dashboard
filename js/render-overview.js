@@ -2,6 +2,8 @@
 function renderAll() {
   // Re-apply persisted abnormal-speed corrections before any stats compute
   if(typeof applyMaxFixOverrides==='function') applyMaxFixOverrides();
+  // Zwift / MyWhoosh rides: game-world GPS out of maps, places and weather
+  if(typeof separateVirtualGps==='function' && typeof acts!=='undefined') separateVirtualGps(acts);
   // Show all sections temporarily so charts can measure their containers
   _ALL_SECTIONS.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='';});
 
@@ -86,7 +88,7 @@ function renderStats() {
     maxLbl=t('bestPace'); maxVal=best?pace(best.average_speed):'—'; maxSub=paceSub;
   } else {
     longLbl=t('longRide');
-    const riding=set.filter(a=>a.average_speed>0);
+    const riding=set.filter(a=>a.average_speed>0&&realSpeed(a));
     const avg=riding.length?kmh(riding.reduce((s,a)=>s+a.average_speed,0)/riding.length):0;
     avgLbl=t('avgSpeed'); avgVal=avg?avg.toFixed(1):'—'; avgSub=speedUnit()+' '+t('riding');
     const mx=kmh(set.reduce((m,a)=>cleanMax(a)>m?cleanMax(a):m,0));
@@ -305,7 +307,7 @@ function renderSportBreakdown(){
     const dist=set.reduce((s,a)=>s+(a.distance||0),0);
     const time=set.reduce((s,a)=>s+(a.moving_time||0),0);
     const elev=set.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
-    const paced=set.filter(a=>a.average_speed>0);
+    const paced=set.filter(a=>a.average_speed>0&&realSpeed(a));
     const totD=set.reduce((s,a)=>s+(a.distance||0),0), totT=set.reduce((s,a)=>s+(a.moving_time||0),0);
     let avg='—';
     if(paced.length){

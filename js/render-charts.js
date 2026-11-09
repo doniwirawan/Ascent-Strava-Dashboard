@@ -893,7 +893,7 @@ function openActivityModal(ref){
   const wt=a.workout_type;
   const badges=[
     a.commute && 'Commute',
-    a.trainer && 'Indoor',
+    isVirtual(a) && virtualApp(a),
     a.manual && 'Manual',
     a.private && 'Private',
     (wt===1||wt===11) && 'Race',
@@ -913,7 +913,7 @@ function openActivityModal(ref){
     </div>
     ${loc?`<div class="actd-loc">📍 ${loc}</div>`:''}
     ${hasRoute?'<div class="actd-loc" id="actRoutePlaces"></div>':''}
-    ${!hasRoute && a.id && typeof renderManualPlace==='function' ? '<div class="actd-loc" id="actManualPlace"></div>' : ''}
+    ${!hasRoute && a.id && !isVirtual(a) && typeof renderManualPlace==='function' ? '<div class="actd-loc" id="actManualPlace"></div>' : ''}
     <div class="actd-grid">${stats}</div>
     <div class="actd-sleep" id="actSleep"></div>
     ${a.id ? '<div class="actd-streams" id="actStreams"></div>' : ''}

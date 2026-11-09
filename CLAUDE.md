@@ -105,5 +105,6 @@ Tokens stored in `localStorage`. Expired tokens are refreshed automatically via 
 - All distances in metres internally, converted with `fmtD()` for display
 - All speeds in m/s internally, converted with `kmh()` for display
 - `isRide(act)` detects cycling activity types (Ride, VirtualRide, EBikeRide, GravelRide, MountainBikeRide)
+- `isVirtual(act)` = Zwift / MyWhoosh / trainer ride. `renderAll()` (and `/api/v1` on read) moves its game-world GPS to `virtual_map` / `virtual_start`, so maps, places, weather and AI locations skip it. It counts for distance, time, power, HR and load, but use `realSpeed(a)` / `cleanMax(a)` to keep it out of speed records and comparisons
 - Do not use `addEventListener` inside `openStoryModal` for static checkboxes — use `.onchange =` to prevent listener stacking on re-open
 - CSS variables are defined in `base.css` (`--orange`, `--surface`, `--border`, etc.)

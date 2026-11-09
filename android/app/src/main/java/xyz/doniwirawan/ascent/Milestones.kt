@@ -49,8 +49,8 @@ object Milestones {
         val records = listOf(
             rec("Longest ride", set.maxByOrNull { it.d("distance") }) { Ui.km(it.d("distance")) },
             rec("Most elevation", set.maxByOrNull { it.d("total_elevation_gain") }) { "${Math.round(it.d("total_elevation_gain"))} m" },
-            rec("Fastest average", set.filter { it.d("average_speed") > 0 }.maxByOrNull { it.d("average_speed") }) { Ui.kmh(it.d("average_speed")) },
-            rec("Top speed", set.filter { it.d("max_speed") > 0 }.maxByOrNull { it.d("max_speed") }) { Ui.kmh(it.d("max_speed")) },
+            rec("Fastest average", set.filter { it.d("average_speed") > 0 && Screens.realSpeed(it) }.maxByOrNull { it.d("average_speed") }) { Ui.kmh(it.d("average_speed")) },
+            rec("Top speed", set.filter { it.d("max_speed") > 0 && Screens.realSpeed(it) }.maxByOrNull { it.d("max_speed") }) { Ui.kmh(it.d("max_speed")) },
             rec("Highest average heart rate", set.filter { it.d("average_heartrate") > 0 }.maxByOrNull { it.d("average_heartrate") }) { "${Math.round(it.d("average_heartrate"))} bpm" },
             rec("Most kudos", set.filter { it.optInt("kudos_count") > 0 }.maxByOrNull { it.optInt("kudos_count") }) { "${it.optInt("kudos_count")} kudos" },
             rec("Most PRs in a ride", set.filter { it.optInt("pr_count") > 0 }.maxByOrNull { it.optInt("pr_count") }) { "${it.optInt("pr_count")} PRs" },

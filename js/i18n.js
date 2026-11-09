@@ -1346,6 +1346,7 @@ const TR_ID = {
   'Target': 'Target', 'Planned': 'Direncanakan', 'Duration': 'Durasi',
   'Line {0} not understood — write it like 20m 90% or 3x(4m 115%, 4m 50%).': 'Baris {0} tidak dipahami — tulis seperti 20m 90% atau 3x(4m 115%, 4m 50%).',
   'Workout name': 'Nama latihan',
+  'Ridden on {0} — no real-world location.': 'Digowes di {0} — tanpa lokasi dunia nyata.',
   'One step per line, power as % of FTP: 20m 90% · ramp 10m 50-75% · repeats 5x(4m 115%, 4m 50%) · durations 30s, 4m30s, 1h30m.': 'Satu langkah per baris, power dalam % FTP: 20m 90% · ramp 10m 50-75% · ulangan 5x(4m 115%, 4m 50%) · durasi 30s, 4m30s, 1h30m.',
   'Or just a duration (min)': 'Atau cukup durasi (menit)', 'Notes (optional)': 'Catatan (opsional)',
   'Garmin, Wahoo, iGPSport, Hammerhead…': 'Garmin, Wahoo, iGPSport, Hammerhead…', 'ERG mode, % of FTP': 'Mode ERG, % FTP',

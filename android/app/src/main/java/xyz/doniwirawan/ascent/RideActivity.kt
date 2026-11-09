@@ -50,7 +50,8 @@ class RideActivity : Activity() {
         t += Ui.hm(a.optLong("moving_time")) to "moving time|time"
         t += "${Math.round(a.optDouble("total_elevation_gain"))} m" to "climbing|climb"
         if (a.optDouble("average_speed") > 0) t += Ui.kmh(a.optDouble("average_speed")) to "avg speed|speed"
-        if (a.optDouble("max_speed") > 0) t += Ui.kmh(Math.min(a.optDouble("max_speed"), 65 / 3.6)) to "max speed|speed"
+        if (Screens.isVirtual(a)) t += a.optString("virtual_app").ifEmpty { "Indoor" } to "virtual ride|time"
+        if (a.optDouble("max_speed") > 0 && !Screens.isVirtual(a)) t += Ui.kmh(Math.min(a.optDouble("max_speed"), 65 / 3.6)) to "max speed|speed"
         if (a.optDouble("average_heartrate") > 0) t += "${Math.round(a.optDouble("average_heartrate"))} bpm" to "avg HR|hr"
         if (a.optDouble("max_heartrate") > 0) t += "${Math.round(a.optDouble("max_heartrate"))} bpm" to "max HR|hr"
         val meter = a.optBoolean("device_watts")

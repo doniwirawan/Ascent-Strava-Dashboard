@@ -751,7 +751,7 @@ function speedLegendHTML(totals) {
 function renderOverviewSpeedZones() {
   const card = document.getElementById('spdzCard');
   if (!card) return;
-  const set = (typeof modeActs === 'function') ? modeActs() : (typeof acts !== 'undefined' ? acts : []);
+  const set = ((typeof modeActs === 'function') ? modeActs() : (typeof acts !== 'undefined' ? acts : [])).filter(realSpeed);
 
   // Prefer real time-in-zone; fall back to the average-speed estimate until at
   // least some rides have been analysed, so the card is never blank.
@@ -1006,6 +1006,8 @@ async function showSpeedSpot(actId, btn, kind, panelId) {
 
   panel.classList.add('open');
   panel.innerHTML = '<div class="spot-loading">' + tr('Finding the spot…') + '</div>';
+  // Zwift / MyWhoosh: the GPS is a game world, so there is no real spot to show
+  if (isVirtual(a)) { panel.innerHTML = '<div class="spot-loading">' + trf('Ridden on {0} — no real-world location.', virtualApp(a)) + '</div>'; return; }
   const spot = await _peakSpot(a, kind);
   if (!spot) { panel.innerHTML = '<div class="spot-loading">' + tr('No GPS data for this ride.') + '</div>'; return; }
 

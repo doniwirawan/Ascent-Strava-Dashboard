@@ -78,7 +78,7 @@ function renderMonthly(filterYear) {
     rows[m].elev += a.total_elevation_gain||0;
     rows[m].time += a.moving_time||0;
     rows[m].cal  += a.kilojoules||a.calories||0;
-    if(a.average_speed) rows[m].speed.push(a.average_speed);
+    if(a.average_speed&&realSpeed(a)) rows[m].speed.push(a.average_speed);
     if(a.average_heartrate) rows[m].hr.push(a.average_heartrate);
   });
 
@@ -162,7 +162,7 @@ function renderBestEfforts(){
   const CATS=[
     {title:'Longest Rides',key:'distance',fmt:a=>fmtKm(a)+' '+distUnit(),sort:(a,b)=>(b.distance||0)-(a.distance||0)},
     {title:'Most Elevation',key:'total_elevation_gain',fmt:a=>fmtElev(a),sort:(a,b)=>(b.total_elevation_gain||0)-(a.total_elevation_gain||0)},
-    {title:'Fastest Avg Speed',key:'average_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.average_speed||0)-(a.average_speed||0)},
+    {title:'Fastest Avg Speed',key:'average_speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.average_speed||0)-(a.average_speed||0),valid:realSpeed},
     {title:'Highest Max Speed',key:'max_speed',spot:'speed',fmt:a=>kmh(a).toFixed(1)+' '+speedUnit(),sort:(a,b)=>(b.max_speed||0)-(a.max_speed||0),valid:a=>cleanMax(a)>0},
     {title:'Highest Heart Rate',key:'max_heartrate',spot:'hr',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.max_heartrate||0)-(a.max_heartrate||0)},
     {title:'Highest Avg Heart Rate',key:'average_heartrate',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.average_heartrate||0)-(a.average_heartrate||0)},
@@ -188,7 +188,7 @@ function renderBestEfforts(){
   const COMBOS=[
     {
       hi:'Fastest All-Round', lo:'Slowest All-Round', sub:'avg + top speed',
-      valid:a=>a.average_speed>0 && cleanMax(a)>0,
+      valid:a=>a.average_speed>0 && cleanMax(a)>0 && realSpeed(a),
       parts:[{get:a=>a.average_speed,dir:1},{get:a=>cleanMax(a),dir:1}],
       fmt:a=>`${kmh(a.average_speed).toFixed(1)} / ${kmh(cleanMax(a)).toFixed(1)} ${speedUnit()}`,
     },
@@ -196,7 +196,7 @@ function renderBestEfforts(){
       // Efficiency = distance covered per heartbeat (avg m/s × 60 ÷ avg HR).
       // High speed at low HR → high value; slow-but-hard rides → low value.
       hi:'Most Efficient', lo:'Least Efficient', sub:'distance per heartbeat',
-      valid:a=>a.average_speed>0 && a.average_heartrate>0,
+      valid:a=>a.average_speed>0 && a.average_heartrate>0 && realSpeed(a),
       score:a=>a.average_speed*60/a.average_heartrate,
       fmt:a=>`${(a.average_speed*60/a.average_heartrate).toFixed(2)} m/beat`,
     },
@@ -787,7 +787,7 @@ function renderMilestones(){
   // records within the mode
   const longest=set.reduce((m,a)=>(a.distance||0)>(m.distance||0)?a:m,set[0]||{});
   const mostElev=set.reduce((m,a)=>(a.total_elevation_gain||0)>(m.total_elevation_gain||0)?a:m,set[0]||{});
-  const fastest=set.filter(a=>a.average_speed>0).reduce((m,a)=>a.average_speed>(m.average_speed||0)?a:m,{});
+  const fastest=set.filter(a=>a.average_speed>0&&realSpeed(a)).reduce((m,a)=>a.average_speed>(m.average_speed||0)?a:m,{});
   const topSpd=set.filter(a=>cleanMax(a)>0).reduce((m,a)=>cleanMax(a)>cleanMax(m)?a:m,{});
   const longDur=set.reduce((m,a)=>(a.moving_time||0)>(m.moving_time||0)?a:m,set[0]||{});
   const bestHR=set.filter(a=>a.average_heartrate>0).reduce((m,a)=>a.average_heartrate>(m.average_heartrate||0)?a:m,{});
@@ -879,7 +879,7 @@ function renderRewind(filterYear){
   const avgDist=ya.length?kmVal(ya.reduce((s,a)=>s+(a.distance||0),0)/ya.length).toFixed(1):0;
   const totalDistM=ya.reduce((s,a)=>s+(a.distance||0),0);
   const avgSpeed=totalTime?kmh(totalDistM/totalTime):0;
-  const maxSpeed=kmh(ya.reduce((m,a)=>Math.max(m,a.max_speed||0),0));
+  const maxSpeed=kmh(ya.reduce((m,a)=>Math.max(m,cleanMax(a)),0));
   const maxHRy=ya.reduce((m,a)=>Math.max(m,a.max_heartrate||0),0);
   const wattsA=ya.filter(a=>a.average_watts>0);
   const avgWattsy=wattsA.length?Math.round(wattsA.reduce((s,a)=>s+a.average_watts,0)/wattsA.length):0;

@@ -256,7 +256,7 @@ object Training {
             )))
         }
         // Fitness trend on Zone-2 rides, per month
-        val z2 = rides.filter { z2(it) && it.optDouble("average_speed") > 0 }.sortedBy { it.optString("start_date") }.takeLast(15)
+        val z2 = rides.filter { z2(it) && it.optDouble("average_speed") > 0 && Screens.realSpeed(it) }.sortedBy { it.optString("start_date") }.takeLast(15)
         val months = z2.groupBy { day(it).take(7) }.toSortedMap()
         if (z2.size >= 3 && months.size >= 2) {
             val kmh = months.mapValues { (_, l) -> l.map { it.optDouble("average_speed") }.average() * 3.6 }
@@ -281,7 +281,7 @@ object Training {
             fun ytd(y: Int) = rides.filter { day(it).startsWith("$y") && day(it).substring(5) <= today.substring(5) }.sumOf { it.optDouble("distance") }
             val y = today.take(4).toInt()
             val ytdPrev = ytd(y - 1)
-            fun spd(m: String) = byMonth[m]?.map { it.optDouble("average_speed") }?.filter { it > 0 }?.takeIf { it.isNotEmpty() }?.average()?.times(3.6)
+            fun spd(m: String) = byMonth[m]?.filter { Screens.realSpeed(it) }?.map { it.optDouble("average_speed") }?.filter { it > 0 }?.takeIf { it.isNotEmpty() }?.average()?.times(3.6)
             val now = spd(today.take(7)); val was = spd("${y - 1}" + today.substring(4, 7))
             col.addView(Ui.heading(a, "Seasonal insights"))
             col.addView(Ui.tiles(a, listOf(
@@ -298,7 +298,7 @@ object Training {
             val recs = listOfNotNull(
                 best("Longest ride", { true }, { it.optDouble("distance") }, { Ui.km(it.optDouble("distance")) }),
                 best("Biggest climbing day", { true }, { it.optDouble("total_elevation_gain") }, { "${Math.round(it.optDouble("total_elevation_gain"))} m" }),
-                best("Fastest century", { it.optDouble("distance") >= 100_000 }, { it.optDouble("average_speed") }, { Ui.kmh(it.optDouble("average_speed")) }),
+                best("Fastest century", { it.optDouble("distance") >= 100_000 && Screens.realSpeed(it) }, { it.optDouble("average_speed") }, { Ui.kmh(it.optDouble("average_speed")) }),
                 best("Longest Zone-2 ride", { z2(it) }, { it.optDouble("moving_time") }, { Ui.hm(it.optLong("moving_time")) }),
                 best("Highest average cadence", { it.optDouble("average_cadence", 0.0) > 0 }, { it.optDouble("average_cadence") }, { "${Math.round(it.optDouble("average_cadence"))} rpm" }),
                 best("Highest average power", { it.optDouble("average_watts", 0.0) > 0 }, { it.optDouble("average_watts") }, { "${Math.round(it.optDouble("average_watts"))} W" }),
@@ -321,7 +321,7 @@ object Training {
             val parts = listOf(
                 "Endurance" to pct(latest.optDouble("moving_time"), rides.map { it.optDouble("moving_time") }),
                 "Climbing" to pct(latest.optDouble("total_elevation_gain"), rides.map { it.optDouble("total_elevation_gain") }),
-                "Efficiency" to pct(latest.optDouble("average_speed"), rides.map { it.optDouble("average_speed") }),
+                "Efficiency" to (if (Screens.realSpeed(latest)) pct(latest.optDouble("average_speed"), rides.filter { Screens.realSpeed(it) }.map { it.optDouble("average_speed") }) else null),
                 "Effort" to effort(latest).takeIf { it > 0 }?.let { pct(it, rides.map { r -> effort(r) }) },
             ).filter { it.second != null }
             val overall = Math.round(parts.sumOf { it.second!! } / parts.size * 100)
@@ -335,7 +335,7 @@ object Training {
         // Similar rides: the latest against past rides of a similar distance and climb
         val past = rides.filter { it.optDouble("distance") > 0 && it !== latest }.sortedByDescending { it.optString("start_date") }
         val e = latest.optDouble("total_elevation_gain")
-        val similar = past.filter { Math.abs((it.optDouble("distance") - latest.optDouble("distance")) / latest.optDouble("distance")) <= 0.15 && (e <= 50 || Math.abs((it.optDouble("total_elevation_gain") - e) / e) <= 0.4) }.take(12)
+        val similar = past.filter { Screens.isVirtual(it) == Screens.isVirtual(latest) && Math.abs((it.optDouble("distance") - latest.optDouble("distance")) / latest.optDouble("distance")) <= 0.15 && (e <= 50 || Math.abs((it.optDouble("total_elevation_gain") - e) / e) <= 0.4) }.take(12)
         if (similar.size >= 2) {
             val pool = similar + latest
             fun rank(k: String, desc: Boolean) = pool.map { it.optDouble(k, 0.0) }.let { if (desc) it.sortedDescending() else it.sorted() }.indexOf(latest.optDouble(k, 0.0)) + 1

@@ -32,6 +32,7 @@ object Coach {
         "(a few short paragraphs or bullets with '•'). Stay under ~250 words unless asked for more. " +
         "Distances are km, elevation m, speed km/h, power W. avg_kmh is average speed, max_kmh is top speed — never confuse them. " +
         "Power numbers are real only when power_meter is true; otherwise never build advice on watts. " +
+        "Rides with an indoor field (Zwift, MyWhoosh…) were on a smart trainer: power, heart rate and time are real, speed and distance are game physics — never compare their speed with outdoor rides. " +
         "Sleep nights are dated by the morning the athlete woke up. Never mention or guess where the athlete lives or starts rides."
 
     fun provider(ctx: Context) = PROVIDERS.firstOrNull { it.id == Repo.prefs(ctx).getString("ai_provider", "deepseek") } ?: PROVIDERS[0]
@@ -113,7 +114,8 @@ object Coach {
                     .put("name", a.optString("name")).put("km", Math.round(a.optDouble("distance") / 100) / 10.0)
                     .put("moving_min", a.optLong("moving_time") / 60).put("elev_m", Math.round(a.optDouble("total_elevation_gain")))
                     .put("avg_kmh", Math.round(a.optDouble("average_speed") * 36) / 10.0)
-                    .put("max_kmh", Math.round(minOf(a.optDouble("max_speed"), 65 / 3.6) * 36) / 10.0)
+                    .put("max_kmh", if (Screens.isVirtual(a)) null else Math.round(minOf(a.optDouble("max_speed"), 65 / 3.6) * 36) / 10.0)
+                    .putOpt("indoor", if (Screens.isVirtual(a)) a.optString("virtual_app").ifEmpty { "Indoor" } else null)
                     .putOpt("avg_hr", a.optDouble("average_heartrate").takeIf { !it.isNaN() && it > 0 }?.let { Math.round(it) })
                     .putOpt("avg_watts", a.optDouble("average_watts").takeIf { !it.isNaN() && it > 0 }?.let { Math.round(it) })
                     .putOpt("np_watts", a.optDouble("weighted_average_watts").takeIf { !it.isNaN() && it > 0 && a.optBoolean("device_watts") }?.let { Math.round(it) })

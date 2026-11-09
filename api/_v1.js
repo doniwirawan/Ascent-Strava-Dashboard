@@ -98,11 +98,25 @@ async function tokens(req, id) {
 }
 
 /* ── data ── */
+/* Zwift / MyWhoosh / trainer rides: `virtual: true` + `virtual_app`, and the
+   game-world GPS moved to virtual_map / virtual_start (same rule as
+   separateVirtualGps in js/utils.js) so the app's maps and the MCP never
+   treat it as a real place. Power, HR, time and distance stay as they are. */
+function separateVirtual(a) {
+  if (!a || !(a.trainer === true || /^Virtual/.test(a.sport_type || a.type || ''))) return;
+  a.virtual = true;
+  const t = ((a.device_name || '') + ' ' + (a.name || '')).toLowerCase();
+  const hit = [['zwift', 'Zwift'], ['whoosh', 'MyWhoosh'], ['rouvy', 'ROUVY'], ['trainerroad', 'TrainerRoad'], ['systm', 'Wahoo SYSTM'], ['fulgaz', 'FulGaz'], ['bkool', 'Bkool']].find(([k]) => t.includes(k));
+  a.virtual_app = hit ? hit[1] : 'Indoor';
+  if (a.map && (a.map.summary_polyline || a.map.polyline)) { a.virtual_map = a.map; a.map = { id: a.map.id, summary_polyline: null }; }
+  if (a.start_latlng && a.start_latlng.length) { a.virtual_start = a.start_latlng; a.start_latlng = []; a.end_latlng = []; }
+}
 let cacheMemo = { at: 0, row: null };
 async function cachedActivities() {
   if (!cacheMemo.row || Date.now() - cacheMemo.at > 60000) {
     const [row] = await sb('strava_cache?id=eq.' + encodeURIComponent(env('OWNER_ATHLETE_ID')) + '&select=activities,synced_at');
     cacheMemo = { at: Date.now(), row: row || { activities: [], synced_at: null } };
+    (cacheMemo.row.activities || []).forEach(separateVirtual);
   }
   return cacheMemo.row;
 }

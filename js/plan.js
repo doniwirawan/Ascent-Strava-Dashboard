@@ -675,3 +675,21 @@ function plExport(kind) {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   track('plan_export', { kind });
 }
+
+/* Compact view of the plan for the AI Coach (js/ai-coach.js): event, this
+   week's phase and TSS (target / planned / done) and the next 14 days. */
+function plAiSummary() {
+  const p = plLoad(), d = typeof _trBuildSeries === 'function' ? _trBuildSeries() : null;
+  if (!d || (!p.event && !p.workouts.length)) return null;
+  const today = _trToday(), mon = _trMondayOf(today), sw = _plSeasonWeekMap().get(mon);
+  const sum = get => { let s = 0; for (let i = 0; i < 7; i++) s += get(_trAddDays(mon, i)) || 0; return Math.round(s); };
+  const planned = plPlannedByDay(), end = _trAddDays(today, 14);
+  const ev = p.event && p.event.date >= today ? p.event : null;
+  return {
+    _README: 'The athlete\'s own training plan. TSS targets come from a season plan toward the event; planned workouts are what they intend to ride. Coach against this plan.',
+    event: ev ? { name: ev.name || null, date: ev.date, days_to_go: Math.round((Date.parse(ev.date) - Date.parse(today)) / 864e5), target_ctl: ev.target || null } : null,
+    this_week: { phase: sw ? (sw.rec ? 'recovery' : sw.phase) : null, target_tss: sw ? sw.tss : null, planned_tss: sum(k => planned.get(k)), done_tss: sum(k => d.byDay.get(k)) },
+    next_14_days: p.workouts.filter(w => w.date >= today && w.date <= end).sort((a, b) => a.date.localeCompare(b.date))
+      .map(w => { const m = plWkMetrics(w); return { date: w.date, title: w.title, min: Math.round(m.secs / 60), tss: Math.round(m.tss), steps: w.text || undefined }; }),
+  };
+}

@@ -563,7 +563,7 @@ function _trOrdinal(n) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return
 // Fitness Trend: avg power & speed on Zone-2 (aerobic) rides over time.
 function _trZone2Trend() {
   if (typeof hrZoneFor !== 'function') return null;
-  const rides = acts.filter(a => isRide(a) && a.average_heartrate > 0 && a.average_speed > 0);
+  const rides = acts.filter(a => isRide(a) && realSpeed(a) && a.average_heartrate > 0 && a.average_speed > 0);
   const z2 = rides.filter(a => { const z = hrZoneFor(a.average_heartrate); return z && z.n === 2; });
   if (z2.length < 3) return null;
   z2.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
@@ -597,7 +597,7 @@ function _trSeasonal() {
     const y = ds.slice(0, 4), m = ds.slice(0, 7);
     (byYear[y] = byYear[y] || { dist: 0 }).dist += a.distance || 0;
     const g = (byMonth[m] = byMonth[m] || { dist: 0, spd: 0, n: 0 });
-    g.dist += a.distance || 0; if (a.average_speed > 0) { g.spd += a.average_speed; g.n++; }
+    g.dist += a.distance || 0; if (a.average_speed > 0 && realSpeed(a)) { g.spd += a.average_speed; g.n++; }
   });
   // best year / best month by distance
   const bestYear = Object.keys(byYear).sort((a, b) => byYear[b].dist - byYear[a].dist)[0];
@@ -625,6 +625,7 @@ function _trSimilar() {
   if (rides.length < 4) return null;
   const cur = rides[0], curElev = cur.total_elevation_gain || 0;
   const similar = rides.slice(1).filter(a => {
+    if (isVirtual(a) !== isVirtual(cur)) return false;   // game speed vs road speed
     if (Math.abs((a.distance - cur.distance) / cur.distance) > 0.15) return false;
     if (curElev > 50) { const er = Math.abs(((a.total_elevation_gain || 0) - curElev) / curElev); if (er > 0.4) return false; }
     return true;
@@ -675,7 +676,7 @@ function _trPRRecords() {
   const list = [
     rec(tr('Longest ride'), maxBy(a => a.distance || 0), a => fmtD(a.distance)),
     rec(tr('Biggest climbing day'), maxBy(a => a.total_elevation_gain || 0), a => fmtElev(a.total_elevation_gain || 0)),
-    rec(tr('Fastest century'), maxBy(a => a.average_speed || 0, a => a.distance >= 100000), a => fmtSpeed(a.average_speed)),
+    rec(tr('Fastest century'), maxBy(a => a.average_speed || 0, a => a.distance >= 100000 && realSpeed(a)), a => fmtSpeed(a.average_speed)),
     rec(tr('Longest Zone-2 ride'), maxBy(a => a.moving_time || 0, z2), a => fmtT(a.moving_time)),
     rec(tr('Highest avg cadence'), maxBy(a => a.average_cadence || 0, a => a.average_cadence > 0), a => Math.round(a.average_cadence) + ' rpm'),
     rec(tr('Highest avg power'), maxBy(a => a.average_watts || 0, a => a.average_watts > 0), a => Math.round(a.average_watts) + ' W'),
@@ -695,7 +696,7 @@ function _trRideQuality() {
   const pct = (val, arr) => { const s = arr.filter(v => v > 0).sort((a, b) => a - b); if (!s.length) return null; let c = 0; s.forEach(v => { if (v <= val) c++; }); return c / s.length; };
   const endurance = pct(cur.moving_time || 0, rides.map(a => a.moving_time || 0));
   const climbing = pct(cur.total_elevation_gain || 0, rides.map(a => a.total_elevation_gain || 0));
-  const efficiency = pct(cur.average_speed || 0, rides.map(a => a.average_speed || 0));
+  const efficiency = realSpeed(cur) ? pct(cur.average_speed || 0, rides.filter(realSpeed).map(a => a.average_speed || 0)) : null;
   const effVal = cur.suffer_score || cur.average_heartrate || 0;
   const effort = effVal ? pct(effVal, rides.map(a => a.suffer_score || a.average_heartrate || 0)) : null;
   const parts = [endurance, climbing, efficiency, effort].filter(v => v != null);

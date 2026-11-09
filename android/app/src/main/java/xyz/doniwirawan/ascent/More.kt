@@ -176,7 +176,7 @@ object More {
             (top?.key ?: "—") to "top sport · ${top?.value ?: 0}×",
             (longest?.let { Ui.km(it.optDouble("distance")) } ?: "—") to "longest|distance",
             (if (time > 0) Ui.kmh(sum(ya, "distance") / time) else "—") to "average speed|speed",
-            Ui.kmh(ya.maxOfOrNull { it.optDouble("max_speed", 0.0) } ?: 0.0) to "max speed|speed",
+            Ui.kmh(ya.filter { Screens.realSpeed(it) }.maxOfOrNull { it.optDouble("max_speed", 0.0) } ?: 0.0) to "max speed|speed",
             (if (hr.isEmpty()) "—" else "${Math.round(hr.average())} bpm") to "average HR|hr",
             "${ya.maxOfOrNull { it.optInt("max_heartrate") } ?: 0} bpm" to "max HR|hr",
             if (watts.isEmpty()) null else "${Math.round(watts.average())} W" to "average power|power",
@@ -297,7 +297,7 @@ object More {
                 val l = byMonth[m]
                 if (l == null) { addView(Ui.row(a, MONTHS[m], "—")); return@forEach }
                 val dist = l.sumOf { it.optDouble("distance") }
-                val spd = l.map { it.optDouble("average_speed", 0.0) }.filter { it > 0 }
+                val spd = l.filter { Screens.realSpeed(it) }.map { it.optDouble("average_speed", 0.0) }.filter { it > 0 }
                 val hr = l.map { it.optDouble("average_heartrate", 0.0) }.filter { it > 0 }
                 val kj = l.sumOf { it.optDouble("kilojoules", it.optDouble("calories", 0.0)) }
                 // change against the previous month that had activity, like the website

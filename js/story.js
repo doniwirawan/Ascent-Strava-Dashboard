@@ -159,7 +159,8 @@ function drawLayout(canvas, act, selected, sc, layout) {
   ctx.letterSpacing = '0px';
   const S = W / 1080; // scale factor — works for both 1080px canvas and 216px thumbnails
   const P = Math.round(88 * S);
-  const polyline = act.map && act.map.summary_polyline ? decodePolyline(act.map.summary_polyline) : null;
+  const _enc = (act.map && act.map.summary_polyline) || (act.virtual_map && act.virtual_map.summary_polyline);   // Zwift / MyWhoosh: the game route's shape
+  const polyline = _enc ? decodePolyline(_enc) : null;
   const skipBg = !!(storyBgImage && canvas.id === 'storyCanvas');
 
   // background

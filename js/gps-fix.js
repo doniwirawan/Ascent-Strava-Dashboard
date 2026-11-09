@@ -534,7 +534,7 @@ function renderSpeedAnomalies(){
   if(!el) return;
   applyMaxFixOverrides();
   const fixMap=_loadMaxFix();
-  const bad=(acts||[]).filter(a=>_rawMaxOf(a,fixMap)>MAX_SPEED_CEILING).sort((a,b)=>_rawMaxOf(b,fixMap)-_rawMaxOf(a,fixMap));
+  const bad=(acts||[]).filter(a=>!isVirtual(a)&&_rawMaxOf(a,fixMap)>MAX_SPEED_CEILING).sort((a,b)=>_rawMaxOf(b,fixMap)-_rawMaxOf(a,fixMap));
   const banner = _anomMsg ? `<div class="gpx-ok">${_anomMsg}</div>` : '';
   _anomMsg='';
   if(!bad.length){ el.innerHTML=banner+'<div class="gpx-empty">No activities with abnormal speed 🎉</div>'; return; }

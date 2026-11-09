@@ -19,6 +19,10 @@ object Screens {
 
     private val RIDE_TYPES = setOf("Ride", "VirtualRide", "EBikeRide", "GravelRide", "MountainBikeRide")
     internal fun isRide(a: JSONObject) = (a.optString("sport_type").ifEmpty { a.optString("type") }) in RIDE_TYPES
+    /** Zwift / MyWhoosh / trainer ride (the API marks it `virtual`): power, HR and time are real, speed is game physics. */
+    internal fun isVirtual(a: JSONObject) = a.optBoolean("virtual") || a.optBoolean("trainer") || a.optString("sport_type").ifEmpty { a.optString("type") }.startsWith("Virtual")
+    /** Speed that can be compared between rides — real-world rides only. */
+    internal fun realSpeed(a: JSONObject) = !isVirtual(a)
     // saved GPS-glitch corrections replace Strava's top speed wherever an activity is read (GpsCheck)
     internal fun list(arr: JSONArray?): List<JSONObject> = if (arr == null) emptyList() else (0 until arr.length()).map { arr.getJSONObject(it).also(GpsCheck::apply) }
     internal fun chart(a: AppActivity, v: android.view.View, h: Int) =
@@ -198,7 +202,7 @@ object Screens {
     /** Ride seconds per speed band, each ride's moving time at its average speed. */
     internal fun speedZoneTotals(rides: List<JSONObject>): DoubleArray {
         val t = DoubleArray(5)
-        rides.forEach { a -> val v = a.optDouble("average_speed") * 3.6; if (v > 0) t[RIDE_EDGES.indexOfLast { v >= it }] += a.optDouble("moving_time") }
+        rides.forEach { a -> val v = a.optDouble("average_speed") * 3.6; if (v > 0 && realSpeed(a)) t[RIDE_EDGES.indexOfLast { v >= it }] += a.optDouble("moving_time") }
         return t
     }
 
@@ -236,7 +240,7 @@ object Screens {
                     if (i > 0) addView(Ui.divider(a))
                     val d = l.sumOf { it.optDouble("distance") }; val t = l.sumOf { it.optDouble("moving_time") }
                     val avg = when (k) {
-                        "ride" -> l.map { it.optDouble("average_speed") }.filter { it > 0 }.let { if (it.isEmpty()) "—" else Ui.kmh(it.average()) }
+                        "ride" -> l.filter { realSpeed(it) }.map { it.optDouble("average_speed") }.filter { it > 0 }.let { if (it.isEmpty()) "—" else Ui.kmh(it.average()) }
                         else -> if (d > 0 && t > 0) Math.round(if (k == "swim") 100 * t / d else 1000 * t / d).let { String.format(Locale.US, "%d:%02d", it / 60, it % 60) } + if (k == "swim") " /100m" else " /km" else "—"
                     }
                     addView(Ui.row(a, "$n · ${l.size}", Ui.km(d), String.format(Locale.US, "%,.0f h · %,d m · ", t / 3600, Math.round(l.sumOf { it.optDouble("total_elevation_gain") })) + avg).apply {
@@ -431,14 +435,14 @@ object Screens {
             c.addView(Ui.row(a, label, value, x.optString("name") + " · " + sub(x, extra)).apply { setOnClickListener { a.openRide(x) } })
         val size = { x: JSONObject -> if (byDist) x.optDouble("distance") else x.optDouble("moving_time") }
         val longest = list.maxByOrNull(size)!!
-        val fastest = list.filter { it.optDouble("average_speed") > 0 && it.optDouble("distance") > 0 }.maxByOrNull { it.optDouble("average_speed") }
+        val fastest = list.filter { it.optDouble("average_speed") > 0 && it.optDouble("distance") > 0 && realSpeed(it) }.maxByOrNull { it.optDouble("average_speed") }
         val typeOf = { x: JSONObject -> x.optString("sport_type").ifEmpty { x.optString("type") }.ifEmpty { "Workout" }.replace(Regex("([a-z])([A-Z])"), "$1 $2") }
 
         col.addView(Ui.heading(a, mapOf("ride" to "Cycling", "run" to "Running", "walk" to "Walking & hiking", "swim" to "Swimming")[key] ?: "Other sports"))
         col.addView(Ui.card(a).apply {
             when {
                 key == "ride" -> {
-                    list.maxByOrNull { it.optDouble("max_speed") }?.let { hero(this, "Fastest speed (max)", Ui.kmh(it.optDouble("max_speed")), it, Ui.km(it.optDouble("distance"))) }
+                    list.filter { realSpeed(it) }.maxByOrNull { it.optDouble("max_speed") }?.let { hero(this, "Fastest speed (max)", Ui.kmh(it.optDouble("max_speed")), it, Ui.km(it.optDouble("distance"))) }
                     addView(Ui.divider(a))
                     fastest?.let { hero(this, "Best average speed", Ui.kmh(it.optDouble("average_speed")), it, Ui.km(it.optDouble("distance"))) }
                     addView(Ui.divider(a))

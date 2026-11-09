@@ -35,7 +35,7 @@ async function api(path, query = {}) {
 
 const flag = b => (b ? '1' : undefined);
 // Rides start at home: no coordinates, routes or start town ever reach the model.
-const PRIVATE = new Set(['start_latlng', 'end_latlng', 'polyline', 'summary_polyline', 'latlng', 'track', 'location_city', 'location_state', 'location_country']);
+const PRIVATE = new Set(['start_latlng', 'end_latlng', 'virtual_start', 'polyline', 'summary_polyline', 'latlng', 'track', 'location_city', 'location_state', 'location_country']);
 const scrub = v => Array.isArray(v) ? v.map(scrub)
   : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([k]) => !PRIVATE.has(k)).map(([k, x]) => [k, scrub(x)])) : v;
 

@@ -16,7 +16,11 @@ const AI_SYS =
   '`sleep_after_min` is the recovery sleep following it. When asked about recovery, tiredness, ' +
   'form or why a ride felt hard, USE the sleep data and connect it to the training numbers. ' +
   'Respect the sample sizes and correlations given: call a relationship weak when |r| < 0.2, ' +
-  'and never state a causal claim the data does not support.';
+  'and never state a causal claim the data does not support. ' +
+  'Rides with an `indoor` field (Zwift, MyWhoosh…) were ridden on a smart trainer: their power, heart rate and ' +
+  'time are real, but speed and distance are game physics — never compare their speed with outdoor rides. ' +
+  'If `training_plan` is present it is the athlete’s own plan (event, this week’s TSS target, the next 14 days ' +
+  'of planned workouts) — read its `_README` and coach against it.';
 
 /* AI insights follow the app's language switch: Indonesian when the UI is in
    `id` mode, English otherwise. Evaluated per request (window.LANG can change at
@@ -264,6 +268,7 @@ function aiActivityData(a) {
     elev_m: Math.round(a.total_elevation_gain || 0),
     avg_kmh: a.average_speed ? +((a.average_speed * 3.6).toFixed(1)) : null,
     max_kmh: cleanMax(a) ? +((cleanMax(a) * 3.6).toFixed(1)) : null,
+    indoor: isVirtual(a) ? virtualApp(a) : undefined,   // Zwift / MyWhoosh: speed and distance are virtual
     avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     avg_watts: a.average_watts ? Math.round(a.average_watts) : null,
     watts_source: a.average_watts ? (a.device_watts === true ? 'power meter' : 'Strava estimate (no power meter)') : undefined,
@@ -535,7 +540,7 @@ async function aiCaptionActivity(id) {
       + aiToneLine(roast)
       + 'Base everything ONLY on the real numbers provided — never invent. Stopped time is NOT a café, coffee, food, nap or any other stop — I never said why I stopped, so never say or joke about where or why (just roast the minutes). Weave in 2–4 key stats naturally. '
       + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
-      + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. If watts_source is "power meter", the watts are measured — always use the power numbers (avg_watts, np_watts normalized power, max_watts, kj) as key stats. If watts_source is a Strava estimate, the watts are a guess: call them estimated and never build the story around them. NEVER mention, guess or hint at where I started or where I live. '
+      + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. If an "indoor" field is present (e.g. Zwift, MyWhoosh), it was a virtual ride on a smart trainer — say so naturally (e.g. "on Zwift"), build it around power, heart rate and time, treat speed and distance as virtual, and never invent a place, destination or weather. If watts_source is "power meter", the watts are measured — always use the power numbers (avg_watts, np_watts normalized power, max_watts, kj) as key stats. If watts_source is a Strava estimate, the watts are a guess: call them estimated and never build the story around them. NEVER mention, guess or hint at where I started or where I live. '
       + 'If a "weather" field is present it is a rough estimate that may be inaccurate — reference conditions only lightly, never as a hard fact, and if it seems inconsistent with the effort just leave weather out. '
       + 'Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
@@ -725,7 +730,7 @@ function aiStatsTemplate(a, wx, rp) {
   const when = a.start_date_local || a.start_date || '';
   const h = parseInt(when.slice(11, 13) || '0', 10) || 0;
   const tod = h < 11 ? 'Morning' : h < 15 ? 'Afternoon' : h < 19 ? 'Evening' : 'Night';
-  const typeLabel = String(a.sport_type || a.type || 'Activity').replace(/([a-z])([A-Z])/g, '$1 $2');
+  const typeLabel = isVirtual(a) ? virtualApp(a) + ' Ride' : String(a.sport_type || a.type || 'Activity').replace(/([a-z])([A-Z])/g, '$1 $2');
   const title = (tod + ' ' + typeLabel + ' · ' + fmtD(a.distance) + (a.total_elevation_gain > 100 ? ' · ' + fmtElev(a.total_elevation_gain) : '')).slice(0, 100);
 
   const L = ['Distance: ' + fmtD(a.distance)];
@@ -847,7 +852,7 @@ async function bulkRun(p, mode) {
         const t = aiStatsTemplate(a, wx, rp); name = t.title; desc = t.desc;
       } else {
         const messages = [
-          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + aiToneLine(roast) + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. If watts_source is "power meter", the watts are measured — always use the power numbers (avg_watts, np_watts normalized power, max_watts, kj) as key stats. If watts_source is a Strava estimate, the watts are a guess: call them estimated and never build the story around them. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Stopped time is NOT a café, coffee, food, nap or any other stop — I never said why I stopped, so never say or joke about where or why (just roast the minutes). Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
+          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + aiToneLine(roast) + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. If an "indoor" field is present (e.g. Zwift, MyWhoosh), it was a virtual ride on a smart trainer — say so naturally (e.g. "on Zwift"), build it around power, heart rate and time, treat speed and distance as virtual, and never invent a place, destination or weather. If watts_source is "power meter", the watts are measured — always use the power numbers (avg_watts, np_watts normalized power, max_watts, kj) as key stats. If watts_source is a Strava estimate, the watts are a guess: call them estimated and never build the story around them. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Stopped time is NOT a café, coffee, food, nap or any other stop — I never said why I stopped, so never say or joke about where or why (just roast the minutes). Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
           { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
         ];
         const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
@@ -1352,11 +1357,12 @@ function aiBuildSummary() {
     date: a.start_date.slice(0, 10), type: a.type, km: km(a.distance),
     elev_m: Math.round(a.total_elevation_gain || 0),
     avg_kmh: kmh(a.average_speed), max_kmh: cleanMax(a) ? kmh(cleanMax(a)) : null,
+    ...(isVirtual(a) ? { indoor: virtualApp(a) } : {}),
   });
 
   // fastest rides across the ENTIRE history (by average speed) — so the AI is
   // never blind to a fast ride just because it's older than the recent few.
-  const fastest = sorted.filter(a => (a.average_speed || 0) > 0)
+  const fastest = sorted.filter(a => (a.average_speed || 0) > 0 && realSpeed(a))
     .sort((x, y) => (y.average_speed || 0) - (x.average_speed || 0))
     .slice(0, 5).map(rideRow);
 
@@ -1373,6 +1379,7 @@ function aiBuildSummary() {
     monthly_km_last_6mo: monthly,
     fastest_rides_all_time: fastest,
     recent: sorted.slice(0, 8).map(a => ({ name: a.name, min: Math.round((a.moving_time || 0) / 60), ...rideRow(a) })),
+    ...((p => p ? { training_plan: p } : {})(typeof plAiSummary === 'function' ? plAiSummary() : null)),
   };
 }
 

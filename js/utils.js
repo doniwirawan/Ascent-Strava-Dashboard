@@ -56,7 +56,7 @@ const BIKE_KIT_V = 1;                      // bump when a value changes
 const bikeKit = gearId => BIKE_KIT[gearId] || null;
 const MAX_SPEED_CEILING = 65 / 3.6;                                       // 65 km/h
 const cleanMax = a => {
-  const v = a && a.max_speed;
+  const v = a && !isVirtual(a) && a.max_speed;   // Zwift / MyWhoosh top speed is game physics
   return v > 0 ? v : 0;
 };
 // running pace: seconds per km/mi → "m:ss /km" (— when no speed)
@@ -128,6 +128,29 @@ const localDayStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'
 // the wall-clock year/month/weekday regardless of the viewer's timezone.
 const actLocalDate = a => new Date((((a&&(a.start_date_local||a.start_date))||'').slice(0,10)||'1970-01-01')+'T00:00:00Z');
 const isRide= a   => ['Ride','VirtualRide','EBikeRide','GravelRide','MountainBikeRide'].includes(a.type);
+// Zwift / MyWhoosh / trainer rides (Strava: type VirtualRide or trainer: true).
+// Power, HR, time, distance and load are real; speed is game physics and the
+// GPS track is a game world, so they stay out of speed records, maps and places.
+const isVirtual = a => !!a && (a.trainer === true || /^Virtual/.test(a.sport_type || a.type || ''));
+// Speed is comparable across rides: real-world rides only.
+const realSpeed = a => !isVirtual(a);
+const VIRTUAL_APPS = [['zwift', 'Zwift'], ['mywhoosh', 'MyWhoosh'], ['whoosh', 'MyWhoosh'], ['rouvy', 'ROUVY'], ['trainerroad', 'TrainerRoad'], ['wahoo systm', 'Wahoo SYSTM'], ['fulgaz', 'FulGaz'], ['bkool', 'Bkool']];
+// The app a virtual ride came from (device_name / name), else 'Indoor'.
+function virtualApp(a) {
+  const t = ((a && (a.device_name || '')) + ' ' + ((a && a.name) || '')).toLowerCase();
+  const hit = VIRTUAL_APPS.find(([k]) => t.includes(k));
+  return hit ? hit[1] : 'Indoor';
+}
+/* Move a virtual ride's game-world GPS aside (virtual_map / virtual_start) so
+   no map, heatmap, place name, weather lookup or AI location ever reads it.
+   The Story card still draws the route shape from virtual_map. Idempotent. */
+function separateVirtualGps(list) {
+  (list || []).forEach(a => {
+    if (!isVirtual(a)) return;
+    if (a.map && (a.map.summary_polyline || a.map.polyline)) { a.virtual_map = a.map; a.map = { id: a.map.id, summary_polyline: null }; }
+    if (a.start_latlng && a.start_latlng.length) { a.virtual_start = a.start_latlng; a.start_latlng = []; a.end_latlng = []; }
+  });
+}
 // NOTE: isRun() is defined in render-sections.js (loaded after this file)
 
 function setStatus(msg, cls='') {
