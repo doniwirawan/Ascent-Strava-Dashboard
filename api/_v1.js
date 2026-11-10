@@ -69,8 +69,10 @@ async function requireOwnerStrava(req) {
   if (!id) throw new HttpError(401, 'invalid_strava_token');
   if (String(id) !== env('OWNER_ATHLETE_ID')) throw new HttpError(403, 'not_authorized');
 }
-async function requireApiToken(req) {
-  const m = /^Bearer\s+(asc_[A-Za-z0-9_-]{20,})$/.exec(req.headers.authorization || '');
+// inQuery: also accept ?key=asc_… — only for the calendar feed, since a calendar app can't send headers
+async function requireApiToken(req, inQuery) {
+  const m = /^Bearer\s+(asc_[A-Za-z0-9_-]{20,})$/.exec(req.headers.authorization || '')
+    || (inQuery && /^(asc_[A-Za-z0-9_-]{20,})$/.exec(String((req.query || {}).key || '')));
   if (!m) throw new HttpError(401, 'missing_api_token', { hint: 'Authorization: Bearer asc_…' });
   const rows = await sb('api_tokens?token_hash=eq.' + sha(m[1]) + '&revoked_at=is.null&select=id');
   if (!rows.length) throw new HttpError(401, 'invalid_api_token');
@@ -243,6 +245,31 @@ async function plan(id, q) {
     weeks: (ev && ev.weeks) || [], workouts: ws };
 }
 
+// GET /plan.ics?key=asc_… — the plan as an iCalendar feed (Google Calendar "From URL"):
+// one all-day event per workout, plus the event day. Google re-reads it every few hours.
+async function planIcs() {
+  const p = await plan(null, {});
+  const esc = s => String(s || '').replace(/\\/g, '\\\\').replace(/[;,]/g, m => '\\' + m).replace(/\r?\n/g, '\\n');
+  const fold = l => { const c = Array.from(l), out = []; for (let i = 0; i < c.length; i += 60) out.push(c.slice(i, i + 60).join('')); return out.join('\r\n '); };
+  const day = d => d.replace(/-/g, '');
+  const next = d => new Date(Date.parse(d + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10).replace(/-/g, '');
+  const hm = s => { const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60); return h ? `${h}h${m ? String(m).padStart(2, '0') : ''}` : `${m}m`; };
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const site = 'https://ascent-analytics.doniwirawan.xyz/#plan';
+  const ev = (uid, date, summary, desc) => ['BEGIN:VEVENT', 'UID:' + uid + '@ascent-analytics', 'DTSTAMP:' + stamp,
+    'DTSTART;VALUE=DATE:' + day(date), 'DTEND;VALUE=DATE:' + next(date), 'SUMMARY:' + esc(summary), 'DESCRIPTION:' + esc(desc), 'TRANSP:TRANSPARENT', 'END:VEVENT'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Ascent//Training plan//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'X-WR-CALNAME:Ascent training plan', 'X-WR-TIMEZONE:Asia/Makassar', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H'];
+  p.workouts.filter(w => /^\d{4}-\d{2}-\d{2}$/.test(w.date)).forEach(w => {
+    const facts = [w.secs ? hm(w.secs) : '', w.tss ? w.tss + ' TSS' : '', w.if ? 'IF ' + w.if.toFixed(2) : ''].filter(Boolean).join(' · ');
+    lines.push(...ev(w.id, w.date, '🚴 ' + w.title + (facts ? ' · ' + facts : ''),
+      [facts, w.text, w.notes, site].filter(Boolean).join('\n\n')));
+  });
+  if (p.event && p.event.date) lines.push(...ev('event-' + p.event.date, p.event.date, '🏁 ' + (p.event.name || 'Event'), site));
+  lines.push('END:VCALENDAR');
+  return lines.map(fold).join('\r\n') + '\r\n';
+}
+
 const HUAWEI_COLS = 'record_id,sport_type,sport,start_time,end_time,tz,duration_s,distance_m,climb_m,min_alt_m,max_alt_m,avg_hr,max_hr,calories,steps,polyline,start_latlng,strava_id,strava_kind,hr_samples';
 async function huawei(id) {
   const base = 'huawei_workouts?athlete_id=eq.' + encodeURIComponent(env('OWNER_ATHLETE_ID'));
@@ -412,6 +439,7 @@ const INDEX = {
     'POST /api/v1/activities/{id}/caption': 'Rewrites the Strava title + description with AI (same as on upload); the private note is kept',
     'POST /api/v1/huawei/{record_id}/upload': 'Body {name?} — sends a Huawei-only workout to Strava (GPX / TCX / manual) and links it',
     'GET /api/v1/app': 'Newest Android build: versionCode, versionName and a 10-minute download link',
+    'GET /api/v1/plan.ics?key=asc_…': 'The training plan as a calendar feed (subscribe from Google Calendar / Apple Calendar; the token goes in the URL)',
     'GET /api/v1/plan': 'The training plan (Plan section): event, season weeks with TSS targets, workouts with duration / TSS / IF (GET /api/v1/plan/{id}?fit=1 for one workout as a .fit file, base64)',
   },
 };
@@ -434,6 +462,7 @@ async function route(req, parts) {
   // the app sending a Huawei-only workout to Strava
   if (head === 'huawei' && id && sub === 'upload' && req.method === 'POST') { await requireApiToken(req); return huaweiUpload(id, req.body); }
   if (req.method !== 'GET') throw new HttpError(405, 'method_not_allowed');
+  if (head === 'plan.ics') { await requireApiToken(req, true); return { ics: await planIcs() }; }
   await requireApiToken(req);
   const q = req.query || {};
   switch (head || '') {
@@ -464,7 +493,11 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
   if (!env('SUPABASE_URL') || !env('SUPABASE_SERVICE_ROLE_KEY') || !env('OWNER_ATHLETE_ID')) { res.status(500).json({ error: 'not_configured' }); return; }
   const parts = String((req.query && req.query.v1) || '').split('/').filter(Boolean);
-  try { res.status(200).json(await route(req, parts)); }
+  try {
+    const out = await route(req, parts);
+    if (parts[0] === 'plan.ics') { res.setHeader('Content-Type', 'text/calendar; charset=utf-8'); res.status(200).send(out.ics); }
+    else res.status(200).json(out);
+  }
   catch (e) {
     if (e instanceof HttpError) res.status(e.status).json(e.body);
     else { console.error('v1', parts.join('/'), e); res.status(500).json({ error: 'server_error' }); }

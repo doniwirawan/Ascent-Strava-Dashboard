@@ -1719,7 +1719,7 @@ body.on-coach .fab-group { display: none !important; }
 .pl-cal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .pl-nav { display: flex; gap: 6px; }
 .pl-cal { display: flex; flex-direction: column; gap: 6px; }
-.pl-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)) 96px; gap: 6px; }
+.pl-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)) 124px; gap: 6px; }
 .pl-week-h > div { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: center; }
 .pl-day { min-height: 92px; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); cursor: pointer; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .pl-day:hover { border-color: var(--border-hover); }
@@ -1742,7 +1742,7 @@ body.on-coach .fab-group { display: none !important; }
 .pl-wsum { padding: 6px 8px; border-radius: var(--radius-sm); border: 1px dashed var(--border); font-size: 11px; color: var(--text-2); display: flex; flex-direction: column; gap: 3px; justify-content: center; }
 .pl-wsum b { color: var(--text); }
 .pl-wsum small { color: var(--muted); }
-.pl-wsum .pl-btn { margin-top: 3px; align-self: flex-start; }
+.pl-wsum .pl-btn { margin-top: 3px; align-self: stretch; white-space: normal; line-height: 1.25; text-align: center; }
 .pl-phase { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .pl-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 11px; color: var(--muted); margin-top: 10px; }
 .pl-legend > span[class^="pl-c-"], .pl-ph { display: inline-flex; align-items: center; gap: 5px; }
@@ -1765,6 +1765,13 @@ body.on-coach .fab-group { display: none !important; }
 .pl-err { font-size: 12px; color: #f87171; }
 .pl-ed-actions { align-items: center; }
 .pl-sp { flex: 1; }
+.pl-nav { flex-wrap: wrap; justify-content: flex-end; }
+.pl-ics { margin-bottom: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); font-size: 12px; color: var(--text-2); display: flex; flex-direction: column; gap: 8px; }
+.pl-ics-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.pl-ics a.pl-btn { text-decoration: none; }
+.pl-ics small { color: var(--muted); }
+/* room under the editor so the floating AI / Image / Story buttons don't cover it */
+#planSection { padding-bottom: 72px; }
 
 @media (max-width: 720px) {
   .pl-week-h { display: none !important; }

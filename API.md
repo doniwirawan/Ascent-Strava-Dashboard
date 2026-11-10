@@ -206,6 +206,7 @@ code — anyone holding one can read everything below and make the writes.
 | `POST /activities/{id}/caption` | Write: rewrites the Strava title and description with AI — the same pipeline as the upload webhook (server AI key, falls back to a stats caption; only the destination is ever named). The private note is kept. Returns `{ ok, outcome, name }`; `502 caption_failed` with `detail` when it couldn't. |
 | `/huawei` | Huawei workouts (no tracks); `/huawei/{record_id}` for one with its track |
 | `POST /huawei/{record_id}/upload` | Write: `{ name? }` — sends a workout that never reached Strava: a GPX with GPS, a TCX with heart rate only, else a manual activity; sets the sport and a `⌚ Huawei:` stats line, links the workout. Waits for Strava to process (up to ~80 s). Returns `{ ok, strava_id, kind, name, duplicate }`; `409 already_on_strava`, `422 no_track / upload_rejected`. |
+| `GET /plan.ics?key=asc_…` | The training plan as an iCalendar feed (one all-day event per workout + the event day) for Google / Apple Calendar. The only route that accepts the token in the URL, because calendar apps cannot send headers. The Plan page's **📅 Google Calendar** button makes a "Google Calendar" token and the subscribe link. |
 | `/purchases?category=Cycling&after=&before=&cancelled=1` | Purchases from the finance app; cancelled orders hidden unless `cancelled=1` |
 | `/bikes` | Each bike with the parts assigned to it and what they cost |
 | `/ai` | AI analysis + caption per activity; `/ai/chats` for AI Coach conversations |

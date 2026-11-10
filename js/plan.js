@@ -466,11 +466,13 @@ function _plCalendarHTML(p, d, today) {
     <div class="pl-cal-head">
       <div class="tr-chart-title" style="margin:0">${tr('Calendar')}</div>
       <div class="pl-nav">
+        ${typeof _isHrzOwner === 'function' && _isHrzOwner() ? `<button class="pl-btn pl-btn-sm pl-btn-ghost" onclick="plCalSync()" title="${tr('Show your planned workouts in Google Calendar')}">📅 Google Calendar</button>` : ''}
         <button class="pl-btn pl-btn-sm" onclick="plWeekNav(-4)" aria-label="${tr('Earlier')}">‹</button>
         <button class="pl-btn pl-btn-sm" onclick="plWeekNav(0)">${tr('This week')}</button>
         <button class="pl-btn pl-btn-sm" onclick="plWeekNav(4)" aria-label="${tr('Later')}">›</button>
       </div>
     </div>
+    <div id="plIcs"></div>
     <div class="pl-cal"><div class="pl-week pl-week-h">${head}</div>${rows}</div>
     <div class="pl-legend"><span class="pl-c-green">${tr('on plan')}</span><span class="pl-c-yellow">${tr('a bit off')}</span><span class="pl-c-orange">${tr('well off')}</span><span class="pl-c-red">${tr('missed')}</span> · ${tr('Tap a day to plan a workout.')}</div>
     <div id="plEditor"></div>
@@ -579,6 +581,35 @@ function plEvSet(k, v) {
 function plEvRebuild() { plRebuildSeason(); plSave(); renderPlan(); }
 function plEvClear() { const p = plLoad(); delete p.event; plSave(); renderPlan(); }
 function plWeekNav(n) { _plWeek = n ? Math.max(-52, Math.min(52, _plWeek + n)) : 0; renderPlan(); }
+
+/* Google Calendar: subscribe to /api/v1/plan.ics. Owner only; the feed URL carries a
+   personal API token ("Google Calendar", revocable in Settings → Personal API),
+   made once and kept on this device. */
+async function plCalSync() {
+  const host = document.getElementById('plIcs'); if (!host) return;
+  if (host.innerHTML) { host.innerHTML = ''; return; }
+  let url = null;
+  try { url = localStorage.getItem('pl_ics_url'); } catch {}
+  if (!url) {
+    host.innerHTML = `<div class="tr-note">${tr('Creating…')}</div>`;
+    try {
+      const r = await fetch('/api/v1/tokens', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Strava-Token': localStorage.getItem('strava_access_token') || '' }, body: JSON.stringify({ name: 'Google Calendar' }) });
+      const d = await r.json();
+      if (!r.ok || !d.token) throw new Error(d.error || 'HTTP ' + r.status);
+      url = location.origin + '/api/v1/plan.ics?key=' + d.token;
+      try { localStorage.setItem('pl_ics_url', url); } catch {}
+    } catch (e) { host.innerHTML = `<div class="pl-err">${tr('Could not create a token')} (${_plEsc(e.message)})</div>`; return; }
+  }
+  const gcal = 'https://calendar.google.com/calendar/u/0/r?cid=' + encodeURIComponent(url.replace(/^https:/, 'webcal:'));
+  host.innerHTML = `<div class="pl-ics">
+    <div>${tr('Adds an “Ascent training plan” calendar to your Google account. Changes here show up there within a few hours (Google decides when it refreshes).')}</div>
+    <div class="pl-ics-row">
+      <a class="pl-btn pl-btn-primary pl-btn-sm" href="${gcal}" target="_blank" rel="noopener">${tr('Add to Google Calendar')}</a>
+      <button class="pl-btn pl-btn-sm" onclick="navigator.clipboard.writeText(${_plEsc(JSON.stringify(url))}).then(()=>this.textContent=tr('Copied'))">${tr('Copy feed URL')}</button>
+    </div>
+    <small>${tr('Keep this link private. To stop it, revoke the “Google Calendar” token in Settings → Personal API.')}</small>
+  </div>`;
+}
 
 /* editor */
 function plNew(date) {
