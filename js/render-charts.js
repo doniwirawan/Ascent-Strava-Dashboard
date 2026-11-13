@@ -390,9 +390,11 @@ function renderActivities() {
     const km  = kmVal(a.distance||0);
     const pct = (a.distance||0)/(maxDist||1);
     const sz  = Math.max(28, Math.min(90, 28 + pct*62));
-    return `<div class="bubble" data-sz="${sz}" style="width:${sz}px;height:${sz}px;cursor:pointer" title="${a.name}, ${km.toFixed(1)} ${distUnit()}" onclick="openActivityModal(${i})">
-      <span${sz>40?'':' hidden'}>${km.toFixed(0)}</span>
-    </div>`;
+    // a real button: reachable by keyboard and named for screen readers
+    const lbl = `${a.name||''}, ${km.toFixed(1)} ${distUnit()}`.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    return `<button type="button" class="bubble" data-sz="${sz}" style="width:${sz}px;height:${sz}px" title="${lbl}" aria-label="${lbl}" onclick="openActivityModal(${i})">
+      <span${sz>40?'':' hidden'} aria-hidden="true">${km.toFixed(0)}</span>
+    </button>`;
   }).join('');
   _fitBubbles();
   if (!wrap._fitObs && window.ResizeObserver) {   // refit on resize, and once the hidden section is shown
