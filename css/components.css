@@ -49,12 +49,11 @@
   background: var(--surface2);
   border-radius: var(--radius-sm);
   gap: 10px;
-  border-left: 3px solid transparent;
-  transition: border-color .15s, background .15s;
+  transition: background .15s;
   cursor: pointer;
 }
 
-.act-row:hover { border-left-color: var(--orange); background: var(--surface3); }
+.act-row:hover { background: var(--surface3); }
 
 .act-name {
   font-size: 13px;

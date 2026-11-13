@@ -736,7 +736,6 @@
 .ai-test-result { font-size: 12.5px; line-height: 1.5; margin-top: 10px; min-height: 16px; color: var(--muted); }
 .ai-test-result.ok { color: #4ade80; font-weight: 600; }
 .ai-test-result.err { color: #fca5a5; }
-.ai-keynotice { border-left: 3px solid var(--orange); }
 
 /* AI chat: pretty tables */
 .ai-tablewrap { overflow-x: auto; margin: 8px 0; border: 1px solid var(--border); border-radius: var(--radius-sm); }
@@ -1056,9 +1055,6 @@ body.dev .dev-tag { display: inline-block; }
   font-size: 12px;
   line-height: 1.55;
   color: var(--text-2);
-  background: var(--surface-2, rgba(255,255,255,.02));
-  border-left: 2px solid var(--orange);
-  border-radius: 0 6px 6px 0;
 }
 .tr-note b { color: var(--text); font-weight: 700; }
 
@@ -1558,10 +1554,7 @@ body.on-coach .fab-group { display: none !important; }
 /* ── Data page — sleep → ride insights ── */
 .di-wrap { margin-top: 16px; }
 .di-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-top: 12px; }
-.di-card { background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--border); border-radius: var(--radius-sm); padding: 14px; min-width: 0; }
-.di-card.di-strong { border-left-color: var(--orange); }
-.di-card.di-moderate { border-left-color: #f59e0b; }
-.di-card.di-weak { border-left-color: #64748b; }
+.di-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; min-width: 0; }
 .di-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
 .di-title { font-size: 13px; font-weight: 800; }
 .di-badge { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--surface3); color: var(--text-2); white-space: nowrap; }
@@ -1731,7 +1724,7 @@ body.on-coach .fab-group { display: none !important; }
 .pl-item b, .pl-done { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl-item b { font-weight: 700; }
 .pl-item span, .pl-done span { color: var(--text-2); font-size: 11px; }
-.pl-item { background: var(--surface3); border-left: 3px solid var(--c, var(--text-3)); }
+.pl-item { background: color-mix(in srgb, var(--c, var(--text-3)) 18%, var(--surface3)); }   /* workout type tints the chip */
 .pl-done { background: transparent; color: var(--text-2); padding: 2px 6px; }
 .pl-done:hover, .pl-item:hover { background: var(--surface4); }
 .pl-c-future { --c: var(--text-3); }

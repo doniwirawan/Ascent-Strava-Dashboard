@@ -61,11 +61,13 @@
 }
 .slp-insight {
   padding: 16px 18px;
-  border-left: 3px solid var(--border);
 }
-.slp-insight.slp-warn { border-left-color: #ef4444; }
-.slp-insight.slp-good { border-left-color: #22c55e; }
-.slp-insight.slp-info { border-left-color: #6366f1; }
+/* tone: a dot before the title plus a tinted border (was a left stripe) */
+.slp-insight.slp-warn, .slp-flag.slp-warn { --tone: #ef4444; }
+.slp-insight.slp-good, .slp-flag.slp-good { --tone: #22c55e; }
+.slp-insight.slp-info, .slp-flag.slp-info { --tone: #6366f1; }
+.slp-insight[class*="slp-"], .slp-flag[class*="slp-"] { border-color: color-mix(in srgb, var(--tone, var(--border)) 45%, var(--border)); }
+.slp-insight-t::before, .slp-flag-t::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; background: var(--tone, var(--text-3)); }
 .slp-insight-t {
   font-size: 14px;
   font-weight: 700;
@@ -376,15 +378,9 @@
 .slp-flag {
   padding: 12px 14px;
   border-radius: 10px;
-  border-left: 3px solid var(--border);
   background: var(--surface-2, transparent);
-  border-top: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--border);
 }
-.slp-flag.slp-warn { border-left-color: #ef4444; }
-.slp-flag.slp-good { border-left-color: #22c55e; }
-.slp-flag.slp-info { border-left-color: #6366f1; }
 .slp-flag-t {
   font-size: 12.5px;
   font-weight: 700;
