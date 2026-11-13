@@ -136,7 +136,6 @@
   letter-spacing: -5px;
   color: var(--orange);
   line-height: 1;
-  text-shadow: 0 0 48px var(--orange-glow);
   flex-shrink: 0;
 }
 

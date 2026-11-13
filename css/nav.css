@@ -68,7 +68,7 @@ nav {
 }
 .fab.fab-primary {
   background: var(--orange-fill); color: #fff; border: none;
-  box-shadow: 0 8px 24px rgba(252, 76, 2, .42);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .42);   /* same lift as the other floating buttons, no glow */
 }
 .fab svg { width: 20px; height: 20px; }
 .fab:active { transform: scale(.96); }

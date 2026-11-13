@@ -43,7 +43,7 @@
   background: linear-gradient(135deg, rgba(252, 76, 2, .06) 0%, var(--surface) 60%);
 }
 
-.stat-card.hi:hover { box-shadow: var(--shadow-orange); }
+.stat-card.hi:hover { border-color: var(--orange-mid); }
 
 /* PWA install banner (Overview) */
 .install-banner {
