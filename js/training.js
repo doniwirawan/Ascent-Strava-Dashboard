@@ -846,7 +846,6 @@ function renderTraining() {
     </div>`;
 
   body.innerHTML = `
-    ${whoopRowHTML(false)}
     ${_trIntroHTML(d)}
     ${_trZonesHTML(d.ftpEst)}
     ${_trRunPredictHTML()}
