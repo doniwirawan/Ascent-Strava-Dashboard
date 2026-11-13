@@ -149,13 +149,14 @@ function renderAthlete(a) {
   currentAthlete = a;
   if (a.id) localStorage.setItem('strava_athlete_id', a.id);
   if (a.bikes) { try { localStorage.setItem('strava_bikes_v1', JSON.stringify(a.bikes)); } catch {} }
-  document.getElementById('av').src    = a.profile_medium||a.profile||'';
+  const avUrl = a.profile_medium||a.profile;   // an empty src would re-request the page itself
+  if (avUrl) document.getElementById('av').src = avUrl;
   document.getElementById('aname').textContent = a.firstname+' '+a.lastname;
   document.getElementById('badge').style.display = 'flex';
   // Update sidebar user profile
   const su=document.getElementById('sidebarUser');
   if(su){
-    document.getElementById('sidebarAv').src=a.profile_medium||a.profile||'';
+    if (avUrl) document.getElementById('sidebarAv').src=avUrl;
     document.getElementById('sidebarName').textContent=a.firstname+' '+a.lastname;
     su.style.display='flex';
   }

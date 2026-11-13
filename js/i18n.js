@@ -196,6 +196,7 @@ const APP_ID = {
   'Overview': 'Ikhtisar', 'Cycling': 'Bersepeda', 'Running': 'Lari', 'Trends': 'Tren',
   'Best Efforts': 'Upaya Terbaik', 'Eddington': 'Eddington', 'Activities': 'Aktivitas',
   'Chase Routes': 'Rute Buruan', 'Calendar': 'Kalender', 'Monthly': 'Bulanan', 'Photos': 'Foto', 'Heatmap': 'Heatmap',
+  'Photo from': 'Foto dari', 'Activity photo': 'Foto aktivitas',
   'Segments': 'Segmen', 'Gear': 'Perlengkapan', 'Milestones': 'Milestone', 'Rewind': 'Kilas Balik',
   'Trophies': 'Trofi', 'Help & Data': 'Bantuan & Data', 'Training': 'Latihan',
   'Performance': 'Performa', 'Explore': 'Jelajahi', 'History': 'Riwayat', 'About': 'Tentang',

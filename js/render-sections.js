@@ -1928,6 +1928,7 @@ function openPhoto(i){
   }else{
     if(vid){ vid.pause(); vid.removeAttribute('src'); vid.load(); vid.style.display='none'; }
     img.src=it.url;
+    img.alt=it.name ? tr('Photo from')+' '+it.name : tr('Activity photo');
     img.style.display='';
   }
   document.getElementById('lbName').textContent=it.name||'';
