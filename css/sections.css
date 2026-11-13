@@ -702,7 +702,7 @@
 
 .ai-provider { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
 .ai-provider label { font-size: 12px; color: var(--muted); font-weight: 600; }
-.ai-select { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; padding: 7px 10px; cursor: pointer; }
+.ai-select { max-width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; padding: 7px 10px; cursor: pointer; }
 .ai-select:focus { border-color: var(--orange); }
 .ai-model { flex: 1; min-width: 160px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; padding: 7px 10px; }
 .ai-model:focus { border-color: var(--orange); }

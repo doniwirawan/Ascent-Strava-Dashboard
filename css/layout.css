@@ -3,7 +3,7 @@
 ══════════════════════════════════════════ */
 
 main {
-  padding: 24px 20px;
+  padding: 24px 20px 96px;   /* bottom: room to scroll clear of the floating AI / Image / Story buttons */
   min-width: 0;
   width: 100%;
 }

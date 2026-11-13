@@ -44,7 +44,7 @@
   .mode-toggle button svg { width: 15px; height: 15px; }
   .lang-toggle button, .nav-right .unit-toggle button { padding: 5px 9px; font-size: 11px; }
   .app-layout { margin-left: 0; }
-  main { padding: 16px; }
+  main { padding: 16px 16px 96px; }
 
   /* Language + unit toggles move into the drawer on phones so the top bar keeps
      only the sport toggle beside the hamburger — far less crowded. */
@@ -65,7 +65,7 @@
 
 
 @media (max-width: 600px) {
-  main { padding: 12px; }
+  main { padding: 12px 12px 140px; }   /* FAB row + the Install pill above it */
   .stat-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .s-value { font-size: 22px; }
   .stat-card { padding: 14px 16px; }
@@ -164,4 +164,11 @@
   .nav-right { gap: 4px; }
   .unit-toggle button { padding: 5px 8px; font-size: 11px; }
   .mode-toggle button { padding: 5px 9px; font-size: 13px; }
+}
+
+/* phones: AI and Image shrink to icon-only circles so the floating row covers
+   less of the page; Story keeps its label as the primary action */
+@media (max-width: 600px) {
+  .fab:not(.fab-primary) { padding: 12px; }
+  .fab:not(.fab-primary) span { display: none; }
 }
