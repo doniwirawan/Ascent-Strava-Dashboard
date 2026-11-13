@@ -63,7 +63,7 @@ function renderCycling() {
       ${box(tr('Rides'), cur.n, delta(cur.n, prev.n, x=>x))}
       ${box(tr('Distance'), fmtD(cur.d), delta(cur.d, prev.d, fmtD))}
       ${box(tr('Climbing'), elev(cur.e), delta(cur.e, prev.e, x=>fmtElev(x)))}
-      ${box(tr('Avg speed'), cur.v ? spd(cur.v) : '—', cur.v ? delta(cur.v, prev.v, fmtSpeed) : '')}
+      ${box(tr('Avg speed'), cur.v ? spd(cur.v) : '–', cur.v ? delta(cur.v, prev.v, fmtSpeed) : '')}
     </div>`;
 
   // per bike — average speed depends a lot on which bike it was
@@ -136,7 +136,7 @@ function renderRunning() {
   document.getElementById('runningHero').innerHTML = `
     <div class="hero-box hi">
       <div class="hero-label">Best Pace</div>
-      <div class="hero-value">${fastest ? _pace(fastest.average_speed) : '—'} <span class="hero-unit">/${distUnit()}</span></div>
+      <div class="hero-value">${fastest ? _pace(fastest.average_speed) : '–'} <span class="hero-unit">/${distUnit()}</span></div>
       ${subline(fastest, fastest ? fmtD(fastest.distance) : '')}
     </div>
     <div class="hero-box hi">
@@ -147,7 +147,7 @@ function renderRunning() {
     <div class="hero-box"><div class="hero-label">Total Runs</div><div class="hero-value">${runs.length}</div></div>
     <div class="hero-box"><div class="hero-label">Total Distance</div><div class="hero-value">${fmtD(totDist)}</div></div>
     <div class="hero-box"><div class="hero-label">Total Time</div><div class="hero-value">${Math.round(totTime/3600)} <span class="hero-unit">h</span></div></div>
-    <div class="hero-box"><div class="hero-label">Avg Heart Rate</div><div class="hero-value">${avgHR||'—'} <span class="hero-unit">bpm</span></div>${avgHR?hrZonePill(avgHR):''}</div>
+    <div class="hero-box"><div class="hero-label">Avg Heart Rate</div><div class="hero-value">${avgHR||'–'} <span class="hero-unit">bpm</span></div>${avgHR?hrZonePill(avgHR):''}</div>
   `;
 
   // Top 5 fastest pace
@@ -225,7 +225,7 @@ function _renderSportPage(key, list) {
 
   document.getElementById(key + 'Hero').innerHTML = (byDist ? `
     <div class="hero-box hi"><div class="hero-label">Best Pace</div>
-      <div class="hero-value">${fastest ? pace(fastest.average_speed) : '—'} <span class="hero-unit">${paceU}</span></div>
+      <div class="hero-value">${fastest ? pace(fastest.average_speed) : '–'} <span class="hero-unit">${paceU}</span></div>
       ${subline(fastest, fastest ? fmtD(fastest.distance) : '')}</div>
     <div class="hero-box hi"><div class="hero-label">Longest ${W[0]}</div>
       <div class="hero-value">${fmtD(longest.distance || 0)}</div>
@@ -238,9 +238,9 @@ function _renderSportPage(key, list) {
       <div class="hero-value">${T(topType[0])}</div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(252,76,2,.2);font-size:11px;color:var(--orange);opacity:.8">${topType[1]}× ${nKinds > 1 ? '· ' + Object.entries(types).sort((x, y) => y[1] - x[1]).slice(1).map(([t, n]) => T(t) + ' ' + n + '×').join(' · ') : ''}</div></div>`)
     + box('Total ' + W[1], list.length)
-    + (byDist ? box('Total Distance', fmtD(totDist)) : box('Max Heart Rate', (maxHR || '—') + ' <span class="hero-unit">bpm</span>'))
+    + (byDist ? box('Total Distance', fmtD(totDist)) : box('Max Heart Rate', (maxHR || '–') + ' <span class="hero-unit">bpm</span>'))
     + box('Total Time', (Math.round(totTime / 360) / 10) + ' <span class="hero-unit">h</span>')
-    + box('Avg Heart Rate', (avgHR || '—') + ' <span class="hero-unit">bpm</span>', avgHR ? hrZonePill(avgHR) : '');
+    + box('Avg Heart Rate', (avgHR || '–') + ' <span class="hero-unit">bpm</span>', avgHR ? hrZonePill(avgHR) : '');
 
   const top5 = [...list].sort((a, b) => size(b) - size(a)).slice(0, 5);
   const top = top5.length ? size(top5[0]) || 1 : 1;
@@ -390,7 +390,7 @@ function renderActivities() {
     const km  = kmVal(a.distance||0);
     const pct = (a.distance||0)/(maxDist||1);
     const sz  = Math.max(28, Math.min(90, 28 + pct*62));
-    return `<div class="bubble" data-sz="${sz}" style="width:${sz}px;height:${sz}px;cursor:pointer" title="${a.name} — ${km.toFixed(1)} ${distUnit()}" onclick="openActivityModal(${i})">
+    return `<div class="bubble" data-sz="${sz}" style="width:${sz}px;height:${sz}px;cursor:pointer" title="${a.name}, ${km.toFixed(1)} ${distUnit()}" onclick="openActivityModal(${i})">
       <span${sz>40?'':' hidden'}>${km.toFixed(0)}</span>
     </div>`;
   }).join('');
@@ -533,7 +533,7 @@ const ACT_STAT_ICON={
   'PRs':'medal','Achievements':'trophy','Kudos':'kudos','Comments':'chat',
 };
 function _actStat(label, val){
-  if(val===null || val===undefined || val==='' || val==='—') return '';
+  if(val===null || val===undefined || val==='' || val==='–') return '';
   const p=ACT_STAT_IC[ACT_STAT_ICON[label]];
   const icon=p?`<svg class="actd-stat-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`:'';
   return `<div class="actd-stat"><div class="actd-stat-val">${val}</div><div class="actd-stat-lbl">${icon}${label}</div></div>`;
@@ -863,14 +863,14 @@ function openActivityModal(ref){
     _actStat('Distance', fmtD(a.distance)),
     _actStat('Moving Time', fmtT(a.moving_time)),
     _actStat('Elevation', a.total_elevation_gain?fmtElev(a.total_elevation_gain):''),
-    ride ? _actStat('Avg Speed', a.average_speed?fmtSpeed(a.average_speed):'—')
+    ride ? _actStat('Avg Speed', a.average_speed?fmtSpeed(a.average_speed):'–')
          : (typeof isSwim==='function' && isSwim(a))
-           ? _actStat('Avg Pace', a.average_speed?_swimPace(a.average_speed)+' /100m':'—')
-           : _actStat('Avg Pace', a.average_speed?_pace(a.average_speed)+' /'+distUnit():'—'),
-    ride ? _actStat('Max Speed', cleanMax(a)?fmtSpeed(a.max_speed):'—')
+           ? _actStat('Avg Pace', a.average_speed?_swimPace(a.average_speed)+' /100m':'–')
+           : _actStat('Avg Pace', a.average_speed?_pace(a.average_speed)+' /'+distUnit():'–'),
+    ride ? _actStat('Max Speed', cleanMax(a)?fmtSpeed(a.max_speed):'–')
          : (typeof isSwim==='function' && isSwim(a))
-           ? _actStat('Max Pace', a.max_speed?_swimPace(a.max_speed)+' /100m':'—')
-           : _actStat('Max Pace', a.max_speed?_pace(a.max_speed)+' /'+distUnit():'—'),
+           ? _actStat('Max Pace', a.max_speed?_swimPace(a.max_speed)+' /100m':'–')
+           : _actStat('Max Pace', a.max_speed?_pace(a.max_speed)+' /'+distUnit():'–'),
     a.elapsed_time && a.elapsed_time!==a.moving_time ? _actStat('Elapsed', fmtT(a.elapsed_time)) : '',
     _actStat('Avg HR', a.average_heartrate?Math.round(a.average_heartrate)+' bpm'+hrZonePill(a.average_heartrate):''),
     _actStat('Max HR', a.max_heartrate?Math.round(a.max_heartrate)+' bpm'+hrZonePill(a.max_heartrate):''),

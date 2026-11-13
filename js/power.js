@@ -22,10 +22,10 @@ function _pwSummaryHTML(rides, ftpEst) {
   const kj = rides.filter(a => new Date(a.start_date).getTime() >= since).reduce((s, a) => s + (a.kilojoules || 0), 0);
   const day = a => fmtDtShort(a.start_date_local || a.start_date);
   return `<div class="tr-tiles pw-tiles">
-    ${tile(ftpEst ? ftpEst.value : '—', ' W', 'FTP', ftpEst && ftpEst.estimated ? tr('estimated') : '')}
-    ${tile(ftpEst ? (ftpEst.value / kg).toFixed(2) : '—', ' W/kg', tr('FTP per kg'), trf('at {0} kg', kg))}
-    ${tile(max ? Math.round(max.v) : '—', ' W', tr('Max power'), max ? day(max.a) : '')}
-    ${tile(np ? Math.round(np.v) : '—', ' W', tr('Best NP ride'), np ? day(np.a) : '')}
+    ${tile(ftpEst ? ftpEst.value : '–', ' W', 'FTP', ftpEst && ftpEst.estimated ? tr('estimated') : '')}
+    ${tile(ftpEst ? (ftpEst.value / kg).toFixed(2) : '–', ' W/kg', tr('FTP per kg'), trf('at {0} kg', kg))}
+    ${tile(max ? Math.round(max.v) : '–', ' W', tr('Max power'), max ? day(max.a) : '')}
+    ${tile(np ? Math.round(np.v) : '–', ' W', tr('Best NP ride'), np ? day(np.a) : '')}
     ${tile(rides.length, '', tr('Power-meter rides'), '')}
     ${tile(Math.round(kj).toLocaleString(), ' kJ', tr('Work, last 28 days'), '')}
   </div>`;
@@ -34,7 +34,7 @@ function _pwSummaryHTML(rides, ftpEst) {
 function _pwRidesHTML(rides) {
   if (!rides.length) return `<div class="card tr-pc"><div class="tr-chart-title">${tr('Rides with power')}</div>
     <div class="tr-basis-note">${tr('No rides with a power meter yet. Once you ride with one, every ride shows its normalized power, intensity, variability and TSS here.')}</div></div>`;
-  const n = (v, d) => v == null ? '—' : (+v).toFixed(d || 0);
+  const n = (v, d) => v == null ? '–' : (+v).toFixed(d || 0);
   const rows = rides.slice(0, PW_ROWS).map(a => {
     const p = ridePower(a), pk = typeof pcRidePeaks === 'function' ? pcRidePeaks(a.id) : null;
     return `<tr class="dt-act" data-id="${a.id}">

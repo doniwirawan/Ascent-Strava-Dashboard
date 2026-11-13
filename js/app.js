@@ -90,7 +90,7 @@ if (!CONFIG.refreshToken) {
   document.querySelectorAll('.js-connect').forEach(el => { el.href = authUrl; el.onclick = () => { window.location.href = authUrl; return false; }; });
   // keep the in-app reconnect affordance wired too (harmless while hidden)
   showReconnect();
-  setStatus('Not connected — <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">Connect with Strava →</a>');
+  setStatus('Not connected, <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">Connect with Strava →</a>');
   const mb = document.getElementById('mainBtn');
   if (mb) { mb.textContent = tr('Connect'); mb.onclick = () => { window.location.href = authUrl; }; }
 } else {

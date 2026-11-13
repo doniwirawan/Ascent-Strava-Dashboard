@@ -50,7 +50,7 @@ function chaseAiCard() {
     : ['70 km loop via Bedugul, lots of climbing', 'One way to Amed along the east coast', '100 km max through rice fields', 'Kintamani by a different way'];
   return `<div class="card cai-card">
     <div class="card-title">✨ ${tr('AI route generator')}</div>
-    <div class="chart-note">${tr('Describe the ride you want — distance (as a maximum), places, climbing, coast, rice fields. The AI plans it and the route is worked out on real roads.')}</div>
+    <div class="chart-note">${tr('Describe the ride you want. Distance (as a maximum), places, climbing, coast, rice fields. The AI plans it and the route is worked out on real roads.')}</div>
     <div class="cai-row">
       <textarea id="caiText" rows="2" placeholder="${_caiEsc(ex[0])}"></textarea>
       <button class="btn btn-primary" id="caiGo" onclick="chaseAiGo()">${tr('Generate')}</button>
@@ -113,7 +113,7 @@ function chaseAiEdit(i) {
   set('caiText', o.request); set('caiStart', o.startTxt); set('caiEnd', o.endTxt);
   if (o.mode) chaseAiMode(o.mode);
   const t = document.getElementById('caiText'); if (t) { t.scrollIntoView({ behavior: smoothB(), block: 'center' }); t.focus(); }
-  const st = document.getElementById('caiStatus'); if (st) { st.className = 'cai-status'; st.textContent = tr('Change the request or options, then Generate — the new route is added to the history.'); }
+  const st = document.getElementById('caiStatus'); if (st) { st.className = 'cai-status'; st.textContent = tr('Change the request or options, then Generate. The new route is added to the history.'); }
 }
 
 // delete takes a second tap (within 3 s)
@@ -134,7 +134,7 @@ function chaseAiMode(m) {
 async function _caiPlan(text) {
   const { provider, model, key } = typeof aiProviderModel === 'function' ? aiProviderModel() : { provider: 'deepseek' };
   const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: CONFIG.accessToken, provider, model, key, messages: [
-    { role: 'system', content: 'You plan road-cycling rides in Bali, Indonesia, from a request. The ride starts and ends at a start point you never know — never guess or mention it. The rider usually rides under 100 km. '
+    { role: 'system', content: 'You plan road-cycling rides in Bali, Indonesia, from a request. The ride starts and ends at a start point you never know. Never guess or mention it. The rider usually rides under 100 km. '
       + 'Turn the request into the places to ride through, in riding order: real, mappable Bali places (villages, towns, landmarks, temples, beaches, lakes) on or next to a proper road. '
       + 'If the request only describes a theme (climbing, coast, rice fields, waterfalls, lakes, quiet roads…), add 1–2 well-known places in Bali that fit it, close to each other. If it names places, use those (fix spelling). Never add a place just as a starting point. '
       + 'named = true only for places the rider actually asked for; false for ones you added for the theme. '
@@ -283,7 +283,7 @@ async function _caiEnds(loop) {
   let start = null, end = null, startName = '', endName = '';
   if (sTxt.trim()) { const r = await _caiGeocode([{ name: sTxt.trim(), named: true }], n => _caiSay(trf('Finding {0} on the map…', n))); if (!r[0]) throw new Error(trf('Couldn’t find “{0}” on the map.', _caiEsc(sTxt))); start = [r[0].lat, r[0].lng]; startName = r[0].name; }
   else start = _rsHome();
-  if (!start) throw new Error(tr('No usual start found in your rides — type a start place.'));
+  if (!start) throw new Error(tr('No usual start found in your rides. Type a start place.'));
   if (eTxt.trim()) { const r = await _caiGeocode([{ name: eTxt.trim(), named: true }], n => _caiSay(trf('Finding {0} on the map…', n))); if (!r[0]) throw new Error(trf('Couldn’t find “{0}” on the map.', _caiEsc(eTxt))); end = [r[0].lat, r[0].lng]; endName = r[0].name; }
   else if (loop) end = start;
   return { start, end, startName, endName };
@@ -309,7 +309,7 @@ async function _caiBuild(req) {
     if (!best) break;
     route = best.r; stops = _caiOrder(best.rest, start, oneWayToStop);
   }
-  if (!route) throw new Error(tr('No route found on the major roads for that — try another place.'));
+  if (!route) throw new Error(tr('No route found on the major roads for that. Try another place.'));
   // still over the max while chasing new roads? the most direct roads may fit (or get closer)
   let direct = false;
   if (max && route.total > max && req.mode === 'new') {
@@ -346,11 +346,11 @@ async function chaseAiGo(forceOneWay) {
     await _caiGraph();
     const ends = await _caiEnds(plan.loop);
     if (!plan.places.length) {
-      if (!plan.km) throw new Error(tr('Say where you want to go or how far — e.g. "60 km loop via Tabanan".'));
+      if (!plan.km) throw new Error(tr('Say where you want to go or how far. E.g. "60 km loop via Tabanan".'));
       // no places: the best never-ridden loop of that length from home
       _caiSay(tr('Working out the route…'));
       const opts = await _rsSuggest(plan.km);
-      if (!opts[0]) throw new Error(tr('No route found on the major roads for that — try another place.'));
+      if (!opts[0]) throw new Error(tr('No route found on the major roads for that. Try another place.'));
       const o = opts[0]; _caiLast = { text, plan };
       const stops = [];
       // the suggester's loop, as-is (always from the usual start)
@@ -362,7 +362,7 @@ async function chaseAiGo(forceOneWay) {
       document.getElementById('caiStatus').textContent = ''; chaseAiShow(0, list);
     } else {
       const stops = await _caiGeocode(plan.places, n => _caiSay(trf('Finding {0} on the map…', n.split(',')[0])));
-      if (!stops.length) throw new Error(tr('Couldn’t find those places on the map — try naming a town or landmark.'));
+      if (!stops.length) throw new Error(tr('Couldn’t find those places on the map. Try naming a town or landmark.'));
       _caiLast = { text, plan };
       await _caiBuild({ text, plan, stops, km: plan.km, mode: _caiMode, ends, summary: plan.summary });
     }
@@ -387,7 +387,7 @@ async function chaseAiRegency(name) {
     // spread by direction from the start, so it goes out one way and back another
     const pts = [];
     g.E.forEach(E => { if (!E.nw) return; const la = (g.lat[E.u] + g.lat[E.v]) / 2, lo = (g.lng[E.u] + g.lng[E.v]) / 2; if (_regContains(f.geometry, lo, la)) pts.push([la, lo, E.L]); });
-    if (pts.length < 3) throw new Error(trf('No never-ridden major roads left in {0} — nice!', name));
+    if (pts.length < 3) throw new Error(trf('No never-ridden major roads left in {0}. Nice!', name));
     const ang = p => Math.atan2(p[0] - ends.start[0], (p[1] - ends.start[1]) * Math.cos(ends.start[0] * Math.PI / 180));
     pts.sort((a, b) => ang(a) - ang(b));
     // keep it near a usual ride: use the new roads nearest the start first, and
@@ -402,7 +402,7 @@ async function chaseAiRegency(name) {
       if (r && r.total <= 110000) break;
       pool = byNear.slice(0, Math.max(3, Math.floor(pool.length / 2)));
     }
-    if (!best) throw new Error(tr('No route found on the major roads for that — try another place.'));
+    if (!best) throw new Error(tr('No route found on the major roads for that. Try another place.'));
     await _caiBuild({ text: 'regency:' + name, plan: null, stops: best.stops, km: null, mode: 'new', ends, summary: '' });
   } catch (e) {
     _caiFail(_caiEsc((e && e.message) || tr('Could not work out a route right now.')));
@@ -435,7 +435,7 @@ function chaseAiShow(i, list) {
       <div class="hero-box hi"><div class="hero-label">${tr('Distance')}</div><div class="hero-value">${o.km} <span class="hero-unit">km</span></div>${ends || `<div class="hero-sub">${modeName[1]} ${tr(modeName[2])} · ${o.loop ? tr('loop') : tr('one way')}</div>`}</div>
       <div class="hero-box"><div class="hero-label">${tr('Never ridden')}</div><div class="hero-value">${o.nwKm} <span class="hero-unit">km</span></div>
         <div class="hero-sub">${trf('{0}% of the route', o.km ? Math.round(o.nwKm / o.km * 100) : 0)}</div></div>
-      <div class="hero-box"><div class="hero-label">${tr('Climbing')}</div><div class="hero-value">${o.elev ? o.elev.climb.toLocaleString() : '—'} <span class="hero-unit">m</span></div>
+      <div class="hero-box"><div class="hero-label">${tr('Climbing')}</div><div class="hero-value">${o.elev ? o.elev.climb.toLocaleString() : '–'} <span class="hero-unit">m</span></div>
         <div class="hero-sub">${o.elev ? trf('highest {0} m', Math.max(...o.elev.e)) : ''}</div></div>
     </div>
     <div id="caiMap" class="cai-map"></div>
@@ -484,7 +484,7 @@ function _caiDrawProfile(ev) {
 function chaseAiGpx() {
   const o = _caiSaved()[_caiPick]; if (!o) return;
   const gpx = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Ascent" xmlns="http://www.topografix.com/GPX/1/1">\n'
-    + '<trk><name>' + String(o.title + ' — ' + o.km + ' km').replace(/[<&>]/g, '') + '</name><trkseg>\n'
+    + '<trk><name>' + String(o.title + '' + o.km + ' km').replace(/[<&>]/g, '') + '</name><trkseg>\n'
     + o.pts.map(p => `<trkpt lat="${p[0]}" lon="${p[1]}"/>`).join('\n') + '\n</trkseg></trk></gpx>\n';
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([gpx], { type: 'application/gpx+xml' }));

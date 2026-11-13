@@ -82,17 +82,17 @@ function renderStats() {
     const paceSub = swim ? '/100m' : '/'+distUnit();
     longLbl=t('longRun');
     const totD=set.reduce((s,a)=>s+(a.distance||0),0), totT=set.reduce((s,a)=>s+(a.moving_time||0),0);
-    avgLbl=t('avgPace'); avgVal=totT&&totD?pace(totD/totT):'—'; avgSub=paceSub;
+    avgLbl=t('avgPace'); avgVal=totT&&totD?pace(totD/totT):'–'; avgSub=paceSub;
     const paced=set.filter(a=>a.average_speed>0);
     const best=paced.length?paced.reduce((m,a)=>a.average_speed>m.average_speed?a:m):null;
-    maxLbl=t('bestPace'); maxVal=best?pace(best.average_speed):'—'; maxSub=paceSub;
+    maxLbl=t('bestPace'); maxVal=best?pace(best.average_speed):'–'; maxSub=paceSub;
   } else {
     longLbl=t('longRide');
     const riding=set.filter(a=>a.average_speed>0&&realSpeed(a));
     const avg=riding.length?kmh(riding.reduce((s,a)=>s+a.average_speed,0)/riding.length):0;
-    avgLbl=t('avgSpeed'); avgVal=avg?avg.toFixed(1):'—'; avgSub=speedUnit()+' '+t('riding');
+    avgLbl=t('avgSpeed'); avgVal=avg?avg.toFixed(1):'–'; avgSub=speedUnit()+' '+t('riding');
     const mx=kmh(set.reduce((m,a)=>cleanMax(a)>m?cleanMax(a):m,0));
-    maxLbl=t('maxSpeed'); maxVal=mx?mx.toFixed(1):'—'; maxSub=speedUnit();
+    maxLbl=t('maxSpeed'); maxVal=mx?mx.toFixed(1):'–'; maxSub=speedUnit();
   }
 
   // avg heart rate across activities that have it
@@ -144,14 +144,14 @@ function renderStats() {
   document.getElementById('sv-kudos').textContent   = kudos.toLocaleString();
   document.getElementById('sv-prs').textContent     = prs.toLocaleString();
   document.getElementById('sv-ach').textContent     = achs.toLocaleString();
-  document.getElementById('sv-longest').textContent = longest?fmtKm(longest):'—';
+  document.getElementById('sv-longest').textContent = longest?fmtKm(longest):'–';
   document.getElementById('sv-avgspd').textContent  = avgVal;
   document.getElementById('sv-maxspd').textContent  = maxVal;
-  document.getElementById('sv-avghr').textContent   = avgHR||'—';
+  document.getElementById('sv-avghr').textContent   = avgHR||'–';
   const avgHrZone = avgHR ? hrZoneLabel(avgHR) : '';
   document.getElementById('sv-avghr-sub').innerHTML = avgHrZone ? 'bpm · '+avgHrZone : 'bpm';
-  document.getElementById('sv-streak').textContent  = bestStreak||'—';
-  document.getElementById('sv-cal').textContent     = totalCal?Math.round(totalCal/1000)+'k':'—';
+  document.getElementById('sv-streak').textContent  = bestStreak||'–';
+  document.getElementById('sv-cal').textContent     = totalCal?Math.round(totalCal/1000)+'k':'–';
   const csEl=document.getElementById('sv-consistency'); if(csEl) csEl.textContent = consistency+'%';
   // mode/unit-dependent labels & subs
   const setTxt=(id,txt)=>{const e=document.getElementById(id); if(e) e.textContent=txt;};
@@ -309,10 +309,10 @@ function renderSportBreakdown(){
     const elev=set.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
     const paced=set.filter(a=>a.average_speed>0&&realSpeed(a));
     const totD=set.reduce((s,a)=>s+(a.distance||0),0), totT=set.reduce((s,a)=>s+(a.moving_time||0),0);
-    let avg='—';
+    let avg='–';
     if(paced.length){
-      if(c.key==='swim') avg=(totT&&totD?_swimPace(totD/totT):'—')+' /100m';
-      else if(c.pace)    avg=(totT&&totD?_pace(totD/totT):'—')+' /'+distUnit();
+      if(c.key==='swim') avg=(totT&&totD?_swimPace(totD/totT):'–')+' /100m';
+      else if(c.pace)    avg=(totT&&totD?_pace(totD/totT):'–')+' /'+distUnit();
       else               avg=kmh(paced.reduce((s,a)=>s+a.average_speed,0)/paced.length).toFixed(1)+' '+speedUnit();
     }
     rows.push({key:c.key, count:set.length, dist, time, elev, avg, ride:!c.pace});
@@ -333,7 +333,7 @@ function renderSportBreakdown(){
           <div class="sb-stats">
             <div><b>${fmtD(r.dist)}</b><small>${T('distance')}</small></div>
             <div><b>${Math.round(r.time/3600).toLocaleString()}h</b><small>${T('time')}</small></div>
-            <div><b>${r.elev?Math.round(elevVal(r.elev)).toLocaleString()+' '+elevUnit():'—'}</b><small>${T('elevation')}</small></div>
+            <div><b>${r.elev?Math.round(elevVal(r.elev)).toLocaleString()+' '+elevUnit():'–'}</b><small>${T('elevation')}</small></div>
             <div><b>${r.avg}</b><small>${r.ride?T('avg speed'):T('avg pace')}</small></div>
           </div>
         </div>`).join('')}
@@ -414,8 +414,8 @@ function _eddyGoalHTML(rides, E, mode, id) {
   let line2;
   if (perWeek <= 0) {
     line2 = id
-      ? `Belum ada ${rideW} sejauh ≥${GOAL} ${unit} — mulai tambah gowes panjang untuk membangun menuju E=${GOAL}.`
-      : `No ${rideW} of ≥${GOAL} ${unit} yet — start adding longer rides to build toward E=${GOAL}.`;
+      ? `Belum ada ${rideW} sejauh ≥${GOAL} ${unit}. Mulai tambah gowes panjang untuk membangun menuju E=${GOAL}.`
+      : `No ${rideW} of ≥${GOAL} ${unit} yet. Start adding longer rides to build toward E=${GOAL}.`;
   } else {
     const weeks = need / perWeek;
     const eta = new Date(now + weeks * 7 * DAY);
@@ -464,7 +464,7 @@ function _eddyTable(rides, word, ID_WORD, id) {
       <td>${lo}–${lo + STEP} ${u}</td>
       <td class="num">${band.length || '<span class="dim">0</span>'}
         <span class="eddy-bar"><i style="width:${Math.round(band.length / peak * 100)}%"></i></span></td>
-      <td class="num">${sum ? sum.toFixed(1) + ' <span class="dim">' + u + '</span>' : '<span class="dim">—</span>'}</td>
+      <td class="num">${sum ? sum.toFixed(1) + ' <span class="dim">' + u + '</span>' : '<span class="dim">–</span>'}</td>
       <td class="num">${atLeast}</td>
       <td>${status}</td>
     </tr>`;
@@ -497,8 +497,8 @@ function renderEddington() {
     const need = Math.max(0, t - have);
     const w = id ? (ID_WORD[word]||'aktivitas') : `${word}${need!==1?'s':''}`;
     rows.push(id
-      ? `<div class="eddy-step"><strong>E=${t}</strong> — butuh <strong>${need} ${w} lagi</strong> sejauh ≥${t} ${distUnit()} <span class="eddy-have">(punya ${have}/${t})</span></div>`
-      : `<div class="eddy-step"><strong>E=${t}</strong> — need <strong>${need} more ${w}</strong> of ≥${t} ${distUnit()} <span class="eddy-have">(have ${have}/${t})</span></div>`);
+      ? `<div class="eddy-step"><strong>E=${t}</strong>butuh <strong>${need} ${w} lagi</strong> sejauh ≥${t} ${distUnit()} <span class="eddy-have">(punya ${have}/${t})</span></div>`
+      : `<div class="eddy-step"><strong>E=${t}</strong>need <strong>${need} more ${w}</strong> of ≥${t} ${distUnit()} <span class="eddy-have">(have ${have}/${t})</span></div>`);
   }
   // ── Goal projection: how long to reach a fixed E=50 at the recent ride rate ──
   const goalHTML = _eddyGoalHTML(rides, E, mode, id);

@@ -405,7 +405,7 @@ function _plSeasonHTML(p, d, fc, today) {
       ${tile(days, tr('Days to go'), 'var(--text)', _plFmtDay(ev.date, { day: 'numeric', month: 'short', year: 'numeric' }))}
       ${tile(`${Math.round(d.ctl)}→${Math.round(eve.ctl)}`, tr('Fitness · CTL'), 'var(--orange)', tr('now → race day'))}
       ${tile((tsb >= 0 ? '+' : '') + Math.round(tsb), tr('Race-day form'), band.color, `<span style="color:${band.color};font-weight:700">${band.label}</span>`)}
-      ${tile(thisWk ? thisWk.tss : '—', tr('This week · TSS'), thisWk ? PL_PHASE_COLOR[thisWk.rec ? 'rec' : thisWk.phase] : 'var(--text)', thisWk ? `${_plPhaseName(thisWk.rec ? 'rec' : thisWk.phase)} · ≈${Math.round(thisWk.tss / 52)}h` : '')}
+      ${tile(thisWk ? thisWk.tss : '–', tr('This week · TSS'), thisWk ? PL_PHASE_COLOR[thisWk.rec ? 'rec' : thisWk.phase] : 'var(--text)', thisWk ? `${_plPhaseName(thisWk.rec ? 'rec' : thisWk.phase)} · ≈${Math.round(thisWk.tss / 52)}h` : '')}
     </div>`;
     advice = tsb < 5 ? tr('You would start the event tired. Plan less load in the last 10 days (an easier taper) to reach a form of +5 to +25.')
       : tsb > 25 ? tr('You would start very fresh, and fitness fades while you rest. Keep a few short hard efforts in the taper.')
@@ -642,13 +642,13 @@ function _plRenderPreview() {
   const stat = (v, l) => `<div><b>${v}</b><span>${l}</span></div>`;
   el.innerHTML = `${blocks.length ? plProfileSVG(blocks, 70) : ''}
     <div class="pl-stats">
-      ${stat(m.secs ? _plHm(m.secs) : '—', tr('Duration'))}
-      ${stat(Math.round(m.tss) || '—', 'TSS')}
-      ${stat(m.if ? m.if.toFixed(2) : '—', 'IF')}
+      ${stat(m.secs ? _plHm(m.secs) : '–', tr('Duration'))}
+      ${stat(Math.round(m.tss) || '–', 'TSS')}
+      ${stat(m.if ? m.if.toFixed(2) : '–', 'IF')}
       ${F && m.if ? stat(Math.round(m.if * F) + ' W', 'NP') : ''}
       ${F && m.avg ? stat(Math.round(m.avg * m.secs * F / 1000), 'kJ') : ''}
     </div>
-    ${errors.length ? `<div class="pl-err">${trf('Line {0} not understood — write it like 20m 90% or 3x(4m 115%, 4m 50%).', errors.join(', '))}</div>` : ''}`;
+    ${errors.length ? `<div class="pl-err">${trf('Line {0} not understood, write it like 20m 90% or 3x(4m 115%, 4m 50%).', errors.join(', '))}</div>` : ''}`;
   const man = document.getElementById('plManual');
   if (man) man.style.display = blocks.length ? 'none' : '';
   document.querySelectorAll('.pl-exp').forEach(b => { b.disabled = !blocks.length; });
@@ -775,7 +775,7 @@ const PL_COMP_COLOR = { green: '#22c55e', yellow: '#eab308', orange: '#f97316', 
 function plActivityNote(a) {
   const st = a && plDayStatus(_trDayKey(a));
   if (!st) return '';
-  return `<div class="actd-loc pl-actnote"><span class="pl-dot" style="background:${PL_COMP_COLOR[st.comp] || '#888'}"></span>${tr('Planned')}: ${st.list.map(w => _plEsc(w.title)).join(', ')} · ${Math.round(st.planned)} TSS — ${trf('done {0} TSS that day ({1}%)', Math.round(st.done), st.pct)}</div>`;
+  return `<div class="actd-loc pl-actnote"><span class="pl-dot" style="background:${PL_COMP_COLOR[st.comp] || '#888'}"></span>${tr('Planned')}: ${st.list.map(w => _plEsc(w.title)).join(', ')} · ${Math.round(st.planned)} TSS, ${trf('done {0} TSS that day ({1}%)', Math.round(st.done), st.pct)}</div>`;
 }
 // Swap a hard planned session for a recovery spin of about the same length.
 function plSwapEasy(id) {
@@ -805,7 +805,7 @@ function renderPlanToday() {
       <div class="pl-today-row"><b>${_plEsc(w.title)}</b><span>${m.secs ? _plHm(m.secs) + ' · ' : ''}${Math.round(m.tss)} TSS${m.if ? ' · IF ' + m.if.toFixed(2) : ''}</span></div>
       ${steps ? plProfileSVG(m.blocks, 44) : ''}
       ${w.notes ? `<div class="tr-basis-note" style="margin-top:6px">${_plEsc(w.notes)}</div>` : ''}
-      ${tired ? `<div class="tr-note" style="margin:8px 0 0">${trf('Form is {0} ({1}). A hard session today adds more fatigue than fitness — consider an easy spin instead.', Math.round(d.tsb), band.label)} <button class="pl-btn pl-btn-sm" onclick="plSwapEasy('${w.id}')">${tr('Swap for a recovery spin')}</button></div>` : ''}
+      ${tired ? `<div class="tr-note" style="margin:8px 0 0">${trf('Form is {0} ({1}). A hard session today adds more fatigue than fitness. Consider an easy spin instead.', Math.round(d.tsb), band.label)} <button class="pl-btn pl-btn-sm" onclick="plSwapEasy('${w.id}')">${tr('Swap for a recovery spin')}</button></div>` : ''}
       ${steps ? `<div class="pl-today-act"><button class="pl-btn pl-btn-sm" onclick="plExportId('${w.id}','fit')">.fit</button><button class="pl-btn pl-btn-sm" onclick="plExportId('${w.id}','zwo')">.zwo</button></div>` : ''}
     </div>`;
   }).join('');

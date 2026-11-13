@@ -76,9 +76,9 @@ function renderGearMaint(bikes) {
     return `<tr>
       <td class="gm-td-name">${b.nickname || b.name || tr('Bike')}${bikeTypeBadge(b)}${b.primary ? ' <span class="gear-primary">' + tr('Primary') + '</span>' : ''}</td>
       <td>${kmVal(dm).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${distUnit()}</td>
-      <td>${s.elev ? Math.round(elevVal(s.elev)).toLocaleString() + ' ' + elevUnit() : '—'}</td>
-      <td>${s.time ? Math.round(s.time / 3600).toLocaleString() + ' h' : '—'}</td>
-      <td>${avg ? kmh(avg).toFixed(1) + ' ' + speedUnit() : '—'}</td>
+      <td>${s.elev ? Math.round(elevVal(s.elev)).toLocaleString() + ' ' + elevUnit() : '–'}</td>
+      <td>${s.time ? Math.round(s.time / 3600).toLocaleString() + ' h' : '–'}</td>
+      <td>${avg ? kmh(avg).toFixed(1) + ' ' + speedUnit() : '–'}</td>
       <td><span class="gm-pill gm-${w.cls}">${tr(w.label)}</span></td>
     </tr>`;
   }).join('');
@@ -96,7 +96,7 @@ function renderGearMaint(bikes) {
       const since = tracked ? Math.max(0, dm - cs.base) : null;
       const st = gmStatus(since, thr);
       const thrDisp = kmVal(thr).toFixed(0);
-      const sinceDisp = since != null ? kmVal(since).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+      const sinceDisp = since != null ? kmVal(since).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '–';
       return `<div class="gm-comp gm-${st.cls}">
         <div class="gm-comp-top"><span class="gm-comp-name">${tr(c.name)}</span><span class="gm-comp-status">${tr(st.label)}</span></div>
         <div class="gm-bar"><span style="width:${Math.min(100, Math.round(st.pct * 100))}%"></span></div>
@@ -121,7 +121,7 @@ function renderGearMaint(bikes) {
     ${table}
     ${renderBikeCompare(bikes)}
     ${renderGearCost(bikes, stats)}
-    <div class="gm-section-title">${tr('Maintenance')} <span class="gm-hint">${tr('Strava has no service data — log a service to start tracking. Saved on this device.')}</span></div>
+    <div class="gm-section-title">${tr('Maintenance')} <span class="gm-hint">${tr('Strava has no service data. Log a service to start tracking. Saved on this device.')}</span></div>
     ${cards}`;
 
   el.querySelectorAll('.gm-log').forEach(btn => btn.onclick = () => gmLog(btn.dataset.bike, btn.dataset.comp, bikes));
@@ -351,13 +351,13 @@ function renderBikeCompare(bikes) {
       <div class="bc-rows">
         <div><span>${tr('Rides')}</span><b>${s.n}</b></div>
         <div><span>${tr('Avg speed')}</span><b>${fmtSpeed(s.speed)}</b></div>
-        <div><span>${tr('Flat rides speed')}</span><b>${s.flatSpeed ? fmtSpeed(s.flatSpeed) : '—'}</b></div>
-        <div><span>${tr('Avg power')}</span><b>${s.watts ? Math.round(s.watts) + ' W' : '—'}</b></div>
-        <div><span>${tr('Avg HR')}</span><b>${s.hr ? Math.round(s.hr) + ' bpm' : '—'}</b></div>
-        <div><span>${tr('Efficiency')}</span><b>${s.ef ? s.ef.toFixed(2) + ' m/beat' : '—'}</b></div>
+        <div><span>${tr('Flat rides speed')}</span><b>${s.flatSpeed ? fmtSpeed(s.flatSpeed) : '–'}</b></div>
+        <div><span>${tr('Avg power')}</span><b>${s.watts ? Math.round(s.watts) + ' W' : '–'}</b></div>
+        <div><span>${tr('Avg HR')}</span><b>${s.hr ? Math.round(s.hr) + ' bpm' : '–'}</b></div>
+        <div><span>${tr('Efficiency')}</span><b>${s.ef ? s.ef.toFixed(2) + ' m/beat' : '–'}</b></div>
         <div><span>${tr('Climbing')}</span><b>${s.climb.toFixed(1)} m/km</b></div>
         <div><span>${tr('Avg distance')}</span><b>${fmtD(s.avgDist)}</b></div>
-        <div><span>${tr('Top speed')}</span><b>${s.maxSpeed ? fmtSpeed(s.maxSpeed) : '—'}</b></div>
+        <div><span>${tr('Top speed')}</span><b>${s.maxSpeed ? fmtSpeed(s.maxSpeed) : '–'}</b></div>
       </div></div>`;
 
   // head-to-head for the two most-ridden bikes
@@ -369,11 +369,11 @@ function renderBikeCompare(bikes) {
     if (a.flatSpeed && b.flatSpeed) L.push(faster(a, b, s => s.flatSpeed, 'Flat rides'));
     L.push(faster(a, b, s => s.speed, 'All rides'));
     if (a.ef && b.ef) { const p = pct(a.ef, b.ef); L.push(Math.abs(p) < 1.5 ? tr('Efficiency (distance per heartbeat) is about the same on both.')
-      : trf('You cover {0} more distance per heartbeat on the {1} — the same effort goes further.', Math.abs(p).toFixed(1) + '%', p > 0 ? A : B)); }
+      : trf('You cover {0} more distance per heartbeat on the {1}. The same effort goes further.', Math.abs(p).toFixed(1) + '%', p > 0 ? A : B)); }
     if (a.watts && b.watts) {
       const est = [a, b].filter(s => s.measured < s.wattsN / 2).map(name);
       L.push(trf('Average power: {0} W on the {1} vs {2} W on the {3}.', Math.round(a.watts), A, Math.round(b.watts), B)
-        + (est.length ? ' ' + trf('({0}: mostly estimated by Strava, not a power meter — compare with care.)', est.join(', ')) : ''));
+        + (est.length ? ' ' + trf('({0}: mostly estimated by Strava, not a power meter. Compare with care.)', est.join(', ')) : ''));
     }
     if (a.hr && b.hr) L.push(trf('Average heart rate: {0} bpm on the {1} vs {2} bpm on the {3}.', Math.round(a.hr), A, Math.round(b.hr), B));
     const hilly = a.climb > b.climb ? a : b, flatter = hilly === a ? b : a;

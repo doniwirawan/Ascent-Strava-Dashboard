@@ -413,7 +413,7 @@ function _spMarkup(sum, opts = {}) {
       const ftp = _spFtp();
       html += row(tr('Critical Power'), Math.round(sum.fit.CP) + ' W',
         trf('Morton fit over 2–60 min bests{0}', ftp ? ' · ' + trf('your FTP card says {0} W', ftp) : ''));
-      html += row('W′', (sum.fit.WPrime / 1000).toFixed(1) + ' kJ', tr('anaerobic reserve above CP — what a sprint or a hard climb spends'));
+      html += row('W′', (sum.fit.WPrime / 1000).toFixed(1) + ' kJ', tr('anaerobic reserve above CP. What a sprint or a hard climb spends'));
     }
     if (sum.vam[1200]) html += row(tr('Best VAM'), sum.vam[1200].v + ' m/h', trf('20 min climbing · {0}', link(sum.vam[1200])));
     if (sum.hr[1200]) html += row(tr('Best 20-min HR'), sum.hr[1200].v + ' bpm', link(sum.hr[1200]));
@@ -425,7 +425,7 @@ function _spMarkup(sum, opts = {}) {
   }
   html += `<div class="tr-basis-note">${opts.progress
     ? trf('Estimating… {0}', opts.progress)
-    : trf('Watts estimated from speed, grade, wind-free physics and {0} kg + your bike, over your last {1} {2} — stops removed. Model from Sauce for Strava (MIT).', kg, sum ? sum.rides.length : 0, tr(sum && sum.rides.length === 1 ? 'ride' : 'rides'))}</div>`;
+    : trf('Watts estimated from speed, grade, wind-free physics and {0} kg + your bike, over your last {1} {2}. Stops removed. Model from Sauce for Strava (MIT).', kg, sum ? sum.rides.length : 0, tr(sum && sum.rides.length === 1 ? 'ride' : 'rides'))}</div>`;
   if (opts.note) html += `<div class="tr-basis-note">${opts.note}</div>`;
   if (opts.button) html += `<button class="tr-ai-btn" style="margin-top:10px" onclick="computeSaucePower()">${opts.button}</button>`;
   return html;
@@ -439,11 +439,11 @@ function _trSauceHTML() {
   let inner;
   if (sum) inner = _spMarkup(sum, {
     button: owner ? (agg && agg.sig === _spSig() ? tr('Recompute') : tr('Update with new rides')) : null,
-    note: agg && agg.partial ? tr('Partial — rate-limited last time; click to resume (done rides are cached).') : '',
+    note: agg && agg.partial ? tr('Partial, rate-limited last time; click to resume (done rides are cached).') : '',
   });
-  else if (owner) inner = `<div class="tr-basis-note">${tr('No power meter? Physics can still read your watts: speed, gradient and your weight give the power for every second of a ride — then peaks, critical power, W′ and TSS follow.')}</div>
+  else if (owner) inner = `<div class="tr-basis-note">${tr('No power meter? Physics can still read your watts: speed, gradient and your weight give the power for every second of a ride. Then peaks, critical power, W′ and TSS follow.')}</div>
     <button class="tr-ai-btn" style="margin-top:10px" onclick="computeSaucePower()">${tr('Estimate my power')}</button>`;
-  else inner = `<div class="tr-basis-note">${tr("The power curve is computed on the owner's device — it fetches ride streams, and Strava's rate limit is shared across the app.")}</div>`;
+  else inner = `<div class="tr-basis-note">${tr("The power curve is computed on the owner's device, it fetches ride streams, and Strava's rate limit is shared across the app.")}</div>`;
   return `<div class="card tr-pc tr-sp">
     <div class="tr-chart-title">${tr('Estimated Power')} <span class="gm-hint">${tr('every ride, no power meter')}</span></div>
     <div id="spBody">${inner}</div>
@@ -581,7 +581,7 @@ function _trPeaksHTML() {
   if (!_spPool().length) return '';
   if (!_spOwner() && !_spPool().some(a => spRideCache(a.id))) return '';
   return `<div class="card tr-pc tr-sp">
-    <div class="tr-chart-title">${tr('Peak efforts')} <span class="gm-hint">${tr('heart rate, speed and climbing — all-time vs the last 6 weeks')}</span></div>
+    <div class="tr-chart-title">${tr('Peak efforts')} <span class="gm-hint">${tr('heart rate, speed and climbing. All-time vs the last 6 weeks')}</span></div>
     <div id="spPkBody">${_spPeaksMarkup()}</div>
   </div>`;
 }
@@ -635,7 +635,7 @@ async function _spDrawActivity(a, r, host, head) {
   const step = Math.max(1, Math.floor(bal.length / 300));
   const pts = [];
   for (let i = 0; i < bal.length; i += step) pts.push({ x: i / 60, y: Math.max(0, bal[i] / 1000) });
-  el.innerHTML = `<div class="tr-basis-note">${trf('W′ balance — lowest {0} kJ of {1} ({2}% left at the hardest point)', Math.max(0, min / 1000).toFixed(1), (fit.WPrime / 1000).toFixed(1), Math.max(0, Math.round(min / fit.WPrime * 100)))}</div>
+  el.innerHTML = `<div class="tr-basis-note">${trf('W′ balance, lowest {0} kJ of {1} ({2}% left at the hardest point)', Math.max(0, min / 1000).toFixed(1), (fit.WPrime / 1000).toFixed(1), Math.max(0, Math.round(min / fit.WPrime * 100)))}</div>
     <div style="height:140px"><canvas id="spWbalCv"></canvas></div>`;
   destroyChart('sp_wbal');
   charts.sp_wbal = new Chart(document.getElementById('spWbalCv'), {

@@ -665,7 +665,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
         ctx.strokeRect(clrPx.x, clrPx.y, clrPx.w, clrPx.h);
         ctx.setLineDash([]);
         ctx.fillStyle = 'rgba(252,76,2,0.95)'; ctx.font = `700 ${Math.round(19 * S)}px -apple-system,sans-serif`;
-        ctx.textAlign = 'center'; ctx.fillText('KEEP CLEAR — drag / resize', clrPx.x + clrPx.w / 2, clrPx.y - Math.round(12 * S));
+        ctx.textAlign = 'center'; ctx.fillText('KEEP CLEAR, drag / resize', clrPx.x + clrPx.w / 2, clrPx.y - Math.round(12 * S));
         const hs = Math.round(20 * S);
         ctx.fillStyle = '#FC4C02'; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.round(2.5 * S);
         ctx.beginPath(); ctx.roundRect(clrPx.x + clrPx.w - hs / 2, clrPx.y + clrPx.h - hs / 2, hs, hs, Math.round(5 * S)); ctx.fill(); ctx.stroke();
@@ -2550,7 +2550,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const ink = '#1f1d1a', faint = '#8c867a', ix = rx + Math.round(54 * S), iw = rw - Math.round(108 * S);
       let y = ry + Math.round(90 * S);
       ctx.textAlign = 'center'; ctx.fillStyle = ink; ctx.font = mono('800', 40); ctx.letterSpacing = '0.18em'; ctx.fillText(hideLogo ? 'ACTIVITY' : 'ASCENT', W / 2, y); ctx.letterSpacing = '0';
-      y += Math.round(42 * S); ctx.font = mono('400', 22); ctx.fillStyle = faint; ctx.fillText('— ACTIVITY RECEIPT —', W / 2, y);
+      y += Math.round(42 * S); ctx.font = mono('400', 22); ctx.fillStyle = faint; ctx.fillText('ACTIVITY RECEIPT', W / 2, y);
       y += Math.round(54 * S);
       ctx.textAlign = 'left'; ctx.fillStyle = ink; ctx.font = mono('400', 22);
       if (!hideDate && act.start_date) { const d = new Date(act.start_date); ctx.fillText(d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(), ix, y); ctx.textAlign = 'right'; ctx.fillText(d.toTimeString().slice(0, 5), ix + iw, y); ctx.textAlign = 'left'; y += Math.round(34 * S); }

@@ -41,10 +41,10 @@ async function renderCyclingBuys() {
   const items = await loadCyclingBuys();
   // Explain an empty section instead of just going blank (the data lives in the finance app)
   const why = {
-    source_missing: 'The purchase table was not found in the finance app’s database — it may have been renamed. The Ascent /api/purchases query needs updating to match.',
-    no_items_row: 'The finance app has no built purchase list yet (purchase_data “items” row missing) — open Spending there and sync once.',
+    source_missing: 'The purchase table was not found in the finance app’s database. It may have been renamed. The Ascent /api/purchases query needs updating to match.',
+    no_items_row: 'The finance app has no built purchase list yet (purchase_data “items” row missing). Open Spending there and sync once.',
     no_access: 'The dashboard’s read-only database login (ascent_ro) no longer has access to the purchase table.',
-    no_cycling: 'Purchases loaded, but none are in the “Cycling” category — it may have been renamed in the finance app.',
+    no_cycling: 'Purchases loaded, but none are in the “Cycling” category. It may have been renamed in the finance app.',
     not_configured: 'NEON_PURCHASES_URL is not set on this deployment.',
   };
   if (!items || _cbErr === 'no_cycling') {

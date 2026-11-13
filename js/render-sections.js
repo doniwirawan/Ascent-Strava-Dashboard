@@ -99,7 +99,7 @@ function renderMonthly(filterYear) {
   let prev=null; // previous month with data (for MoM %)
   for(let m=0;m<12;m++){
     const r=rows[m];
-    if(!r){html+=`<tr><td class="dim">${MONTHS[m]}</td><td colspan="7" class="dim">—</td></tr>`;continue;}
+    if(!r){html+=`<tr><td class="dim">${MONTHS[m]}</td><td colspan="7" class="dim">–</td></tr>`;continue;}
     totR+=r.rides;totD+=r.dist;totE+=r.elev;totT+=r.time;totC+=r.cal;
     allSpd=[...allSpd,...r.speed];allHr=[...allHr,...r.hr];
     const avgSpd=r.speed.length?r.speed.reduce((a,b)=>a+b,0)/r.speed.length:0;
@@ -110,9 +110,9 @@ function renderMonthly(filterYear) {
       <td class="num">${fmtKm(r.dist)} <span class="dim">${distUnit()}</span>${mom(r.dist,prev&&prev.dist)}</td>
       <td class="num">${Math.round(elevVal(r.elev)).toLocaleString()} <span class="dim">${elevUnit()}</span>${mom(r.elev,prev&&prev.elev)}</td>
       <td class="num">${fmtT(r.time)}${mom(r.time,prev&&prev.time)}</td>
-      <td class="num">${avgSpd?kmh(avgSpd).toFixed(1)+' <span class="dim">'+speedUnit()+'</span>':'—'}</td>
-      <td class="num">${avgHr?avgHr+' <span class="dim">bpm</span>':'—'}</td>
-      <td class="num">${r.cal?Math.round(r.cal).toLocaleString()+' <span class="dim">kcal</span>':'—'}${mom(r.cal,prev&&prev.cal)}</td>
+      <td class="num">${avgSpd?kmh(avgSpd).toFixed(1)+' <span class="dim">'+speedUnit()+'</span>':'–'}</td>
+      <td class="num">${avgHr?avgHr+' <span class="dim">bpm</span>':'–'}</td>
+      <td class="num">${r.cal?Math.round(r.cal).toLocaleString()+' <span class="dim">kcal</span>':'–'}${mom(r.cal,prev&&prev.cal)}</td>
     </tr>`;
     prev=r;
   }
@@ -125,9 +125,9 @@ function renderMonthly(filterYear) {
     <td class="num">${fmtKm(totD)} <span class="dim">${distUnit()}</span></td>
     <td class="num">${Math.round(elevVal(totE)).toLocaleString()} <span class="dim">${elevUnit()}</span></td>
     <td class="num">${fmtT(totT)}</td>
-    <td class="num">${totAvgSpd?kmh(totAvgSpd).toFixed(1)+' <span class="dim">'+speedUnit()+'</span>':'—'}</td>
-    <td class="num">${totAvgHr?totAvgHr+' <span class="dim">bpm</span>':'—'}</td>
-    <td class="num">${totC?Math.round(totC).toLocaleString()+' <span class="dim">kcal</span>':'—'}</td>
+    <td class="num">${totAvgSpd?kmh(totAvgSpd).toFixed(1)+' <span class="dim">'+speedUnit()+'</span>':'–'}</td>
+    <td class="num">${totAvgHr?totAvgHr+' <span class="dim">bpm</span>':'–'}</td>
+    <td class="num">${totC?Math.round(totC).toLocaleString()+' <span class="dim">kcal</span>':'–'}</td>
   </tr>`;
   html+=`</tbody></table>`;
   document.getElementById('monthlyTable').innerHTML=html;
@@ -248,7 +248,7 @@ function _renderBikeList(el, bikes) {
       <div class="gear-stats">
         <div><div class="gear-stat-val">${kmVal(b.distance||st.dist).toFixed(0)}</div><div class="gear-stat-lbl">Total ${distUnit()}</div></div>
         <div><div class="gear-stat-val">${st.rides}</div><div class="gear-stat-lbl">Rides logged</div></div>
-        <div><div class="gear-stat-val">${st.elev?Math.round(elevVal(st.elev)/1000).toFixed(1)+'k':'—'}</div><div class="gear-stat-lbl">Elevation ${elevUnit()}</div></div>
+        <div><div class="gear-stat-val">${st.elev?Math.round(elevVal(st.elev)/1000).toFixed(1)+'k':'–'}</div><div class="gear-stat-lbl">Elevation ${elevUnit()}</div></div>
       </div>
     </div>`;
   }).join('');
@@ -278,7 +278,7 @@ async function renderGear(){
   // fallback: fetch each unique gear_id from activities
   const gearIds=[...new Set(acts.map(a=>a.gear_id).filter(Boolean))];
   if(!gearIds.length){
-    el.innerHTML='<div class="card" style="color:var(--muted);font-size:13px;">No gear data — add bikes to your Strava profile and reconnect.</div>';
+    el.innerHTML='<div class="card" style="color:var(--muted);font-size:13px;">No gear data, add bikes to your Strava profile and reconnect.</div>';
     return;
   }
   el.innerHTML='<p style="color:var(--muted);padding:8px">Loading gear…</p>';
@@ -296,7 +296,7 @@ async function renderGear(){
 }
 
 /* ── GEAR REASSIGN (bulk edit) ── */
-function _bikeName(bikes,id){ const b=bikes.find(x=>x.id===id); return b?(b.nickname||b.name||'Bike'):'—'; }
+function _bikeName(bikes,id){ const b=bikes.find(x=>x.id===id); return b?(b.nickname||b.name||'Bike'):'–'; }
 function renderGearTool(bikes){
   const el=document.getElementById('gearReassign');
   if(!el) return;
@@ -322,7 +322,7 @@ function renderGearTool(bikes){
           <input type="checkbox" class="gr-cb" value="${a.id}">
           <span class="gr-date">${fmtDt(a.start_date)}</span>
           <span class="gr-name">${a.name||'Activity'}</span>
-          <span class="gr-cur" id="gr-cur-${a.id}">${a.gear_id?_bikeName(bikes,a.gear_id):'—'}</span>
+          <span class="gr-cur" id="gr-cur-${a.id}">${a.gear_id?_bikeName(bikes,a.gear_id):'–'}</span>
           <span class="gr-dist">${fmtD(a.distance)}</span>
         </label>`).join('')}
       </div>
@@ -369,12 +369,12 @@ async function gearReassignSubmit(bikes){
       }
       if(/ 429 /.test(' '+e.message+' ')){
         status.className='gr-status err';
-        status.textContent=`Strava rate limit hit after ${ok} updates — wait ~15 min and retry the rest.`;
+        status.textContent=`Strava rate limit hit after ${ok} updates. Wait ~15 min and retry the rest.`;
         submit.disabled=false; break;
       }
     }
   }
-  if(submit.disabled){ status.className='gr-status '+(fail?'warn':'ok'); status.textContent=`Done — ${ok} updated${fail?`, ${fail} failed`:''}.`; submit.disabled=false; }
+  if(submit.disabled){ status.className='gr-status '+(fail?'warn':'ok'); status.textContent=`Done, ${ok} updated${fail?`, ${fail} failed`:''}.`; submit.disabled=false; }
   try{ const aid=localStorage.getItem('strava_athlete_id'); if(aid&&typeof cacheSave==='function') cacheSave(acts,aid); }catch{}
   renderGear();
 }
@@ -550,7 +550,7 @@ function heatLegend(map){
   c.onAdd=()=>{
     const d=L.DomUtil.create('div','heat-legend');
     if(heatMode==='clean'){
-      d.innerHTML='<span class="hl-i">'+T('Map and names only — your routes are hidden')+'</span>';
+      d.innerHTML='<span class="hl-i">'+T('Map and names only, your routes are hidden')+'</span>';
     }else if(heatMode==='unridden'){
       d.innerHTML='<span class="hl-i"><i style="background:#fc4c02;height:3px"></i><span class="hl-unr">'+T('Loading roads…')+'</span></span>';
     }else if(heatMode==='regency'){
@@ -771,9 +771,9 @@ function setSportMode(m){
   renderMilestones();
   if (window.applyI18n) window.applyI18n();
 }
-function _pace(speed){ if(!speed) return '—'; const sec=Math.round((useImperial?1609.34:1000)/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
+function _pace(speed){ if(!speed) return '–'; const sec=Math.round((useImperial?1609.34:1000)/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
 // Swimming reads in time per 100 m, not km/h or min/km.
-function _swimPace(speed){ if(!speed) return '—'; const sec=Math.round(100/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
+function _swimPace(speed){ if(!speed) return '–'; const sec=Math.round(100/speed); return `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}`; }
 function renderMilestones(){
   const el=document.getElementById('milestonesGrid');
   if(!acts.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No data.</p>';return;}
@@ -819,27 +819,27 @@ function renderMilestones(){
   const prsLabel = mode==='all' ? 'Most PRs' : 'Most PRs in a '+W;
 
   const records = pace ? [
-    {icon:'run',c:'#fc4c02',label:'Longest '+W,val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
-    {icon:'bolt',c:'#4da8ff',label:'Best Pace',val:fastest.average_speed?(mode==='swim'?_swimPace(fastest.average_speed):_pace(fastest.average_speed)):'—',unit:mode==='swim'?'/100m':'/'+distUnit(),desc:fastest.name},
-    {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
-    {icon:'clock',c:'#00cc88',label:'Longest Duration',val:longDur.moving_time?fmtT(longDur.moving_time):'—',unit:'',desc:longDur.name},
-    {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
-    {icon:'run',c:'#38bdf8',label:sigLabel,val:sigCount||'—',unit:sportWord(true),desc:sigDesc},
-    {icon:'calendar',c:'#e879f9',label:'Biggest Month',val:bestMonth?fmtKm(bestMonth[1]):'—',unit:distUnit(),desc:bestMonthLbl},
-    {icon:'kudos',c:'#4ade80',label:'Most Kudos',val:mostKudos.kudos_count||'—',unit:'kudos',desc:mostKudos.name},
-    {icon:'medal',c:'#22d3ee',label:prsLabel,val:mostPRs.pr_count||'—',unit:'PRs',desc:mostPRs.name},
-    {icon:'calendar',c:'#94a3b8',label:'First '+W,val:firstLbl||'—',unit:'',desc:first.name},
+    {icon:'run',c:'#fc4c02',label:'Longest '+W,val:longest.distance?fmtKm(longest.distance):'–',unit:distUnit(),desc:longest.name},
+    {icon:'bolt',c:'#4da8ff',label:'Best Pace',val:fastest.average_speed?(mode==='swim'?_swimPace(fastest.average_speed):_pace(fastest.average_speed)):'–',unit:mode==='swim'?'/100m':'/'+distUnit(),desc:fastest.name},
+    {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'–',unit:elevUnit(),desc:mostElev.name},
+    {icon:'clock',c:'#00cc88',label:'Longest Duration',val:longDur.moving_time?fmtT(longDur.moving_time):'–',unit:'',desc:longDur.name},
+    {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'–',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
+    {icon:'run',c:'#38bdf8',label:sigLabel,val:sigCount||'–',unit:sportWord(true),desc:sigDesc},
+    {icon:'calendar',c:'#e879f9',label:'Biggest Month',val:bestMonth?fmtKm(bestMonth[1]):'–',unit:distUnit(),desc:bestMonthLbl},
+    {icon:'kudos',c:'#4ade80',label:'Most Kudos',val:mostKudos.kudos_count||'–',unit:'kudos',desc:mostKudos.name},
+    {icon:'medal',c:'#22d3ee',label:prsLabel,val:mostPRs.pr_count||'–',unit:'PRs',desc:mostPRs.name},
+    {icon:'calendar',c:'#94a3b8',label:'First '+W,val:firstLbl||'–',unit:'',desc:first.name},
   ] : [
-    {icon:'bike',c:'#fc4c02',label:'Longest '+W,val:longest.distance?fmtKm(longest.distance):'—',unit:distUnit(),desc:longest.name},
-    {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'—',unit:elevUnit(),desc:mostElev.name},
-    {icon:'gauge',c:'#4da8ff',label:'Fastest Avg',val:fastest.average_speed?kmh(fastest.average_speed).toFixed(1):'—',unit:speedUnit(),desc:fastest.name},
-    {icon:'bolt',c:'#facc15',label:'Top Speed',val:topSpd.max_speed?kmh(topSpd.max_speed).toFixed(1):'—',unit:speedUnit(),desc:topSpd.name},
-    {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'—',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
-    {icon:'bike',c:'#38bdf8',label:sigLabel,val:sigCount||'—',unit:sportWord(true),desc:sigDesc},
-    {icon:'calendar',c:'#e879f9',label:'Biggest Month',val:bestMonth?fmtKm(bestMonth[1]):'—',unit:distUnit(),desc:bestMonthLbl},
-    {icon:'kudos',c:'#4ade80',label:'Most Kudos',val:mostKudos.kudos_count||'—',unit:'kudos',desc:mostKudos.name},
-    {icon:'medal',c:'#22d3ee',label:prsLabel,val:mostPRs.pr_count||'—',unit:'PRs',desc:mostPRs.name},
-    {icon:'calendar',c:'#94a3b8',label:'First '+W,val:firstLbl||'—',unit:'',desc:first.name},
+    {icon:'bike',c:'#fc4c02',label:'Longest '+W,val:longest.distance?fmtKm(longest.distance):'–',unit:distUnit(),desc:longest.name},
+    {icon:'mountain',c:'#a78bfa',label:'Most Elevation',val:mostElev.total_elevation_gain?Math.round(elevVal(mostElev.total_elevation_gain)).toLocaleString():'–',unit:elevUnit(),desc:mostElev.name},
+    {icon:'gauge',c:'#4da8ff',label:'Fastest Avg',val:fastest.average_speed?kmh(fastest.average_speed).toFixed(1):'–',unit:speedUnit(),desc:fastest.name},
+    {icon:'bolt',c:'#facc15',label:'Top Speed',val:topSpd.max_speed?kmh(topSpd.max_speed).toFixed(1):'–',unit:speedUnit(),desc:topSpd.name},
+    {icon:'heart',c:'#f87171',label:'Peak Heart Rate',val:bestHR.average_heartrate?Math.round(bestHR.average_heartrate):'–',unit:'bpm',desc:bestHR.average_heartrate?[hrZoneLabel(bestHR.average_heartrate),bestHR.name].filter(Boolean).join(' · '):bestHR.name},
+    {icon:'bike',c:'#38bdf8',label:sigLabel,val:sigCount||'–',unit:sportWord(true),desc:sigDesc},
+    {icon:'calendar',c:'#e879f9',label:'Biggest Month',val:bestMonth?fmtKm(bestMonth[1]):'–',unit:distUnit(),desc:bestMonthLbl},
+    {icon:'kudos',c:'#4ade80',label:'Most Kudos',val:mostKudos.kudos_count||'–',unit:'kudos',desc:mostKudos.name},
+    {icon:'medal',c:'#22d3ee',label:prsLabel,val:mostPRs.pr_count||'–',unit:'PRs',desc:mostPRs.name},
+    {icon:'calendar',c:'#94a3b8',label:'First '+W,val:firstLbl||'–',unit:'',desc:first.name},
   ];
 
   el.innerHTML=`
@@ -906,12 +906,12 @@ function renderRewind(filterYear){
   const _ms=modeActs();
   const ys=y=>{const a=_ms.filter(x=>actLocalDate(x).getUTCFullYear()===y);return{n:a.length,dist:a.reduce((s,x)=>s+(x.distance||0),0),elev:a.reduce((s,x)=>s+(x.total_elevation_gain||0),0),time:a.reduce((s,x)=>s+(x.moving_time||0),0)};};
   const A=ys(yr), B=ys(prevYr), hasB=B.n>0;
-  const dlt=(da,db)=>{ if(!hasB||db===0) return '<span class="ryc-d">—</span>'; const pct=(da-db)/db*100, up=pct>=0; return `<span class="ryc-d ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(pct).toFixed(0)}%</span>`; };
+  const dlt=(da,db)=>{ if(!hasB||db===0) return '<span class="ryc-d">–</span>'; const pct=(da-db)/db*100, up=pct>=0; return `<span class="ryc-d ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(pct).toFixed(0)}%</span>`; };
   const cmpRows=[
-    {l:'Activities', a:A.n.toLocaleString(), b:hasB?B.n.toLocaleString():'—', da:A.n, db:B.n},
-    {l:'Distance', a:fmtKm(A.dist)+' '+distUnit(), b:hasB?fmtKm(B.dist)+' '+distUnit():'—', da:A.dist, db:B.dist},
-    {l:'Elevation', a:Math.round(elevVal(A.elev)).toLocaleString()+' '+elevUnit(), b:hasB?Math.round(elevVal(B.elev)).toLocaleString()+' '+elevUnit():'—', da:A.elev, db:B.elev},
-    {l:'Moving Time', a:fmtT(A.time), b:hasB?fmtT(B.time):'—', da:A.time, db:B.time},
+    {l:'Activities', a:A.n.toLocaleString(), b:hasB?B.n.toLocaleString():'–', da:A.n, db:B.n},
+    {l:'Distance', a:fmtKm(A.dist)+' '+distUnit(), b:hasB?fmtKm(B.dist)+' '+distUnit():'–', da:A.dist, db:B.dist},
+    {l:'Elevation', a:Math.round(elevVal(A.elev)).toLocaleString()+' '+elevUnit(), b:hasB?Math.round(elevVal(B.elev)).toLocaleString()+' '+elevUnit():'–', da:A.elev, db:B.elev},
+    {l:'Moving Time', a:fmtT(A.time), b:hasB?fmtT(B.time):'–', da:A.time, db:B.time},
   ];
   const cmpHtml=`
     <div class="ryc">
@@ -926,14 +926,14 @@ function renderRewind(filterYear){
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Elevation</div><div style="font-size:32px;font-weight:800;color:var(--text)">${totalElev.toLocaleString()}<span style="font-size:14px;color:var(--muted)"> ${elevUnit()}</span></div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Moving Time</div><div style="font-size:24px;font-weight:800;color:var(--text)">${fmtT(totalTime)}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Distance</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgDist}<span style="font-size:14px;color:var(--muted)"> ${distUnit()}</span></div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Top Sport</div><div style="font-size:20px;font-weight:800;color:var(--orange)">${topType?topType[0]:'—'}</div><div style="font-size:12px;color:var(--muted)">${topType?topType[1]+' activities':''}</div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Longest</div><div style="font-size:26px;font-weight:800;color:var(--text)">${longestA.distance?fmtD(longestA.distance):'—'}</div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg HR</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgHRy||'—'}<span style="font-size:14px;color:var(--muted)"> bpm</span></div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Max HR</div><div style="font-size:32px;font-weight:800;color:var(--text)">${maxHRy?Math.round(maxHRy):'—'}<span style="font-size:14px;color:var(--muted)"> bpm</span></div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Speed</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgSpeed||'—'}<span style="font-size:14px;color:var(--muted)"> ${speedUnit()}</span></div></div>
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Max Speed</div><div style="font-size:32px;font-weight:800;color:var(--text)">${maxSpeed||'—'}<span style="font-size:14px;color:var(--muted)"> ${speedUnit()}</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Top Sport</div><div style="font-size:20px;font-weight:800;color:var(--orange)">${topType?topType[0]:'–'}</div><div style="font-size:12px;color:var(--muted)">${topType?topType[1]+' activities':''}</div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Longest</div><div style="font-size:26px;font-weight:800;color:var(--text)">${longestA.distance?fmtD(longestA.distance):'–'}</div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg HR</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgHRy||'–'}<span style="font-size:14px;color:var(--muted)"> bpm</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Max HR</div><div style="font-size:32px;font-weight:800;color:var(--text)">${maxHRy?Math.round(maxHRy):'–'}<span style="font-size:14px;color:var(--muted)"> bpm</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Speed</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgSpeed||'–'}<span style="font-size:14px;color:var(--muted)"> ${speedUnit()}</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Max Speed</div><div style="font-size:32px;font-weight:800;color:var(--text)">${maxSpeed||'–'}<span style="font-size:14px;color:var(--muted)"> ${speedUnit()}</span></div></div>
       ${avgWattsy?`<div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Power</div><div style="font-size:32px;font-weight:800;color:var(--text)">${avgWattsy}<span style="font-size:14px;color:var(--muted)"> W</span></div></div>`:''}
-      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Calories</div><div style="font-size:32px;font-weight:800;color:var(--text)">${totalCal?totalCal.toLocaleString():'—'}<span style="font-size:14px;color:var(--muted)"> kcal</span></div></div>
+      <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Calories</div><div style="font-size:32px;font-weight:800;color:var(--text)">${totalCal?totalCal.toLocaleString():'–'}<span style="font-size:14px;color:var(--muted)"> kcal</span></div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Active Days</div><div style="font-size:32px;font-weight:800;color:var(--orange)">${activeDays}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Kudos</div><div style="font-size:32px;font-weight:800;color:var(--text)">${totalKudos.toLocaleString()}</div></div>
       <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Achievements</div><div style="font-size:32px;font-weight:800;color:var(--text)">${totalAchv.toLocaleString()}</div><div style="font-size:12px;color:var(--muted)">${totalPRs} PRs</div></div>
@@ -1052,7 +1052,7 @@ async function renderChallenges(){
           <div style="font-size:12px;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">
             ${city?`<span>${city}</span>`:''}
             ${since?`<span>Since ${since}</span>`:''}
-            ${ftpEst?`<span title="${ftpEst.estimated?'Estimated from '+(ftpEst.basis==='power'?'your best sustained power':'body weight')+' — Strava has no FTP set':'From your Strava profile'}">FTP ${ftpEst.value}w${ftpEst.estimated?' (est.)':''}</span>`:''}
+            ${ftpEst?`<span title="${ftpEst.estimated?'Estimated from '+(ftpEst.basis==='power'?'your best sustained power':'body weight')+'Strava has no FTP set':'From your Strava profile'}">FTP ${ftpEst.value}w${ftpEst.estimated?' (est.)':''}</span>`:''}
           </div>
           <div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap">
             <div><span style="font-size:20px;font-weight:800;color:var(--orange)">${komList.length}</span><span style="font-size: 11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">KOMs</span></div>
@@ -1088,7 +1088,7 @@ async function renderChallenges(){
     const yr=new Date().getFullYear();
     html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
       <div>
-        <div style="margin-bottom:6px;font-size: 11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">${yr} — Year to date</div>
+        <div style="margin-bottom:6px;font-size: 11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">${yr}: Year to date</div>
         <div class="card" style="padding:0;overflow:hidden">
           <div style="display:flex;flex-wrap:wrap">
             ${statCell('Rides',ytdRides,'activities','var(--orange)')}
@@ -1178,12 +1178,12 @@ async function renderChallenges(){
 
   /* ── 5. KOM LIST ── */
   if(komList.length){
-    html+=`<div style="margin-bottom:10px;font-size: 11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">KOM / QOM / CR — ${komList.length} Segments</div>`;
+    html+=`<div style="margin-bottom:10px;font-size: 11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">KOM / QOM / CR, ${komList.length} Segments</div>`;
     html+=`<div class="kom-list">`;
     html+=komList.slice(0,40).map(e=>{
       const seg=e.segment||e;
-      const dist=seg.distance?kmVal(seg.distance).toFixed(2)+' '+distUnit():'—';
-      const grade=seg.average_grade!=null?seg.average_grade.toFixed(1)+'%':'—';
+      const dist=seg.distance?kmVal(seg.distance).toFixed(2)+' '+distUnit():'–';
+      const grade=seg.average_grade!=null?seg.average_grade.toFixed(1)+'%':'–';
       const t=fmtT(e.elapsed_time||0);
       const loc=[seg.city,seg.state].filter(Boolean).join(', ');
       return `<div class="kom-item">
@@ -1398,7 +1398,7 @@ async function starAllArrowSegs(btn){
     }catch(e){
       const m=' '+e.message+' ';
       if(/ 403 /.test(m)){ if(btn){ btn.innerHTML=`${ic('star')} Needs permission`; btn.disabled=true; }
-        setStatus('Starring needs the <b>profile:write</b> permission — hit Disconnect, then reconnect with Strava to grant it.');
+        setStatus('Starring needs the <b>profile:write</b> permission, hit Disconnect, then reconnect with Strava to grant it.');
         _segStarring=false; return; }
       if(/ 429 /.test(m)){ limited=true; break; }   // rate limit — keep what we got
       failed++;
@@ -1410,7 +1410,7 @@ async function starAllArrowSegs(btn){
   todo.filter(s=>s._starred&&!known.has(String(s.id))).forEach(s=>_segScanStore.starred.push(s));
   _segStoreSave();
   _segStarring=false;
-  if(limited) setStatus(`Starred ${done} — Strava's rate limit kicked in, try the rest in 15 minutes.`);
+  if(limited) setStatus(`Starred ${done}: Strava's rate limit kicked in, try the rest in 15 minutes.`);
   if(btn){ btn.innerHTML=`${ic('star')} Starred ${done}${failed?` · ${failed} failed`:''}`; btn.disabled=true; }
 }
 
@@ -1576,7 +1576,7 @@ async function renderSegments(refresh){
 
     _segsData=_segScanStore.starred||[];
     _mergeSegs();
-    if(!_allSegs.length){ note('No segments yet — star some on Strava or ride a few segments, then tap Refresh.'); return; }
+    if(!_allSegs.length){ note('No segments yet, star some on Strava or ride a few segments, then tap Refresh.'); return; }
     _renderSegGrid(el, _allSegs);
   }catch(e){ note('Segments unavailable ('+e.message+').'); }
 }
@@ -1692,13 +1692,13 @@ function _renderSegGrid(el, segs){
           </div>`:`<div class="seg-pr-empty">No personal record yet</div>`}
           <div class="seg-metrics">
             <div class="seg-m"><span class="seg-m-lbl">Distance</span><span class="seg-m-val">${dist} ${distUnit()}</span></div>
-            <div class="seg-m"><span class="seg-m-lbl">Elevation</span><span class="seg-m-val">${climb!=null?climb+' '+elevUnit():'—'}</span></div>
-            <div class="seg-m"><span class="seg-m-lbl">VAM</span><span class="seg-m-val">${vam!=null?vam+' '+elevUnit()+'/h':'—'}</span></div>
-            <div class="seg-m"><span class="seg-m-lbl">KOM</span><span class="seg-m-val kom">${kom||'—'}</span></div>
+            <div class="seg-m"><span class="seg-m-lbl">Elevation</span><span class="seg-m-val">${climb!=null?climb+' '+elevUnit():'–'}</span></div>
+            <div class="seg-m"><span class="seg-m-lbl">VAM</span><span class="seg-m-val">${vam!=null?vam+' '+elevUnit()+'/h':'–'}</span></div>
+            <div class="seg-m"><span class="seg-m-lbl">KOM</span><span class="seg-m-val kom">${kom||'–'}</span></div>
           </div>
         </div>
         <div class="seg-foot">
-          <span>${efforts?efforts+' efforts':'—'}</span>
+          <span>${efforts?efforts+' efforts':'–'}</span>
           <a class="seg-link" href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener">View on Strava →</a>
         </div>
       </article>`;
@@ -1784,17 +1784,17 @@ async function openSegMap(id){
   const pr=s.athlete_pr_effort;
   const rows=[
     ['Distance', kmVal(s.distance).toFixed(2)+' '+distUnit()],
-    ['Avg Grade', s.average_grade!=null?parseFloat(s.average_grade).toFixed(1)+'%':'—'],
+    ['Avg Grade', s.average_grade!=null?parseFloat(s.average_grade).toFixed(1)+'%':'–'],
     s.maximum_grade!=null && ['Max Grade', parseFloat(s.maximum_grade).toFixed(1)+'%'],
-    ['Elevation', s.total_elevation_gain!=null?Math.round(elevVal(s.total_elevation_gain))+' '+elevUnit():'—'],
+    ['Elevation', s.total_elevation_gain!=null?Math.round(elevVal(s.total_elevation_gain))+' '+elevUnit():'–'],
     s.elevation_high!=null && ['Highest', Math.round(elevVal(s.elevation_high))+' '+elevUnit()],
     s.elevation_low!=null && ['Lowest', Math.round(elevVal(s.elevation_low))+' '+elevUnit()],
     s.climb_category>0 && ['Climb Cat.', 'Cat '+s.climb_category],
-    ['PR Time', pr?fmtT(pr.elapsed_time):'—'],
+    ['PR Time', pr?fmtT(pr.elapsed_time):'–'],
     pr&&s.distance&&pr.elapsed_time && ['PR Speed', kmh(s.distance/pr.elapsed_time).toFixed(1)+' '+speedUnit()],
-    ['VAM', pr&&pr.elapsed_time&&s.total_elevation_gain>0?Math.round(elevVal(s.total_elevation_gain)/(pr.elapsed_time/3600))+' '+elevUnit()+'/h':'—'],
-    ['KOM/CR', s.xoms&&s.xoms.kom?s.xoms.kom:'—'],
-    ['Efforts', s.effort_count?s.effort_count.toLocaleString():'—']
+    ['VAM', pr&&pr.elapsed_time&&s.total_elevation_gain>0?Math.round(elevVal(s.total_elevation_gain)/(pr.elapsed_time/3600))+' '+elevUnit()+'/h':'–'],
+    ['KOM/CR', s.xoms&&s.xoms.kom?s.xoms.kom:'–'],
+    ['Efforts', s.effort_count?s.effort_count.toLocaleString():'–']
   ].filter(Boolean);
   const loc=[s.city,s.state,s.country].filter(Boolean).join(', ');
   document.getElementById('segMapDetails').innerHTML=

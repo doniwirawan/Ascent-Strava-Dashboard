@@ -110,7 +110,7 @@ async function open3d(lmap, tracks, colored) {
   box.innerHTML = '<div class="map3d-msg">' + tr('Loading 3D…') + '</div>' + close;
   box.querySelector('.map3d-close').onclick = () => close3d(host);
   try { await _m3dLoad(); } catch {
-    box.querySelector('.map3d-msg').textContent = tr('Couldn’t load the 3D map — check your connection and try again.');
+    box.querySelector('.map3d-msg').textContent = tr('Couldn’t load the 3D map, check your connection and try again.');
     return;
   }
   if (host._m3d?.box !== box) return; // closed while loading

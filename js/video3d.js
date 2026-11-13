@@ -113,9 +113,9 @@ function _v3dHud(c, st) {
   c.fillStyle = g; c.fillRect(0, H - 470, W, 470);
   c.globalAlpha = fade;
   const s = cur.s, tiles = [
-    ['SPEED', s.v != null ? (s.v * 3.6).toFixed(1) : '—', 'km/h', '#fc4c02'],
-    ['HEART RATE', s.hr != null ? Math.round(s.hr) : '—', 'bpm', '#ef4444'],
-    power ? ['POWER', s.w != null ? Math.round(s.w) : '—', 'W', '#facc15'] : ['ELEVATION', s.alt != null ? Math.max(0, Math.round(s.alt)) : '—', 'm', '#60a5fa'], // GPS dips below sea level on the coast
+    ['SPEED', s.v != null ? (s.v * 3.6).toFixed(1) : '–', 'km/h', '#fc4c02'],
+    ['HEART RATE', s.hr != null ? Math.round(s.hr) : '–', 'bpm', '#ef4444'],
+    power ? ['POWER', s.w != null ? Math.round(s.w) : '–', 'W', '#facc15'] : ['ELEVATION', s.alt != null ? Math.max(0, Math.round(s.alt)) : '–', 'm', '#60a5fa'], // GPS dips below sea level on the coast
   ];
   const tw = (W - 72 - 2 * 16) / 3, ty = H - 380;
   tiles.forEach(([lbl, val, unit, col], k) => {
@@ -157,7 +157,7 @@ function _v3dOutro(c, st) {
   const rows = [
     ['DISTANCE', ((a.distance || 0) / 1000).toFixed(1) + ' km'], ['MOVING TIME', hms(a.moving_time || 0)],
     ['ELEVATION', Math.round(a.total_elevation_gain || 0) + ' m'], ['AVG SPEED', ((a.average_speed || 0) * 3.6).toFixed(1) + ' km/h'],
-    ['AVG HEART RATE', a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '—'],
+    ['AVG HEART RATE', a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '–'],
     [power ? 'AVG POWER' : 'MAX SPEED', power ? Math.round(a.weighted_average_watts || a.average_watts || 0) + ' W' : ((a.max_speed || 0) * 3.6).toFixed(1) + ' km/h'],
   ];
   rows.forEach(([l, v], k) => {
@@ -175,7 +175,7 @@ async function _v3dRender(a, opts, ui) {
   if (!S) throw new Error(tr('This activity has no GPS stream to fly over.'));
   ui.step(tr('Loading the 3D engine…'), .03);
   await Promise.all([_m3dLoad(), _v3dLoadMuxer()]);
-  if (typeof VideoEncoder === 'undefined') throw new Error(tr('This browser can’t encode video — use Chrome or Edge on a laptop or Android.'));
+  if (typeof VideoEncoder === 'undefined') throw new Error(tr('This browser can’t encode video. Use Chrome or Edge on a laptop or Android.'));
 
   const total = S[S.length - 1].d;
   // Pace the flight by how fast the ride actually went: slower up climbs, quicker
@@ -344,7 +344,7 @@ function openVideo3d(id) {
     armed = label;
     const prev = msg.textContent, prevCls = msg.className;
     msg.className = 'v3d-msg err';
-    msg.textContent = label === 'close' ? tr('Rendering — tap ✕ again to stop and close') : tr('Tap again to stop the render');
+    msg.textContent = label === 'close' ? tr('Rendering, tap ✕ again to stop and close') : tr('Tap again to stop the render');
     if (label !== 'close') go.textContent = tr('Tap again to stop');
     armedT = setTimeout(() => { armed = null; if (_v3dBusy) { msg.className = prevCls; msg.textContent = prev; go.textContent = tr('Cancel'); } }, 3000);
   };
@@ -379,14 +379,14 @@ function openVideo3d(id) {
           const tot = SETUP + p * (1 - SETUP);
           bar.style.width = (tot * 100).toFixed(1) + '%';
           const el = (Date.now() - t0) / 1000, left = p > .03 ? el / p - el : 0;
-          msg.textContent = trf('Rendering… {0}%', Math.round(tot * 100)) + (left ? ' · ' + trf('about {0} left', left > 90 ? Math.round(left / 60) + ' min' : Math.round(left) + ' s') : '') + ' — ' + tr('keep this tab open');
+          msg.textContent = trf('Rendering… {0}%', Math.round(tot * 100)) + (left ? ' · ' + trf('about {0} left', left > 90 ? Math.round(left / 60) + ' min' : Math.round(left) + ' s') : '') + '' + tr('keep this tab open');
         },
       });
       barBox.classList.remove('busy');
       if (blob) {
         const url = URL.createObjectURL(blob), name = 'ascent-3d-' + a.id + '.mp4';
         stage.innerHTML = `<video src="${url}" controls autoplay loop muted playsinline></video>`;
-        msg.className = 'v3d-msg ok'; msg.textContent = '✓ ' + tr('Ready') + ' — ' + (blob.size / 1048576).toFixed(1) + ' MB MP4';
+        msg.className = 'v3d-msg ok'; msg.textContent = '✓ ' + tr('Ready') + '' + (blob.size / 1048576).toFixed(1) + ' MB MP4';
         // Download / Share next to the button, which stays for another go in a new style
         const acts = m.querySelector('.v3d-actions');
         acts.querySelectorAll('.v3d-out').forEach(x => x.remove());

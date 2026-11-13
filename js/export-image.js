@@ -255,7 +255,7 @@ async function _doSaveImg() {
   // simulated-viewport relayout can't stretch it (which would visibly drift the
   // basemap from the routes). Other sections keep the html2canvas path.
   const isHeatmap = section.id === 'heatSection' && typeof leafletMapInst !== 'undefined' && leafletMapInst;
-  if (!isHeatmap && !(await _h2cLib().catch(() => null))) { setStatus(tr('Image export unavailable — refresh and try again.'), ''); return; }
+  if (!isHeatmap && !(await _h2cLib().catch(() => null))) { setStatus(tr('Image export unavailable, refresh and try again.'), ''); return; }
 
   const go = document.getElementById('saveImgGo');
   const prev = go.textContent;
@@ -387,7 +387,7 @@ async function _doSaveImg() {
     _closeSaveImg();
   } catch (e) {
     console.error('Save image failed', e);
-    setStatus(tr('Could not render image — try again.'), '');
+    setStatus(tr('Could not render image, try again.'), '');
   } finally {
     if (restoreMaps) restoreMaps();
     if (restoreGrids) restoreGrids();

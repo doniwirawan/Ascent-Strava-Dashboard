@@ -15,7 +15,7 @@ function renderManualPlace(a) {
     const rp = a.route_places;
     el.innerHTML = (rp && rp.start_place
       ? '📍 ' + esc(rp.start_place) + (rp.start_kab && rp.start_kab !== rp.start_place ? ' <span class="mp-sub">' + esc([rp.start_kab, rp.country].filter(Boolean).join(', ')) + '</span>' : '') + ' '
-      : '<span class="mp-sub">' + T('No GPS — where was this?') + '</span> ')
+      : '<span class="mp-sub">' + T('No GPS, where was this?') + '</span> ')
       + '<button type="button" class="mp-btn">' + T(rp && rp.start_place ? 'Change' : 'Set location') + '</button>'
       + (msg ? ' <span class="mp-sub">' + esc(msg) + '</span>' : '');
     el.querySelector('.mp-btn').onclick = edit;
@@ -32,7 +32,7 @@ function renderManualPlace(a) {
       if (!inp.value.trim()) return;
       save.disabled = true; save.textContent = T('Looking it up…');
       const found = await setManualPlace(a, inp.value);
-      show(found ? '' : T('Saved, but not found on the map — try adding the city or country.'));
+      show(found ? '' : T('Saved, but not found on the map. Try adding the city or country.'));
     };
     save.onclick = go;
     inp.onkeydown = e => { if (e.key === 'Enter') go(); if (e.key === 'Escape') show(); };

@@ -226,7 +226,7 @@ async function rsGo() {
 
 function rsGpx(i) {
   const o = _rsOpts && _rsOpts[i]; if (!o) return;
-  const name = (o.title || 'Never-ridden loop') + ' — ' + Math.round(o.total / 1000) + ' km';
+  const name = (o.title || 'Never-ridden loop') + '' + Math.round(o.total / 1000) + ' km';
   const gpx = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Ascent" xmlns="http://www.topografix.com/GPX/1/1">\n'
     + '<trk><name>' + name.replace(/[<&>]/g, '') + '</name><trkseg>\n'
     + o.pts.map(p => `<trkpt lat="${p[0]}" lon="${p[1]}"/>`).join('\n') + '\n</trkseg></trk></gpx>\n';

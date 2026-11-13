@@ -77,7 +77,7 @@ function _segIntelMarkup(data, stopped) {
   html += group(tr('Closest to a PR'), closest, s => `<div class="si-row"><span class="si-name">${s.name}</span><span class="si-meta">${s.gap <= 0 ? tr('at your PR') : trf('+{0} behind', _segFmtGap(s.gap))} · ${trf('{0}% chance', '<b>' + s.prob + '</b>')}${_segPrWatts(s)}</span></div>`);
   html += group(tr('Improving fastest'), improving, s => `<div class="si-row"><span class="si-name">${s.name}</span><span class="si-meta" style="color:#22c55e">${trf('▲ {0}% faster', s.improvePct)}</span></div>`);
   html += group(tr('Stagnating'), stagnating, s => `<div class="si-row"><span class="si-name">${s.name}</span><span class="si-meta">${trf('{0} efforts · flat', s.count)}</span></div>`);
-  if (stopped) html += '<div class="tr-basis-note">' + tr('Rate-limited — some segments skipped; reopen later to finish.') + '</div>';
+  if (stopped) html += '<div class="tr-basis-note">' + tr('Rate-limited, some segments skipped; reopen later to finish.') + '</div>';
   html += '<div class="tr-basis-note">' + tr('Next-PR chance is a rough estimate from your recent efforts vs your PR.') + '</div>';
   html += '<button class="tr-ai-btn" style="margin-top:10px" onclick="computeSegmentIntel()">' + tr('Recompute') + '</button>';
   return html;
@@ -91,7 +91,7 @@ function _trSegIntelHTML() {
   try { cached = JSON.parse(localStorage.getItem(SI_KEY) || 'null'); } catch {}
   let inner;
   if (cached && cached.segs && cached.segs.length) inner = _segIntelMarkup(cached, false);
-  else if (owner) inner = `<div class="tr-basis-note">${tr("Analyse your starred segments' effort history — which you're closest to PR-ing, which are improving, and which have stalled.")}</div>
+  else if (owner) inner = `<div class="tr-basis-note">${tr("Analyse your starred segments' effort history, which you're closest to PR-ing, which are improving, and which have stalled.")}</div>
     <button class="tr-ai-btn" style="margin-top:10px" onclick="computeSegmentIntel()">${tr('Analyse my segments')}</button>`;
   else inner = `<div class="tr-basis-note">${tr("Segment intelligence is computed on the owner's device (it fetches per-segment effort history, and Strava's rate limit is shared).")}</div>`;
   return `<div class="card tr-si">
@@ -113,7 +113,7 @@ async function computeSegmentIntel() {
 
   let starred = [];
   try { const st = await api('/segments/starred?per_page=50'); if (Array.isArray(st)) starred = st; }
-  catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) { body.innerHTML = '<div class="tr-basis-note">' + tr('Rate-limited — try again later.') + '</div>'; _segIntelRunning = false; return; } }
+  catch (e) { if (/ 429 /.test(' ' + e.message + ' ')) { body.innerHTML = '<div class="tr-basis-note">' + tr('Rate-limited, try again later.') + '</div>'; _segIntelRunning = false; return; } }
   if (!starred.length) { body.innerHTML = '<div class="tr-basis-note">' + tr('Star some segments on Strava first, then their effort history can be analysed.') + '</div>'; _segIntelRunning = false; return; }
 
   const pool = starred.slice(0, SI_MAX);

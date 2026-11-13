@@ -9,7 +9,7 @@ function showReconnect() {
   const SCOPE    = 'read,activity:read_all,profile:read_all,activity:write,profile:write';
   const REDIRECT = encodeURIComponent(window.location.origin + '/callback');
   const authUrl  = `https://www.strava.com/oauth/authorize?client_id=${CONFIG.clientId}&response_type=code&redirect_uri=${REDIRECT}&approval_prompt=force&scope=${SCOPE}`;
-  setStatus(tr('Session expired') + ' — <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">' + tr('Reconnect with Strava →') + '</a>');
+  setStatus(tr('Session expired') + '<a href="' + authUrl + '" style="color:var(--orange);font-weight:700">' + tr('Reconnect with Strava →') + '</a>');
   const btn = document.getElementById('mainBtn');
   btn.textContent = tr('Reconnect');
   btn.disabled = false;
@@ -48,7 +48,7 @@ async function api(ep, retry = false) {
     headers: { Authorization: 'Bearer ' + CONFIG.accessToken }
   });
   if (r.status === 401 && !retry) { await doRefresh(); return api(ep, true); }
-  if (!r.ok) throw new Error('API ' + r.status + ' — ' + ep);
+  if (!r.ok) throw new Error('API ' + r.status + '' + ep);
   return r.json();
 }
 
@@ -60,7 +60,7 @@ async function apiPut(ep, body, retry = false) {
     body: JSON.stringify(body)
   });
   if (r.status === 401 && !retry) { await doRefresh(); return apiPut(ep, body, true); }
-  if (!r.ok) throw new Error('API ' + r.status + ' — ' + ep);
+  if (!r.ok) throw new Error('API ' + r.status + '' + ep);
   return r.json();
 }
 
@@ -78,7 +78,7 @@ async function loadData(forceRefresh = false) {
       if (local && local.length) {
         acts = local;
         renderAll();
-        setStatus('✓ ' + trf('{0} activities (cached)', acts.length) + ' — <a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">' + tr('Refresh from Strava') + '</a>', 'success');
+        setStatus('✓ ' + trf('{0} activities (cached)', acts.length) + '<a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">' + tr('Refresh from Strava') + '</a>', 'success');
         btn.textContent = tr('Refresh'); btn.disabled = false;
         // Silently refresh athlete profile; ignore token errors against cached data
         try {
@@ -115,7 +115,7 @@ async function loadData(forceRefresh = false) {
         acts = remote;
         renderAll();
         renderGear();
-        setStatus('✓ ' + trf('{0} activities (cached)', acts.length) + ' — <a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">' + tr('Refresh from Strava') + '</a>', 'success');
+        setStatus('✓ ' + trf('{0} activities (cached)', acts.length) + '<a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">' + tr('Refresh from Strava') + '</a>', 'success');
         btn.textContent = tr('Refresh'); btn.disabled = false;
         return;
       }
@@ -220,7 +220,7 @@ function loadDemo() {
     profile_medium:'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=160&h=160&fit=crop&crop=faces',
     profile:'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=320&h=320&fit=crop&crop=faces'});
   renderAll();
-  setStatus(trf('Demo mode — {0} sample activities', acts.length),'success');
+  setStatus(trf('Demo mode, {0} sample activities', acts.length),'success');
   const btn=document.getElementById('mainBtn');
   btn.textContent=tr('Refresh'); btn.disabled=false;
 }

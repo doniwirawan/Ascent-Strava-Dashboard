@@ -433,7 +433,7 @@ async function runGpxFix(){
     catch(e){ lines.push(`<div class="gpx-err">${_gfXmlEsc(f.name)}: ${e.message||e}</div>`); continue; }
     const before=parsed.pts.map(p=>[p.lat,p.lon]);
     const dropped=_gfDropPoints(parsed, opts);
-    if(dropped<0){ lines.push(`<div class="gpx-err">${_gfXmlEsc(f.name)}: trim/privacy would remove the whole track — skipped.</div>`); continue; }
+    if(dropped<0){ lines.push(`<div class="gpx-err">${_gfXmlEsc(f.name)}: trim/privacy would remove the whole track. Skipped.</div>`); continue; }
     const m0=_gfMeasure(parsed.pts);
     const r=_gfFixTrack(parsed.pts,{smooth:opts.smooth, fixSpeed:opts.fixSpeed, stops:opts.stops, ceiling});
     const eleFixed=opts.ele?_gfFixEle(parsed.pts,parsed.nodes):0;
@@ -480,7 +480,7 @@ function runGpxMerge(){
   const out=new XMLSerializer().serializeToString(base);
   const name=parsedAll[0].f.name.replace(/\.gpx$/i,'')+'-merged.gpx';
   _gfDownload(out, name);
-  res.innerHTML=`<div class="gpx-ok">Merged <b>${parsedAll.length}</b> files in start-time order → <b>${name}</b>. Repair options are not applied while merging — re-import the merged file to repair it.</div>`;
+  res.innerHTML=`<div class="gpx-ok">Merged <b>${parsedAll.length}</b> files in start-time order → <b>${name}</b>. Repair options are not applied while merging. Re-import the merged file to repair it.</div>`;
 }
 
 let _gfMapBefore=null, _gfMapAfter=null;
@@ -546,14 +546,14 @@ function renderSpeedAnomalies(){
        <button class="btn gpx-anom-btn2" type="button" onclick="prepareFixedGpx()">Prepare fixed files (selected)</button>
        <button class="btn gpx-anom-btn3" type="button" onclick="prepareAndUpload()">Upload fixed to Strava (selected)</button>
      </div>
-     <div class="gpx-anom-note">${bad.length} activit${bad.length===1?'y':'ies'} with a max speed above 65 km/h — tick and normalize, or tap a row to inspect.</div>
+     <div class="gpx-anom-note">${bad.length} activit${bad.length===1?'y':'ies'} with a max speed above 65 km/h. Tick and normalize, or tap a row to inspect.</div>
      <details class="gpx-swap"><summary>Replace on Strava (delete + re-upload the fixed file)</summary>
        <ol class="gpx-swap-steps">
-         <li><b>Prepare fixed files (selected)</b> — I fetch each track, smooth it, normalize the speed, keep the original timestamps (same date), and stage the fixed files on this page.</li>
+         <li><b>Prepare fixed files (selected)</b>I fetch each track, smooth it, normalize the speed, keep the original timestamps (same date), and stage the fixed files on this page.</li>
          <li>Use the <b>↗</b> link on each row to open it on Strava, then delete it there (the API can't delete for you).</li>
          <li>Back here, hit <b>Upload all to Strava</b> to re-upload every staged file at once.</li>
        </ol>
-       <div class="gpx-swap-warn">⚠ Re-uploading creates new activities — kudos, comments and achievements on the originals are lost. Delete the originals first or you'll get duplicates.</div>
+       <div class="gpx-swap-warn">⚠ Re-uploading creates new activities. Kudos, comments and achievements on the originals are lost. Delete the originals first or you'll get duplicates.</div>
      </details>`
     + bad.map(a=>`<div class="gpx-anom">
         <input type="checkbox" class="anom-cb" value="${a.id}">
@@ -592,7 +592,7 @@ async function normalizeSelected(){
   const ids=[...document.querySelectorAll('#speedAnomalyList .anom-cb:checked')].map(cb=>cb.value);
   if(!ids.length){ _anomMsg='Tick at least one activity to normalize.'; renderSpeedAnomalies(); return; }
   const toStrava = !!(document.getElementById('anomStrava') && document.getElementById('anomStrava').checked);
-  if(toStrava && !confirm(`Add a GPS-glitch note to the Strava description of ${ids.length} activit${ids.length===1?'y':'ies'}?\nThis only edits the description text — the activity, its date, kudos and comments stay untouched.`)) return;
+  if(toStrava && !confirm(`Add a GPS-glitch note to the Strava description of ${ids.length} activit${ids.length===1?'y':'ies'}?\nThis only edits the description text. The activity, its date, kudos and comments stay untouched.`)) return;
   const btn=document.querySelector('.gpx-anom-btn');
   if(btn){ btn.disabled=true; btn.textContent=`Normalizing 0/${ids.length}…`; }
   const map=_loadMaxFix();
@@ -618,7 +618,7 @@ async function normalizeSelected(){
   // refresh dependent, max-speed-driven views
   ['renderStats','renderCycling','renderBestEfforts','renderMilestones'].forEach(fn=>{try{ if(typeof window[fn]==='function') window[fn](); }catch{}});
   _anomMsg=`Normalized ${done} activit${done===1?'y':'ies'}.`
-    + (toStrava?` Annotated ${noted} on Strava${noteFail?` (${noteFail} failed — may need reconnect for write access)`:''}.`:'')
+    + (toStrava?` Annotated ${noted} on Strava${noteFail?` (${noteFail} failed, may need reconnect for write access)`:''}.`:'')
     + (failed?` ${failed} had no usable speed stream.`:'');
   renderSpeedAnomalies();
 }
@@ -710,7 +710,7 @@ async function prepareFixedGpx(){
   _anomMsg=`Staged ${ok} fixed file${ok===1?'':'s'}.`
     +(skip?` ${skip} already staged.`:'')
     +(noTrack?` ${noTrack} had no GPS track.`:'')
-    +(gone?` ${gone} couldn't be fetched — likely already deleted on Strava. Hit Refresh to clear them from this list.`:'')
+    +(gone?` ${gone} couldn't be fetched, likely already deleted on Strava. Hit Refresh to clear them from this list.`:'')
     +(ok?' Delete the originals on Strava, then Upload all.':'');
   renderSpeedAnomalies();
 }
@@ -773,7 +773,7 @@ async function uploadFixedAll(){
       catch(e){ _setUpStatus(i,'error: '+(e.message||e)); fail++; continue; }
       if(actId) f.newId=actId;
       _setUpStatus(i, actId?'uploaded ✓':'processing…'); ok++;
-    }catch(e){ _setUpStatus(i, (e && /40[13]/.test(e.message))?'failed — reconnect Strava':'failed'); fail++; }
+    }catch(e){ _setUpStatus(i, (e && /40[13]/.test(e.message))?'failed, reconnect Strava':'failed'); fail++; }
     await _gfSleep(400);
   }
   if(btn) btn.disabled=false;

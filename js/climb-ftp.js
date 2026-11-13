@@ -177,12 +177,12 @@ function _cpMarkup(agg, opts = {}) {
     html += `<div class="cp-row"><span class="cp-lbl">FTP</span><span class="cp-w">${at(lthr)} W</span><span class="cp-ctx">${trf('at threshold HR ≈ {0} bpm (89% of your {1} max)', lthr, hrMax)}</span></div>`;
     html += `<div class="cp-row"><span class="cp-lbl">${tr('At max HR')}</span><span class="cp-w">${at(hrMax)} W</span><span class="cp-ctx">${tr('≈ power at VO₂max (used for the VO₂max estimate)')}</span></div>`;
   } else {
-    html += `<div class="tr-basis-note">${trf('Only {0} steady climbs with heart rate so far — need {1} for a reliable line.', agg.count, CP_MIN_POINTS)}</div>`;
+    html += `<div class="tr-basis-note">${trf('Only {0} steady climbs with heart rate so far. Need {1} for a reliable line.', agg.count, CP_MIN_POINTS)}</div>`;
   }
   if (agg.top) html += `<div class="cp-row"><span class="cp-lbl">${tr('Hardest climb')}</span><span class="cp-w">${agg.top.w} W</span><span class="cp-ctx"><a href="#" onclick="openActivityModal('${agg.top.id}');return false">${agg.top.name}</a> · 8 min · ${agg.top.grade}% · VAM ${agg.top.vam} m/h · ${agg.top.hr} bpm</span></div>`;
   html += `<div class="tr-basis-note">${opts.progress
     ? trf('Scanning climbs… {0}', opts.progress)
-    : trf('Watts from the altitude of your {0} hilliest rides at {1} kg total — not Strava’s estimated watts.', agg.rides, agg.mass)}</div>`;
+    : trf('Watts from the altitude of your {0} hilliest rides at {1} kg total. Not Strava’s estimated watts.', agg.rides, agg.mass)}</div>`;
   if (opts.note) html += `<div class="tr-basis-note">${opts.note}</div>`;
   if (opts.button) html += `<button class="tr-ai-btn" style="margin-top:10px" onclick="computeClimbPower()">${opts.button}</button>`;
   return html;
@@ -195,10 +195,10 @@ function _trClimbPowerHTML() {
   const owner = (typeof _isHrzOwner === 'function') && _isHrzOwner();
   const agg = cpLoadAgg();
   let inner;
-  if (agg && agg.rides) inner = _cpMarkup(agg, { button: owner ? tr('Rescan climbs') : null, note: agg.partial ? tr('Partial — rate-limited last time; click to resume (done rides are cached).') : '' });
+  if (agg && agg.rides) inner = _cpMarkup(agg, { button: owner ? tr('Rescan climbs') : null, note: agg.partial ? tr('Partial, rate-limited last time; click to resume (done rides are cached).') : '' });
   else if (owner) inner = `<div class="tr-basis-note">${tr('No power meter, so Strava’s watts are guesses. Your climbs give a real number: going uphill, power is mostly lifting your weight, which the altitude data measures. Paired with your heart rate, even easy climbs reveal your threshold.')}</div>
       <button class="tr-ai-btn" style="margin-top:10px" onclick="computeClimbPower()">${tr('Scan my climbs')}</button>`;
-  else inner = `<div class="tr-basis-note">${tr("The power curve is computed on the owner's device — it fetches ride streams, and Strava's rate limit is shared across the app.")}</div>`;
+  else inner = `<div class="tr-basis-note">${tr("The power curve is computed on the owner's device, it fetches ride streams, and Strava's rate limit is shared across the app.")}</div>`;
   return `<div class="card tr-pc">
     <div class="tr-chart-title">${tr('Climbing Power')} <span class="gm-hint">${tr('FTP without a power meter')}</span></div>
     <div id="cpBody">${inner}</div>

@@ -233,7 +233,7 @@ function renderDataInsights() {
     + '<div class="chart-note">' + TF('Outdoor rides of 30 min+ with sleep data from the night before ({0} rides). Each card compares rides after a worse night with rides after a better one. Speed depends on the route, so efficiency (metres per heartbeat) is the fairer number. The factors overlap (short nights usually mean less deep sleep and a late bedtime), so read them together, not as separate causes.', rides.length) + '</div>'
     + (cards.length ? '<div class="di-grid">' + cards.map(c => {
         const headline = c.verdict === 'none'
-          ? TF('No real difference: {0} vs {1} — efficiency {2}%, speed {3}%.', c.lb[0], c.lb[1], sgn(c.dEf || 0, 1), sgn(c.dSpd || 0, 1))
+          ? TF('No real difference: {0} vs {1}. Efficiency {2}%, speed {3}%.', c.lb[0], c.lb[1], sgn(c.dEf || 0, 1), sgn(c.dSpd || 0, 1))
           : TF('After {0} ({1} rides) you rode {2}% {3} efficiently and {4}% {5} than after {6} ({7} rides).',
               c.lb[0], c.bad.length, Math.abs(c.dEf || 0).toFixed(1), T((c.dEf || 0) < 0 ? 'less' : 'more'),
               Math.abs(c.dSpd || 0).toFixed(1), T((c.dSpd || 0) < 0 ? 'slower' : 'faster'), c.lb[1], c.good.length);

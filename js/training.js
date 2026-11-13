@@ -105,12 +105,12 @@ function _trBuildSeries() {
 // Form (TSB) band → label, colour, and a one-line recovery recommendation.
 function _trFormBand(tsb, ramp) {
   let band;
-  if (tsb < -30)      band = { label: tr('High fatigue'), color: '#ef4444', advice: tr('Prioritise recovery — easy spins or a rest day. Your fatigue is well above your fitness right now.') };
+  if (tsb < -30)      band = { label: tr('High fatigue'), color: '#ef4444', advice: tr('Prioritise recovery, easy spins or a rest day. Your fatigue is well above your fitness right now.') };
   else if (tsb < -10) band = { label: tr('Productive'), color: '#fb923c', advice: tr('Productive training load. Keep hard days hard and easy days easy, and bank a recovery day this week.') };
   else if (tsb < 5)   band = { label: tr('Neutral'), color: '#eab308', advice: tr('Balanced form. A good window for a quality session or a longer endurance ride.') };
   else if (tsb < 25)  band = { label: tr('Fresh'), color: '#22c55e', advice: tr('Fresh and race-ready. Strong day for a hard effort, an event, or a PR attempt.') };
-  else                band = { label: tr('Very fresh'), color: '#4da8ff', advice: tr('Very fresh — fitness may start to fade. Time to add some training stimulus.') };
-  if (ramp > 8)       band.advice += trf(' ⚠ Fitness is ramping fast (+{0}/wk) — watch for overreaching.', Math.round(ramp));
+  else                band = { label: tr('Very fresh'), color: '#4da8ff', advice: tr('Very fresh, fitness may start to fade. Time to add some training stimulus.') };
+  if (ramp > 8)       band.advice += trf(' ⚠ Fitness is ramping fast (+{0}/wk), watch for overreaching.', Math.round(ramp));
   else if (ramp < -6) band.advice += trf(' Fitness is drifting down ({0}/wk).', Math.round(ramp));
   return band;
 }
@@ -131,13 +131,13 @@ function _trBasisNote(basis) {
 const _TR_GUIDE = [
   ['Beban / Load (TSS)',
     'A single score for how hard a session was, first from power, else Strava Relative Effort, else heart rate, else duration. ~100 ≈ an hour at threshold.',
-    'Satu skor seberapa berat sebuah sesi — dari power, atau Relative Effort, atau detak jantung, atau durasi. ~100 ≈ satu jam di ambang.'],
+    'Satu skor seberapa berat sebuah sesi. Dari power, atau Relative Effort, atau detak jantung, atau durasi. ~100 ≈ satu jam di ambang.'],
   ['Fitness · CTL',
-    'Chronic Training Load: a 42-day average of your daily load. A proxy for long-term fitness — it rises slowly as you train consistently.',
-    'Chronic Training Load: rata-rata beban harian selama 42 hari. Proksi kebugaran jangka panjang — naik perlahan saat Anda latihan konsisten.'],
+    'Chronic Training Load: a 42-day average of your daily load. A proxy for long-term fitness. It rises slowly as you train consistently.',
+    'Chronic Training Load: rata-rata beban harian selama 42 hari. Proksi kebugaran jangka panjang. Naik perlahan saat Anda latihan konsisten.'],
   ['Fatigue · ATL',
-    'Acute Training Load: a 7-day average of your load. Short-term tiredness — it spikes fast after hard days and fades within about a week.',
-    'Acute Training Load: rata-rata beban 7 hari. Kelelahan jangka pendek — melonjak cepat setelah hari berat dan mereda dalam sekitar seminggu.'],
+    'Acute Training Load: a 7-day average of your load. Short-term tiredness. It spikes fast after hard days and fades within about a week.',
+    'Acute Training Load: rata-rata beban 7 hari. Kelelahan jangka pendek. Melonjak cepat setelah hari berat dan mereda dalam sekitar seminggu.'],
   ['Form · TSB',
     'Training Stress Balance = CTL − ATL. Your freshness. Positive = fresh and race-ready; deeply negative = fatigued and needing recovery.',
     'Training Stress Balance = CTL − ATL. Kesegaran Anda. Positif = segar & siap balapan; sangat negatif = lelah dan butuh pemulihan.'],
@@ -145,23 +145,23 @@ const _TR_GUIDE = [
     'How fast CTL is changing per week. Building fitness is good, but ramping too fast (roughly >8/wk) raises the risk of overreaching.',
     'Seberapa cepat CTL berubah per minggu. Menambah kebugaran itu bagus, tapi naik terlalu cepat (kira-kira >8/mgg) menaikkan risiko overreaching.'],
   ['Performance Management Chart',
-    'The CTL / ATL / TSB lines over time — see fitness build, fatigue spike after hard blocks, and form dip and recover.',
-    'Garis CTL / ATL / TSB dari waktu ke waktu — lihat kebugaran naik, kelelahan melonjak setelah blok berat, dan bentuk turun lalu pulih.'],
+    'The CTL / ATL / TSB lines over time. See fitness build, fatigue spike after hard blocks, and form dip and recover.',
+    'Garis CTL / ATL / TSB dari waktu ke waktu. Lihat kebugaran naik, kelelahan melonjak setelah blok berat, dan bentuk turun lalu pulih.'],
   ['FTP & W/kg',
-    'Functional Threshold Power: the power you could roughly hold for an hour. W/kg divides it by body weight — the key climbing number. Estimated from your best sustained effort or your weight when you have no power meter. VO₂max is estimated Garmin/Firstbeat-style: your power is converted to an oxygen cost (ACSM) and your power-to-heart-rate line is extrapolated to your max HR — an estimate, not Garmin’s exact number.',
-    'Functional Threshold Power: power yang kira-kira bisa Anda tahan selama satu jam. W/kg membaginya dengan berat badan — angka kunci untuk menanjak. Diperkirakan dari upaya terbaik atau berat badan bila tak ada power meter. VO₂max diperkirakan ala Garmin/Firstbeat: power Anda dikonversi ke kebutuhan oksigen (ACSM) dan garis power–detak jantung diekstrapolasi ke HR maksimum Anda — sebuah perkiraan, bukan angka persis Garmin.'],
+    'Functional Threshold Power: the power you could roughly hold for an hour. W/kg divides it by body weight. The key climbing number. Estimated from your best sustained effort or your weight when you have no power meter. VO₂max is estimated Garmin/Firstbeat-style: your power is converted to an oxygen cost (ACSM) and your power-to-heart-rate line is extrapolated to your max HR. An estimate, not Garmin’s exact number.',
+    'Functional Threshold Power: power yang kira-kira bisa Anda tahan selama satu jam. W/kg membaginya dengan berat badan. Angka kunci untuk menanjak. Diperkirakan dari upaya terbaik atau berat badan bila tak ada power meter. VO₂max diperkirakan ala Garmin/Firstbeat: power Anda dikonversi ke kebutuhan oksigen (ACSM) dan garis power–detak jantung diekstrapolasi ke HR maksimum Anda. Sebuah perkiraan, bukan angka persis Garmin.'],
   ['Recovery & Next Ride',
     'An estimate of when you have recovered enough for a hard effort, based on the load of your last session (and short-circuited when your form is already fresh).',
     'Perkiraan kapan Anda sudah cukup pulih untuk upaya berat, berdasar beban sesi terakhir (dan langsung siap bila bentuk Anda sudah segar).'],
   ['Consistency',
-    'How regularly you ride versus a 3-rides-per-week target over the recent weeks — regularity matters more than the odd big week.',
-    'Seberapa teratur Anda gowes dibanding target 3 gowes/minggu selama beberapa minggu terakhir — keteraturan lebih penting dari sesekali minggu besar.'],
+    'How regularly you ride versus a 3-rides-per-week target over the recent weeks. Regularity matters more than the odd big week.',
+    'Seberapa teratur Anda gowes dibanding target 3 gowes/minggu selama beberapa minggu terakhir. Keteraturan lebih penting dari sesekali minggu besar.'],
   ['HR Decoupling',
-    'Aerobic drift. Splits a long ride in half and compares efficiency (output ÷ heart rate) between the halves. Under 5% is well-coupled; over 10% means HR climbed for the same effort — a sign aerobic endurance, fuelling or heat limited the back half.',
-    'Aerobic drift. Membagi gowes panjang jadi dua dan membandingkan efisiensi (output ÷ detak jantung) antar paruh. Di bawah 5% tergandeng baik; di atas 10% berarti HR naik untuk upaya yang sama — tanda ketahanan aerobik, nutrisi, atau panas membatasi paruh akhir.'],
+    'Aerobic drift. Splits a long ride in half and compares efficiency (output ÷ heart rate) between the halves. Under 5% is well-coupled; over 10% means HR climbed for the same effort. A sign aerobic endurance, fuelling or heat limited the back half.',
+    'Aerobic drift. Membagi gowes panjang jadi dua dan membandingkan efisiensi (output ÷ detak jantung) antar paruh. Di bawah 5% tergandeng baik; di atas 10% berarti HR naik untuk upaya yang sama. Tanda ketahanan aerobik, nutrisi, atau panas membatasi paruh akhir.'],
   ['VAM',
-    'Velocità Ascensionale Media — your average vertical climbing speed in metres per hour. Higher = stronger on climbs; elite climbs hit ~1,600+ m/h.',
-    'Velocità Ascensionale Media — kecepatan mendaki vertikal rata-rata dalam meter per jam. Makin tinggi = makin kuat menanjak; tanjakan elite ~1.600+ m/jam.'],
+    'Velocità Ascensionale Media. Your average vertical climbing speed in metres per hour. Higher = stronger on climbs; elite climbs hit ~1,600+ m/h.',
+    'Velocità Ascensionale Media. Kecepatan mendaki vertikal rata-rata dalam meter per jam. Makin tinggi = makin kuat menanjak; tanjakan elite ~1.600+ m/jam.'],
   ['Fitness Trend (Zone 2)',
     'Your speed/power on easy aerobic (Zone-2) rides over time. Going faster at the same easy heart rate is a real sign of improving aerobic fitness.',
     'Kecepatan/power Anda pada gowes aerobik ringan (Zona 2) dari waktu ke waktu. Makin cepat pada detak jantung ringan yang sama = tanda nyata kebugaran aerobik membaik.'],
@@ -169,17 +169,17 @@ const _TR_GUIDE = [
     'Scores your latest ride 0–100 by percentile against your own history across endurance, climbing, efficiency and effort.',
     'Menilai gowes terbaru Anda 0–100 berdasar persentil terhadap riwayat Anda sendiri: ketahanan, menanjak, efisiensi, dan upaya.'],
   ['Time Lost Analysis',
-    'Where your moving time actually went — climbing, descending, flat pedalling, coasting and stopped — so a "slow" average makes sense.',
-    'Ke mana waktu bergerak Anda benar-benar pergi — menanjak, menurun, kayuh datar, meluncur, dan berhenti — agar rata-rata yang "lambat" jadi masuk akal.'],
+    'Where your moving time actually went (climbing, descending, flat pedalling, coasting and stopped) so a "slow" average makes sense.',
+    'Ke mana waktu bergerak Anda benar-benar pergi (menanjak, menurun, kayuh datar, meluncur, dan berhenti) agar rata-rata yang "lambat" jadi masuk akal.'],
   ['Wind Analysis',
-    'How much of a ride fought a headwind, tailwind or crosswind, plus the net wind along your direction of travel — a slow ride into wind was often a strong one.',
-    'Seberapa banyak gowes melawan angin depan, belakang, atau samping, plus angin neto sepanjang arah perjalanan — gowes lambat melawan angin sering justru kuat.'],
+    'How much of a ride fought a headwind, tailwind or crosswind, plus the net wind along your direction of travel. A slow ride into wind was often a strong one.',
+    'Seberapa banyak gowes melawan angin depan, belakang, atau samping, plus angin neto sepanjang arah perjalanan. Gowes lambat melawan angin sering justru kuat.'],
   ['Power Curve',
-    'Your best average power at each duration (5s to 60min), aggregated across rides — the shape of your sprint-to-endurance strengths. Needs power data.',
-    'Power rata-rata terbaik Anda di tiap durasi (5 detik sampai 60 menit), digabung dari semua gowes — bentuk kekuatan dari sprint hingga ketahanan. Butuh data power.'],
+    'Your best average power at each duration (5s to 60min), aggregated across rides. The shape of your sprint-to-endurance strengths. Needs power data.',
+    'Power rata-rata terbaik Anda di tiap durasi (5 detik sampai 60 menit), digabung dari semua gowes. Bentuk kekuatan dari sprint hingga ketahanan. Butuh data power.'],
   ['Segment Intelligence',
-    'Analyses your starred segments’ effort history — which you’re closest to a PR on, which are improving fastest, and which have stalled.',
-    'Menganalisis riwayat upaya segmen berbintang Anda — mana yang paling dekat ke PR, mana yang membaik tercepat, dan mana yang mandek.'],
+    'Analyses your starred segments’ effort history. Which you’re closest to a PR on, which are improving fastest, and which have stalled.',
+    'Menganalisis riwayat upaya segmen berbintang Anda. Mana yang paling dekat ke PR, mana yang membaik tercepat, dan mana yang mandek.'],
   ['Relative Effort / Suffer Score',
     'Strava’s measure of how hard a session was, from the time you spent in each heart-rate zone. It feeds the load model when you have no power.',
     'Ukuran Strava tentang seberapa berat sesi, dari waktu di tiap zona detak jantung. Ini memberi masukan ke model beban saat Anda tak punya power.'],
@@ -208,11 +208,11 @@ function _trIntroHTML(d) {
   } else if (hasPower) {
     basis = id ? 'Beban latihan diukur dari <b>data power</b> Anda.' : 'Training load is measured from your <b>power data</b>.';
   } else if (hasHr) {
-    basis = id ? 'Beban latihan diperkirakan dari <b>Relative Effort & detak jantung</b> — tak perlu power meter.'
-               : 'Training load is estimated from <b>Relative Effort &amp; heart rate</b> — no power meter needed.';
+    basis = id ? 'Beban latihan diperkirakan dari <b>Relative Effort & detak jantung</b>tak perlu power meter.'
+               : 'Training load is estimated from <b>Relative Effort &amp; heart rate</b>no power meter needed.';
   } else {
-    basis = id ? 'Beban latihan diperkirakan dari <b>durasi</b> — pakai monitor detak jantung untuk angka yang lebih tajam.'
-               : 'Training load is estimated from <b>duration</b> — wear a heart-rate monitor for sharper load.';
+    basis = id ? 'Beban latihan diperkirakan dari <b>durasi</b>pakai monitor detak jantung untuk angka yang lebih tajam.'
+               : 'Training load is estimated from <b>duration</b>wear a heart-rate monitor for sharper load.';
   }
   return `<div class="card tr-intro">
     <div class="tr-intro-basis">${basis}</div>
@@ -254,7 +254,7 @@ function _trRecoveryCardHTML(d) {
   let recLine, recColor;
   if (recovered) {
     recColor = '#22c55e';
-    recLine = id ? 'Sudah pulih — siap gowes keras sekarang. 💪' : "Recovered — you're good for a hard ride now. 💪";
+    recLine = id ? 'Sudah pulih, siap gowes keras sekarang. 💪' : "Recovered, you're good for a hard ride now. 💪";
   } else {
     recColor = '#fb923c';
     const when = new Date(s.recoveredAt).toLocaleString(id ? 'id-ID' : 'en-US',
@@ -367,7 +367,7 @@ function _trConsistencyHTML() {
 
   return `
     <div class="card tr-cons">
-      <div class="tr-chart-title">${trf('Consistency — last {0} {1}', c.WIN, tr(c.WIN === 1 ? 'week' : 'weeks'))}</div>
+      <div class="tr-chart-title">${trf('Consistency, last {0} {1}', c.WIN, tr(c.WIN === 1 ? 'week' : 'weeks'))}</div>
       <div class="tr-cons-grid">
         <div class="tr-cons-score">
           <div class="tr-cons-pct" style="color:${col}">${c.consistency}<span>%</span></div>
@@ -456,7 +456,7 @@ function _trFtpCardHTML(ftpEst) {
       ? tr('From your climbs: watts from altitude & weight, read at your threshold heart rate.')
     : ftpEst.basis === 'power'
       ? tr('Estimated from your best sustained power (≈20-min effort × 0.95).')
-      : tr('Estimated from body weight (~2.5 W/kg baseline) — add power data for a sharper number.');
+      : tr('Estimated from body weight (~2.5 W/kg baseline), add power data for a sharper number.');
   const name = [ath.firstname, ath.lastname].filter(Boolean).join(' ');
   const vo2 = (typeof estimateVo2max === 'function') ? estimateVo2max() : null;
 
@@ -549,7 +549,7 @@ function _trRunPredictHTML() {
       <thead><tr><th></th>${_TR_RACES.map(([n]) => `<th>${tr(n)}</th>`).join('')}</tr></thead>
       <tbody>${rows.join('')}</tbody>
     </table></div>
-    <div class="tr-basis-note">${tr('“From your runs” is what your best logged run supports today. “Potential” is the ceiling your aerobic engine allows — reaching it takes running training (legs, economy), and Half/Marathon also need long-run endurance. A 5K time trial updates the first row best.')}</div>
+    <div class="tr-basis-note">${tr('“From your runs” is what your best logged run supports today. “Potential” is the ceiling your aerobic engine allows. Reaching it takes running training (legs, economy), and Half/Marathon also need long-run endurance. A 5K time trial updates the first row best.')}</div>
   </div>`;
 }
 
@@ -718,9 +718,9 @@ function _trTrendsHTML() {
         ${tile(Math.round(cl.mPerHour), 'm/h', tr('Climb rate'), tr('elevation per moving hour'))}
         ${tile(cl.avgGrad.toFixed(1), '%', tr('Avg gradient'), tr('net climb over distance'))}
         ${tile(Math.round(cl.elevPerKm), 'm/' + distUnit(), tr('Elevation density'), trf('climb per {0}', distUnit()))}
-        ${cl.bestVam ? tile(Math.round(cl.bestVam.vam), 'VAM', tr('Best ride'), (cl.bestVam.a.name || 'Ride')) : tile('—', '', tr('Best VAM'), tr('no sustained climbs'))}
+        ${cl.bestVam ? tile(Math.round(cl.bestVam.vam), 'VAM', tr('Best ride'), (cl.bestVam.a.name || 'Ride')) : tile('–', '', tr('Best VAM'), tr('no sustained climbs'))}
       </div>
-      <div class="tr-basis-note">${tr('Ride-level estimate — per-climb VAM from GPS streams is a future upgrade.')}</div>
+      <div class="tr-basis-note">${tr('Ride-level estimate, per-climb VAM from GPS streams is a future upgrade.')}</div>
     </div>`;
   }
 
@@ -731,13 +731,13 @@ function _trTrendsHTML() {
   if (ft) {
     const rows = ft.rows.map(r => `<tr>
       <td>${_trMonthLabel(r.month)}</td><td>${r.n}</td>
-      <td>${r.w != null ? r.w + ' W' : '—'}</td><td>${r.kmh.toFixed(1)} ${speedUnit()}</td>
+      <td>${r.w != null ? r.w + ' W' : '–'}</td><td>${r.kmh.toFixed(1)} ${speedUnit()}</td>
     </tr>`).join('');
     const trend = ft.spdDelta > 0 ? `<span style="color:#22c55e">▲ +${ft.spdDelta} ${speedUnit()}</span> ${tr('at the same aerobic effort')}`
       : ft.spdDelta < 0 ? `<span style="color:#ef4444">▼ ${ft.spdDelta} ${speedUnit()}</span> ${tr('at the same aerobic effort')}`
       : tr('holding steady at the same aerobic effort');
     html += `<div class="card tr-trend">
-      <div class="tr-chart-title">${trf('Fitness Trend — last {0} Zone-2 rides', ft.count)}</div>
+      <div class="tr-chart-title">${trf('Fitness Trend, last {0} Zone-2 rides', ft.count)}</div>
       <div class="tr-trend-sub">${trf('Speed on easy aerobic rides {0}. Rising numbers at Zone 2 signal real fitness gains.', trend)}</div>
       <div class="gm-table-wrap"><table class="gm-table"><thead><tr><th>${tr('Month')}</th><th>${tr('Rides')}</th><th>${tr('Avg power')}</th><th>${tr('Avg speed')}</th></tr></thead><tbody>${rows}</tbody></table></div>
     </div>`;
@@ -749,9 +749,9 @@ function _trTrendsHTML() {
   if (se) {
     const tile = (val, lbl, color) => `<div class="tr-seas-tile"><div class="tr-seas-val" style="color:${color || 'var(--text)'}">${val}</div><div class="tr-seas-lbl">${lbl}</div></div>`;
     const ytdCol = se.ytdPct == null ? 'var(--text)' : se.ytdPct >= 0 ? '#22c55e' : '#ef4444';
-    const ytdVal = se.ytdPct == null ? '—' : (se.ytdPct >= 0 ? '+' : '') + se.ytdPct + '%';
+    const ytdVal = se.ytdPct == null ? '–' : (se.ytdPct >= 0 ? '+' : '') + se.ytdPct + '%';
     const spdCol = se.spdDelta == null ? 'var(--text)' : se.spdDelta >= 0 ? '#22c55e' : '#ef4444';
-    const spdVal = se.spdDelta == null ? '—' : (se.spdDelta >= 0 ? '+' : '') + se.spdDelta + ' ' + speedUnit();
+    const spdVal = se.spdDelta == null ? '–' : (se.spdDelta >= 0 ? '+' : '') + se.spdDelta + ' ' + speedUnit();
     html += `<div class="card tr-seas">
       <div class="tr-chart-title">${tr('Seasonal Insights')}</div>
       <div class="tr-seas-grid">
@@ -788,7 +788,7 @@ function _trTrendsHTML() {
       <span class="tr-rq-num">${v.toFixed(1)}</span>
     </div>`;
     html += `<div class="card tr-rq">
-      <div class="tr-chart-title">${tr('Ride Quality Score — latest ride')}</div>
+      <div class="tr-chart-title">${tr('Ride Quality Score, latest ride')}</div>
       <div class="tr-rq-grid">
         <div class="tr-rq-overall">
           <div class="tr-rq-big" style="color:${col}">${rq.overall}<span>/100</span></div>
@@ -818,7 +818,7 @@ function _trTrendsHTML() {
     const simName = `<b>${si.cur.name || 'Ride'}</b>`;
     html += `<div class="card tr-sim">
       <div class="tr-chart-title">${tr('Similar Ride Comparison')}</div>
-      <div class="tr-sim-head">${trf('Your latest ride — {0} · {1}, {2} — vs {3} similar past {4}:', simName, fmtD(si.cur.distance), fmtElev(si.cur.total_elevation_gain || 0), si.n, tr(si.n === 1 ? 'ride' : 'rides'))}</div>
+      <div class="tr-sim-head">${trf('Your latest ride ({0} · {1}, {2}) vs {3} similar past {4}:', simName, fmtD(si.cur.distance), fmtElev(si.cur.total_elevation_gain || 0), si.n, tr(si.n === 1 ? 'ride' : 'rides'))}</div>
       <div class="tr-sim-chips">${chips}</div>
     </div>`;
   }
@@ -980,7 +980,7 @@ async function trainingAiRec() {
   const replyLang = window.LANG === 'id' ? 'Reply in Indonesian (Bahasa Indonesia)' : 'Reply in English';
   const messages = [
     { role: 'system', content:
-      'You are a concise endurance-cycling coach. Using ONLY the training-load numbers provided (TrainingPeaks model: CTL=fitness, ATL=fatigue, TSB=form/freshness, ramp=weekly CTL change), give a short, specific recovery-and-training recommendation for the next 3–5 days. The athlete already sees these numbers on screen, so do not restate or explain them — go straight to the day-by-day plan. Note overreaching risk if ramp is high or TSB very negative. Never invent data. ' + replyLang + ', short markdown, under 120 words.' },
+      'You are a concise endurance-cycling coach. Using ONLY the training-load numbers provided (TrainingPeaks model: CTL=fitness, ATL=fatigue, TSB=form/freshness, ramp=weekly CTL change), give a short, specific recovery-and-training recommendation for the next 3–5 days. The athlete already sees these numbers on screen, so do not restate or explain them. Go straight to the day-by-day plan. Note overreaching risk if ramp is high or TSB very negative. Never invent data. ' + replyLang + ', short markdown, under 120 words.' },
     { role: 'user', content: 'My current training load:\n' + JSON.stringify(payload, null, 2) },
   ];
   try {

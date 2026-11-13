@@ -122,8 +122,8 @@ function _segLegendBodyHTML(){
       `<div class="si-row">${link(r)}<span class="si-meta">${who(r)} ${r.theirs} vs you ${r.yours} · <b>+${r.gap}</b> effort${r.gap===1?'':'s'}</span></div>`).join('')}</div>`;
     if(uncounted.length) html+=`<div class="si-group"><div class="si-title">Ahead, but not counted · ${uncounted.length}</div>${uncounted.slice(0,10).map(r=>
       `<div class="si-row">${link(r)}<span class="si-meta">${who(r)} ${r.theirs} vs you ${r.yours}</span></div>`).join('')}
-      <div class="tr-basis-note">You have more efforts here than the Local Legend, so Strava isn't counting some of yours — usually activities set to "Only you" or hidden from leaderboards, or flagged efforts. Making those activities visible is what would win these, not another ride.</div></div>`;
-    html+=`<div class="tr-basis-note">${recs.length} of ${cand.length} segments ridden in the last ${LL_DAYS} days checked. "+N" = efforts in the next ${LL_DAYS} days to pass the current legend, if their count holds. "A → B in 30d" = your count once efforts older than ${LL_DAYS} days drop off, if you don't ride it again — Strava doesn't share the runner-up's count, so the lowest B is the easiest crown to lose.</div>`;
+      <div class="tr-basis-note">You have more efforts here than the Local Legend, so Strava isn't counting some of yours, usually activities set to "Only you" or hidden from leaderboards, or flagged efforts. Making those activities visible is what would win these, not another ride.</div></div>`;
+    html+=`<div class="tr-basis-note">${recs.length} of ${cand.length} segments ridden in the last ${LL_DAYS} days checked. "+N" = efforts in the next ${LL_DAYS} days to pass the current legend, if their count holds. "A → B in 30d" = your count once efforts older than ${LL_DAYS} days drop off, if you don't ride it again: Strava doesn't share the runner-up's count, so the lowest B is the easiest crown to lose.</div>`;
   }
   if(owner && due) html+=`<button class="seg-scan" id="segLegendBtn" style="margin-top:10px">${ic('crown')} ${recs.length?`Check ${Math.min(due,LL_MAX)} more`:'Check Local Legends'}</button>`;
   return html;
@@ -156,7 +156,7 @@ async function checkLocalLegends(btn){
   }
   _llSave();
   _llRunning=false;
-  if(limited) setStatus(`Checked ${n} segments — Strava's rate limit kicked in, try the rest in 15 minutes.`);
+  if(limited) setStatus(`Checked ${n} segments: Strava's rate limit kicked in, try the rest in 15 minutes.`);
   // re-render from cache (no API) so the badges and filter chip pick it up
   if(typeof renderSegments==='function') renderSegments();
 }

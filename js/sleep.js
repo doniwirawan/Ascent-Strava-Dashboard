@@ -281,10 +281,10 @@ function _slpRisk(real, all, sig, allDays) {
       score: midSD == null ? null : band(midSD, 2, 0.5),
       read: midSD == null ? tr('Not enough bedtime and wake-time data to score.')
             : trf('Your sleep midpoint sits around {0} and swings ±{1} minutes night to night.', _slpClock(midMu), Math.round(midSD * 60)),
-      ev: tr('Irregular sleep timing predicts cardiometabolic risk and mortality about as strongly as short duration does, and independently of it — a steady schedule counts on its own.') },
+      ev: tr('Irregular sleep timing predicts cardiometabolic risk and mortality about as strongly as short duration does, and independently of it. A steady schedule counts on its own.') },
     { k: 'efficiency', w: 0.20, lbl: tr('How solid the night is'),
       score: (all.eff == null || isNaN(all.eff)) ? null : band(all.eff, 70, 90),
-      read: trf('{0}% efficiency — {1} of every night is spent awake in bed.', all.eff.toFixed(1), _slpHM(all.wake)),
+      read: trf('{0}% efficiency, {1} of every night is spent awake in bed.', all.eff.toFixed(1), _slpHM(all.wake)),
       ev: tr('Fragmented, low-efficiency sleep is associated with higher blood pressure and poorer glucose control, separately from how many hours you log.') },
     { k: 'stages', w: 0.15, lbl: tr('How the stages divide up'),
       score: clamp(100 - 4 * (Math.abs(deepPct - 20) + Math.abs(remPct - 20)), 0, 100),
@@ -303,7 +303,7 @@ function _slpRisk(real, all, sig, allDays) {
   /* Named flags, each tied to a number that appears elsewhere on this page. */
   const flags = [];
   if (shortPct >= 25) flags.push({ tone: 'warn', t: trf('{0}% of your nights are under 6h', Math.round(shortPct)),
-    b: tr('This is the pattern with the most consistent evidence behind it. Short sleep as a habit — not the occasional bad night — is what the cardiovascular and metabolic risk associations are built on.') });
+    b: tr('This is the pattern with the most consistent evidence behind it. Short sleep as a habit (not the occasional bad night) is what the cardiovascular and metabolic risk associations are built on.') });
   else if (shortPct >= 12) flags.push({ tone: 'info', t: trf('{0}% of your nights are under 6h', Math.round(shortPct)),
     b: tr('Not a habit, but not rare either. These nights cluster into runs, and it is the runs that accumulate.') });
   else flags.push({ tone: 'good', t: trf('Only {0}% of your nights drop under 6h', Math.round(shortPct)),
@@ -315,7 +315,7 @@ function _slpRisk(real, all, sig, allDays) {
     b: tr('A consistent midpoint is protective on its own, and it is the cheapest of these four to hold on to.') });
 
   if (all.eff >= 88) flags.push({ tone: 'good', t: trf('Efficiency sits at {0}%', all.eff.toFixed(1)),
-    b: tr('Above the 85% mark usually treated as healthy. When you are asleep you stay asleep — your weak spot is how long you are in bed, not how well you use it.') });
+    b: tr('Above the 85% mark usually treated as healthy. When you are asleep you stay asleep. Your weak spot is how long you are in bed, not how well you use it.') });
   else flags.push({ tone: 'info', t: trf('Efficiency sits at {0}%', all.eff.toFixed(1)),
     b: trf('You lose about {0} a night to lying awake. Below roughly 85% is where fragmentation starts being associated with higher blood pressure.', _slpHM(all.wake)) });
 
@@ -577,9 +577,9 @@ function _slpPatterns(allDays, train) {
 
 function _slpPatternsHTML(P) {
   if (!P) return '';
-  const T = tr, R = v => v == null ? '—' : Math.round(v.v);
-  const clock = v => v == null ? '—' : _slpClock(v.v);
-  const cell = (v, f) => '<td class="slp-num">' + (v == null ? '—' : f(v)) + '</td>';
+  const T = tr, R = v => v == null ? '–' : Math.round(v.v);
+  const clock = v => v == null ? '–' : _slpClock(v.v);
+  const cell = (v, f) => '<td class="slp-num">' + (v == null ? '–' : f(v)) + '</td>';
   const clearTxt = c => c ? T('a clear difference') : T('a slight difference, could be chance');
 
   const say = f => {
@@ -591,18 +591,18 @@ function _slpPatternsHTML(P) {
       time: 'When you train barely moves your stress: {0} on morning-training days, {1} on afternoon or evening ones.',
     }[grp], A, B) + '</li>';
     const key = {
-      sleep: { stress: 'After a night under 6 h your stress that day averages {0}, against {1} after 7 h or more — {2}.',
-               hrv: 'After a night under 6 h your HRV reads {0} ms, against {1} ms after 7 h or more — {2}.',
-               rhr: 'After a night under 6 h your resting heart rate is {0} bpm, against {1} bpm after 7 h or more — {2}.',
-               steps: 'After a night under 6 h you walk {0} steps, against {1} after 7 h or more — {2}. Short nights tend to come with busy days.' },
-      time:  { stress: 'On days you train in the morning your stress averages {0}, against {1} when you train in the afternoon or evening — {2}.',
-               stressRest: 'Morning-training days run at stress {0}, against {1} on rest days — {2}.',
-               bed: 'After an afternoon or evening session you go to bed around {0}, against {1} after a morning one — {2}.',
-               asleep: 'You sleep {0} after an afternoon or evening session, against {1} after a morning one — {2}.',
-               hrvNext: 'The morning after a morning session your HRV reads {0} ms, against {1} ms after an evening one — {2}.' },
-      bed:   { stress: 'After going to bed past 23:30 your stress the next day averages {0}, against {1} after an earlier night — {2}.',
-               hrv: 'After a bedtime past 23:30 your HRV reads {0} ms, against {1} ms after an earlier night — {2}.',
-               asleep: 'Going to bed past 23:30 gets you {0} of sleep, against {1} on earlier nights — {2}.' },
+      sleep: { stress: 'After a night under 6 h your stress that day averages {0}, against {1} after 7 h or more, {2}.',
+               hrv: 'After a night under 6 h your HRV reads {0} ms, against {1} ms after 7 h or more, {2}.',
+               rhr: 'After a night under 6 h your resting heart rate is {0} bpm, against {1} bpm after 7 h or more, {2}.',
+               steps: 'After a night under 6 h you walk {0} steps, against {1} after 7 h or more, {2}. Short nights tend to come with busy days.' },
+      time:  { stress: 'On days you train in the morning your stress averages {0}, against {1} when you train in the afternoon or evening, {2}.',
+               stressRest: 'Morning-training days run at stress {0}, against {1} on rest days, {2}.',
+               bed: 'After an afternoon or evening session you go to bed around {0}, against {1} after a morning one, {2}.',
+               asleep: 'You sleep {0} after an afternoon or evening session, against {1} after a morning one, {2}.',
+               hrvNext: 'The morning after a morning session your HRV reads {0} ms, against {1} ms after an evening one, {2}.' },
+      bed:   { stress: 'After going to bed past 23:30 your stress the next day averages {0}, against {1} after an earlier night, {2}.',
+               hrv: 'After a bedtime past 23:30 your HRV reads {0} ms, against {1} ms after an earlier night, {2}.',
+               asleep: 'Going to bed past 23:30 gets you {0} of sleep, against {1} on earlier nights, {2}.' },
     }[grp][k];
     return '<li>' + trf(key, A, B, clearTxt(f.clear)) + '</li>';
   };
@@ -612,9 +612,9 @@ function _slpPatternsHTML(P) {
   return `
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${T('Patterns in your body')}</div>
-      <div class="slp-chart-sub">${T('How last night’s sleep, the time you train and your bedtime show up in stress, HRV and resting heart rate — joining the watch with Strava')}</div>
+      <div class="slp-chart-sub">${T('How last night’s sleep, the time you train and your bedtime show up in stress, HRV and resting heart rate. Joining the watch with Strava')}</div>
       ${P.findings.length ? '<ul class="slp-findings">' + P.findings.map(say).join('') + '</ul>'
-        : '<div class="slp-note">' + T('No difference big enough to call out yet — more nights will sharpen this.') + '</div>'}
+        : '<div class="slp-note">' + T('No difference big enough to call out yet. More nights will sharpen this.') + '</div>'}
 
       ${P.sleepRows.length ? `<div class="slp-key-h" style="margin-top:14px">${T('Last night’s sleep → that day')}</div>` + tbl(
         [T('Slept'), T('Stress'), 'HRV', T('Resting HR'), T('Steps')],
@@ -1178,7 +1178,7 @@ function _slpRecipeHTML(R) {
   return `
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${trf('Your {0} best nights against your {0} worst', R.tierSize)}</div>
-      <div class="slp-chart-sub">${tr('Same data, sorted by how long you slept — what separates the two ends')}</div>
+      <div class="slp-chart-sub">${tr('Same data, sorted by how long you slept. What separates the two ends')}</div>
       <table class="slp-table">
         <thead><tr><th></th><th>${tr('Best nights')}</th><th>${tr('Worst nights')}</th></tr></thead>
         <tbody>
@@ -1201,10 +1201,10 @@ function _slpRecipeHTML(R) {
         const head = trf('Your best nights start at {0} and end at {1}; your worst start at {2} and end at {3}.',
           _slpClock(b.bed), _slpClock(b.up), _slpClock(w.bed), _slpClock(w.up));
         const tail = lead === 'bed'
-          ? trf('The bedtime moves {0} between the two groups while the wake time barely shifts — the morning is fixed for you, so the whole difference is decided the night before.', _slpHM(bedGap))
+          ? trf('The bedtime moves {0} between the two groups while the wake time barely shifts. The morning is fixed for you, so the whole difference is decided the night before.', _slpHM(bedGap))
           : lead === 'up'
           ? trf('The wake time moves {0} while the bedtime barely shifts, so what separates a good night from a bad one is whether you got to stay in bed, not when you turned in.', _slpHM(upGap))
-          : trf('Both ends move, and by almost the same amount — {0} earlier to bed and {1} later up. A good night is not one thing going right, it is an early bedtime and an unhurried morning arriving together, which is why they cluster on the days with nothing scheduled.', _slpHM(bedGap), _slpHM(upGap));
+          : trf('Both ends move, and by almost the same amount, {0} earlier to bed and {1} later up. A good night is not one thing going right, it is an early bedtime and an unhurried morning arriving together, which is why they cluster on the days with nothing scheduled.', _slpHM(bedGap), _slpHM(upGap));
         return head + ' ' + tail;
       })()}</div>
     </div>`;
@@ -1222,7 +1222,7 @@ function _slpMonthHTML(R) {
       <td class="slp-num">${_slpHM(m.asleep)}</td>
       <td class="slp-num">${Math.round(m.deep)}m</td>
       <td class="slp-num">${Math.round(m.rem)}m</td>
-      <td class="slp-num">${isNaN(m.eff) ? '—' : m.eff.toFixed(1) + '%'}</td>
+      <td class="slp-num">${isNaN(m.eff) ? '–' : m.eff.toFixed(1) + '%'}</td>
       <td class="slp-num">${Math.round(100 * m.under6 / m.nights)}%</td>
       <td class="slp-num">${_slpHM(m.best.asleep)}<span class="slp-cell-sub">${_slpDt(m.best.date)}</span></td>
     </tr>`;
@@ -1239,7 +1239,7 @@ function _slpMonthHTML(R) {
         </table>
       </div>
       <div class="slp-chart-wrap" style="margin-top:14px"><canvas id="slpMonthChart"></canvas></div>
-      ${R.bestMonth && R.worstMonth ? `<div class="slp-note">${trf('Your best full month was {0} at {1} a night; your worst was {2} at {3}. That is a swing of {4} a night between two months of your own life — bigger than the gap between your training days and your rest days.',
+      ${R.bestMonth && R.worstMonth ? `<div class="slp-note">${trf('Your best full month was {0} at {1} a night; your worst was {2} at {3}. That is a swing of {4} a night between two months of your own life. Bigger than the gap between your training days and your rest days.',
         R.bestMonth.month, _slpHM(R.bestMonth.asleep), R.worstMonth.month, _slpHM(R.worstMonth.asleep),
         _slpHM(R.bestMonth.asleep - R.worstMonth.asleep))}</div>` : ''}
     </div>`;
@@ -1277,7 +1277,7 @@ function _slpRiskHTML(K) {
       <div class="slp-risk-list">${K.comp.filter(c => c.score != null).map(bar).join('')}</div>
       <div class="slp-flags">${K.flags.map(flag).join('')}</div>
 
-      <div class="slp-disclaimer">${tr('These are population-level associations from sleep research, applied to your own tracked numbers — not a diagnosis, a screening result, or medical advice. A wrist tracker estimates sleep stages rather than measuring them. If something here worries you, particularly the blood-oxygen figures, take it to a doctor rather than to a dashboard.')}</div>
+      <div class="slp-disclaimer">${tr('These are population-level associations from sleep research, applied to your own tracked numbers. Not a diagnosis, a screening result, or medical advice. A wrist tracker estimates sleep stages rather than measuring them. If something here worries you, particularly the blood-oxygen figures, take it to a doctor rather than to a dashboard.')}</div>
     </div>`;
 }
 
@@ -1304,7 +1304,7 @@ function _slpYearHealthHTML(Y) {
   return `
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${trf('Your healthiest year was {0}', Y.winner.year)}</div>
-      <div class="slp-chart-sub">${tr('Each measure normalised across your own years, then weighted. 100 means your best year on that measure — this ranks your years against each other, not against anybody else.')}</div>
+      <div class="slp-chart-sub">${tr('Each measure normalised across your own years, then weighted. 100 means your best year on that measure. This ranks your years against each other, not against anybody else.')}</div>
       <table class="slp-table slp-year-table">
         <thead><tr><th></th>${head}</tr></thead>
         <tbody>${body}${scoreRow}</tbody>
@@ -1325,7 +1325,7 @@ function _slpStressHTML(S) {
   return `
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('Daily stress')}</div>
-      <div class="slp-chart-sub">${trf('{0} days measured. The watch samples a stress score through the day — about {1} readings a day — and the export keeps the day’s mean, low and high.', S.n, Math.round(S.spread ? S.spread.cnt : 0))}</div>
+      <div class="slp-chart-sub">${trf('{0} days measured. The watch samples a stress score through the day (about {1} readings a day) and the export keeps the day’s mean, low and high.', S.n, Math.round(S.spread ? S.spread.cnt : 0))}</div>
 
       <div class="slp-tiles slp-tiles-in">
         ${['', ''].length ? '' : ''}
@@ -1346,7 +1346,7 @@ function _slpStressHTML(S) {
         <tbody>${S.tiers.map(t => `<tr><td>${t.lbl} <span class="slp-cell-sub">${trf('{0} days', t.n)}</span></td><td class="slp-num">${t.stress.toFixed(1)}</td><td class="slp-num">${_slpHM(t.asleep)}</td><td class="slp-num">${Math.round(t.deep)}m</td></tr>`).join('')}</tbody>
       </table>` : ''}
 
-      <div class="slp-note">${trf('Stress on a riding day runs {0} against {1} on a rest day, and the morning AFTER a ride sits at {2} against {3}. Against last night’s sleep the correlation is r = {4}, and against the night that follows r = {5} — both weak, so treat this as a mood-and-load barometer rather than something that predicts your sleep. This is also the join the Huawei app cannot make: it never sees the rides, because they come off the head unit into Strava.',
+      <div class="slp-note">${trf('Stress on a riding day runs {0} against {1} on a rest day, and the morning AFTER a ride sits at {2} against {3}. Against last night’s sleep the correlation is r = {4}, and against the night that follows r = {5}. Both weak, so treat this as a mood-and-load barometer rather than something that predicts your sleep. This is also the join the Huawei app cannot make: it never sees the rides, because they come off the head unit into Strava.',
         S.onRide.stress.toFixed(1), S.onRest.stress.toFixed(1), S.afterRide.stress.toFixed(1), S.afterRest.stress.toFixed(1),
         S.rStressVsSleep, S.rStressVsNextSleep)}</div>
     </div>`;
@@ -1358,7 +1358,7 @@ function _slpEnergyHTML(E) {
   return `
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('Calories and movement')}</div>
-      <div class="slp-chart-sub">${trf('{0} days of the watch’s own daily totals. These are ACTIVE calories — the burn the watch attributes to movement — not a full daily energy expenditure: the export carries no height or age, so there is no honest way to build a resting rate from it.', E.n)}</div>
+      <div class="slp-chart-sub">${trf('{0} days of the watch’s own daily totals. These are ACTIVE calories (the burn the watch attributes to movement) not a full daily energy expenditure: the export carries no height or age, so there is no honest way to build a resting rate from it.', E.n)}</div>
 
       <div class="slp-tiles slp-tiles-in">
         <div class="slp-tile card"><div class="slp-tile-val" style="color:var(--orange)">${_slpNum(E.cal)}</div><div class="slp-tile-lbl">${tr('Active kcal a day')}</div><div class="slp-tile-sub">${trf('{0} kcal in total', _slpNum(E.totalCal))}</div></div>
@@ -1378,13 +1378,13 @@ function _slpEnergyHTML(E) {
         </tbody>
       </table>
 
-      ${E.cross ? `<div class="slp-note">${trf('Two devices that have never spoken to each other, measuring the same rides: on the {0} days your power meter recorded work, the iGPSport logged {1} kJ of mechanical work while the watch counted {2} active kcal — a ratio of {3} to 1, correlating at r = {4}. Cycling runs at roughly 22–25% gross efficiency, which is why kJ of work and kcal burned are expected to land near 1:1. {5}',
+      ${E.cross ? `<div class="slp-note">${trf('Two devices that have never spoken to each other, measuring the same rides: on the {0} days your power meter recorded work, the iGPSport logged {1} kJ of mechanical work while the watch counted {2} active kcal. A ratio of {3} to 1, correlating at r = {4}. Cycling runs at roughly 22–25% gross efficiency, which is why kJ of work and kcal burned are expected to land near 1:1. {5}',
         E.cross.n, _slpNum(E.cross.kj), _slpNum(E.cross.watch), (E.cross.watch / E.cross.kj).toFixed(2), E.cross.r,
         Math.abs(E.cross.watch / E.cross.kj - 1) < 0.25
           ? tr('Yours land close to it, so the two devices genuinely corroborate each other.')
-          : tr('Yours do not, so treat the watch’s calorie figure as its own rough estimate rather than a measurement — the bike’s power data is the more trustworthy of the two.'))}</div>` : ''}
+          : tr('Yours do not, so treat the watch’s calorie figure as its own rough estimate rather than a measurement. The bike’s power data is the more trustworthy of the two.'))}</div>` : ''}
 
-      <div class="slp-note">${trf('Across {0} tracked days the watch counted {1} active kcal and {2} steps. Read the calories as a relative measure — good for comparing your months against each other, not for balancing against food.', E.n, _slpNum(E.totalCal), _slpNum(E.totalSteps))}</div>
+      <div class="slp-note">${trf('Across {0} tracked days the watch counted {1} active kcal and {2} steps. Read the calories as a relative measure. Good for comparing your months against each other, not for balancing against food.', E.n, _slpNum(E.totalCal), _slpNum(E.totalSteps))}</div>
     </div>`;
 }
 
@@ -1405,7 +1405,7 @@ function _slpStepsHTML(P) {
 
       <div class="slp-chart-wrap"><canvas id="slpStepsChart"></canvas></div>
 
-      <div class="slp-note">${trf('Your rides are recorded on an iGPSport head unit and reach this dashboard through Strava — the watch on your wrist never learns the ride happened, so it books four hours of road buzz as walking. On rest days you average {0} steps; on riding days {1}. That gap tracks riding time closely enough ({2} steps per hour on the bike, r = {3}) that it can be subtracted out.',
+      <div class="slp-note">${trf('Your rides are recorded on an iGPSport head unit and reach this dashboard through Strava. The watch on your wrist never learns the ride happened, so it books four hours of road buzz as walking. On rest days you average {0} steps; on riding days {1}. That gap tracks riding time closely enough ({2} steps per hour on the bike, r = {3}) that it can be subtracted out.',
         _slpNum(P.base), _slpNum(P.rideMean), _slpNum(P.perHour), P.r)}</div>
 
       <div class="slp-note">${trf('Corrected, only {0} of your {1} ten-thousand-step days were genuinely spent on your feet, and your real daily walking average is {2} rather than the {3} on the watch face. Your biggest phantom day was {4}: {5} steps recorded, an estimated {6} of them from the bike. This is the one number in the whole section the Huawei app can never get right, because the correction needs the ride data and the ride data is not in Huawei.',
@@ -1420,7 +1420,7 @@ function _slpBikeHTML(B) {
   const head = B.KEYS.map(k => `<th>${LBL[k]}<span class="slp-th-sub">${trf('{0} days', (B.groups[k] || []).length)}</span></th>`).join('');
   const rows = B.rows.map(r => `<tr>
     <td><span class="slp-dot" style="background:${r.c}"></span>${r.lbl}<span class="slp-cell-sub">${r.r == null ? '' : trf('r = {0} vs load', r.r)}</span></td>
-    ${r.cells.map(c => `<td class="slp-num">${c.v == null ? '—' : (r.k === 'spo2' ? c.v.toFixed(1) : Math.round(c.v)) + (r.unit ? ' ' + r.unit : '')}</td>`).join('')}
+    ${r.cells.map(c => `<td class="slp-num">${c.v == null ? '–' : (r.k === 'spo2' ? c.v.toFixed(1) : Math.round(c.v)) + (r.unit ? ' ' + r.unit : '')}</td>`).join('')}
   </tr>`).join('');
 
   const dR = (B.rhrHard != null && B.rhrRest != null) ? B.rhrHard - B.rhrRest : null;
@@ -1437,10 +1437,10 @@ function _slpBikeHTML(B) {
       <div class="slp-chart-wrap" style="margin-top:14px"><canvas id="slpBikeChart"></canvas></div>
 
       <div class="slp-note">${dR != null
-        ? trf('The morning after your hardest third of rides your resting heart rate reads {0} bpm against {1} after a rest day — a {2} bpm cost that clears within a day. {3}This is the whole point of joining the two sources: Strava knows what you did, the watch knows what it cost, and neither app can see the other half.',
+        ? trf('The morning after your hardest third of rides your resting heart rate reads {0} bpm against {1} after a rest day. A {2} bpm cost that clears within a day. {3}This is the whole point of joining the two sources: Strava knows what you did, the watch knows what it cost, and neither app can see the other half.',
             Math.round(B.rhrHard), Math.round(B.rhrRest), (dR >= 0 ? '+' : '−') + Math.abs(dR).toFixed(1),
             dS != null ? trf('Stress follows the same shape, {0} against {1}. ', Math.round(B.stressHard), Math.round(B.stressRest)) : '')
-        : tr('Strava knows what you did and the watch knows what it cost — joining them is the only way to see the price of a hard day.')}</div>
+        : tr('Strava knows what you did and the watch knows what it cost. Joining them is the only way to see the price of a hard day.')}</div>
 
       ${B.steps ? `<div class="slp-note">${trf('Worth reading alongside the step correction above: you record {0} steps on riding days against {1} on rest days, and most of that gap is the bike shaking your wrist rather than extra walking.', _slpNum(B.steps.ride), _slpNum(B.steps.rest))}</div>` : ''}
     </div>`;
@@ -1459,9 +1459,9 @@ function _slpBodyBikeHTML(P) {
   const note = real.length
     ? real.map(s => {
         const helps = (s.sigS ? Math.sign(s.rS) : -Math.sign(s.rH)) * s.good > 0;
-        return trf(helps ? '{0} matters for you: a better night before shows up as a better ride.' : '{0} runs against expectation for you — rides after a “better” night were no better, often worse.', s.lbl);
+        return trf(helps ? '{0} matters for you: a better night before shows up as a better ride.' : '{0} runs against expectation for you. Rides after a “better” night were no better, often worse.', s.lbl);
       }).join(' ')
-    : tr('No clear effect yet: across these rides, last night’s HRV, resting HR and sleep don’t predict how fast or at what heart rate you ride. Your pace is set more by the route and how hard you choose to go than by recovery — so the Readiness score is a guide for how hard to go, not a forecast of your speed.');
+    : tr('No clear effect yet: across these rides, last night’s HRV, resting HR and sleep don’t predict how fast or at what heart rate you ride. Your pace is set more by the route and how hard you choose to go than by recovery. So the Readiness score is a guide for how hard to go, not a forecast of your speed.');
   return `
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('What your night does to the ride')}</div>
@@ -1651,7 +1651,7 @@ function _slpExportHTML(A) {
   return `
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('Take your data with you')}</div>
-      <div class="slp-chart-sub">${trf('{0} days × {1} columns in one table — every sleep stage, body signal and daily total from the watch, joined by date to the ride Strava recorded that day. Built in your browser; nothing is uploaded.', A.allDays.length, cols)}</div>
+      <div class="slp-chart-sub">${trf('{0} days × {1} columns in one table. Every sleep stage, body signal and daily total from the watch, joined by date to the ride Strava recorded that day. Built in your browser; nothing is uploaded.', A.allDays.length, cols)}</div>
       <div class="slp-export-btns">
         <button class="btn btn-ghost" onclick="slpExport('csv')">${tr('Download CSV')}</button>
         <button class="btn btn-ghost" onclick="slpExport('json')">${tr('Download JSON')}</button>
@@ -1708,7 +1708,7 @@ function _slpDraw(nights, body) {
     <div class="slp-intro card">
       <div class="slp-intro-h">${trf('{0} nights of sleep, {1}', real.length, span)}</div>
       <div class="slp-intro-b">${tr('Sleep stages come from a one-off Huawei Health (TruSleep) export. Training is joined live from Strava, so every comparison below updates as you ride. A night is labelled by the morning you woke up.')}</div>
-      <div class="slp-intro-note">${trf('Your nights run from {0} to {1}. You slept 8h or more on {2} of them ({3}%) — the average is a mean across every night, pulled down by the short ones, not a ceiling. It counts time actually asleep, so it sits below your time in bed.', _slpHM(_slpBest.min), _slpHM(_slpBest.max), _slpBest.over8, _slpBest.over8pct)}</div>
+      <div class="slp-intro-note">${trf('Your nights run from {0} to {1}. You slept 8h or more on {2} of them ({3}%), the average is a mean across every night, pulled down by the short ones, not a ceiling. It counts time actually asleep, so it sits below your time in bed.', _slpHM(_slpBest.min), _slpHM(_slpBest.max), _slpBest.over8, _slpBest.over8pct)}</div>
     </div>
 
     <div class="slp-tiles">
@@ -1725,10 +1725,10 @@ function _slpDraw(nights, body) {
     <div class="slp-key card">
       <div class="slp-key-h">${tr('What the four stages mean')}</div>
       <div class="slp-key-row">
-        <span class="slp-key-item"><i style="background:${SLP_C.deep}"></i><b>${tr('Deep')}</b> — ${tr('body repair. Muscles rebuild here. Aim 20–25%.')}</span>
-        <span class="slp-key-item"><i style="background:${SLP_C.rem}"></i><b>${tr('REM')}</b> — ${tr('brain and memory. Dreaming. Aim 20–25%.')}</span>
-        <span class="slp-key-item"><i style="background:${SLP_C.light}"></i><b>${tr('Light')}</b> — ${tr('the bulk of the night, moving between stages.')}</span>
-        <span class="slp-key-item"><i style="background:${SLP_C.awake}"></i><b>${tr('Awake')}</b> — ${tr('brief wake-ups. A few is normal.')}</span>
+        <span class="slp-key-item"><i style="background:${SLP_C.deep}"></i><b>${tr('Deep')}</b>${tr('body repair. Muscles rebuild here. Aim 20–25%.')}</span>
+        <span class="slp-key-item"><i style="background:${SLP_C.rem}"></i><b>${tr('REM')}</b>${tr('brain and memory. Dreaming. Aim 20–25%.')}</span>
+        <span class="slp-key-item"><i style="background:${SLP_C.light}"></i><b>${tr('Light')}</b>${tr('the bulk of the night, moving between stages.')}</span>
+        <span class="slp-key-item"><i style="background:${SLP_C.awake}"></i><b>${tr('Awake')}</b>${tr('brief wake-ups. A few is normal.')}</span>
       </div>
       <div class="slp-key-note">${tr('Every chart below uses these same four colours. Drag a chart to pan it, scroll with Ctrl held to zoom, or use the + − ⟲ buttons on each one.')}</div>
     </div>
@@ -1754,35 +1754,35 @@ function _slpDraw(nights, body) {
           ${cmp(tr('Awake'), aT.wake, aR.wake, 'm', false)}
         </tbody>
       </table>
-      <div class="slp-note">${tr('Your body takes the extra sleep when you give it work to recover from — the deep and REM stages, the ones that actually rebuild you, are where the gain lands.')}</div>
+      <div class="slp-note">${tr('Your body takes the extra sleep when you give it work to recover from. The deep and REM stages, the ones that actually rebuild you, are where the gain lands.')}</div>
     </div>
 
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('Dose–response: how hard you rode vs how you slept that night')}</div>
       <div class="slp-chart-sub">${tr('Training days split into quartiles by Strava relative effort')}</div>
       <div class="slp-chart-wrap"><canvas id="slpDoseChart"></canvas></div>
-      <div class="slp-note">${tr('Read it left to right: rest days, then your easiest quarter of training days through to your hardest. If the bars climb, harder days are buying you more — and deeper — sleep that night. A flat or falling shape means the extra load is not turning into extra recovery.')}</div>
+      <div class="slp-note">${tr('Read it left to right: rest days, then your easiest quarter of training days through to your hardest. If the bars climb, harder days are buying you more (and deeper) sleep that night. A flat or falling shape means the extra load is not turning into extra recovery.')}</div>
     </div>
 
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('Sleep by day of week')}</div>
       <div class="slp-chart-sub">${tr('Bars are sleep; the line is how many times you trained on that day')}</div>
       <div class="slp-chart-wrap"><canvas id="slpDowChart"></canvas></div>
-      <div class="slp-note">${tr('Look for the weekdays where a tall training line sits over a short sleep bar — those are the days your recovery is most squeezed, and the easiest place to win back an hour.')}</div>
+      <div class="slp-note">${tr('Look for the weekdays where a tall training line sits over a short sleep bar. Those are the days your recovery is most squeezed, and the easiest place to win back an hour.')}</div>
     </div>
 
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${tr('What time you set off, and what it cost you')}</div>
       <div class="slp-chart-sub">${tr('Sleep the morning of the ride, grouped by the day’s earliest start time')}</div>
       <div class="slp-chart-wrap"><canvas id="slpStartChart"></canvas></div>
-      <div class="slp-note">${tr('Your bedtime barely moves when the start time does — so an earlier alarm comes straight out of sleep, and those are exactly the days you ride longest.')}</div>
+      <div class="slp-note">${tr('Your bedtime barely moves when the start time does. So an earlier alarm comes straight out of sleep, and those are exactly the days you ride longest.')}</div>
     </div>
 
     <div class="slp-chart-card card">
       <div class="slp-chart-title">${trf('The recovery arc around a big day ({0} days over 2h)', bigDays.length)}</div>
       <div class="slp-chart-sub">${tr('The night before, the night of, and the two nights after')}</div>
       <div class="slp-chart-wrap"><canvas id="slpArcChart"></canvas></div>
-      <div class="slp-note">${tr('A healthy pattern dips the night of the effort, then rebounds — with extra deep and REM — over the one or two nights after. A flat arc means you are not banking the recovery sleep a big day calls for.')}</div>
+      <div class="slp-note">${tr('A healthy pattern dips the night of the effort, then rebounds (with extra deep and REM) over the one or two nights after. A flat arc means you are not banking the recovery sleep a big day calls for.')}</div>
     </div>
 
     <div class="slp-chart-card card">
@@ -1822,7 +1822,7 @@ function _slpDraw(nights, body) {
       <div class="slp-chart-title">${tr('How regular your bedtime is')}</div>
       <div class="slp-chart-sub">${tr('Bars show the typical bedtime each quarter; the line is how much it swings night to night (lower = steadier)')}</div>
       <div class="slp-chart-wrap"><canvas id="slpConsistChart"></canvas></div>
-      <div class="slp-note">${tr('A steady sleep-and-wake time is one of the strongest levers on sleep quality — often more than total hours. Keeping the swing low, even when training load changes, is what a regular body clock looks like.')}</div>
+      <div class="slp-note">${tr('A steady sleep-and-wake time is one of the strongest levers on sleep quality. Often more than total hours. Keeping the swing low, even when training load changes, is what a regular body clock looks like.')}</div>
     </div>
 
     <div class="slp-chart-card card">
@@ -2198,7 +2198,7 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
         ? trf('{0} is your biggest training day and your worst night of sleep', tr(worst.label))
         : trf('{0} is your shortest night of sleep', tr(worst.label)),
       body: clash
-        ? trf('You sleep {0} before a {1}, against {2} on every other night — and {1} is also the day you train most ({3} sessions) and longest. You are riding your hardest on your thinnest sleep. Moving the {1} start an hour later, or protecting the Friday bedtime, is the single highest-value change in this whole section.',
+        ? trf('You sleep {0} before a {1}, against {2} on every other night. And {1} is also the day you train most ({3} sessions) and longest. You are riding your hardest on your thinnest sleep. Moving the {1} start an hour later, or protecting the Friday bedtime, is the single highest-value change in this whole section.',
             _slpHM(worst.asleep), tr(worst.label), _slpHM(restAvg), worst.trained)
         : trf('You sleep {0} on a {1}, against {2} on every other night.', _slpHM(worst.asleep), tr(worst.label), _slpHM(restAvg)),
     });
@@ -2210,7 +2210,7 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
     cards.push({
       tone: 'warn',
       title: trf('Dawn starts cost you {0} of sleep', _slpHM(lS - dS)),
-      body: trf('On days you roll out before 06:00 you sleep {0} and are up at {1}; when you start later, {2}. Those dawn days are also your longest rides — {3} against {4} — so the biggest efforts sit on the thinnest sleep. Your bedtime does not move to meet the earlier alarm, so the hour simply disappears.',
+      body: trf('On days you roll out before 06:00 you sleep {0} and are up at {1}; when you start later, {2}. Those dawn days are also your longest rides ({3} against {4}) so the biggest efforts sit on the thinnest sleep. Your bedtime does not move to meet the earlier alarm, so the hour simply disappears.',
         _slpHM(dS), _slpClock(_slpMean(x.dawn.filter(s => s.up != null).map(s => s.up))), _slpHM(lS),
         _slpMean(x.dawn.map(s => s.hours)).toFixed(1) + 'h', _slpMean(x.later.map(s => s.hours)).toFixed(1) + 'h'),
     });
@@ -2230,7 +2230,7 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
       cards.push({
         tone: 'info',
         title: trf('Every hour you go to bed late costs you {0} minutes', lost),
-        body: trf('Across {0} nights, an hour’s later bedtime buys back only {1} minutes of lie-in — the other {2} are gone. In practice: turn in before {3} and you average {4} with {5} min of deep; after it, {6} with {7} min. Bedtime is the decision that sets the night.',
+        body: trf('Across {0} nights, an hour’s later bedtime buys back only {1} minutes of lie-in. The other {2} are gone. In practice: turn in before {3} and you average {4} with {5} min of deep; after it, {6} with {7} min. Bedtime is the decision that sets the night.',
           bp.length, Math.round(60 * slope), lost, _slpClock(med),
           _slpHM(early.asleep), Math.round(early.deep), _slpHM(late.asleep), Math.round(late.deep)),
       });
@@ -2242,7 +2242,7 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
     cards.push({
       tone: 'good',
       title: trf('Training buys you {0} more sleep', _slpHM(Math.abs(aT.asleep - aR.asleep))),
-      body: trf('After a training day you sleep {0}; after a rest day, {1}. The extra is not just padding — deep sleep goes up {2} minutes and REM {3} minutes. Rest days are quietly your worst-sleeping days.',
+      body: trf('After a training day you sleep {0}; after a rest day, {1}. The extra is not just padding. Deep sleep goes up {2} minutes and REM {3} minutes. Rest days are quietly your worst-sleeping days.',
         _slpHM(aT.asleep), _slpHM(aR.asleep), Math.round(aT.deep - aR.deep), Math.round(aT.rem - aR.rem)),
     });
   }
@@ -2253,8 +2253,8 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
     if (after.n >= 10 && before.n >= 10) {
       cards.push({
         tone: 'good',
-        title: tr('A big ride buys one great night — then it is over'),
-        body: trf('The night of a 2h+ day you sleep {0}. The night after jumps to {1}, with deep at {2} min and REM at {3} min — well above your {4} / {5} min normal. By the second night you are back to {6}. The repair lands in a single window, so the night straight after a big day is the one worth protecting.',
+        title: tr('A big ride buys one great night. Then it is over'),
+        body: trf('The night of a 2h+ day you sleep {0}. The night after jumps to {1}, with deep at {2} min and REM at {3} min. Well above your {4} / {5} min normal. By the second night you are back to {6}. The repair lands in a single window, so the night straight after a big day is the one worth protecting.',
           _slpHM(before.asleep), _slpHM(after.asleep), Math.round(after.deep), Math.round(after.rem),
           Math.round(_slpMean(real.map(n => n.deep))), Math.round(_slpMean(real.map(n => n.rem))), _slpHM(two.asleep)),
       });
@@ -2268,7 +2268,7 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
       cards.push({
         tone: 'warn',
         title: trf('Weekends cost you {0} a night', _slpHM(wd.asleep - we.asleep)),
-        body: trf('Saturday and Sunday nights average {0} against {1} on weeknights, with deep at {2} min versus {3}. The weekend is when you ride most and sleep least — the opposite of what the training asks for.',
+        body: trf('Saturday and Sunday nights average {0} against {1} on weeknights, with deep at {2} min versus {3}. The weekend is when you ride most and sleep least. The opposite of what the training asks for.',
           _slpHM(we.asleep), _slpHM(wd.asleep), Math.round(we.deep), Math.round(wd.deep)),
       });
     }
@@ -2279,8 +2279,8 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
     const [few, , many] = x.wakeTiers;
     cards.push({
       tone: 'info',
-      title: trf('More wake-ups, but not less sleep — {0}% vs {1}% efficiency', few.eff.toFixed(0), many.eff.toFixed(0)),
-      body: trf('On your calmest nights you wake {0} times and sleep {1} at {2}% efficiency. On your most broken nights you wake {3} times — yet sleep longer, {4}, at {5}%. Longer nights simply give you more chances to surface; the broken nights are not short nights, they are just less solid, and deep sleep slips from {6} to {7} min.',
+      title: trf('More wake-ups, but not less sleep, {0}% vs {1}% efficiency', few.eff.toFixed(0), many.eff.toFixed(0)),
+      body: trf('On your calmest nights you wake {0} times and sleep {1} at {2}% efficiency. On your most broken nights you wake {3} times. Yet sleep longer, {4}, at {5}%. Longer nights simply give you more chances to surface; the broken nights are not short nights, they are just less solid, and deep sleep slips from {6} to {7} min.',
         few.wakeups.toFixed(1), _slpHM(few.asleep), few.eff.toFixed(0),
         many.wakeups.toFixed(1), _slpHM(many.asleep), many.eff.toFixed(0),
         Math.round(few.deep), Math.round(many.deep)),
@@ -2293,7 +2293,7 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
     cards.push({
       tone: 'info',
       title: trf('{0} stretches of three or more short nights in a row', x.streaks.length),
-      body: trf('{0} nights — {1}% of everything tracked — sit inside a run of three or more nights under 6h. The longest was {2} nights, {3} to {4}. These runs, not the odd bad night, are what actually build up a deficit.',
+      body: trf('{0} nights ({1}% of everything tracked) sit inside a run of three or more nights under 6h. The longest was {2} nights, {3} to {4}. These runs, not the odd bad night, are what actually build up a deficit.',
         x.debtNights, Math.round(100 * x.debtNights / real.length), longest.nights, longest.from, longest.to),
     });
   }
@@ -2305,7 +2305,7 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
       cards.push({
         tone: 'info',
         title: tr('Your watch’s recovery scores do not track your sleep'),
-        body: trf('Resting heart rate, HRV and stress all sit below |r| = 0.2 against how long you slept — on your shortest nights resting HR averages {0} bpm, on your longest {1}. That is a real finding, not a gap: judge a night by the sleep numbers themselves, because these three will not tell you.',
+        body: trf('Resting heart rate, HRV and stress all sit below |r| = 0.2 against how long you slept. On your shortest nights resting HR averages {0} bpm, on your longest {1}. That is a real finding, not a gap: judge a night by the sleep numbers themselves, because these three will not tell you.',
           x.sig.rhr.short.toFixed(1), x.sig.rhr.long.toFixed(1)),
       });
     }
@@ -2330,7 +2330,7 @@ function _slpHeadline(worst, dowAgg, aT, aR, real, x) {
       cards.push({
         tone: 'info',
         title: tr('Same hours, slightly thinner sleep than two years ago'),
-        body: trf('Your nightly total has not moved — {0} in {1}, {2} in {3}. The mix has: deep {4} → {5} min and REM {6} → {7} min, with light sleep taking up the slack. A mild drift rather than a cliff, and the year-to-year correlation is weak, so watch it rather than worry about it.',
+        body: trf('Your nightly total has not moved, {0} in {1}, {2} in {3}. The mix has: deep {4} → {5} min and REM {6} → {7} min, with light sleep taking up the slack. A mild drift rather than a cliff, and the year-to-year correlation is weak, so watch it rather than worry about it.',
           _slpHM(first.asleep), x.years[0], _slpHM(last.asleep), x.years[x.years.length - 1],
           Math.round(first.deep), Math.round(last.deep), Math.round(first.rem), Math.round(last.rem)),
       });
@@ -2429,7 +2429,7 @@ function sleepAiSummary() {
       + 'always respect the sample sizes given and never claim a causal effect the numbers do not support.',
     coverage: { nights: real.length, first: real[0].date, last: real[real.length - 1].date,
                 note: 'Sleep tracking ends ' + real[real.length - 1].date
-                      + '. Any training after that date has no sleep to pair with — say so rather than guessing.' },
+                      + '. Any training after that date has no sleep to pair with. Say so rather than guessing.' },
     baseline: { ...grp(all), efficiency_pct: r1(all.eff),
                 typical_bedtime: _slpClock(all.bed),
                 typical_waketime: _slpClock(_slpMean(real.filter(n => n.up != null).map(n => n.up))),
@@ -2588,7 +2588,7 @@ function _slpBaCard(n, lbl, rec) {
   const T = (typeof tr === 'function') ? tr : (x => x);
   if (!n || n.asleep < 60) {
     return '<div class="slp-ba-card empty"><div class="slp-ba-lbl-row"><span class="slp-ba-lbl">' + T(lbl) + '</span></div>'
-      + '<div class="slp-ba-val">—</div><div class="slp-ba-sub">' + T('no night sleep recorded') + '</div>' + _slpBaNap(n, 0) + '</div>';
+      + '<div class="slp-ba-val">–</div><div class="slp-ba-sub">' + T('no night sleep recorded') + '</div>' + _slpBaNap(n, 0) + '</div>';
   }
   const st = [['deep', n.deep], ['rem', n.rem], ['light', n.light], ['wake', n.wake]];
   const tot = st.reduce((s, x) => s + (x[1] || 0), 0) || 1;
@@ -2639,7 +2639,7 @@ async function renderActivitySleep(a) {
     const last = nights.length ? nights[nights.length - 1].date : '';
     host.innerHTML = '<div class="slp-ba-h">🌙 ' + T('Sleep around this session') + '</div>'
       + '<div class="slp-ba-none">' + T('No sleep data for this date')
-      + (D > last && last ? ' — ' + trf('sleep data currently runs to {0}. Re-upload a newer Huawei export to extend it.', last) : '.')
+      + (D > last && last ? '' + trf('sleep data currently runs to {0}. Re-upload a newer Huawei export to extend it.', last) : '.')
       + '</div>';
     return;
   }
@@ -2733,7 +2733,7 @@ async function renderReadiness() {
   const readiness = Math.round(comps.reduce((s, c) => s + c[1] * c[2], 0) / wsum);
 
   const band = readiness >= 67 ? { c: '#16ec8b', l: T('Ready'), advice: T('A good day for a quality session.') }
-             : readiness >= 34 ? { c: '#ffde00', l: T('Take it easy'), advice: T('Keep it steady — your body is only part-recovered.') }
+             : readiness >= 34 ? { c: '#ffde00', l: T('Take it easy'), advice: T('Keep it steady, your body is only part-recovered.') }
                                : { c: '#ff0026', l: T('Rest'), advice: T('Prioritise recovery today; the signals are low.') };
 
   const chip = (ico, label, val, extra) => '<span class="rdy-chip"><b>' + ico + ' ' + val + '</b>' + (extra ? '<small>' + extra + '</small>' : '') + '<small>' + label + '</small></span>';
@@ -2777,10 +2777,10 @@ async function renderReadiness() {
   let note = band.advice;
   if (daysHard != null) {
     if (readiness >= 67) note = daysHard >= 2
-      ? trf('Rested — {0} days since your last hard effort. A good day for intervals or a long push.', daysHard)
-      : T('Recovered, but you trained hard recently — keep today controlled.');
-    else if (readiness >= 34) note = T('Part-recovered — an easy spin or skills day beats intervals today.');
-    else note = T('Low signals — a rest or very easy day will pay off more than pushing through.');
+      ? trf('Rested, {0} days since your last hard effort. A good day for intervals or a long push.', daysHard)
+      : T('Recovered, but you trained hard recently. Keep today controlled.');
+    else if (readiness >= 34) note = T('Part-recovered, an easy spin or skills day beats intervals today.');
+    else note = T('Low signals, a rest or very easy day will pay off more than pushing through.');
   }
   if (rec && rec.unwell) note = '⚠️ ' + trf('Possibly unwell: long sleep, but HRV {0} ms (usually {1}) and resting HR {2} bpm (usually {3}).', last.hrv, rec.hrvBase, last.rhr, rec.rhrBase);
 

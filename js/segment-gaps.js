@@ -227,7 +227,7 @@ function renderGaps(force) {
 
 function _gapPaint(el, gaps) {
   if (!gaps.length) {
-    el.innerHTML = '<p style="color:var(--muted);padding:8px">No gaps found — every stretch you ride at least '
+    el.innerHTML = '<p style="color:var(--muted);padding:8px">No gaps found, every stretch you ride at least '
       + _GAP_MIN_RIDES + ' times is already covered by a segment. Scan more rides in the Segments section to widen the search.</p>';
     return;
   }
@@ -246,7 +246,7 @@ function _gapPaint(el, gaps) {
       <div class="gap-map" id="gapmap-${i}"></div>
       <div class="gap-body">
         <div class="gap-name">${x.name ? x.name : 'Unnamed stretch'}</div>
-        ${x.before || x.after ? `<div class="gap-between">between ${x.before ? '<b>' + x.before + '</b>' : '—'} and ${x.after ? '<b>' + x.after + '</b>' : '—'}</div>` : ''}
+        ${x.before || x.after ? `<div class="gap-between">between ${x.before ? '<b>' + x.before + '</b>' : '–'} and ${x.after ? '<b>' + x.after + '</b>' : '–'}</div>` : ''}
         <div class="gap-metrics">
           <div class="gap-m"><span class="gap-m-lbl">Length</span><span class="gap-m-val">${kmVal(x.len).toFixed(2)} ${distUnit()}</span></div>
           <div class="gap-m"><span class="gap-m-lbl">Ridden</span><span class="gap-m-val">${x.rides}×</span></div>
@@ -259,7 +259,7 @@ function _gapPaint(el, gaps) {
         </div>
         <div class="gap-create">
           Create it from <a href="https://www.strava.com/activities/${x.actId}" target="_blank" rel="noopener">${x.actName || 'this ride'}</a>
-          — drag the slider from <b>${kmVal(x.atStart).toFixed(2)}</b> to <b>${kmVal(x.atEnd).toFixed(2)} ${distUnit()}</b> into the ride.
+          – drag the slider from <b>${kmVal(x.atStart).toFixed(2)}</b> to <b>${kmVal(x.atEnd).toFixed(2)} ${distUnit()}</b> into the ride.
         </div>
         <div class="gap-links">
           <a class="seg-link" href="https://www.strava.com/activities/${x.actId}" target="_blank" rel="noopener">Open ride →</a>

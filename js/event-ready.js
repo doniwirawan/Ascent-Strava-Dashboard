@@ -174,16 +174,16 @@ function _trEventReadyHTML(d) {
     const next = Math.min(r10(need.longest), Math.max(r10(h.longestKm * 1.12), r10(h.longestKm) + 10));
     tips.push(_evtL(`Next long ride: <b>${next} km</b>, then add ~10–15% every 1–2 weeks up to ${r10(need.longest)} km.`,
       `Gowes jauh berikutnya: <b>${next} km</b>, lalu tambah ~10–15% tiap 1–2 minggu sampai ${r10(need.longest)} km.`));
-  } else tips.push(_evtL(`Your long ride (${Math.round(h.longestKm)} km) already covers it — keep one long ride every 1–2 weeks.`,
-    `Gowes terjauh Anda (${Math.round(h.longestKm)} km) sudah cukup — pertahankan satu gowes jauh tiap 1–2 minggu.`));
+  } else tips.push(_evtL(`Your long ride (${Math.round(h.longestKm)} km) already covers it. Keep one long ride every 1–2 weeks.`,
+    `Gowes terjauh Anda (${Math.round(h.longestKm)} km) sudah cukup. Pertahankan satu gowes jauh tiap 1–2 minggu.`));
   if (h.weekly < need.weekly) tips.push(_evtL(`Build weekly volume from ${Math.round(h.weekly)} toward <b>${r10(need.weekly)} km/wk</b> (≤10% more per week, an easy week every 4th).`,
     `Naikkan volume mingguan dari ${Math.round(h.weekly)} ke <b>${r10(need.weekly)} km/mgg</b> (maks +10% per minggu, minggu ringan tiap minggu ke-4).`));
-  if (ctl < need.ctl) tips.push(_evtL(`Raise fitness (CTL) from ${Math.round(ctl)} toward <b>${Math.round(need.ctl)}</b> — about +5 per week, mostly from more steady endurance hours rather than harder rides.`,
-    `Naikkan kebugaran (CTL) dari ${Math.round(ctl)} ke <b>${Math.round(need.ctl)}</b> — sekitar +5 per minggu, terutama dari menambah jam gowes santai (endurance), bukan gowes lebih keras.`));
+  if (ctl < need.ctl) tips.push(_evtL(`Raise fitness (CTL) from ${Math.round(ctl)} toward <b>${Math.round(need.ctl)}</b>about +5 per week, mostly from more steady endurance hours rather than harder rides.`,
+    `Naikkan kebugaran (CTL) dari ${Math.round(ctl)} ke <b>${Math.round(need.ctl)}</b>sekitar +5 per minggu, terutama dari menambah jam gowes santai (endurance), bukan gowes lebih keras.`));
   if (need.block3 && h.block3 < need.block3) tips.push(_evtL(`Practise back-to-back days: a 3-day block of <b>${r10(need.block3)} km</b> teaches your body (and butt) to ride on tired legs.`,
     `Latih hari berturut-turut: blok 3 hari total <b>${r10(need.block3)} km</b> melatih tubuh (dan pantat) gowes dengan kaki lelah.`));
-  if (preset.audax || s.km >= 300) tips.push(_evtL('Ride at least one long training ride into the night — lights, reflective vest, and staying awake are part of the event.',
-    'Lakukan minimal satu latihan jauh sampai malam — lampu, rompi reflektif, dan menahan kantuk adalah bagian dari event.'));
+  if (preset.audax || s.km >= 300) tips.push(_evtL('Ride at least one long training ride into the night. Lights, reflective vest, and staying awake are part of the event.',
+    'Lakukan minimal satu latihan jauh sampai malam. Lampu, rompi reflektif, dan menahan kantuk adalah bagian dari event.'));
   if (preset.ultra || s.km >= 1000) tips.push(_evtL('Self-supported ultra: test your full bikepacking setup, plan sleep stops (~4–5 h/night), resupply points and route navigation before race day.',
     'Ultra self-supported: uji setup bikepacking lengkap, rencanakan titik tidur (~4–5 jam/malam), titik resupply, dan navigasi rute sebelum hari H.'));
   tips.push(_evtL('Fuel 60–90 g carbs and ~500–750 ml fluid per hour on anything over 4 hours, and practise it in training.',
@@ -196,13 +196,13 @@ function _trEventReadyHTML(d) {
     if (weeksLeft < 0) timeline += ' ' + _evtL('(The event date has passed.)', '(Tanggal event sudah lewat.)');
     else {
       const ok = weeks + 1 <= weeksLeft;   // +1 week taper
-      timeline += ' ' + _evtL(`You have <b style="color:${ok ? '#22c55e' : '#ef4444'}">${weeksLeft} week${weeksLeft !== 1 ? 's' : ''}</b> until the event${ok ? ' — enough, with a taper week before.' : ' — tight; consider a shorter target first.'}`,
-        `Sisa <b style="color:${ok ? '#22c55e' : '#ef4444'}">${weeksLeft} minggu</b> menuju event${ok ? ' — cukup, termasuk seminggu tapering.' : ' — mepet; pertimbangkan target lebih pendek dulu.'}`);
+      timeline += ' ' + _evtL(`You have <b style="color:${ok ? '#22c55e' : '#ef4444'}">${weeksLeft} week${weeksLeft !== 1 ? 's' : ''}</b> until the event${ok ? 'enough, with a taper week before.' : 'tight; consider a shorter target first.'}`,
+        `Sisa <b style="color:${ok ? '#22c55e' : '#ef4444'}">${weeksLeft} minggu</b> menuju event${ok ? 'cukup, termasuk seminggu tapering.' : 'mepet; pertimbangkan target lebih pendek dulu.'}`);
     }
   }
 
   const chips = _EVT_PRESETS.map(p => `<button class="evt-chip${p.id === s.id ? ' on' : ''}" onclick="evtPick('${p.id}')">${p.id === 'custom' ? _evtL('Custom', 'Kustom') : p.name}</button>`).join('');
-  const inp = (k, v, lbl, step) => `<label class="evt-in"><span>${lbl}</span><input type="number" min="0" step="${step}" value="${v || ''}" placeholder="—" onchange="evtSet('${k}',this.value)"></label>`;
+  const inp = (k, v, lbl, step) => `<label class="evt-in"><span>${lbl}</span><input type="number" min="0" step="${step}" value="${v || ''}" placeholder="–" onchange="evtSet('${k}',this.value)"></label>`;
 
   return `<div class="card tr-pc" id="evtCard">
     <div class="tr-chart-title">${_evtL('Event Readiness', 'Kesiapan Event')} <span class="gm-hint">${_evtL('how ready are you for a target ride?', 'seberapa siap untuk target gowes?')}</span></div>
@@ -218,12 +218,12 @@ function _trEventReadyHTML(d) {
       <div><div class="evt-verdict" style="color:${verdict[1]}">${verdict[0]}</div><div class="evt-tl">${timeline}</div></div>
     </div>
     ${factors.map(bar).join('')}
-    ${overCut ? `<div class="evt-warn">${_evtL('⚠ At your current long-ride pace the estimate is over the cutoff — speed on long rides is the limiter, not just distance.', '⚠ Dengan pace gowes jauh Anda sekarang, estimasi melewati batas waktu — kecepatan di gowes jauh jadi pembatas, bukan hanya jarak.')}</div>` : ''}
+    ${overCut ? `<div class="evt-warn">${_evtL('⚠ At your current long-ride pace the estimate is over the cutoff. Speed on long rides is the limiter, not just distance.', '⚠ Dengan pace gowes jauh Anda sekarang, estimasi melewati batas waktu. Kecepatan di gowes jauh jadi pembatas, bukan hanya jarak.')}</div>` : ''}
     ${finHTML}
     <div class="tr-chart-title" style="margin-top:14px">${_evtL('Plan', 'Rencana')}</div>
     <ul class="evt-tips">${tips.map(t => `<li>${t}</li>`).join('')}</ul>
-    <div class="tr-basis-note">${_evtL('Rules of thumb from audax/ultra training practice applied to your Strava history — a guide, not a guarantee. Elevation defaults assume hilly (Bali-like) routes; edit them for the real course.',
-      'Patokan umum latihan audax/ultra yang diterapkan ke riwayat Strava Anda — panduan, bukan jaminan. Elevasi default mengasumsikan rute berbukit (seperti Bali); sesuaikan dengan rute aslinya.')}</div>
+    <div class="tr-basis-note">${_evtL('Rules of thumb from audax/ultra training practice applied to your Strava history. A guide, not a guarantee. Elevation defaults assume hilly (Bali-like) routes; edit them for the real course.',
+      'Patokan umum latihan audax/ultra yang diterapkan ke riwayat Strava Anda. Panduan, bukan jaminan. Elevasi default mengasumsikan rute berbukit (seperti Bali); sesuaikan dengan rute aslinya.')}</div>
   </div>`;
 }
 

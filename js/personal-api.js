@@ -44,7 +44,7 @@ async function papiCreate() {
   let d;
   try { d = await _papi('POST', '', { name }); } catch (e) { out.className = 'ai-test-result err'; out.textContent = tr('Could not create a token') + ' (' + e.message + ')'; return; }
   out.className = 'ai-test-result ok';
-  out.innerHTML = `<b>${tr('Copy this token now — it is shown only once.')}</b>
+  out.innerHTML = `<b>${tr('Copy this token now, it is shown only once.')}</b>
     <div class="papi-token"><code id="papiTok">${d.token}</code><button class="ai-chip" type="button" id="papiCopy">${tr('Copy')}</button></div>
     <pre class="papi-ex">curl -H "Authorization: Bearer ${d.token}" ${PAPI_BASE}/activities?limit=5</pre>`;
   document.getElementById('papiCopy').onclick = () => { try { navigator.clipboard.writeText(d.token); document.getElementById('papiCopy').textContent = tr('Copied'); } catch {} };

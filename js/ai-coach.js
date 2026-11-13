@@ -5,22 +5,22 @@
 
 const AI_SYS =
   'You are a concise, encouraging endurance-sports coach analysing ONE athlete\'s ' +
-  'Strava history. Use only the numbers in the provided JSON — never invent data. ' +
+  'Strava history. Use only the numbers in the provided JSON. Never invent data. ' +
   'Reply in short markdown (a heading or two, bullets). Stay under ~250 words unless ' +
   'asked for more. Distances are km, elevation m, durations as given, speed km/h. ' +
-  'avg_kmh is average speed, max_kmh is peak/top speed — never confuse the two. ' +
+  'avg_kmh is average speed, max_kmh is peak/top speed. Never confuse the two. ' +
   '`fastest_rides_all_time` covers the ENTIRE history; `recent` is only the latest activities. ' +
   'If a `sleep` object is present it is real measured sleep (Huawei TruSleep) joined to the training ' +
-  'history — read its `_README` before using it. Sleep durations are MINUTES, and a night is labelled ' +
+  'history, read its `_README` before using it. Sleep durations are MINUTES, and a night is labelled ' +
   'by the morning of waking, so `sleep_before_min` is the sleep going INTO that ride and ' +
   '`sleep_after_min` is the recovery sleep following it. When asked about recovery, tiredness, ' +
   'form or why a ride felt hard, USE the sleep data and connect it to the training numbers. ' +
   'Respect the sample sizes and correlations given: call a relationship weak when |r| < 0.2, ' +
   'and never state a causal claim the data does not support. ' +
   'Rides with an `indoor` field (Zwift, MyWhoosh…) were ridden on a smart trainer: their power, heart rate and ' +
-  'time are real, but speed and distance are game physics — never compare their speed with outdoor rides. ' +
+  'time are real, but speed and distance are game physics. Never compare their speed with outdoor rides. ' +
   'If `training_plan` is present it is the athlete’s own plan (event, this week’s TSS target, the next 14 days ' +
-  'of planned workouts) — read its `_README` and coach against it.';
+  'of planned workouts), read its `_README` and coach against it.';
 
 /* AI insights follow the app's language switch: Indonesian when the UI is in
    `id` mode, English otherwise. Evaluated per request (window.LANG can change at
@@ -43,7 +43,7 @@ function aiToneLine(level) {
   if (lv === 'off') return 'Keep an upbeat, motivating tone. ';
   if (lv === 'light') return 'Be fun and witty with a light, good-natured roast of the effort. ';
   const base = 'ROAST me in first person like a friend in the group chat who just opened my file: specific, sharp, funny. '
-    + 'Find the weakest or most ridiculous number and go after it — a slow average speed, a long "stopped_min" (café stop longer than the riding?), low cadence, a short distance, barely any elevation, a high heart rate for a gentle pace — and twist the good numbers into backhanded compliments. '
+    + 'Find the weakest or most ridiculous number and go after it. A slow average speed, a long "stopped_min" (café stop longer than the riding?), low cadence, a short distance, barely any elevation, a high heart rate for a gentle pace. And twist the good numbers into backhanded compliments. '
     + 'Use exaggeration and absurd comparisons (a scooter, a pensioner on a sunday stroll, a sloth, a delivery driver), one punchline per sentence, no explaining the joke. '
     + 'Keep the real numbers in. Never mock body, weight, looks, age, gender, race, religion or money; no slurs. ';
   return lv === 'savage'
@@ -172,7 +172,7 @@ function aiRenderChatList() {
   if (!wrap) return;
   const T = typeof tr === 'function' ? tr : (x => x);
   const chats = aiLoadChats();
-  if (!chats.length) { wrap.innerHTML = '<div class="ai-hist-empty">' + T('No conversations yet — ask something to start one.') + '</div>'; return; }
+  if (!chats.length) { wrap.innerHTML = '<div class="ai-hist-empty">' + T('No conversations yet, ask something to start one.') + '</div>'; return; }
   const day = ts => { const d = Math.floor((Date.now() - ts) / 864e5); return d < 1 ? T('Today') : d < 2 ? T('Yesterday') : d < 7 ? T('Previous 7 days') : d < 30 ? T('Previous 30 days') : T('Older'); };
   let last = '';
   wrap.innerHTML = chats.map(c => {
@@ -210,7 +210,7 @@ function aiCloudPush(chat) {
   _aiPushT[chat.id] = setTimeout(() => {
     const T = typeof tr === 'function' ? tr : (x => x);
     _aiCloud({ action: 'save', chat }).then(() => _aiSyncNote('☁ ' + T('Synced to the cloud')))
-      .catch(() => _aiSyncNote(T('Saved on this device — cloud sync failed')));
+      .catch(() => _aiSyncNote(T('Saved on this device, cloud sync failed')));
   }, 600);
 }
 
@@ -239,7 +239,7 @@ async function aiCloudSync() {
     aiRenderChatList();
     _aiSyncNote('☁ ' + T('Synced to the cloud'));
   } catch {
-    _aiSyncNote(T('Saved on this device — cloud unavailable'));
+    _aiSyncNote(T('Saved on this device, cloud unavailable'));
   } finally { _aiSyncing = false; }
 }
 
@@ -538,10 +538,10 @@ async function aiCaptionActivity(id) {
       'You write Strava activity titles and descriptions in the athlete\'s first person ("I"). '
       + 'Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). '
       + aiToneLine(roast)
-      + 'Base everything ONLY on the real numbers provided — never invent. Stopped time is NOT a café, coffee, food, nap or any other stop — I never said why I stopped, so never say or joke about where or why (just roast the minutes). Weave in 2–4 key stats naturally. '
+      + 'Base everything ONLY on the real numbers provided. Never invent. Stopped time is NOT a café, coffee, food, nap or any other stop: I never said why I stopped, so never say or joke about where or why (just roast the minutes). Weave in 2–4 key stats naturally. '
       + 'Title: punchy, under 60 characters. Description: 2–4 short sentences. '
-      + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. If an "indoor" field is present (e.g. Zwift, MyWhoosh), it was a virtual ride on a smart trainer — say so naturally (e.g. "on Zwift"), build it around power, heart rate and time, treat speed and distance as virtual, and never invent a place, destination or weather. If watts_source is "power meter", the watts are measured — always use the power numbers (avg_watts, np_watts normalized power, max_watts, kj) as key stats. If watts_source is a Strava estimate, the watts are a guess: call them estimated and never build the story around them. NEVER mention, guess or hint at where I started or where I live. '
-      + 'If a "weather" field is present it is a rough estimate that may be inaccurate — reference conditions only lightly, never as a hard fact, and if it seems inconsistent with the effort just leave weather out. '
+      + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination). Name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to. Prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike). Mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. If an "indoor" field is present (e.g. Zwift, MyWhoosh), it was a virtual ride on a smart trainer. Say so naturally (e.g. "on Zwift"), build it around power, heart rate and time, treat speed and distance as virtual, and never invent a place, destination or weather. If watts_source is "power meter", the watts are measured, always use the power numbers (avg_watts, np_watts normalized power, max_watts, kj) as key stats. If watts_source is a Strava estimate, the watts are a guess: call them estimated and never build the story around them. NEVER mention, guess or hint at where I started or where I live. '
+      + 'If a "weather" field is present it is a rough estimate that may be inaccurate. Reference conditions only lightly, never as a hard fact, and if it seems inconsistent with the effort just leave weather out. '
       + 'Return EXACTLY the title on the first line, then a blank line, then the description. No labels, no markdown, no surrounding quotes.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
   ];
@@ -553,7 +553,7 @@ async function aiCaptionActivity(id) {
       const why = aiErrorMessage(data, r.status);
       await aiStatsCaption(id);
       const st = document.getElementById('aiCapStatus');
-      if (st) { st.className = 'ai-cap-status err'; st.innerHTML = tr('AI unavailable — showing the stats caption instead.') + ' ' + why; }
+      if (st) { st.className = 'ai-cap-status err'; st.innerHTML = tr('AI unavailable, showing the stats caption instead.') + ' ' + why; }
       return;
     }
     const lines = data.text.trim().split('\n');
@@ -561,7 +561,7 @@ async function aiCaptionActivity(id) {
     const desc = lines.join('\n').replace(/^\s+/, '').trim();
     aiShowCaptionPreview(id, title, aiWithLocation(desc, a), 'ai', roast);
     aiStoreSave(id, { caption_title: title, caption_desc: aiWithLocation(desc, a) });
-  } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error — try again.</div>'; }
+  } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error, try again.</div>'; }
 }
 
 /* ── AI performance analysis (in the activity modal) ──────────────────────────
@@ -666,12 +666,12 @@ async function aiAnalysisToNote(id) {
     await apiPut('/activities/' + id, { private_note: note });
     const back = await api('/activities/' + id);
     if (back && typeof back.private_note === 'string' && back.private_note.slice(0, 40) === note.slice(0, 40)) {
-      status.className = 'ai-cap-status ok'; status.textContent = '✓ ' + tr('Saved as a private note — only you can see it on Strava.');
+      status.className = 'ai-cap-status ok'; status.textContent = '✓ ' + tr('Saved as a private note, only you can see it on Strava.');
     } else {
-      status.className = 'ai-cap-status err'; status.textContent = tr("Strava didn't keep the private note — its API may not allow writing it. The analysis stays saved here in Ascent.");
+      status.className = 'ai-cap-status err'; status.textContent = tr("Strava didn't keep the private note, its API may not allow writing it. The analysis stays saved here in Ascent.");
     }
   } catch (e) {
-    status.className = 'ai-cap-status err'; status.textContent = tr('Saving failed') + ' (' + ((e && e.message) || e) + '). ' + tr('Your login may need the activity:write permission — reconnect Strava.');
+    status.className = 'ai-cap-status err'; status.textContent = tr('Saving failed') + ' (' + ((e && e.message) || e) + '). ' + tr('Your login may need the activity:write permission. Reconnect Strava.');
   }
 }
 
@@ -687,11 +687,11 @@ async function aiAnalyzeActivity(id, force) {
   const { provider, model, key } = aiProviderModel();
   const messages = [
     { role: 'system', content:
-      'You are an expert cycling and running coach. Analyse ONE activity using ONLY the numbers provided — never invent data. '
+      'You are an expert cycling and running coach. Analyse ONE activity using ONLY the numbers provided. Never invent data. '
       // always Indonesian: this analysis becomes the Strava private note, which the owner wants in Bahasa Indonesia
       + 'Address the athlete directly as "kamu". Reply entirely in natural Bahasa Indonesia; keep numbers, units and proper nouns unchanged. '
       + 'Structure the reply as short markdown: a one-line **Kesimpulan**, then a "Kelebihan" list (2–3 bullets), '
-      + 'a "Perlu diperbaiki" list (2–3 bullets), and one concrete "Lain kali" tip. Reference the real stats (speed, HR, power, elevation). If watts_source is "power meter", the watts are measured — always use the power numbers (avg_watts, np_watts normalized power, max_watts, kj) as key stats. If watts_source is a Strava estimate, the watts are a guess: call them estimated and never build the story around them. Weather, if present, is an approximate estimate — treat it as uncertain, do not build the analysis around it, and skip it if it looks off. '
+      + 'a "Perlu diperbaiki" list (2–3 bullets), and one concrete "Lain kali" tip. Reference the real stats (speed, HR, power, elevation). If watts_source is "power meter", the watts are measured, always use the power numbers (avg_watts, np_watts normalized power, max_watts, kj) as key stats. If watts_source is a Strava estimate, the watts are a guess: call them estimated and never build the story around them. Weather, if present, is an approximate estimate. Treat it as uncertain, do not build the analysis around it, and skip it if it looks off. '
       + 'Keep it under ~160 words. No preamble, no headings other than those named.' },
     { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nAnalyse my performance.' },
   ];
@@ -703,7 +703,7 @@ async function aiAnalyzeActivity(id, force) {
     try { localStorage.setItem(_analysisKey(id), text); } catch {}
     a.ai_analysis = text; aiSyncCache(); aiStoreSave(id, { analysis: text });
     _showAnalysis(id, text);
-  } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error — try again.</div>'; }
+  } catch { panel.innerHTML = '<div class="ai-cap-status err">Network error, try again.</div>'; }
 }
 
 /* Shared editable preview used by both the AI and the stats (no-AI) buttons. */
@@ -778,7 +778,7 @@ async function aiCaptionApply(id) {
     const t = document.getElementById('actModalTitle'); if (t) t.textContent = title.trim();
     if (status) { status.className = 'ai-cap-status ok'; status.textContent = '✓ Updated on Strava.'; }
   } catch (e) {
-    if (status) { status.className = 'ai-cap-status err'; status.textContent = 'Update failed (' + ((e && e.message) || e) + '). Your login may need the activity:write permission — reconnect Strava.'; }
+    if (status) { status.className = 'ai-cap-status err'; status.textContent = 'Update failed (' + ((e && e.message) || e) + '). Your login may need the activity:write permission. Reconnect Strava.'; }
   }
 }
 
@@ -852,7 +852,7 @@ async function bulkRun(p, mode) {
         const t = aiStatsTemplate(a, wx, rp); name = t.title; desc = t.desc;
       } else {
         const messages = [
-          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + aiToneLine(roast) + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination) — name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to — prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike) — mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. If an "indoor" field is present (e.g. Zwift, MyWhoosh), it was a virtual ride on a smart trainer — say so naturally (e.g. "on Zwift"), build it around power, heart rate and time, treat speed and distance as virtual, and never invent a place, destination or weather. If watts_source is "power meter", the watts are measured — always use the power numbers (avg_watts, np_watts normalized power, max_watts, kj) as key stats. If watts_source is a Strava estimate, the watts are a guess: call them estimated and never build the story around them. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate — mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided — never invent. Stopped time is NOT a café, coffee, food, nap or any other stop — I never said why I stopped, so never say or joke about where or why (just roast the minutes). Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
+          { role: 'system', content: 'You write Strava activity titles and descriptions in first person ("I"). Always write in English; translate any Indonesian terms (pagi=morning, siang=midday, sore=evening, malam=night, bersepeda=cycling, lari=run, jalan=walk, renang=swim). ' + aiToneLine(roast) + 'If "furthest_place" is present it is the furthest point I reached (my turnaround/destination). Name it naturally as where I rode to (e.g. "rode out to X"). If "furthest_landmark" is present (e.g. Tanah Lot), that is the landmark I rode to. Prefer naming it over the village. If a "bike" field is present, that is the kind of bike I rode (e.g. road bike, gravel bike). Mention it naturally when it fits (e.g. "took the gravel bike out"); never name a bike brand or model. If "avg_cadence" is present, always mention it. If an "indoor" field is present (e.g. Zwift, MyWhoosh), it was a virtual ride on a smart trainer. Say so naturally (e.g. "on Zwift"), build it around power, heart rate and time, treat speed and distance as virtual, and never invent a place, destination or weather. If watts_source is "power meter", the watts are measured, always use the power numbers (avg_watts, np_watts normalized power, max_watts, kj) as key stats. If watts_source is a Strava estimate, the watts are a guess: call them estimated and never build the story around them. NEVER mention, guess or hint at where I started or where I live. If a "weather" field is present it is a rough, possibly-inaccurate estimate. Mention it only lightly and never as a hard fact, and omit it if it seems off. Base everything ONLY on the real numbers provided. Never invent. Stopped time is NOT a café, coffee, food, nap or any other stop: I never said why I stopped, so never say or joke about where or why (just roast the minutes). Weave in 2–4 key stats. Title under 60 characters. Description 2–4 short sentences. Return EXACTLY the title on the first line, a blank line, then the description. No labels, no markdown, no quotes.' },
           { role: 'user', content: 'Activity data (JSON):\n' + JSON.stringify(await aiWithWeather(a)) + '\n\nWrite my new title and description.' },
         ];
         const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, messages, provider, model, key }) });
@@ -911,7 +911,7 @@ async function actSetBike(id, sel) {
     if (typeof _renderActList === 'function') _renderActList((document.getElementById('actSearch') || {}).value || '');
   } catch (e) {
     sel.value = prev || '';
-    say('err', tr('Couldn’t change the bike') + ' (' + ((e && e.message) || e) + '). ' + tr('Your login may need the activity:write permission — reconnect Strava.'));
+    say('err', tr('Couldn’t change the bike') + ' (' + ((e && e.message) || e) + '). ' + tr('Your login may need the activity:write permission. Reconnect Strava.'));
   }
   sel.disabled = false;
 }
@@ -930,7 +930,7 @@ async function aiWebhookStatus() {
     const r = await fetch('/api/ai-chats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'webhook-status' }) });
     d = r.ok ? await r.json() : null;
   } catch {}
-  if (!d) { out.className = 'ai-test-result err'; out.textContent = tr('Could not check the webhook — try again.'); return; }
+  if (!d) { out.className = 'ai-test-result err'; out.textContent = tr('Could not check the webhook. Try again.'); return; }
   const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const line = (ok, text) => '<div>' + (ok ? '✅ ' : '❌ ') + text + '</div>';
   const when = t => t ? new Date(t).toLocaleString() : '';
@@ -939,10 +939,10 @@ async function aiWebhookStatus() {
   out.innerHTML = '<b>' + (working ? tr('Working') : tr('Not working')) + '</b>'
     + line(!!d.subscription, d.subscription ? tr('Strava sends new activities here') : tr('No Strava webhook subscription'))
     + line(d.token.write, d.token.write ? trf('Can write to your Strava (token saved {0})', when(d.token.saved_at))
-      : d.token.saved_at ? tr('The saved token can’t write — log out and back in, and keep “upload your activities” ticked')
-      : tr('No token saved yet — log out and back in once'))
+      : d.token.saved_at ? tr('The saved token can’t write. Log out and back in, and keep “upload your activities” ticked')
+      : tr('No token saved yet, log out and back in once'))
     + (d.events.length ? '<div style="margin-top:8px;color:var(--muted);font-weight:400">' + tr('Latest events') + ':</div>'
-      + d.events.map(e => '<div style="font-weight:400;color:var(--muted)">' + esc(when(e.at)) + ' · ' + esc(e.aspect) + ' · <a href="https://www.strava.com/activities/' + esc(e.activity_id) + '" target="_blank" rel="noopener">' + esc(e.activity_id) + '</a> — ' + esc(e.result) + '</div>').join('')
+      + d.events.map(e => '<div style="font-weight:400;color:var(--muted)">' + esc(when(e.at)) + ' · ' + esc(e.aspect) + ' · <a href="https://www.strava.com/activities/' + esc(e.activity_id) + '" target="_blank" rel="noopener">' + esc(e.activity_id) + '</a>' + esc(e.result) + '</div>').join('')
       : '<div style="margin-top:8px;color:var(--muted);font-weight:400">' + tr('No events logged yet.') + '</div>');
 }
 
@@ -956,14 +956,14 @@ async function aiTestConnection(savedHint) {
   const token = localStorage.getItem('strava_access_token');
   if (!token) { out.className = 'ai-test-result err'; out.textContent = 'Connect to Strava first.'; return; }
   const { provider, model, key } = aiProviderModel();
-  out.className = 'ai-test-result'; out.textContent = (savedHint ? 'Saved ✓ — ' : '') + 'checking ' + provider + '…';
+  out.className = 'ai-test-result'; out.textContent = (savedHint ? 'Saved ✓' : '') + 'checking ' + provider + '…';
   if (btn) btn.disabled = true;
   try {
     const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, provider, model, key, test: true }) });
     const data = await r.json().catch(() => ({}));
-    if (r.ok && data.ok) { aiInsightOff = false; out.className = 'ai-test-result ok'; out.innerHTML = '✓ Saved — <b>' + provider + '</b> is configured and ready.'; }
+    if (r.ok && data.ok) { aiInsightOff = false; out.className = 'ai-test-result ok'; out.innerHTML = '✓ Saved, <b>' + provider + '</b> is configured and ready.'; }
     else { out.className = 'ai-test-result err'; out.innerHTML = aiErrorMessage(data, r.status); }
-  } catch { out.className = 'ai-test-result err'; out.textContent = 'Network error — could not reach the server.'; }
+  } catch { out.className = 'ai-test-result err'; out.textContent = 'Network error, could not reach the server.'; }
   finally { if (btn) btn.disabled = false; }
 }
 
@@ -975,13 +975,13 @@ const AI_SECTION_LABEL = {
   statRow:           'Overview',
   cyclingSection:    'Cycling',
   runningSection:    'Running',
-  trendsSection:     'Trends — weekly distance, year-over-year and the year in review',
+  trendsSection:     'Trends, weekly distance, year-over-year and the year in review',
   bestSection:       'Best Efforts',
-  milestonesSection: 'Achievements — trophies (all-time, year-to-date and last-4-week training totals, NOT KOM/segment awards), distance/elevation milestones and personal records',
-  calSection:        'Calendar — activity frequency and consistency',
-  heatSection:       'Heatmap — where you train (geographic spread of routes)',
-  powerSection:      'Power — FTP, W/kg, normalized power, intensity, efficiency (watts per heartbeat) and power-meter rides',
-  sleepSection:      'Sleep & Recovery — measured sleep stages joined to training days (a night is labelled by the morning of waking)',
+  milestonesSection: 'Achievements, trophies (all-time, year-to-date and last-4-week training totals, NOT KOM/segment awards), distance/elevation milestones and personal records',
+  calSection:        'Calendar, activity frequency and consistency',
+  heatSection:       'Heatmap, where you train (geographic spread of routes)',
+  powerSection:      'Power: FTP, W/kg, normalized power, intensity, efficiency (watts per heartbeat) and power-meter rides',
+  sleepSection:      'Sleep & Recovery, measured sleep stages joined to training days (a night is labelled by the morning of waking)',
 };
 
 /* Per-section computed context for pages whose data isn't readable from the DOM
@@ -1183,7 +1183,7 @@ async function aiSectionInsight(sectionId, tries = 0, force = false) {
   const { provider, model, key: apiKey } = aiProviderModel();
   const messages = [
     { role: 'system', content:
-      'You are a sharp, neutral sports-data analyst. From what is shown on one dashboard page, surface ONE specific, non-obvious insight that CONNECTS multiple numbers — e.g. how speed relates to distance or elevation, a trend across weeks/months, the balance between sports, consistency, or an outlier and what it implies. '
+      'You are a sharp, neutral sports-data analyst. From what is shown on one dashboard page, surface ONE specific, non-obvious insight that CONNECTS multiple numbers. E.g. how speed relates to distance or elevation, a trend across weeks/months, the balance between sports, consistency, or an outlier and what it implies. '
       + 'Do NOT just praise a single headline stat (like top speed) and do NOT use motivational filler or exclamations. Use ONLY the numbers given; never invent data or mention metrics that are not present. ' + aiLangLine() + '1–2 plain sentences, max 40 words. No headings, no preamble.' },
     { role: 'user', content: 'This is the "' + label + '" page. On-screen content (headings, stats and chart data):\n"""\n' + combined + '\n"""\nGive one analytical insight connecting these numbers.' },
   ];
@@ -1457,7 +1457,7 @@ function aiErrorMessage(data, status) {
   const fixed = {
     provider_not_configured: 'No API key is set on the server for this provider yet. Add <code>' + ((data && data.envVar) || 'the API key') + '</code> in Vercel → Settings → Environment Variables, then redeploy.',
     not_authorized: 'The AI Coach is limited to the dashboard owner\'s Strava account.',
-    invalid_strava_token: 'Your Strava session expired — hit Refresh and try again.',
+    invalid_strava_token: 'Your Strava session expired. Hit Refresh and try again.',
     unknown_provider: 'That AI provider isn\'t supported.',
     bad_request: 'The request was malformed. Try reloading the page.',
   };
@@ -1469,7 +1469,7 @@ function aiErrorMessage(data, status) {
     const st = data && data.status;
     let hint;
     if (st === 402 || /balance|credit|quota|insufficient|billing|payment/.test(d))
-      hint = '💳 This usually means the account is <b>out of credit</b>. Top up your provider account (DeepSeek is prepaid — add a few dollars in the DeepSeek console).';
+      hint = '💳 This usually means the account is <b>out of credit</b>. Top up your provider account (DeepSeek is prepaid, add a few dollars in the DeepSeek console).';
     else if (st === 401 || st === 403 || /invalid.*key|unauthor|authentication|api key/.test(d))
       hint = '🔑 Your <b>API key looks invalid</b>. Double-check the value you set in Vercel for this provider.';
     else if (st === 429 || /rate.?limit|too many/.test(d))
@@ -1525,7 +1525,7 @@ async function aiSend(userText) {
     aiPersist();
   } catch (e) {
     thinking.remove();
-    aiAppend('bot', 'Network error — could not reach the AI.', 'err');
+    aiAppend('bot', 'Network error, could not reach the AI.', 'err');
   } finally {
     _aiBusy = false;
     if (sendBtn) sendBtn.disabled = false;
@@ -1588,7 +1588,7 @@ async function aiSend(userText) {
     if (mdl) localStorage.setItem('ai_model', mdl.value.trim());
     if (keyEl) localStorage.setItem('ai_key', keyEl.value.trim());
     const out = document.getElementById('aiTestResult');
-    if (out) { out.className = 'ai-test-result ok'; out.innerHTML = 'Saved ✓ — <b>' + (prov ? prov.value : 'provider') + '</b> selected. Tap “Test connection” to verify it works.'; }
+    if (out) { out.className = 'ai-test-result ok'; out.innerHTML = 'Saved ✓, <b>' + (prov ? prov.value : 'provider') + '</b> selected. Tap “Test connection” to verify it works.'; }
   });
   const testBtn = document.getElementById('aiTestBtn');
   if (testBtn) testBtn.addEventListener('click', () => aiTestConnection(false));

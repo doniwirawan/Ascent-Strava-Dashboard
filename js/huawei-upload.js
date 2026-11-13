@@ -141,11 +141,11 @@ async function _hwUpload(w, name, step, replacing, desc) {
     }
     if (up.error) {
       const dup = /duplicate of .*?activities\/(\d+)/.exec(up.error);
-      if (dup && dup[1] === String(replacing)) throw new Error(tr('Strava sees it as the same activity — delete the old manual one on Strava first, then try again.'));
+      if (dup && dup[1] === String(replacing)) throw new Error(tr('Strava sees it as the same activity. Delete the old manual one on Strava first, then try again.'));
       if (dup) return { id: dup[1], kind: 'file' }; // already on Strava — just link it
       throw new Error(up.error.replace(/<[^>]+>/g, '').trim()); // Strava's error carries an HTML link
     }
-    if (!up.activity_id) throw new Error(tr('Strava is still processing — check again in a minute.'));
+    if (!up.activity_id) throw new Error(tr('Strava is still processing. Check again in a minute.'));
     step(tr('Setting the sport…'));
     await apiPut('/activities/' + up.activity_id, { sport_type: sport, trainer: !!trainer, description: _hwDesc(w, desc) });
     return { id: String(up.activity_id), kind: 'file' };
@@ -183,7 +183,7 @@ async function renderHuaweiCard(force) {
       + '<div class="hw-info"><input class="hw-name" type="text" value="' + (up ? '' : esc(_hwDefaultName(w))) + '"'
       + (up ? ' placeholder="' + esc(T('Same name as on Strava')) + '"' : '') + ' aria-label="' + T('Activity name') + '">'
       + '<div class="act-meta">' + esc(facts) + '</div>'
-      + '<div class="hw-status">' + (busy ? esc(busy) : up ? link(w.strava_id, T('On Strava')) + ' ' + T('as a manual activity — no heart rate.') : '') + '</div></div>'
+      + '<div class="hw-status">' + (busy ? esc(busy) : up ? link(w.strava_id, T('On Strava')) + ' ' + T('as a manual activity, no heart rate.') : '') + '</div></div>'
       + '<button type="button" class="seg-scan hw-up"' + (busy ? ' disabled' : '') + '>' + T(up ? 'Replace with HR version' : 'Upload to Strava') + '</button></div>';
   }).join('');
   document.querySelectorAll('#huaweiList .hw-row').forEach(row => {

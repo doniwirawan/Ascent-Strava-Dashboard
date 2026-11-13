@@ -290,7 +290,7 @@ function zoneLegendHTML(totals, ranges) {
       <span class="hrz-dot" style="background:${z.color}"></span>
       <span class="hrz-name">Z${i + 1} · ${z.name}${range ? ` <span class="hrz-range">${range} bpm</span>` : ''}</span>
       <span class="hrz-bar"><span style="width:${Math.round(v / peak * 100)}%;background:${z.color}"></span></span>
-      <span class="hrz-time">${v ? fmtT(v) : '—'}</span>
+      <span class="hrz-time">${v ? fmtT(v) : '–'}</span>
       <span class="hrz-pct">${v ? Math.round(v / sum * 100) + '%' : ''}</span>
     </div>`;
   }).join('');
@@ -396,7 +396,7 @@ async function renderOverviewZonesAge(set) {
   const age = _hrzAge();
   if (!age) {
     ring.style.display = 'none'; legend.innerHTML = '';
-    note.innerHTML = `${tr('Your birth date (Strava doesn’t share it) — saved in this browser only:')}
+    note.innerHTML = `${tr('Your birth date (Strava doesn’t share it), saved in this browser only:')}
       <input type="date" class="hrz-dob" onchange="setHrzBirthDate(this.value)">`;
     return;
   }
@@ -466,7 +466,7 @@ async function renderActivityHrZones(a) {
     if (!age) {
       if (await _hrzOwnerDob()) { setHrzBirthDate(localStorage.getItem('hrzBirthDate'), a.id); return; }
       document.getElementById('actHrzRing').style.display = 'none';
-      note.innerHTML = `${tr('Your birth date (Strava doesn’t share it) — saved in this browser only:')}
+      note.innerHTML = `${tr('Your birth date (Strava doesn’t share it), saved in this browser only:')}
         <input type="date" class="hrz-dob" onchange="setHrzBirthDate(this.value,'${a.id}')">`;
       return;
     }
@@ -742,7 +742,7 @@ function speedLegendHTML(totals) {
       <span class="hrz-dot" style="background:${z.color}"></span>
       <span class="hrz-name">Z${i + 1} · ${z.name} <span class="hrz-range">${speedZoneRange(i)} ${speedUnit()}</span></span>
       <span class="hrz-bar"><span style="width:${Math.round(v / peak * 100)}%;background:${z.color}"></span></span>
-      <span class="hrz-time">${v ? fmtT(v) : '—'}</span>
+      <span class="hrz-time">${v ? fmtT(v) : '–'}</span>
       <span class="hrz-pct">${v ? Math.round(v / sum * 100) + '%' : ''}</span>
     </div>`;
   }).join('');
@@ -773,7 +773,7 @@ function renderOverviewSpeedZones() {
   const left = st.missing.length;
   const basis = streamed
     ? trf('Real time at speed, second by second · {0} of {1} activities analysed', st.have, st.have + left)
-    : tr('Estimated — each activity’s moving time counted at its average speed, so surges inside a ride don’t show');
+    : tr('Estimated, each activity’s moving time counted at its average speed, so surges inside a ride don’t show');
   note.innerHTML = basis + (left
     ? ` <button class="seg-scan spdz-btn" id="spdzFetch">${streamed ? trf('Analyse {0} more', left) : trf('Analyse {0} activities', left)}</button>`
     : '');
@@ -783,7 +783,7 @@ function renderOverviewSpeedZones() {
     btn.disabled = true;
     const batch = st.missing.slice(0, 100);   // one rate-limit window's worth
     const r = await fetchSpeedZoneStreams(batch, (n, t) => { btn.textContent = trf('Analysing… {0}/{1}', n, t); });
-    if (r.limited) setStatus(tr('Strava rate limit reached — analyse the rest in 15 minutes.'));
+    if (r.limited) setStatus(tr('Strava rate limit reached. Analyse the rest in 15 minutes.'));
     renderOverviewSpeedZones();
   };
   // A few new activities (the usual case after a ride) are analysed on their own,
@@ -867,7 +867,7 @@ async function renderActivityPowerZones(a) {
     return `<div class="hrz-row"><span class="hrz-dot" style="background:${z.color}"></span>
       <span class="hrz-name">Z${i + 1} · ${z.name} <span class="hrz-range">${hi == null ? lo + '+' : lo + '–' + hi} W</span></span>
       <span class="hrz-bar"><span style="width:${Math.round(v / peak * 100)}%;background:${z.color}"></span></span>
-      <span class="hrz-time">${v ? fmtT(v) : '—'}</span><span class="hrz-pct">${v && sum ? Math.round(v / sum * 100) + '%' : ''}</span></div>`;
+      <span class="hrz-time">${v ? fmtT(v) : '–'}</span><span class="hrz-pct">${v && sum ? Math.round(v / sum * 100) + '%' : ''}</span></div>`;
   }).join('');
   document.getElementById('actPwzNote').textContent = trf('Zones from FTP {0} W', F);
 }
@@ -892,7 +892,7 @@ function _renderPwzInto(id) {
     for (const b in h) totals[powerZoneFor(+b * 10 + 5, F)] += h[b];
   });
   const sum = totals.reduce((s, v) => s + v, 0), peak = Math.max(...totals) || 1;
-  drawZoneRing(document.getElementById(id + 'Ring'), totals, { big: sum ? fmtTc(sum) : '—', small: tr('moving') }, 220, POWER_ZONES.map(z => z.color));
+  drawZoneRing(document.getElementById(id + 'Ring'), totals, { big: sum ? fmtTc(sum) : '–', small: tr('moving') }, 220, POWER_ZONES.map(z => z.color));
   document.getElementById(id + 'Legend').innerHTML = POWER_ZONES.map((z, i) => {
     const lo = i ? Math.round(POWER_ZONES[i - 1].hi * F) : 0, hi = z.hi === Infinity ? null : Math.round(z.hi * F);
     const v = totals[i];
@@ -900,7 +900,7 @@ function _renderPwzInto(id) {
       <span class="hrz-dot" style="background:${z.color}"></span>
       <span class="hrz-name">Z${i + 1} · ${z.name} <span class="hrz-range">${hi == null ? lo + '+' : lo + '–' + hi} W</span></span>
       <span class="hrz-bar"><span style="width:${Math.round(v / peak * 100)}%;background:${z.color}"></span></span>
-      <span class="hrz-time">${v ? fmtT(v) : '—'}</span>
+      <span class="hrz-time">${v ? fmtT(v) : '–'}</span>
       <span class="hrz-pct">${v && sum ? Math.round(v / sum * 100) + '%' : ''}</span>
     </div>`;
   }).join('');
@@ -1007,7 +1007,7 @@ async function showSpeedSpot(actId, btn, kind, panelId) {
   panel.classList.add('open');
   panel.innerHTML = '<div class="spot-loading">' + tr('Finding the spot…') + '</div>';
   // Zwift / MyWhoosh: the GPS is a game world, so there is no real spot to show
-  if (isVirtual(a)) { panel.innerHTML = '<div class="spot-loading">' + trf('Ridden on {0} — no real-world location.', virtualApp(a)) + '</div>'; return; }
+  if (isVirtual(a)) { panel.innerHTML = '<div class="spot-loading">' + trf('Ridden on {0}, no real-world location.', virtualApp(a)) + '</div>'; return; }
   const spot = await _peakSpot(a, kind);
   if (!spot) { panel.innerHTML = '<div class="spot-loading">' + tr('No GPS data for this ride.') + '</div>'; return; }
 
@@ -1021,7 +1021,7 @@ async function showSpeedSpot(actId, btn, kind, panelId) {
     <div class="spot-map" id="map-${pid}"></div>
     <div class="spot-facts">
       <div class="spot-big">${kind === 'hr' ? Math.round(spot.val) + '<i>bpm</i>' : kind === 'power' ? Math.round(spot.val) + '<i>W</i>' : kmh(spot.val) + `<i>${speedUnit()}</i>`}</div>
-      ${spot.suspect ? `<div class="spot-warn">${tr('Looks like a GPS spike — the pin is where Strava recorded it')}</div>` : ''}
+      ${spot.suspect ? `<div class="spot-warn">${tr('Looks like a GPS spike, the pin is where Strava recorded it')}</div>` : ''}
       <div class="spot-rows">
         ${spot.before != null ? `<div><span>${tr('10 s before')}</span><b>${kmh(spot.before)} ${speedUnit()}</b></div>` : ''}
         ${spot.spd != null ? `<div><span>${tr('Speed then')}</span><b>${kmh(spot.spd)} ${speedUnit()}</b></div>` : ''}

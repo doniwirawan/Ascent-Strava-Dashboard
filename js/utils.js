@@ -77,7 +77,7 @@ function ridePower(a) {
     wkg: avg / athWeightKg() };
 }
 const fmtPace = ms => {
-  if (!ms || ms <= 0) return '—';
+  if (!ms || ms <= 0) return '–';
   const spu = (useImperial ? _MI*1000 : 1000) / ms; // seconds per unit
   const m = Math.floor(spu/60), s = Math.round(spu%60);
   const mm = s===60 ? m+1 : m, ss = s===60 ? 0 : s;

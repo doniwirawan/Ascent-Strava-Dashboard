@@ -374,7 +374,7 @@ function _wireCollageDrag(){
 
 function openStoryModal(){
   const picker=document.getElementById('activityPicker');
-  picker.innerHTML=acts.slice(0,50).map((a,i)=>`<option value="${i}">${fmtDt(a.start_date)} — ${a.name} (${fmtD(a.distance)})</option>`).join('');
+  picker.innerHTML=acts.slice(0,50).map((a,i)=>`<option value="${i}">${fmtDt(a.start_date)}, ${a.name} (${fmtD(a.distance)})</option>`).join('');
   // adapt the default stat selection to the first activity's sport
   adaptStatsToActivity(acts[parseInt(picker.value)||0]);
 

@@ -376,6 +376,6 @@ async function shareStatsImage(id) {
     try { await navigator.share({ files: [file] }); } catch {}
   } else {
     downloadStatsImage(id);
-    if (status) status.textContent = tr('Sharing isn\'t supported in this browser — downloaded instead.');
+    if (status) status.textContent = tr('Sharing isn\'t supported in this browser. Downloaded instead.');
   }
 }

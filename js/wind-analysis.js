@@ -93,10 +93,10 @@ function _windMarkup(a, w) {
   ].map(r => `<div class="tl-row"><span class="tl-lbl">${r.lbl}</span><span class="tl-track"><span style="width:${r.v}%;background:${r.c}"></span></span><span class="tl-pct" style="min-width:40px;white-space:nowrap">${r.v}%${a.distance ? ' · ' + fmtD(a.distance * r.v / 100) : ''}</span></div>`).join('');
   const net = w.netComponentKmh;
   const netTxt = net >= 0.3
-    ? `<span style="color:#22c55e">≈ +${net.toFixed(1)} ${speedUnit()}</span>${tr(' net tailwind — the wind helped your speed.')}`
+    ? `<span style="color:#22c55e">≈ +${net.toFixed(1)} ${speedUnit()}</span>${tr(' net tailwind, the wind helped your speed.')}`
     : net <= -0.3
-      ? `<span style="color:#ef4444">≈ ${net.toFixed(1)} ${speedUnit()}</span>${tr(' net headwind — you were stronger than the raw speed suggests.')}`
-      : tr('roughly neutral — wind mostly crossed your route.');
+      ? `<span style="color:#ef4444">≈ ${net.toFixed(1)} ${speedUnit()}</span>${tr(' net headwind, you were stronger than the raw speed suggests.')}`
+      : tr('roughly neutral, wind mostly crossed your route.');
   const windVal = `<b>${w.windKmh} ${speedUnit()}</b>`, windDir = `<b>${_windDirName(w.windFromDeg)}</b>`;
   return `
     <div class="tr-basis-note" style="margin-bottom:10px">${trf('Wind was {0} from the {1} ({2}°).', windVal, windDir, w.windFromDeg)}</div>
@@ -111,7 +111,7 @@ function _trWindHTML() {
   return `<div class="card tr-wind">
     <div class="tr-chart-title">${tr('Wind Analysis')} <span class="gm-hint">${tr('headwind / tailwind / crosswind')}</span></div>
     <div id="windBody">
-      <div class="tr-basis-note">${tr('See how much of your latest ride fought a headwind — sometimes a "slow" ride was actually a strong one.')}</div>
+      <div class="tr-basis-note">${tr('See how much of your latest ride fought a headwind. Sometimes a "slow" ride was actually a strong one.')}</div>
       <button class="tr-ai-btn" style="margin-top:10px" onclick="analyzeWind()">${trf('Analyse {0}', a.name || tr('latest ride'))}</button>
     </div>
   </div>`;

@@ -155,13 +155,13 @@ function _trPowerCurveHTML() {
   if (agg && agg.count) {
     inner = pcCurveMarkup(agg, {
       button: owner ? (agg.sig === _pcSig() ? tr('Recompute') : tr('Update with new rides')) : null,
-      note: agg.partial ? tr('Partial — rate-limited last time; click to resume (done rides are cached).') : '',
+      note: agg.partial ? tr('Partial, rate-limited last time; click to resume (done rides are cached).') : '',
     });
   } else if (owner) {
     inner = `<div class="tr-basis-note">${tr('Estimate your all-time best power at each duration from your ride streams.')}</div>
       <button class="tr-ai-btn" style="margin-top:10px" onclick="computePowerCurve()">${tr('Compute power curve')}</button>`;
   } else {
-    inner = `<div class="tr-basis-note">${tr("The power curve is computed on the owner's device — it fetches ride streams, and Strava's rate limit is shared across the app.")}</div>`;
+    inner = `<div class="tr-basis-note">${tr("The power curve is computed on the owner's device, it fetches ride streams, and Strava's rate limit is shared across the app.")}</div>`;
   }
   return `<div class="card tr-pc">
     <div class="tr-chart-title">${tr('Power Curve')} <span class="gm-hint">${tr('best average power at each duration')}</span></div>
@@ -207,7 +207,7 @@ async function computePowerCurve() {
   pcSaveAgg(agg);
   pcRenderCurve(agg, body, {
     button: agg.sig === _pcSig() ? tr('Recompute') : tr('Update with new rides'),
-    note: stopped ? tr('Rate-limited — reopen later to resume; fetched rides are cached.') : '',
+    note: stopped ? tr('Rate-limited, reopen later to resume; fetched rides are cached.') : '',
   });
   _pcRunning = false;
 }

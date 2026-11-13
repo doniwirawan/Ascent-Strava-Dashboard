@@ -32,10 +32,10 @@ function _hrdCompute(streams) {
 }
 
 function _hrdBand(dc) {
-  if (dc < 0)   return { color: '#4da8ff', text: tr('Negative drift — you held or raised output as HR settled (negative split or long warm-up). Strong aerobic control.') };
-  if (dc <= 5)  return { color: '#22c55e', text: tr('Well-coupled (<5%). Strong aerobic endurance for this effort — HR stayed steady against your output.') };
+  if (dc < 0)   return { color: '#4da8ff', text: tr('Negative drift, you held or raised output as HR settled (negative split or long warm-up). Strong aerobic control.') };
+  if (dc <= 5)  return { color: '#22c55e', text: tr('Well-coupled (<5%). Strong aerobic endurance for this effort: HR stayed steady against your output.') };
   if (dc <= 10) return { color: '#fb923c', text: tr('Moderate drift (5–10%). Normal for a hard or long ride; watch fuelling and pacing on the back half.') };
-  return { color: '#ef4444', text: tr('High decoupling (>10%). Aerobic endurance, pacing, heat or fuelling limited the second half — a target to build.') };
+  return { color: '#ef4444', text: tr('High decoupling (>10%). Aerobic endurance, pacing, heat or fuelling limited the second half. A target to build.') };
 }
 
 /* What decoupling is and how to read the number — shown so the section explains
@@ -45,11 +45,11 @@ function _hrdExplainHTML() {
   return `<details class="hrd-explain">
     <summary>${tr('What is heart-rate decoupling?')}</summary>
     <div class="hrd-explain-body">
-      <p>${tr('It compares your efficiency (output ÷ heart rate) in the first half of a long effort against the second half. If your heart rate keeps climbing while your pace or power holds steady, the second half has "decoupled" — a sign of aerobic fatigue, under-fuelling, heat, or starting too hard. Lower is better; elite aerobic endurance holds close to 0%.')}</p>
+      <p>${tr('It compares your efficiency (output ÷ heart rate) in the first half of a long effort against the second half. If your heart rate keeps climbing while your pace or power holds steady, the second half has "decoupled"a sign of aerobic fatigue, under-fuelling, heat, or starting too hard. Lower is better; elite aerobic endurance holds close to 0%.')}</p>
       <div class="hrd-legend">
-        ${band('#22c55e', '< 5%', 'Well-coupled — strong aerobic endurance for this effort.')}
-        ${band('#fb923c', '5–10%', 'Moderate drift — normal on a long or hard ride; watch fuelling and pacing.')}
-        ${band('#ef4444', '> 10%', 'High drift — endurance, pacing, heat or fuelling to build.')}
+        ${band('#22c55e', '< 5%', 'Well-coupled, strong aerobic endurance for this effort.')}
+        ${band('#fb923c', '5–10%', 'Moderate drift, normal on a long or hard ride; watch fuelling and pacing.')}
+        ${band('#ef4444', '> 10%', 'High drift, endurance, pacing, heat or fuelling to build.')}
       </div>
       <p class="hrd-explain-fine">${tr('Measured on your latest ride of 40 min+ with heart-rate data, split into halves.')}</p>
     </div>

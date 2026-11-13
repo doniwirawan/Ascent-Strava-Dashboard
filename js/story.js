@@ -4,14 +4,14 @@ const STAT_DEFS = [
   { key: 'moving_time', label: 'Moving Time', fmt: a => fmtT(a.moving_time || 0), unit: '' },
   { key: 'average_speed', label: 'Avg Speed', fmt: a => kmh(a.average_speed || 0) + ' km/h', unit: '' },
   { key: 'max_speed', label: 'Max Speed', fmt: a => kmh(a.max_speed || 0) + ' km/h', unit: '' },
-  { key: 'average_heartrate', label: 'Avg Heart Rate', fmt: a => a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '—', unit: '' },
-  { key: 'max_heartrate', label: 'Max Heart Rate', fmt: a => a.max_heartrate ? Math.round(a.max_heartrate) + ' bpm' : '—', unit: '' },
-  { key: 'average_cadence', label: 'Avg Cadence', fmt: a => a.average_cadence ? Math.round(a.average_cadence) + ' rpm' : '—', unit: '' },
-  { key: 'average_watts', label: 'Avg Power', fmt: a => a.average_watts ? Math.round(a.average_watts) + ' W' : '—', unit: '' },
+  { key: 'average_heartrate', label: 'Avg Heart Rate', fmt: a => a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '–', unit: '' },
+  { key: 'max_heartrate', label: 'Max Heart Rate', fmt: a => a.max_heartrate ? Math.round(a.max_heartrate) + ' bpm' : '–', unit: '' },
+  { key: 'average_cadence', label: 'Avg Cadence', fmt: a => a.average_cadence ? Math.round(a.average_cadence) + ' rpm' : '–', unit: '' },
+  { key: 'average_watts', label: 'Avg Power', fmt: a => a.average_watts ? Math.round(a.average_watts) + ' W' : '–', unit: '' },
   { key: 'total_elevation_gain', label: 'Elevation', fmt: a => Math.round(a.total_elevation_gain || 0) + ' m', unit: '' },
-  { key: 'kilojoules', label: 'Energy', fmt: a => a.kilojoules ? Math.round(a.kilojoules) + ' kJ' : '—', unit: '' },
-  { key: 'calories', label: 'Calories', fmt: a => a.calories ? Math.round(a.calories) + ' kcal' : '—', unit: '' },
-  { key: 'suffer_score', label: 'Suffer Score', fmt: a => a.suffer_score || '—', unit: '' },
+  { key: 'kilojoules', label: 'Energy', fmt: a => a.kilojoules ? Math.round(a.kilojoules) + ' kJ' : '–', unit: '' },
+  { key: 'calories', label: 'Calories', fmt: a => a.calories ? Math.round(a.calories) + ' kcal' : '–', unit: '' },
+  { key: 'suffer_score', label: 'Suffer Score', fmt: a => a.suffer_score || '–', unit: '' },
   { key: 'achievement_count', label: 'Achievements', fmt: a => a.achievement_count || 0, unit: '' },
 ];
 
@@ -831,8 +831,8 @@ function drawLayout(canvas, act, selected, sc, layout) {
         { lbl: 'D+', val: Math.round(act.total_elevation_gain || 0) + 'm' },
         { lbl: 'Distance', val: fmtD(act.distance || 0) },
         isCycE
-          ? { lbl: 'Avg Speed', val: act.average_speed ? kmh(act.average_speed) + ' km/h' : '—' }
-          : { lbl: 'Avg HR', val: act.average_heartrate ? Math.round(act.average_heartrate) + 'bpm' : '—' },
+          ? { lbl: 'Avg Speed', val: act.average_speed ? kmh(act.average_speed) + ' km/h' : '–' }
+          : { lbl: 'Avg HR', val: act.average_heartrate ? Math.round(act.average_heartrate) + 'bpm' : '–' },
         { lbl: 'Time', val: fmtT(act.moving_time || 0) },
       ];
       const pillH = Math.round(72 * S), pillY = Math.round(64 * S);
@@ -1120,11 +1120,11 @@ function drawLayout(canvas, act, selected, sc, layout) {
       const dist = fmtD(act.distance || 0);
       const elev = '+' + Math.round(act.total_elevation_gain || 0) + 'm';
       const time = fmtT(act.moving_time || 0);
-      const avgSpd = act.average_speed ? kmh(act.average_speed) + ' km/h' : '—';
-      const maxSpd = act.max_speed ? kmh(act.max_speed) + ' km/h' : '—';
-      const pwr = act.average_watts ? Math.round(act.average_watts) + ' W' : '—';
-      const cad = act.average_cadence ? Math.round(act.average_cadence) + ' rpm' : '—';
-      const hr = act.average_heartrate ? Math.round(act.average_heartrate) + ' bpm' : '—';
+      const avgSpd = act.average_speed ? kmh(act.average_speed) + ' km/h' : '–';
+      const maxSpd = act.max_speed ? kmh(act.max_speed) + ' km/h' : '–';
+      const pwr = act.average_watts ? Math.round(act.average_watts) + ' W' : '–';
+      const cad = act.average_cadence ? Math.round(act.average_cadence) + ' rpm' : '–';
+      const hr = act.average_heartrate ? Math.round(act.average_heartrate) + ' bpm' : '–';
 
       // route — large, right half, slightly offset up
       if (polyline && polyline.length > 1 && !hideRoute) {
@@ -1143,7 +1143,7 @@ function drawLayout(canvas, act, selected, sc, layout) {
       if (isCycF) {
         statBlock('Avg Speed', avgSpd, P, Math.round(H * 0.50));
       } else {
-        const pace = act.moving_time && act.distance ? (() => { const s = Math.round(act.moving_time / (act.distance / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}/km`; })() : '—';
+        const pace = act.moving_time && act.distance ? (() => { const s = Math.round(act.moving_time / (act.distance / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}/km`; })() : '–';
         statBlock('Avg Pace', pace, P, Math.round(H * 0.50));
       }
 
@@ -1197,7 +1197,7 @@ function drawStoryCanvas() {
 
 function openStoryModal() {
   const picker = document.getElementById('activityPicker');
-  picker.innerHTML = acts.slice(0, 50).map((a, i) => `<option value="${i}">${fmtDt(a.start_date)} — ${a.name} (${fmtD(a.distance)})</option>`).join('');
+  picker.innerHTML = acts.slice(0, 50).map((a, i) => `<option value="${i}">${fmtDt(a.start_date)}, ${a.name} (${fmtD(a.distance)})</option>`).join('');
 
   // layout thumbnails
   const lp = document.getElementById('layoutPicker');

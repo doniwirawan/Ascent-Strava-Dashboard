@@ -239,7 +239,7 @@ async function slpImportParse(file, password, onProgress) {
   const reader = new zip.ZipReader(new zip.BlobReader(file), { password });
   let entries;
   try { entries = await reader.getEntries(); }
-  catch (e) { throw new Error('Could not open the zip — is it the right file?'); }
+  catch (e) { throw new Error('Could not open the zip, is it the right file?'); }
 
   const detail = entries.filter(e => !e.directory && /Health detail data.*\.json$/i.test(e.filename));
   const xls    = entries.find(e => !e.directory && /SportsHealth-Data\.xls$/i.test(e.filename));
@@ -255,7 +255,7 @@ async function slpImportParse(file, password, onProgress) {
       const m = String(err && err.message);
       throw new Error(
         (/password|invalid|Crypt/i.test(m))
-          ? (password ? 'Wrong password for this export.' : 'This export is encrypted — enter the password and try again.')
+          ? (password ? 'Wrong password for this export.' : 'This export is encrypted, enter the password and try again.')
           : 'Failed to read a file in the zip.');
     }
     _impCollectSleep(text, segMap);
@@ -394,7 +394,7 @@ function wireSleepImport() {
         // Parsing worked; only the server write failed (e.g. Supabase offline).
         // The section still updates locally and the download button is offered.
         const off = e && (e.message === 'not_configured' || (e.info && e.info.error === 'upstream_error'));
-        setMsg('⚠️ ' + T('Parsed and updated on this device, but the server copy could not be saved') + (off ? ' ' + T('(sleep database is offline — use Download and deploy, or try again once it is back).') : '.') + ' — ' + (e.message || ''), 'warn');
+        setMsg('⚠️ ' + T('Parsed and updated on this device, but the server copy could not be saved') + (off ? ' ' + T('(sleep database is offline. Use Download and deploy, or try again once it is back).') : '.') + '' + (e.message || ''), 'warn');
       }
       // Refresh the section from the freshly parsed data, no reload.
       try {

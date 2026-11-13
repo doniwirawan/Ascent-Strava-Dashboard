@@ -180,7 +180,7 @@ function _spTemplate(a, lang, o) {
   const id = lang === 'id', rp = a.route_places, prog = socialProgress(a);
   const dest = rp && rp.furthest_place ? destName(rp) : '';
   const sport = _spSport(a, id);
-  const hook = (dest ? (id ? sport + ' ke ' + dest : sport + ' out to ' + dest) : (id ? sport + ' hari ini' : "Today's " + sport.toLowerCase())) + (o.notes ? ' — ' + o.notes : '');
+  const hook = (dest ? (id ? sport + ' ke ' + dest : sport + ' out to ' + dest) : (id ? sport + ' hari ini' : "Today's " + sport.toLowerCase())) + (o.notes ? '' + o.notes : '');
   const nums = Object.keys(_spNumbers(a, prog, id));
   const pl = _spProgressLines(prog, id);
   // cover: the day's strongest number big, and a badge if the history earns one
@@ -217,27 +217,27 @@ async function _spGenerate(a, lang, o) {
   const langLine = id
     ? 'Write ALL text entirely in casual, natural Bahasa Indonesia the way Indonesian cyclists post on Instagram (use "aku", light slang is fine, not formal); keep numbers, units and place names unchanged. '
     : 'Write ALL text in natural, casual English. ';
-  const human = 'IMPORTANT — it must NOT read like AI or a brand. Write like a normal person typing on their phone: plain everyday words, short sentences, a bit understated, specific details over hype. '
+  const human = 'IMPORTANT, it must NOT read like AI or a brand. Write like a normal person typing on their phone: plain everyday words, short sentences, a bit understated, specific details over hype. '
     + 'Never use emoji anywhere. Avoid typical AI phrases: "crushed it", "conquered", "journey", "epic", "unleash", "beast mode", "fueled by", "not gonna lie", "another day, another", "here\'s to", "what a ride", "a testament to", "pushing limits", "embrace". '
     + 'No rhetorical questions, no em dashes (—), at most one exclamation mark in the whole post, no triple-adjective lists, do not start with "Just". '
     + (id ? 'In Indonesian avoid formal or ad-like words such as "menaklukkan", "luar biasa", "perjalanan", "semangat terus", "tak terlupakan"; write like chatting with friends. ' : '');
   const sys = 'You create an Instagram carousel post about ONE of my workouts, in first person. '
     + langLine + human + aiToneLine(o.tone)
-    + 'Use ONLY the facts in the JSON — never invent. Stopped time is not a café or food stop; never say why I stopped. '
-    + 'If "my_notes" is present it is what I told you about the day — build the story around it. '
-    + 'If "furthest_place"/"furthest_landmark" is present it is where I rode/ran to — name it. NEVER mention, guess or hint at where I started or where I live. '
-    + 'If "bike" is present it is the kind of bike (never a brand). Watts are only real if watts_source is "power meter"; otherwise never mention watts. Weather is a rough estimate — mention it lightly or not at all. '
+    + 'Use ONLY the facts in the JSON. Never invent. Stopped time is not a café or food stop; never say why I stopped. '
+    + 'If "my_notes" is present it is what I told you about the day. Build the story around it. '
+    + 'If "furthest_place"/"furthest_landmark" is present it is where I rode/ran to. Name it. NEVER mention, guess or hint at where I started or where I live. '
+    + 'If "bike" is present it is the kind of bike (never a brand). Watts are only real if watts_source is "power meter"; otherwise never mention watts. Weather is a rough estimate. Mention it lightly or not at all. '
     + '\n\nReturn ONLY a JSON object (no code fences, no comments): {"caption": string, "slides": [exactly ' + n + ' objects]}. '
     + 'Each slide: {"type": one of "cover"|"stats"|"progress"|"story"|"photo"|"summary", "title": string, "text": string, "stats": [keys], "hero": key, "badge": string} ("hero"/"badge" only on the cover). '
-    + 'Slide 1 is "cover" — it decides whether people stop scrolling and swipe, so make it strong: '
+    + 'Slide 1 is "cover"it decides whether people stop scrolling and swipe, so make it strong: '
     + '"title" is a short, specific hook (max 32 chars) that makes people curious, in my own voice, never generic ("Morning ride", "Great day out" are banned); '
     + '"hero" is the ONE most impressive key from NUMBERS to show huge (elevation on a climbing day, distance on a long day, avg_speed on a fast day); '
     + '"badge" is a max 28-char achievement tag only if "progression" really supports it (e.g. "Longest ride in 4 months", "Most climbing yet"), otherwise ""; '
     + '"text" is one optional short line (max 60 chars) or "". '
-    + (o.stats ? '"stats": a short title and 1–4 keys from NUMBERS in "stats" — use the keys only, never write the numbers yourself; group them meaningfully (e.g. effort, speed, heart). ' : 'Do NOT use "stats" slides. ')
+    + (o.stats ? '"stats": a short title and 1–4 keys from NUMBERS in "stats"use the keys only, never write the numbers yourself; group them meaningfully (e.g. effort, speed, heart). ' : 'Do NOT use "stats" slides. ')
     + (o.progress ? '"progress": a short title and text of 1–3 short lines separated by \\n, built from "progression" (best_in_history = best I have recorded; days = since I last beat it). Only claim what the numbers show; skip anything unimpressive rather than spin it. ' : 'Do NOT use "progress" slides. ')
     + '"story": a short title and text (max 160 chars) about a moment of the day. '
-    + '"photo": a page that is mostly my photo — a title of max 30 chars and empty text; use these when photo_count is bigger than the other pages need. '
+    + '"photo": a page that is mostly my photo. A title of max 30 chars and empty text; use these when photo_count is bigger than the other pages need. '
     + '"summary": the route map + full stats card, at most once, best as the last page; title and text empty. '
     + 'Plan the ' + n + ' pages as a story arc (hook → numbers → progression/story → finish) and do not repeat the same point on two pages. Titles max 40 chars, texts max 160 chars, no hashtags on pages. '
     + '\n\n"caption" is the post caption: 1–3 short sentences about the day in my voice, NO emoji. '
@@ -577,7 +577,7 @@ function openSocialPost(id) {
   $('spPages').onchange = () => step(0);
   $('spGen').onclick = () => _spRun(true);
   $('spTpl').onclick = () => _spRun(false);
-  $('spCopy').onclick = async () => { try { await navigator.clipboard.writeText($('spText').value); _spStatus('ok', '✓ ' + tr('Copied.')); } catch { _spStatus('err', tr('Couldn’t copy — select the text and copy it by hand.')); } };
+  $('spCopy').onclick = async () => { try { await navigator.clipboard.writeText($('spText').value); _spStatus('ok', '✓ ' + tr('Copied.')); } catch { _spStatus('err', tr('Couldn’t copy, select the text and copy it by hand.')); } };
   $('spShare').onclick = () => _spShare(false);
   $('spDl').onclick = () => _spShare(true);
   _spRenderPhotos();
@@ -596,7 +596,7 @@ async function _spRun(useAI) {
     try { res = await _spGenerate(a, o.lang, o); _spStatus('', ''); if (typeof track === 'function') track('social_post', { lang: o.lang, pages: o.pages }); }
     catch (e) {
       res = _spTemplate(a, o.lang, o);
-      _spStatus('err', tr('AI unavailable — wrote it from your stats instead.') + (e && e.data ? ' ' + aiErrorMessage(e.data, e.status) : ''));
+      _spStatus('err', tr('AI unavailable, wrote it from your stats instead.') + (e && e.data ? ' ' + aiErrorMessage(e.data, e.status) : ''));
     }
   } else { res = _spTemplate(a, o.lang, o); _spStatus('', ''); }
   if (_sp !== my) return; // the panel moved on
@@ -658,7 +658,7 @@ async function _spRenderSlides() {
         + (s.type === 'stats' ? '' : '<textarea class="ai-cap-input" data-f="text" rows="3" placeholder="' + tr('Text') + '">' + esc(s.text) + '</textarea>'))
     + '</div>').join('');
   const used = slides.filter((s, j) => _spAuto(j)).length;
-  if (_spPhotos.length > used) _spStatus('', trf('{0} photo(s) won’t fit — add more pages and write again.', _spPhotos.length - used));
+  if (_spPhotos.length > used) _spStatus('', trf('{0} photo(s) won’t fit, add more pages and write again.', _spPhotos.length - used));
   box.querySelectorAll('.sp-slide').forEach(el => {
     const i = +el.dataset.i, cv = el.querySelector('canvas');
     const draw = () => _spRenderFull(i, w => {
@@ -727,10 +727,10 @@ async function _spShare(download) {
   // Instagram & co. ignore shared text — put it on the clipboard so it can be pasted
   let copied = false; if (text) { try { await navigator.clipboard.writeText(text); copied = true; } catch {} }
   if (!download && navigator.share && navigator.canShare && navigator.canShare({ files })) {
-    try { await navigator.share({ files, text }); _spStatus('ok', copied ? '✓ ' + tr('Caption copied — paste it if the app didn’t keep it.') : ''); } catch {}
+    try { await navigator.share({ files, text }); _spStatus('ok', copied ? '✓ ' + tr('Caption copied, paste it if the app didn’t keep it.') : ''); } catch {}
     return;
   }
   _spDownload(files);
-  _spStatus('', trf(download ? 'Downloading {0} pages' : 'Sharing isn\'t supported in this browser — downloading {0} pages', files.length)
+  _spStatus('', trf(download ? 'Downloading {0} pages' : 'Sharing isn\'t supported in this browser. Downloading {0} pages', files.length)
     + (copied ? ', ' + tr('caption copied.') : '.') + (files.length > 1 ? ' ' + tr('If only one arrives, allow multiple downloads for this site.') : ''));
 }

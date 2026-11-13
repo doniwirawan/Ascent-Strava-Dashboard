@@ -246,7 +246,7 @@ function rbRenderHistory() {
         <span class="rb-hist-name">${rbEsc(r.name)}</span>
         <span class="rb-hist-meta">${rbSportLabel(r.sport)} · ${fmtKm(r.distance)} ${distUnit()} · ${Math.round(elevVal(r.ascent || 0)).toLocaleString()} ${elevUnit()} · ${fmtDt(r.ts)}</span>
       </button>
-      <button class="rb-hist-fav${r.fav ? ' on' : ''}" onclick="rbToggleFav(${r.id})" title="${r.fav ? 'Loved — click to remove' : 'Love this route (keeps it when clearing)'}" aria-label="Love">${r.fav ? '♥' : '♡'}</button>
+      <button class="rb-hist-fav${r.fav ? ' on' : ''}" onclick="rbToggleFav(${r.id})" title="${r.fav ? 'Loved, click to remove' : 'Love this route (keeps it when clearing)'}" aria-label="Love">${r.fav ? '♥' : '♡'}</button>
       <button class="rb-hist-del" onclick="rbDeleteHistory(${r.id})" title="Delete" aria-label="Delete">✕</button>
     </div>`).join('');
 }
@@ -258,7 +258,7 @@ function rbLoadFromHistory(id) {
   rbShowStats(_rbRoute);
   document.getElementById('rb-ai').innerHTML = `<div class="rb-ai-name">${rbEsc(r.name)}</div>`;
   document.getElementById('rb-download').disabled = false;
-  rbStatus('Loaded a saved route — download the GPX, or generate a new one.', 'ok');
+  rbStatus('Loaded a saved route, download the GPX, or generate a new one.', 'ok');
 }
 
 function rbStatus(msg, cls) {
@@ -276,10 +276,10 @@ function rbResolveStart() {
     return Promise.resolve({ lat, lng });
   }
   return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) return reject(new Error('Geolocation is not available — pick a start from the list instead.'));
+    if (!navigator.geolocation) return reject(new Error('Geolocation is not available. Pick a start from the list instead.'));
     navigator.geolocation.getCurrentPosition(
       p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => reject(new Error('Could not get your location — allow location access or pick a start from the list.')),
+      () => reject(new Error('Could not get your location. Allow location access or pick a start from the list.')),
       { enableHighAccuracy: true, timeout: 10000 }
     );
   });
@@ -355,7 +355,7 @@ async function rbAIPickIndex(cands, opts) {
     `You pick the best ${rbSportLabel(opts.sport)} loop for a rider. Target ≈${opts.dist} km, ` +
     `elevation preference: ${opts.elev}. STRONGLY prefer a sensible round circuit: high loopScore ` +
     `(rounder) AND low spurScore (spurScore = how much the route retraces itself / back-and-forth / ` +
-    `U-turns — lower is much better, reject high ones), close to the target distance and matching the ` +
+    `U-turns, lower is much better, reject high ones), close to the target distance and matching the ` +
     `elevation preference. Candidates:\n${lines}\n` +
     `Reply with ONLY the index number of your pick.`;
   try {
@@ -454,8 +454,8 @@ async function routeGenerate() {
   rbDrawRoute(pick);
   rbShowStats(pick);
   pick.histId = rbPushHistory(pick);           // remember it now (AI may rename it shortly)
-  rbStatus(within.length ? 'Route ready — download the GPX or generate again for a different loop.'
-                         : 'Closest match shown (none hit your tolerance) — try a wider tolerance or different start.', within.length ? 'ok' : '');
+  rbStatus(within.length ? 'Route ready, download the GPX or generate again for a different loop.'
+                         : 'Closest match shown (none hit your tolerance), try a wider tolerance or different start.', within.length ? 'ok' : '');
   document.getElementById('rb-download').disabled = false;
   btn.disabled = false;
 
@@ -528,7 +528,7 @@ function routeDownloadGpx() {
     `<trkpt lat="${c[1].toFixed(6)}" lon="${c[0].toFixed(6)}">${c[2] != null ? `<ele>${(+c[2]).toFixed(1)}</ele>` : ''}</trkpt>`
   ).join('\n');
   const gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Ascent — Strava Dashboard" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="Ascent: Strava Dashboard" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>${rbEsc(name)}</name></metadata>
   <trk><name>${rbEsc(name)}</name><trkseg>
 ${pts}
@@ -547,7 +547,7 @@ ${pts}
 function rbErr(data) {
   const code = data && data.error;
   if (code === 'provider_not_configured') return 'Route engine isn\'t set up: add <code>' + ((data && data.envVar) || 'ORS_API_KEY') + '</code> in Vercel → Settings → Environment Variables, then redeploy.';
-  if (code === 'not_authorized' || code === 'invalid_strava_token') return 'Your Strava session expired — hit Refresh and try again.';
+  if (code === 'not_authorized' || code === 'invalid_strava_token') return 'Your Strava session expired. Hit Refresh and try again.';
   if (code === 'provider_error') return 'The routing service rejected the request: ' + (data.detail || '') + '. Try a different start or distance.';
   return 'Could not generate a route right now. Try again shortly.';
 }
