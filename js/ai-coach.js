@@ -1261,7 +1261,7 @@ async function aiCheckConfigured() {
 function aiGoSetup() {
   if (typeof navScrollTo === 'function') navScrollTo('settingsSection');
   const prov = document.getElementById('aiProvider'), card = prov && prov.closest('.help-card');
-  if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.classList.add('ai-flash'); setTimeout(() => card.classList.remove('ai-flash'), 1600); }
+  if (card) { card.scrollIntoView({ behavior: smoothB(), block: 'center' }); card.classList.add('ai-flash'); setTimeout(() => card.classList.remove('ai-flash'), 1600); }
   const out = document.getElementById('aiTestResult');
   if (out) { out.className = 'ai-test-result err'; out.innerHTML = 'Pick an AI provider and tap <b>Test connection</b> to set up the AI Coach.'; }
 }

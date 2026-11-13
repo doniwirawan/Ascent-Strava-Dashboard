@@ -112,7 +112,7 @@ function chaseAiEdit(i) {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
   set('caiText', o.request); set('caiStart', o.startTxt); set('caiEnd', o.endTxt);
   if (o.mode) chaseAiMode(o.mode);
-  const t = document.getElementById('caiText'); if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'center' }); t.focus(); }
+  const t = document.getElementById('caiText'); if (t) { t.scrollIntoView({ behavior: smoothB(), block: 'center' }); t.focus(); }
   const st = document.getElementById('caiStatus'); if (st) { st.className = 'cai-status'; st.textContent = tr('Change the request or options, then Generate — the new route is added to the history.'); }
 }
 

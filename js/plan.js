@@ -683,7 +683,7 @@ function _plRenderEditor(scroll) {
     </div>
   </div>`;
   _plRenderPreview();
-  if (scroll) setTimeout(() => { try { host.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch {} }, 30);
+  if (scroll) setTimeout(() => { try { host.scrollIntoView({ behavior: smoothB(), block: 'nearest' }); } catch {} }, 30);
 }
 function plEdSave() {
   const e = _plEdit; if (!e || !/^\d{4}-\d{2}-\d{2}$/.test(e.date || '')) return;

@@ -1,5 +1,10 @@
 /* ── UTILS ── */
 
+/* reduced motion: one switch for JS-driven scrolling and chart animation (CSS covers the rest) */
+const REDUCED_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const smoothB = () => REDUCED_MOTION ? 'auto' : 'smooth';
+if (REDUCED_MOTION && typeof Chart !== 'undefined') Chart.defaults.animation = false;
+
 /* ── POLYLINE DECODE (Google encoded polyline) ── */
 function decodePolyline(enc) {
   const pts=[]; let i=0,lat=0,lng=0;
@@ -236,7 +241,7 @@ function navScrollTo(id, btn) {
   const ovInst=document.getElementById('ovInstall');
   if(ovInst) ovInst.style.display = (id==='statRow' && window._pwaInstallReady) ? '' : 'none';
   try{ localStorage.setItem('lastSection', id); }catch{}
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top:0,behavior:smoothB()});
   document.querySelectorAll('.nav-link').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   // Lazy-init heatmap when first shown

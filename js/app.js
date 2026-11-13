@@ -127,7 +127,7 @@ if (!CONFIG.refreshToken) {
   if(track){
     const slides=[...track.children];
     const dotsWrap=document.getElementById('lpDots');
-    const go=i=>{ i=Math.max(0,Math.min(slides.length-1,i)); track.scrollTo({left:slides[i].offsetLeft-track.offsetLeft,behavior:'smooth'}); };
+    const go=i=>{ i=Math.max(0,Math.min(slides.length-1,i)); track.scrollTo({left:slides[i].offsetLeft-track.offsetLeft,behavior:smoothB()}); };
     let cur=0;
     if(dotsWrap) slides.forEach((_,i)=>{ const b=document.createElement('button'); b.setAttribute('aria-label','Slide '+(i+1)); b.onclick=()=>go(i); dotsWrap.appendChild(b); });
     const dots=dotsWrap?[...dotsWrap.children]:[];

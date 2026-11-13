@@ -581,7 +581,7 @@ function openSocialPost(id) {
   $('spShare').onclick = () => _spShare(false);
   $('spDl').onclick = () => _spShare(true);
   _spRenderPhotos();
-  try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+  try { panel.scrollIntoView({ behavior: smoothB(), block: 'start' }); } catch {}
   // first open: let the AI write it straight away
   if (_sp.slides.length) _spRenderSlides(); else _spRun(true);
 }
