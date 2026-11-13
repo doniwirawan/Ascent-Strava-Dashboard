@@ -150,7 +150,7 @@ function _bestCard(title, sub, list, fmtRow, spot){
   const rows=list.map((a,i)=>`
       <div class="best-row${i>=BEST_SHOWN?' best-extra':''}"${a.id?` role="button" tabindex="0" onclick="openActivityModal('${a.id}')" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();openActivityModal('${a.id}');}"`:''}>
         <div class="best-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
-        <div class="best-name">${a.name||'Activity'} <span style="color:var(--muted);font-size:10px;">${fmtDt(a.start_date)}</span>${placeTag(a)?`<span class="best-place">${placeTag(a)}</span>`:''}</div>
+        <div class="best-name">${a.name||'Activity'} <span style="color:var(--muted);font-size: 11px;">${fmtDt(a.start_date)}</span>${placeTag(a)?`<span class="best-place">${placeTag(a)}</span>`:''}</div>
         <div class="best-val">${fmtRow(a)}</div>
         ${spot&&a.id?`<button class="best-where" onclick="event.stopPropagation();showSpeedSpot('${a.id}',this,'${spot}','bspot-${spot}-${a.id}')" title="${tr('Where did this happen?')}" aria-label="${tr('Where did this happen?')}">${ic('pin')}</button>`:''}
       </div>${spot&&a.id?`<div class="spot-panel" id="bspot-${spot}-${a.id}"></div>`:''}`).join('');
@@ -1025,8 +1025,8 @@ async function renderChallenges(){
   function statCell(lbl,val,unit,color){
     return `<div style="text-align:center;padding:12px 16px">
       <div style="font-size:26px;font-weight:900;color:${color||'var(--text)'};letter-spacing:-.5px;line-height:1">${val}</div>
-      <div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:2px">${unit}</div>
-      <div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:1px;opacity:.7">${lbl}</div>
+      <div style="font-size: 11px;font-weight:600;color:var(--muted);margin-top:2px">${unit}</div>
+      <div style="font-size: 11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:1px;opacity:.7">${lbl}</div>
     </div>`;
   }
 
@@ -1055,11 +1055,11 @@ async function renderChallenges(){
             ${ftpEst?`<span title="${ftpEst.estimated?'Estimated from '+(ftpEst.basis==='power'?'your best sustained power':'body weight')+' — Strava has no FTP set':'From your Strava profile'}">FTP ${ftpEst.value}w${ftpEst.estimated?' (est.)':''}</span>`:''}
           </div>
           <div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap">
-            <div><span style="font-size:20px;font-weight:800;color:var(--orange)">${komList.length}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">KOMs</span></div>
-            <div><span style="font-size:20px;font-weight:800;color:var(--text)">${totalAch.toLocaleString()}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">Achievements</span></div>
-            <div><span style="font-size:20px;font-weight:800;color:var(--text)">${totalPR.toLocaleString()}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">PRs</span></div>
-            <div><span style="font-size:20px;font-weight:800;color:var(--text)">${totalKudos.toLocaleString()}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">Kudos</span></div>
-            ${followers!=null?`<div><span style="font-size:20px;font-weight:800;color:var(--text)">${followers.toLocaleString()}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">Followers</span></div>`:''}
+            <div><span style="font-size:20px;font-weight:800;color:var(--orange)">${komList.length}</span><span style="font-size: 11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">KOMs</span></div>
+            <div><span style="font-size:20px;font-weight:800;color:var(--text)">${totalAch.toLocaleString()}</span><span style="font-size: 11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">Achievements</span></div>
+            <div><span style="font-size:20px;font-weight:800;color:var(--text)">${totalPR.toLocaleString()}</span><span style="font-size: 11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">PRs</span></div>
+            <div><span style="font-size:20px;font-weight:800;color:var(--text)">${totalKudos.toLocaleString()}</span><span style="font-size: 11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">Kudos</span></div>
+            ${followers!=null?`<div><span style="font-size:20px;font-weight:800;color:var(--text)">${followers.toLocaleString()}</span><span style="font-size: 11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">Followers</span></div>`:''}
           </div>
         </div>
       </div>
@@ -1068,7 +1068,7 @@ async function renderChallenges(){
 
   /* ── 2. LIFETIME STATS ── */
   if(art){
-    html+=`<div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">All-time</div>
+    html+=`<div style="margin-bottom:6px;font-size: 11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">All-time</div>
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px">
       <div style="display:flex;flex-wrap:wrap">
         ${statCell('Rides',lifetimeRides.toLocaleString(),'activities','var(--orange)')}
@@ -1088,7 +1088,7 @@ async function renderChallenges(){
     const yr=new Date().getFullYear();
     html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
       <div>
-        <div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">${yr} — Year to date</div>
+        <div style="margin-bottom:6px;font-size: 11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">${yr} — Year to date</div>
         <div class="card" style="padding:0;overflow:hidden">
           <div style="display:flex;flex-wrap:wrap">
             ${statCell('Rides',ytdRides,'activities','var(--orange)')}
@@ -1100,7 +1100,7 @@ async function renderChallenges(){
         </div>
       </div>
       ${rrt?`<div>
-        <div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Last 4 weeks</div>
+        <div style="margin-bottom:6px;font-size: 11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Last 4 weeks</div>
         <div class="card" style="padding:0;overflow:hidden">
           <div style="display:flex;flex-wrap:wrap">
             ${statCell('Rides',rrt.count,'activities','var(--orange)')}
@@ -1163,7 +1163,7 @@ async function renderChallenges(){
   _trophyBadges = badges;
   _trophyAthlete = currentAthlete ? ((currentAthlete.firstname||'')+' '+(currentAthlete.lastname||'')).trim() : '';
 
-  html+=`<div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Badges</div>`;
+  html+=`<div style="margin-bottom:6px;font-size: 11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Badges</div>`;
   html+=`<div class="ach-grid" style="margin-bottom:20px">`;
   html+=badges.map((b,i)=>`
     <div class="ach-badge${b.unlocked?' unlocked':''}">
@@ -1178,7 +1178,7 @@ async function renderChallenges(){
 
   /* ── 5. KOM LIST ── */
   if(komList.length){
-    html+=`<div style="margin-bottom:10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">KOM / QOM / CR — ${komList.length} Segments</div>`;
+    html+=`<div style="margin-bottom:10px;font-size: 11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">KOM / QOM / CR — ${komList.length} Segments</div>`;
     html+=`<div class="kom-list">`;
     html+=komList.slice(0,40).map(e=>{
       const seg=e.segment||e;
@@ -1192,7 +1192,7 @@ async function renderChallenges(){
         </div>
         <div style="min-width:0;flex:1">
           <div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${seg.name||'Segment'}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px">${dist} · ${grade} · ${ic('clock')} ${t}${loc?' · '+loc:''}</div>
+          <div style="font-size: 11px;color:var(--muted);margin-top:2px">${dist} · ${grade} · ${ic('clock')} ${t}${loc?' · '+loc:''}</div>
         </div>
       </div>`;
     }).join('');
@@ -1857,7 +1857,7 @@ async function renderPhotos(){
     return `<div class="photo-tile${cover?'':' photo-pending'}" data-actid="${a.id}" title="${(a.name||'').replace(/"/g,'&quot;')}" onclick="openActPhotos('${a.id}')">
       ${cover?`<img src="${cover.thumb||cover.url}" alt="" loading="lazy" decoding="async">`:'<div class="photo-skel"></div>'}
       ${badge}
-      <div class="photo-caption"><span>${a.name||''}</span><span style="opacity:.65;font-size:9px">${a.start_date?fmtDt(a.start_date):''}</span></div>
+      <div class="photo-caption"><span>${a.name||''}</span><span style="opacity:.65;font-size: 11px">${a.start_date?fmtDt(a.start_date):''}</span></div>
     </div>`;
   }).join('');
 

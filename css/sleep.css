@@ -116,7 +116,7 @@
 }
 .slp-table th {
   text-align: right;
-  font-size: 10.5px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: .6px;
   color: var(--text-3);
@@ -186,7 +186,7 @@
 .slp-year-table th:first-child { text-align: left; }
 .slp-th-sub {
   display: block;
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--text-3);
   letter-spacing: 0;
@@ -211,7 +211,7 @@
   background: var(--surface-2, transparent);
 }
 .slp-rec-lbl {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: .7px;
   color: var(--text-3);
@@ -230,7 +230,7 @@
   margin-top: 5px;
 }
 .slp-rec-ctx {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text-3);
   margin-top: 2px;
   line-height: 1.45;
@@ -241,14 +241,14 @@
 .slp-month-table { min-width: 540px; }
 .slp-cell-sub {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--text-3);
   margin-top: 2px;
 }
 .slp-tag {
   display: inline-block;
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .5px;
@@ -301,7 +301,7 @@
   letter-spacing: -1px;
 }
 .slp-score-o {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-3);
   position: relative;
   margin-top: 2px;
@@ -341,7 +341,7 @@
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-.slp-risk-score small { font-size: 9.5px; font-weight: 600; opacity: .6; }
+.slp-risk-score small { font-size: 11px; font-weight: 600; opacity: .6; }
 .slp-risk-bar {
   height: 6px;
   border-radius: 4px;
