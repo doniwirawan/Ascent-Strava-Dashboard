@@ -174,52 +174,94 @@ function _demoRoute(clat,clng,size,seed){
   for(let i=0;i<=n;i++){const t=i/n*Math.PI*2;const rr=size*(0.62+0.38*Math.sin(t*3+seed)+0.18*Math.cos(t*5+seed*1.7));pts.push([clat+rr*Math.sin(t)*0.85,clng+rr*Math.cos(t)*1.25]);}
   return _demoEncode(pts);
 }
+/* Demo data: ~13 months of a plausible multi-sport week, newest first, so every
+   page has something to show (trends, year-on-year, gear, power, swims, GPS
+   fixes, virtual rides). Seeded, so the demo looks the same on every load. */
 function loadDemo() {
-  const types=['Ride','Ride','Ride','Run','Ride','Run','GravelRide','Run','Ride','Hike','VirtualRide','Run'];
-  const rideNames=['Morning Ride','Sunset Loop','Bukit Climb','Coffee Ride','Ubud Hills','Coastal Spin','Sanur Sprint','Long Endurance Ride','Bedugul Climb','Recovery Spin'];
-  const runNames=['Morning Run','Tempo Run','Easy Recovery Run','Long Run','Track Intervals','Beach Run','Hill Repeats','Sunday Long Run','Progression Run','Shakeout Run'];
-  const hikeNames=['Sunrise Hike','Ridge Trek','Volcano Hike','Jungle Trail'];
+  let seed=20261113; const r=()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+  const pick=a=>a[Math.floor(r()*a.length)];
+  const N={
+    Ride:['Morning Ride','Coffee Ride','Coastal Spin','Sanur Sprint','Recovery Spin','Tempo Loop','Sweet-spot Intervals'],
+    Long:['Long Endurance Ride','Bedugul Climb','Kintamani Loop','Ubud Hills','Bukit Climb'],
+    GravelRide:['Rice Terrace Gravel','Jatiluwih Dirt Roads','Back-road Explorer'],
+    MountainBikeRide:['Trail Session','Jungle Singletrack','Ridge Descents'],
+    VirtualRide:['Zwift: Watopia Flat','Zwift: Alpe du Zwift','MyWhoosh: Endurance Block'],
+    Run:['Morning Run','Tempo Run','Easy Recovery Run','Track Intervals','Beach Run','Hill Repeats'],
+    LongRun:['Sunday Long Run','Progression Run'],
+    Walk:['Evening Walk','Beach Walk'], Hike:['Sunrise Hike','Volcano Hike','Ridge Trek'],
+    Swim:['Pool Swim','Open-water Swim'], WeightTraining:['Strength','Core & Mobility'],
+  };
   const centers=[[-8.67,115.15],[-8.51,115.26],[-8.34,115.16],[-8.79,115.17],[-8.41,115.20]];
-  const now=Date.now();
-  acts=Array.from({length:140},(_,i)=>{
-    const type=types[i%types.length];
-    const r=()=>Math.random();
-    const ride=type.includes('Ride');
-    let dist,avgS,maxS;
-    if(ride){dist=14000+r()*86000;avgS=6.5+r()*4;maxS=avgS*(1.3+r()*.35);}
-    else if(type==='Run'){dist=4000+r()*18000;avgS=2.7+r()*1.4;maxS=avgS*1.25;}
-    else{dist=3000+r()*9000;avgS=1.3+r()*0.7;maxS=avgS*1.15;}
-    const elev=ride?(120+r()*1400):(40+r()*500);
-    const c=centers[i%centers.length];
-    const nm=ride?rideNames[i%rideNames.length]:(type==='Run'?runNames[i%runNames.length]:hikeNames[i%hikeNames.length]);
-    const mt=dist/avgS;
-    const hr=ride?(122+r()*42):(140+r()*38);
-    const dateStr=new Date(now-i*86400000*(0.5+r()*.9)).toISOString().replace('Z','Z');
-    return {
-      id:900000+i, name:nm, type, sport_type:type,
-      distance:dist, moving_time:mt, elapsed_time:mt*(1.05+r()*0.25),
-      average_speed:avgS, max_speed:maxS,
-      total_elevation_gain:elev, elev_high:80+elev*0.6,
-      average_heartrate:hr, max_heartrate:hr+12+r()*20,
-      average_cadence:ride?(78+r()*16):(82+r()*8),
-      average_watts:ride?Math.round(110+r()*120):undefined,
-      max_watts:ride?Math.round(400+r()*500):undefined,
-      kilojoules:ride?Math.round(mt*(110+r()*120)/1000):undefined,
-      calories:Math.round(dist/1000*(ride?22:62)),
-      suffer_score:Math.round(20+r()*120),
-      kudos_count:Math.round(2+r()*40),
-      pr_count:r()>0.7?Math.round(1+r()*3):0,
-      achievement_count:r()>0.5?Math.round(1+r()*6):0,
-      total_photo_count:r()>0.6?Math.round(1+r()*4):0,
-      start_date:dateStr, start_date_local:dateStr,
-      start_latlng:[c[0],c[1]],
-      location_city:['Denpasar','Ubud','Bedugul','Uluwatu','Canggu'][i%5], location_state:'Bali', location_country:'Indonesia',
-      map:{summary_polyline:_demoRoute(c[0],c[1],0.02+r()*0.05,i*1.3)}
-    };
-  });
-  renderAthlete({firstname:'Alex',lastname:'Rivera',
+  const bikes=[
+    {id:'bdemo1',name:'Endurance road bike',primary:true,distance:0},
+    {id:'bdemo2',name:'Gravel bike',primary:false,distance:0},
+    {id:'bdemo3',name:'Trail MTB',primary:false,distance:0},
+  ];
+  // the week: [weekday, type, chance]; Sat long ride, Sun long run or gravel/MTB
+  const WEEK={0:[['LongRun',.4],['GravelRide',.2],['MountainBikeRide',.12]],1:[['Swim',.3]],2:[['Ride',.6],['Run',.2]],
+    3:[['Ride',.5]],4:[['Run',.5],['VirtualRide',.2]],5:[['WeightTraining',.35],['Walk',.1]],6:[['Long',.85],['Hike',.08]]};
+  const now=new Date(), list=[]; let id=900000;
+  for(let d=0; d<480 && list.length<200; d++){
+    const day=new Date(now.getTime()-d*864e5), dow=day.getUTCDay(), month=day.getUTCMonth();
+    const wet=month===11||month<=1;                       // monsoon: fewer outdoor sessions
+    const build=1-d/520;                                  // fitness builds toward today
+    for(const [kind,p] of WEEK[dow]||[]){
+      if(r()>.82*p*(wet&&kind!=='VirtualRide'&&kind!=='Swim'&&kind!=='WeightTraining'?.65:1)) continue;
+      const type=kind==='Long'?'Ride':kind==='LongRun'?'Run':kind;
+      const ride=/Ride$/.test(type), virt=type==='VirtualRide', indoor=virt||type==='Swim'||type==='WeightTraining';
+      let dist,avgS,elev;
+      if(kind==='Long'){dist=(75e3+r()*70e3)*build;avgS=7.4+r()*1.4;elev=900+r()*1600;}
+      else if(type==='Ride'){dist=(28e3+r()*30e3)*build;avgS=7.8+r()*1.8;elev=150+r()*500;}
+      else if(type==='GravelRide'){dist=40e3+r()*35e3;avgS=6.2+r()*1.2;elev=500+r()*900;}
+      else if(type==='MountainBikeRide'){dist=18e3+r()*16e3;avgS=4.3+r()*1.2;elev=600+r()*800;}
+      else if(virt){dist=25e3+r()*25e3;avgS=8.5+r()*1.5;elev=100+r()*900;}
+      else if(kind==='LongRun'){dist=14e3+r()*9e3;avgS=2.9+r()*.4;elev=80+r()*200;}
+      else if(type==='Run'){dist=5e3+r()*7e3;avgS=3.0+r()*.7;elev=20+r()*120;}
+      else if(type==='Swim'){dist=1200+r()*1600;avgS=.62+r()*.2;elev=0;}
+      else if(type==='WeightTraining'){dist=0;avgS=0;elev=0;}
+      else if(type==='Hike'){dist=6e3+r()*8e3;avgS=1.1+r()*.4;elev=400+r()*900;}
+      else {dist=3e3+r()*4e3;avgS=1.3+r()*.3;elev=10+r()*40;}
+      const mt=dist?dist/avgS:(35+r()*30)*60;
+      const hour=kind==='Long'||kind==='LongRun'?5+Math.floor(r()*2):(r()<.6?6:17);
+      const local=new Date(Date.UTC(day.getUTCFullYear(),day.getUTCMonth(),day.getUTCDate(),hour,Math.floor(r()*60)));
+      const meter=ride&&d<185;                              // power meter fitted ~6 months ago
+      const watts=ride?Math.round((kind==='Long'?175:200)+r()*45):undefined;
+      const hr=type==='WeightTraining'?108+r()*12:type==='Swim'?128+r()*14:ride?(128+r()*30):(140+r()*28);
+      const c=centers[id%centers.length];
+      const nm=pick(N[kind]||N[type]);
+      let maxS=avgS*(type==='Swim'?1.3:1.35+r()*.4);
+      const a={
+        id:id++, name:nm, type, sport_type:type,
+        distance:dist, moving_time:mt, elapsed_time:mt*(1.04+r()*.18),
+        average_speed:avgS, max_speed:maxS,
+        total_elevation_gain:elev, elev_high:elev?60+elev*.7:0,
+        average_heartrate:Math.round(hr), max_heartrate:Math.round(hr+14+r()*18),
+        average_cadence:ride?Math.round(80+r()*12):(type==='Run'?Math.round(84+r()*6):undefined),
+        average_watts:watts, weighted_average_watts:watts&&Math.round(watts*(1.04+r()*.08)),
+        max_watts:ride?Math.round(500+r()*450):undefined, device_watts:meter||virt,
+        kilojoules:ride?Math.round(mt*watts/1000):undefined,
+        calories:Math.round(ride?mt*watts/1000*1.05:(dist?dist/1000*62:mt/60*7)),
+        suffer_score:Math.round(mt/60*(kind==='Long'?1.3:1)*(.6+r()*.6)),
+        kudos_count:Math.round(3+r()*(kind==='Long'?45:20)),
+        pr_count:r()>.75?Math.round(1+r()*3):0, achievement_count:r()>.55?Math.round(1+r()*6):0,
+        total_photo_count:!indoor&&r()>.7?Math.round(1+r()*3):0,
+        trainer:virt, gear_id:ride&&!virt?(type==='GravelRide'?'bdemo2':type==='MountainBikeRide'?'bdemo3':'bdemo1'):undefined,
+        start_date:new Date(local.getTime()-8*36e5).toISOString(), start_date_local:local.toISOString(),
+        location_city:['Denpasar','Ubud','Bedugul','Uluwatu','Canggu'][id%5], location_state:'Bali', location_country:'Indonesia',
+      };
+      if(!indoor || virt){ a.start_latlng=[c[0],c[1]]; a.map={summary_polyline:_demoRoute(c[0],c[1],Math.min(.09,.012+dist/2.4e6),id*1.3)}; }
+      else a.map={summary_polyline:''};
+      if(a.gear_id) bikes.find(b=>b.id===a.gear_id).distance+=dist;
+      list.push(a);
+    }
+  }
+  // two GPS spikes (86-100 km/h) so the GPS Fix page has something to fix
+  list.filter(a=>a.type==='Ride').filter((_,i)=>i===6||i===40).forEach(a=>{a.max_speed=24+r()*4;});
+  acts=list;
+  renderAthlete({firstname:'Alex',lastname:'Rivera',weight:72,ftp:245,
     profile_medium:'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=160&h=160&fit=crop&crop=faces',
     profile:'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=320&h=320&fit=crop&crop=faces'});
+  currentAthlete.bikes=bikes;   // set after renderAthlete so the demo never writes bikes to localStorage
   renderAll();
   setStatus(trf('Demo mode, {0} sample activities', acts.length),'success');
   const btn=document.getElementById('mainBtn');
