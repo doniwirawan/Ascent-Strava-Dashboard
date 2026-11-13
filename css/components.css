@@ -117,7 +117,7 @@
   border-radius: var(--radius-sm); padding: 12px 10px; text-align: center;
 }
 .actd-stat-val { font-size: 18px; font-weight: 800; color: var(--text); }
-.actd-stat-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
+.actd-stat-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; }
 .actd-stat-ic { width: 13px; height: 13px; vertical-align: -2px; margin-right: 4px; color: var(--orange); }
 
 /* Heart-rate zone pill (next to HR figures) */
@@ -133,7 +133,7 @@
 
 /* Stream charts (min / avg / max over the activity) */
 .actd-streams { margin-top: 18px; }
-.actd-stream-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; }
+.actd-stream-title { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 10px; }
 .actd-stream-x { font-weight: 500; text-transform: none; letter-spacing: 0; opacity: .7; }
 .actd-stream-note { font-size: 12px; color: var(--muted); }
 .actd-stream { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; }
@@ -288,7 +288,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 .rb-intro { font-size: 13px; color: var(--muted); margin: 0 0 14px; line-height: 1.5; }
 .rb-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
 .rb-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
-.rb-field span { text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+.rb-field span { font-weight: 700; }
 .rb-field input, .rb-field select {
   background: var(--surface2); color: var(--text); border: 1px solid var(--border);
   border-radius: 6px; padding: 8px 10px; font-size: 13px; min-width: 110px;
@@ -314,7 +314,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 .rb-stats { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
 .rb-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; text-align: center; flex: 1; min-width: 90px; }
 .rb-stat-v { font-size: 20px; font-weight: 800; color: var(--text); }
-.rb-stat-l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+.rb-stat-l { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .rb-map { width: 100%; height: 46vh; min-height: 300px; border-radius: 10px; overflow: hidden; background: var(--surface2); border: 1px solid var(--border); }
 .rb-download {
   margin-top: 14px; width: 100%; background: var(--surface2); color: var(--text);
@@ -325,7 +325,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 
 /* Saved-routes history list */
 .rb-history { margin-top: 16px; }
-.rb-hist-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 8px; }
+.rb-hist-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
 .rb-hist-clear { background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; text-decoration: underline; }
 .rb-hist-clear:hover { color: #f87171; }
 .rb-hist-item { display: flex; align-items: stretch; gap: 6px; margin-bottom: 6px; }
@@ -373,7 +373,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 .hrz-bar span { display: block; height: 100%; border-radius: 3px; transition: width .4s ease; }
 .hrz-note { margin-top: 18px; font-size: 11px; color: var(--muted); }
 .actd-hrz { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
-.actd-hrz .hrz-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+.actd-hrz .hrz-title { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
 .actd-hrz .hrz-title { display: flex; align-items: center; gap: 8px; }
 .hrz-note a { color: var(--orange); }
 .hrz-dob { margin-left: 6px; padding: 4px 8px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font: inherit; color-scheme: dark; }
@@ -468,7 +468,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
   font-size: 11px;
   color: var(--text-2);
 }
-.heat-legend .hl-t { text-transform: uppercase; letter-spacing: .06em; }
+.heat-legend .hl-t {  font-size: 13px;}
 .heat-legend .hl-i { display: flex; align-items: center; gap: 5px; color: var(--text); }
 .heat-legend .hl-i i { display: block; width: 18px; border-radius: 2px; }
 
@@ -517,8 +517,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 /* ── Sleep before/after a training session (activity detail modal) ── */
 .actd-sleep:empty { display: none; }
 .slp-ba-h {
-  margin: 16px 0 8px; font-size: 12px; font-weight: 700;
-  letter-spacing: .06em; text-transform: uppercase; color: var(--text-2);
+  margin: 16px 0 8px; font-size: 13px; font-weight: 700; color: var(--text-2);
 }
 .slp-ba { display: flex; align-items: stretch; gap: 10px; }
 .slp-ba-card {
@@ -527,8 +526,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 }
 .slp-ba-card.empty { color: var(--text-3); }
 .slp-ba-lbl {
-  font-size: 11px; font-weight: 700; letter-spacing: .05em;
-  text-transform: uppercase; color: var(--text-2); margin-bottom: 4px;
+  font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 4px;
 }
 .slp-ba-val { font-size: 22px; font-weight: 800; letter-spacing: -.5px; color: var(--text); }
 .slp-ba-card.empty .slp-ba-val { color: var(--text-3); font-weight: 700; }
@@ -543,7 +541,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
   min-width: 52px; padding: 0 2px;
 }
 .slp-ba-d { font-size: 15px; font-weight: 800; }
-.slp-ba-dl { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }
+.slp-ba-dl { font-size: 11px; color: var(--text-3); }
 .slp-ba-load { font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
 .slp-ba-none { font-size: 12.5px; color: var(--text-3); line-height: 1.5; }
 @media (max-width: 520px) {
@@ -576,7 +574,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 
 /* Per-activity HR decoupling block in the activity modal (reuses .hrd-* grid) */
 .actd-hrd { margin-top: 18px; }
-.actd-hrd-h { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.actd-hrd-h { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .actd-hrd-sub { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-3); }
 
 /* "Analyse N more" action inside the speed-zone note line */
