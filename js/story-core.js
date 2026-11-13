@@ -202,6 +202,13 @@ const LAYOUTS = [
   { id: 'odometer', name: 'Odometer' },
   { id: 'logbook', name: 'Logbook' },
   { id: 'stamp', name: 'Stamp' },
+  { id: 'facts', name: 'Facts' },
+  { id: 'postcard', name: 'Postcard' },
+  { id: 'label', name: 'Label' },
+  { id: 'chrono', name: 'Chrono' },
+  { id: 'gauge', name: 'Gauge' },
+  { id: 'zones', name: 'Zones' },
+  { id: 'peaks', name: 'Peaks' },
   { id: 'bib', name: 'Bib' },
 
 ];
