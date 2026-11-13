@@ -497,8 +497,8 @@ function renderEddington() {
     const need = Math.max(0, t - have);
     const w = id ? (ID_WORD[word]||'aktivitas') : `${word}${need!==1?'s':''}`;
     rows.push(id
-      ? `<div class="eddy-step"><strong>E=${t}</strong>butuh <strong>${need} ${w} lagi</strong> sejauh ≥${t} ${distUnit()} <span class="eddy-have">(punya ${have}/${t})</span></div>`
-      : `<div class="eddy-step"><strong>E=${t}</strong>need <strong>${need} more ${w}</strong> of ≥${t} ${distUnit()} <span class="eddy-have">(have ${have}/${t})</span></div>`);
+      ? `<div class="eddy-step"><strong>E=${t}</strong>, butuh <strong>${need} ${w} lagi</strong> sejauh ≥${t} ${distUnit()} <span class="eddy-have">(punya ${have}/${t})</span></div>`
+      : `<div class="eddy-step"><strong>E=${t}</strong>, need <strong>${need} more ${w}</strong> of ≥${t} ${distUnit()} <span class="eddy-have">(have ${have}/${t})</span></div>`);
   }
   // ── Goal projection: how long to reach a fixed E=50 at the recent ride rate ──
   const goalHTML = _eddyGoalHTML(rides, E, mode, id);

@@ -178,8 +178,8 @@ function _trEventReadyHTML(d) {
     `Gowes terjauh Anda (${Math.round(h.longestKm)} km) sudah cukup. Pertahankan satu gowes jauh tiap 1–2 minggu.`));
   if (h.weekly < need.weekly) tips.push(_evtL(`Build weekly volume from ${Math.round(h.weekly)} toward <b>${r10(need.weekly)} km/wk</b> (≤10% more per week, an easy week every 4th).`,
     `Naikkan volume mingguan dari ${Math.round(h.weekly)} ke <b>${r10(need.weekly)} km/mgg</b> (maks +10% per minggu, minggu ringan tiap minggu ke-4).`));
-  if (ctl < need.ctl) tips.push(_evtL(`Raise fitness (CTL) from ${Math.round(ctl)} toward <b>${Math.round(need.ctl)}</b>about +5 per week, mostly from more steady endurance hours rather than harder rides.`,
-    `Naikkan kebugaran (CTL) dari ${Math.round(ctl)} ke <b>${Math.round(need.ctl)}</b>sekitar +5 per minggu, terutama dari menambah jam gowes santai (endurance), bukan gowes lebih keras.`));
+  if (ctl < need.ctl) tips.push(_evtL(`Raise fitness (CTL) from ${Math.round(ctl)} toward <b>${Math.round(need.ctl)}</b>, about +5 per week, mostly from more steady endurance hours rather than harder rides.`,
+    `Naikkan kebugaran (CTL) dari ${Math.round(ctl)} ke <b>${Math.round(need.ctl)}</b>, sekitar +5 per minggu, terutama dari menambah jam gowes santai (endurance), bukan gowes lebih keras.`));
   if (need.block3 && h.block3 < need.block3) tips.push(_evtL(`Practise back-to-back days: a 3-day block of <b>${r10(need.block3)} km</b> teaches your body (and butt) to ride on tired legs.`,
     `Latih hari berturut-turut: blok 3 hari total <b>${r10(need.block3)} km</b> melatih tubuh (dan pantat) gowes dengan kaki lelah.`));
   if (preset.audax || s.km >= 300) tips.push(_evtL('Ride at least one long training ride into the night. Lights, reflective vest, and staying awake are part of the event.',

@@ -549,7 +549,7 @@ function renderSpeedAnomalies(){
      <div class="gpx-anom-note">${bad.length} activit${bad.length===1?'y':'ies'} with a max speed above 65 km/h. Tick and normalize, or tap a row to inspect.</div>
      <details class="gpx-swap"><summary>Replace on Strava (delete + re-upload the fixed file)</summary>
        <ol class="gpx-swap-steps">
-         <li><b>Prepare fixed files (selected)</b>I fetch each track, smooth it, normalize the speed, keep the original timestamps (same date), and stage the fixed files on this page.</li>
+         <li><b>Prepare fixed files (selected)</b>: I fetch each track, smooth it, normalize the speed, keep the original timestamps (same date), and stage the fixed files on this page.</li>
          <li>Use the <b>↗</b> link on each row to open it on Strava, then delete it there (the API can't delete for you).</li>
          <li>Back here, hit <b>Upload all to Strava</b> to re-upload every staged file at once.</li>
        </ol>

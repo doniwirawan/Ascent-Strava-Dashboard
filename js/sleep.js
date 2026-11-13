@@ -1725,10 +1725,10 @@ function _slpDraw(nights, body) {
     <div class="slp-key card">
       <div class="slp-key-h">${tr('What the four stages mean')}</div>
       <div class="slp-key-row">
-        <span class="slp-key-item"><i style="background:${SLP_C.deep}"></i><b>${tr('Deep')}</b>${tr('body repair. Muscles rebuild here. Aim 20–25%.')}</span>
-        <span class="slp-key-item"><i style="background:${SLP_C.rem}"></i><b>${tr('REM')}</b>${tr('brain and memory. Dreaming. Aim 20–25%.')}</span>
-        <span class="slp-key-item"><i style="background:${SLP_C.light}"></i><b>${tr('Light')}</b>${tr('the bulk of the night, moving between stages.')}</span>
-        <span class="slp-key-item"><i style="background:${SLP_C.awake}"></i><b>${tr('Awake')}</b>${tr('brief wake-ups. A few is normal.')}</span>
+        <span class="slp-key-item"><i style="background:${SLP_C.deep}"></i><b>${tr('Deep')}</b>: ${tr('body repair. Muscles rebuild here. Aim 20–25%.')}</span>
+        <span class="slp-key-item"><i style="background:${SLP_C.rem}"></i><b>${tr('REM')}</b>: ${tr('brain and memory. Dreaming. Aim 20–25%.')}</span>
+        <span class="slp-key-item"><i style="background:${SLP_C.light}"></i><b>${tr('Light')}</b>: ${tr('the bulk of the night, moving between stages.')}</span>
+        <span class="slp-key-item"><i style="background:${SLP_C.awake}"></i><b>${tr('Awake')}</b>: ${tr('brief wake-ups. A few is normal.')}</span>
       </div>
       <div class="slp-key-note">${tr('Every chart below uses these same four colours. Drag a chart to pan it, scroll with Ctrl held to zoom, or use the + − ⟲ buttons on each one.')}</div>
     </div>

@@ -208,11 +208,11 @@ function _trIntroHTML(d) {
   } else if (hasPower) {
     basis = id ? 'Beban latihan diukur dari <b>data power</b> Anda.' : 'Training load is measured from your <b>power data</b>.';
   } else if (hasHr) {
-    basis = id ? 'Beban latihan diperkirakan dari <b>Relative Effort & detak jantung</b>tak perlu power meter.'
-               : 'Training load is estimated from <b>Relative Effort &amp; heart rate</b>no power meter needed.';
+    basis = id ? 'Beban latihan diperkirakan dari <b>Relative Effort & detak jantung</b>, tak perlu power meter.'
+               : 'Training load is estimated from <b>Relative Effort &amp; heart rate</b>, no power meter needed.';
   } else {
-    basis = id ? 'Beban latihan diperkirakan dari <b>durasi</b>pakai monitor detak jantung untuk angka yang lebih tajam.'
-               : 'Training load is estimated from <b>duration</b>wear a heart-rate monitor for sharper load.';
+    basis = id ? 'Beban latihan diperkirakan dari <b>durasi</b>, pakai monitor detak jantung untuk angka yang lebih tajam.'
+               : 'Training load is estimated from <b>duration</b>, wear a heart-rate monitor for sharper load.';
   }
   return `<div class="card tr-intro">
     <div class="tr-intro-basis">${basis}</div>
