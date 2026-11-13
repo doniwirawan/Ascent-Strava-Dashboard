@@ -198,6 +198,10 @@ const LAYOUTS = [
   { id: 'power', name: 'Power' },
   { id: 'ridge', name: 'Ridge' },
   { id: 'receipt', name: 'Receipt' },
+  { id: 'board', name: 'Board' },
+  { id: 'odometer', name: 'Odometer' },
+  { id: 'logbook', name: 'Logbook' },
+  { id: 'stamp', name: 'Stamp' },
   { id: 'bib', name: 'Bib' },
 
 ];

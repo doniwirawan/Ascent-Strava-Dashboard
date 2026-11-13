@@ -61,6 +61,11 @@ function drawLayout(canvas, act, selected, sc, layout) {
     return c;
   };
 
+  // true when a colour is too pale to read on paper or under white text
+  const isPale = c => { const m = String(c).match(/^#([0-9a-f]{6})/i), r = String(c).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    const v = m ? [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16)) : r ? [r[1], r[2], r[3]].map(Number) : null;
+    return !!v && (0.299 * v[0] + 0.587 * v[1] + 0.114 * v[2]) > 186; };
+
   // title block: name + date · type
   function title(x, y, maxW, sz) {
     let n = act.name || 'Activity';
@@ -2601,6 +2606,192 @@ function drawLayout(canvas, act, selected, sc, layout) {
       ctx.restore();
       if (polyline && polyline.length > 1) { const rs = Math.round(Math.min(W * 0.24, (H - (by + bh)) * 0.7)); if (rs > Math.round(80 * S)) drawRoute(ctx, polyline, (W - rs) / 2, by + bh + Math.round(40 * S), rs, rs, sc.accent, Math.round(5 * S)); }
       if (!hideLogo) { ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = `800 ${Math.round(22 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.14em'; ctx.fillText('ASCENT', W / 2, Math.min(H - Math.round(50 * S), H - P / 2)); ctx.letterSpacing = '0'; }
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    /* BOARD — a split-flap departures board: every stat spelled out one
+       character per flap, the finish time as the "arrived" status. */
+    case 'board': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
+      const mono = (wt, px) => `${wt} ${Math.max(1, Math.round(px))}px "SF Mono",Menlo,Consolas,"Courier New",monospace`;
+      const hT = isLightCard ? '#f2f0ea' : sc.text, hM = isLightCard ? '#9a958a' : sc.muted;
+      const items = selected.slice(0, 6).map(s => { const { num, unit } = statVal(s, act); return { lbl: s.label.toUpperCase(), val: (num + (unit ? ' ' + unit : '')).toUpperCase() }; });
+      let y = P;
+      if (!hideLogo) { ctx.textAlign = 'left'; ctx.fillStyle = hM; ctx.font = `800 ${Math.round(22 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.14em'; ctx.fillText('ASCENT', P, y + Math.round(22 * S)); ctx.letterSpacing = '0px'; y += Math.round(60 * S); }
+      if (!hideTitle) { const nm = act.name || 'Activity'; const fs = fitText(nm, W - P * 2, 64, 800); ctx.fillStyle = hT; ctx.textAlign = 'left'; ctx.letterSpacing = '-0.02em'; ctx.fillText(nm, P, y + fs); ctx.letterSpacing = '0px'; y += fs + Math.round(16 * S); }
+      if (!hideDate) { ctx.fillStyle = hM; ctx.font = F(24, 500); ctx.textAlign = 'left'; ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), P, y + Math.round(26 * S)); y += Math.round(44 * S); }
+      const hasRoute = polyline && polyline.length > 1 && !hideRoute;
+      const bx = P - Math.round(28 * S), bw = W - bx * 2, by = y + Math.round(44 * S);
+      const headH = Math.round(96 * S), pad = Math.round(30 * S);
+      const roomBelow = hasRoute ? Math.round(H * 0.24) : Math.round(40 * S);
+      const rowH = Math.max(Math.round(70 * S), Math.min(Math.round(200 * S), (H - by - roomBelow - P - headH - pad) / Math.max(items.length, 1)));
+      const bh = headH + rowH * items.length + pad;
+      ctx.fillStyle = '#121214'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, Math.round(22 * S)); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = Math.max(1, Math.round(2 * S)); ctx.stroke();
+      // header: what finished, and when
+      ctx.fillStyle = '#8f8a7e'; ctx.font = mono(700, 20 * S); ctx.letterSpacing = '0.2em'; ctx.textAlign = 'left';
+      ctx.fillText((act.type || 'ACTIVITY').toUpperCase(), bx + pad, by + headH * 0.58);
+      if (act.start_date) { const end = new Date(new Date(act.start_date).getTime() + (act.elapsed_time || act.moving_time || 0) * 1000);
+        ctx.textAlign = 'right'; ctx.fillStyle = sc.accent; ctx.fillText('ARRIVED ' + end.toTimeString().slice(0, 5), bx + bw - pad, by + headH * 0.58); }
+      ctx.letterSpacing = '0px';
+      ctx.fillStyle = 'rgba(255,255,255,0.07)'; ctx.fillRect(bx + pad, by + headH - Math.round(6 * S), bw - pad * 2, Math.max(1, Math.round(2 * S)));
+      // flaps: one tile per character, right-aligned so the numbers line up
+      const lblW = Math.round(bw * 0.3), valX0 = bx + pad + lblW, valW = bw - pad * 2 - lblW;
+      const maxLen = Math.max(1, ...items.map(it => it.val.length));
+      const gap = Math.max(1, Math.round(5 * S));
+      const tw = Math.min(Math.round(66 * S), (valW + gap) / maxLen), th = Math.min(rowH * 0.74, tw * 1.42);
+      items.forEach((it, i) => {
+        const ry = by + headH + i * rowH, ty = ry + (rowH - th) / 2;
+        let lf = Math.round(20 * S); ctx.font = mono(700, lf); while (lf > 6 && ctx.measureText(it.lbl).width > lblW - Math.round(16 * S)) { lf--; ctx.font = mono(700, lf); }
+        ctx.fillStyle = '#b9b3a6'; ctx.textAlign = 'left'; ctx.letterSpacing = '0.06em'; ctx.fillText(it.lbl, bx + pad, ry + rowH / 2 + lf * 0.36); ctx.letterSpacing = '0px';
+        const chars = it.val.split(''), startX = valX0 + valW - chars.length * tw + gap;
+        chars.forEach((ch, k) => {
+          const tx = startX + k * tw;
+          ctx.fillStyle = '#232326'; ctx.beginPath(); ctx.roundRect(tx, ty, tw - gap, th, Math.round(5 * S)); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fillRect(tx, ty, tw - gap, th / 2);
+          if (ch !== ' ') { ctx.fillStyle = '#f3efe4'; ctx.font = mono(800, th * 0.64); ctx.textAlign = 'center'; ctx.fillText(ch, tx + (tw - gap) / 2, ty + th / 2 + th * 0.23); }
+          ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(tx, ty + th / 2 - Math.max(1, Math.round(1.5 * S)), tw - gap, Math.max(1, Math.round(3 * S)));
+        });
+      });
+      if (hasRoute) { const top = by + bh + Math.round(50 * S), rs = Math.min(W - P * 2, H - top - P); if (rs > Math.round(60 * S)) drawRoute(ctx, polyline, (W - rs) / 2, top, rs, rs, sc.accent, Math.round(5 * S)); }
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    /* ODOMETER — the first stat on mechanical counter wheels, the last
+       wheel in the accent like an odometer's tenths; the rest listed below. */
+    case 'odometer': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBg; ctx.fillRect(0, 0, W, H); }
+      let y = P;
+      if (!hideLogo) { ctx.textAlign = 'right'; ctx.fillStyle = sc.muted; ctx.font = `800 ${Math.round(22 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.14em'; ctx.fillText('ASCENT', W - P, y + Math.round(22 * S)); ctx.letterSpacing = '0px'; y += Math.round(50 * S); }
+      if (!hideTitle) { const nm = act.name || 'Activity'; const fs = fitText(nm, W - P * 2, 60, 800); ctx.fillStyle = sc.text; ctx.textAlign = 'left'; ctx.letterSpacing = '-0.02em'; ctx.fillText(nm, P, y + fs); ctx.letterSpacing = '0px'; y += fs + Math.round(14 * S); }
+      if (!hideDate) { ctx.fillStyle = sc.muted; ctx.font = F(24, 500); ctx.textAlign = 'left'; ctx.fillText((act.start_date ? fmtDt(act.start_date) : '') + ' · ' + (act.type || ''), P, y + Math.round(26 * S)); y += Math.round(44 * S); }
+      const hero = selected[0], rest = selected.slice(1, 5);
+      const hasRoute = polyline && polyline.length > 1 && !hideRoute;
+      if (hero) {
+        const { num, unit } = statVal(hero, act);
+        const chars = num.split(''), digits = chars.filter(c => /\d/.test(c)).length, seps = chars.length - digits;
+        const hx = P, hw = W - P * 2, ipad = Math.round(22 * S), gap = Math.round(8 * S);
+        const ww = Math.min(Math.round(150 * S), (hw - ipad * 2 - gap * (chars.length - 1)) / Math.max(digits + seps * 0.4, 1));
+        const wh = Math.round(ww * 1.6), totalW = chars.reduce((a, c) => a + (/\d/.test(c) ? ww : ww * 0.4), 0) + gap * (chars.length - 1);
+        const hy = Math.max(y + Math.round(90 * S), H * 0.26), boxW = totalW + ipad * 2, boxX = (W - boxW) / 2;
+        ctx.fillStyle = sc.accent; ctx.font = F(22, 700); ctx.letterSpacing = '0.12em'; ctx.textAlign = 'center'; ctx.fillText(hero.label.toUpperCase(), W / 2, hy - Math.round(30 * S)); ctx.letterSpacing = '0px';
+        ctx.fillStyle = '#1b1b1d'; ctx.beginPath(); ctx.roundRect(boxX, hy, boxW, wh + ipad * 2, Math.round(20 * S)); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = Math.max(1, Math.round(3 * S)); ctx.stroke();
+        const lastDigit = chars.map((c, i) => /\d/.test(c) ? i : -1).filter(i => i >= 0).pop();
+        let x = boxX + ipad;
+        chars.forEach((c, i) => {
+          if (!/\d/.test(c)) { ctx.fillStyle = '#e9e5da'; ctx.font = `900 ${Math.round(wh * 0.5)}px -apple-system,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(c, x + ww * 0.2, hy + ipad + wh * 0.82); x += ww * 0.4 + gap; return; }
+          const tenths = i === lastDigit && chars.length > 1, wy = hy + ipad, pale = tenths && isPale(sc.accent);
+          ctx.save(); ctx.beginPath(); ctx.roundRect(x, wy, ww, wh, Math.round(8 * S)); ctx.clip();
+          ctx.fillStyle = tenths ? sc.accent : '#0c0c0d'; ctx.fillRect(x, wy, ww, wh);
+          const d = +c, fs = Math.round(wh * 0.62); ctx.font = `800 ${fs}px -apple-system,sans-serif`; ctx.textAlign = 'center';
+          // the neighbouring digits peek in above and below, as on a real wheel
+          ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillText(String((d + 9) % 10), x + ww / 2, wy + wh * 0.5 - wh * 0.6 + fs * 0.36); ctx.fillText(String((d + 1) % 10), x + ww / 2, wy + wh * 0.5 + wh * 0.6 + fs * 0.36);
+          ctx.fillStyle = pale ? '#141414' : '#ffffff'; ctx.fillText(c, x + ww / 2, wy + wh * 0.5 + fs * 0.36);
+          const sh = ctx.createLinearGradient(0, wy, 0, wy + wh); sh.addColorStop(0, 'rgba(0,0,0,0.6)'); sh.addColorStop(0.3, 'rgba(0,0,0,0)'); sh.addColorStop(0.7, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.6)');
+          ctx.fillStyle = sh; ctx.fillRect(x, wy, ww, wh); ctx.restore();
+          x += ww + gap;
+        });
+        if (unit) { ctx.fillStyle = sc.muted; ctx.font = F(30, 700); ctx.letterSpacing = '0.2em'; ctx.textAlign = 'center'; ctx.fillText(unit.toUpperCase(), W / 2, hy + wh + ipad * 2 + Math.round(52 * S)); ctx.letterSpacing = '0px'; }
+        y = hy + wh + ipad * 2 + Math.round(unit ? 100 : 60) * S;
+      }
+      const listH = rest.length * Math.round(96 * S), listY = H - P - listH;
+      if (hasRoute) { const top = y + Math.round(30 * S), rh = listY - top - Math.round(50 * S); if (rh > Math.round(120 * S)) drawRoute(ctx, polyline, P, top, W - P * 2, rh, sc.accent, Math.round(5 * S)); }
+      rest.forEach((s, i) => { const { num, unit } = statVal(s, act), ry = listY + i * Math.round(96 * S);
+        ctx.fillStyle = withAlpha(sc.muted, 0x55); ctx.fillRect(P, ry, W - P * 2, Math.max(1, Math.round(2 * S)));
+        ctx.fillStyle = sc.muted; ctx.font = F(22, 600); ctx.textAlign = 'left'; ctx.fillText(s.label, P, ry + Math.round(62 * S));
+        ctx.fillStyle = sc.text; ctx.font = F(44, 800); ctx.textAlign = 'right'; ctx.letterSpacing = '-0.5px'; ctx.fillText(num + (unit ? ' ' + unit : ''), W - P, ry + Math.round(64 * S)); ctx.letterSpacing = '0px'; });
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    /* LOGBOOK — a page from a training diary: ruled lines, a margin rule,
+       each stat written on its own line, the route sketched in pen. Paper
+       stock, so it keeps its own colours whatever the theme. */
+    case 'logbook': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
+      const serif = (wt, sz, it) => `${it ? 'italic ' : ''}${wt} ${Math.max(1, Math.round(sz * S))}px Georgia,"Times New Roman",serif`;
+      const pw = Math.round(W * 0.86), ph = Math.round(H * 0.86), px = (W - pw) / 2, py = (H - ph) / 2;
+      const ink = '#23201b', faint = '#7d766a', pen = isPale(sc.accent) ? '#c2410c' : sc.accent;
+      ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(-0.014); ctx.translate(-W / 2, -H / 2);
+      ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = Math.round(40 * S); ctx.shadowOffsetY = Math.round(16 * S);
+      ctx.fillStyle = '#f7f3e8'; ctx.beginPath(); ctx.roundRect(px, py, pw, ph, Math.round(10 * S)); ctx.fill();
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      const lineH = Math.round(84 * S), top = py + Math.round(220 * S), mx = px + Math.round(120 * S), right = px + pw - Math.round(56 * S);
+      ctx.strokeStyle = '#cdd9e6'; ctx.lineWidth = Math.max(1, Math.round(2 * S));
+      for (let ly = top; ly < py + ph - Math.round(40 * S); ly += lineH) { ctx.beginPath(); ctx.moveTo(px, ly); ctx.lineTo(px + pw, ly); ctx.stroke(); }
+      ctx.strokeStyle = '#e3a6a1'; ctx.beginPath(); ctx.moveTo(mx - Math.round(20 * S), py); ctx.lineTo(mx - Math.round(20 * S), py + ph); ctx.stroke();
+      // binder holes down the left edge
+      for (let k = 0; k < 3; k++) { ctx.fillStyle = baseBgDark; ctx.beginPath(); ctx.arc(px + Math.round(46 * S), py + ph * (0.2 + k * 0.3), Math.round(15 * S), 0, Math.PI * 2); ctx.fill(); }
+      ctx.textAlign = 'left'; ctx.fillStyle = faint; ctx.font = serif(400, 26, true); ctx.fillText(hideLogo ? 'Training log' : 'Ascent · training log', mx, py + Math.round(84 * S));
+      if (!hideDate && act.start_date) { ctx.textAlign = 'right'; ctx.fillStyle = ink; ctx.font = serif(400, 30, true); ctx.fillText(fmtDt(act.start_date), right, py + Math.round(84 * S)); }
+      if (!hideTitle) { const nm = act.name || 'Activity'; let fs = 54; ctx.font = serif(700, fs); while (fs > 18 && ctx.measureText(nm).width > right - mx) { fs--; ctx.font = serif(700, fs); } ctx.textAlign = 'left'; ctx.fillStyle = ink; ctx.fillText(nm, mx, top - Math.round(18 * S)); }
+      let ly = top + lineH;
+      const routeSpace = polyline && polyline.length > 1 && !hideRoute ? Math.round(H * 0.3) : 0;
+      selected.slice(0, 8).forEach(s => { if (ly - Math.round(10 * S) > py + ph - routeSpace - Math.round(30 * S)) return;
+        const { num, unit } = statVal(s, act);
+        ctx.textAlign = 'left'; ctx.fillStyle = faint; ctx.font = serif(400, 30, true); ctx.fillText(s.label, mx, ly - Math.round(14 * S));
+        ctx.textAlign = 'right'; ctx.fillStyle = ink; ctx.font = serif(700, 40); ctx.fillText(num + (unit ? ' ' + unit : ''), right, ly - Math.round(14 * S));
+        ly += lineH; });
+      if (routeSpace) { const rs = Math.min(right - mx, py + ph - ly - Math.round(70 * S)); if (rs > Math.round(80 * S)) {
+        ctx.textAlign = 'left'; ctx.fillStyle = faint; ctx.font = serif(400, 26, true); ctx.fillText('route', mx, ly + Math.round(30 * S));
+        drawRoute(ctx, polyline, (mx + right - rs) / 2, ly + Math.round(50 * S), rs, rs, pen, Math.round(4 * S), true); } }
+      ctx.restore(); ctx.textAlign = 'left';
+      break;
+    }
+
+    /* STAMP — a passport page: the first stat inside a round entry stamp
+       with the sport and date around its rim, a boxed stamp for two more,
+       the route in an oval. Ink speckle is seeded by the activity id so a
+       card always prints the same. */
+    case 'stamp': {
+      if (!skipBg && !isTransp) { ctx.fillStyle = baseBgDark; ctx.fillRect(0, 0, W, H); }
+      let seed = (Number(act.id) || 7) % 2147483646 + 1; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+      const pw = Math.round(W * 0.88), ph = Math.round(H * 0.86), px = (W - pw) / 2, py = (H - ph) / 2;
+      const paper = '#efe8d8', ink = isPale(sc.accent) ? '#c2410c' : sc.accent, dark = '#2b2722';
+      ctx.fillStyle = paper; ctx.beginPath(); ctx.roundRect(px, py, pw, ph, Math.round(24 * S)); ctx.fill();
+      ctx.strokeStyle = 'rgba(43,39,34,0.08)'; ctx.lineWidth = Math.max(1, Math.round(1.5 * S));
+      for (let k = 0; k < 14; k++) { ctx.beginPath(); ctx.ellipse(W / 2, py + ph / 2, pw * (0.12 + k * 0.03), ph * (0.06 + k * 0.022), 0, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.textAlign = 'left'; ctx.fillStyle = dark; ctx.font = `700 ${Math.round(22 * S)}px Georgia,serif`; ctx.letterSpacing = '0.3em';
+      ctx.fillText(hideLogo ? 'ENTRIES' : 'ASCENT · ENTRIES', px + Math.round(56 * S), py + Math.round(76 * S)); ctx.letterSpacing = '0px';
+      if (!hideTitle) { const nm = act.name || 'Activity'; let fs = 46; ctx.font = `700 ${Math.round(fs * S)}px Georgia,serif`; while (fs > 16 && ctx.measureText(nm).width > pw - Math.round(112 * S)) { fs--; ctx.font = `700 ${Math.round(fs * S)}px Georgia,serif`; } ctx.fillText(nm, px + Math.round(56 * S), py + Math.round(140 * S)); }
+      const speckle = (x, y, w, h, n) => { ctx.fillStyle = paper; for (let k = 0; k < n; k++) { ctx.globalAlpha = 0.35 + rnd() * 0.5; ctx.beginPath(); ctx.arc(x + rnd() * w, y + rnd() * h, Math.max(0.5, (0.6 + rnd() * 2.6) * S), 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = 1; };
+      const rimText = (txt, cx, cy, r, start) => { ctx.font = `800 ${Math.round(26 * S)}px -apple-system,sans-serif`; const step = (ctx.measureText('M').width * 0.9) / r;
+        txt.split('').forEach((ch, k) => { const a = start + k * step; ctx.save(); ctx.translate(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.rotate(a + Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText(ch, 0, 0); ctx.restore(); }); };
+      // round entry stamp
+      const hero = selected[0], cx = W / 2 - pw * 0.06, cy = py + ph * 0.38, R = Math.min(pw * 0.36, ph * 0.2);
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.14); ctx.translate(-cx, -cy);
+      ctx.strokeStyle = ink; ctx.fillStyle = ink; ctx.globalAlpha = 0.9;
+      ctx.lineWidth = Math.round(7 * S); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = Math.round(3 * S); ctx.beginPath(); ctx.arc(cx, cy, R * 0.72, 0, Math.PI * 2); ctx.stroke();
+      const rim = ((act.type || 'Activity') + (hideDate || !act.start_date ? '' : ' · ' + fmtDt(act.start_date))).toUpperCase();
+      ctx.font = `800 ${Math.round(26 * S)}px -apple-system,sans-serif`; const span = (ctx.measureText('M').width * 0.9) / (R * 0.86) * rim.length;
+      rimText(rim, cx, cy, R * 0.86, -Math.PI / 2 - span / 2);
+      if (hero) { const { num, unit } = statVal(hero, act); let hs = Math.round(R * 0.5); ctx.font = `900 ${hs}px -apple-system,sans-serif`;
+        while (hs > Math.round(20 * S) && ctx.measureText(num).width > R * 1.2) { hs--; ctx.font = `900 ${hs}px -apple-system,sans-serif`; }
+        ctx.textAlign = 'center'; ctx.fillText(num, cx, cy + hs * 0.3);
+        ctx.font = `800 ${Math.round(24 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.16em'; ctx.fillText((unit || hero.label).toUpperCase(), cx, cy + hs * 0.3 + Math.round(42 * S)); ctx.letterSpacing = '0px'; }
+      ctx.globalAlpha = 1; speckle(cx - R, cy - R, R * 2, R * 2, 160); ctx.restore();
+      // boxed stamp: the next two stats
+      const box = selected.slice(1, 3);
+      if (box.length) { const bw = pw * 0.56, bh = Math.round(94 * S) * box.length + Math.round(70 * S), bx = px + pw - bw - Math.round(50 * S), by = cy + R + Math.round(70 * S);
+        ctx.save(); ctx.translate(bx + bw / 2, by + bh / 2); ctx.rotate(0.07); ctx.translate(-(bx + bw / 2), -(by + bh / 2));
+        ctx.globalAlpha = 0.88; ctx.strokeStyle = dark; ctx.fillStyle = dark; ctx.lineWidth = Math.round(5 * S); ctx.strokeRect(bx, by, bw, bh);
+        ctx.lineWidth = Math.round(2 * S); ctx.strokeRect(bx + Math.round(10 * S), by + Math.round(10 * S), bw - Math.round(20 * S), bh - Math.round(20 * S));
+        box.forEach((s, i) => { const { num, unit } = statVal(s, act), ry = by + Math.round(35 * S) + i * Math.round(94 * S);
+          ctx.textAlign = 'left'; ctx.font = `700 ${Math.round(18 * S)}px -apple-system,sans-serif`; ctx.letterSpacing = '0.14em'; ctx.fillText(s.label.toUpperCase(), bx + Math.round(32 * S), ry + Math.round(26 * S)); ctx.letterSpacing = '0px';
+          let vf = Math.round(44 * S); const disp = num + (unit ? ' ' + unit : ''); ctx.font = `900 ${vf}px -apple-system,sans-serif`;
+          while (vf > Math.round(14 * S) && ctx.measureText(disp).width > bw - Math.round(64 * S)) { vf--; ctx.font = `900 ${vf}px -apple-system,sans-serif`; }
+          ctx.fillText(disp, bx + Math.round(32 * S), ry + Math.round(26 * S) + vf); });
+        ctx.globalAlpha = 1; speckle(bx, by, bw, bh, 90); ctx.restore(); }
+      // oval route stamp, bottom left
+      if (polyline && polyline.length > 1 && !hideRoute) { const ow = pw * 0.34, oh = ow * 0.72, ox = px + Math.round(60 * S), oy = py + ph - oh - Math.round(60 * S);
+        ctx.save(); ctx.translate(ox + ow / 2, oy + oh / 2); ctx.rotate(-0.05); ctx.translate(-(ox + ow / 2), -(oy + oh / 2));
+        ctx.globalAlpha = 0.85; ctx.strokeStyle = ink; ctx.lineWidth = Math.round(4 * S); ctx.beginPath(); ctx.ellipse(ox + ow / 2, oy + oh / 2, ow / 2, oh / 2, 0, 0, Math.PI * 2); ctx.stroke();
+        drawRoute(ctx, polyline, ox + ow * 0.22, oy + oh * 0.18, ow * 0.56, oh * 0.64, ink, Math.round(4 * S), true);
+        ctx.globalAlpha = 1; speckle(ox, oy, ow, oh, 50); ctx.restore(); }
       ctx.textAlign = 'left';
       break;
     }
