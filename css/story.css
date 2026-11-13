@@ -88,6 +88,7 @@
   aspect-ratio: 9/16;
   border-radius: 12px;
   overflow: hidden;
+  /* transparency checkerboard: shows through the "Transparent" scheme, so you can see what exports clear */
   background: repeating-conic-gradient(#222 0% 25%, #1a1a1a 0% 50%) 0 0/20px 20px;
   border: 1px solid var(--border);
 }
