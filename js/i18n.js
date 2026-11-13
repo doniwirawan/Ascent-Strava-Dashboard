@@ -12,7 +12,7 @@ const I18N = {
     'cta.connect': 'Hubungkan dengan Strava',
     'cta.demo': 'Coba dengan data contoh',
     'f1.h': 'Kartu cerita untuk setiap aktivitas',
-    'f1.p': 'Pilih aktivitas, salah satu dari 55 template dan tema warna, tambahkan foto Anda sendiri bila mau, lalu unduh PNG 1080×1920 atau bagikan dari ponsel. Templatenya mulai dari nomor dada lomba sampai papan keberangkatan split-flap.',
+    'f1.p': 'Pilih aktivitas, salah satu dari 62 template dan tema warna, tambahkan foto Anda sendiri bila mau, lalu unduh PNG 1080×1920 atau bagikan dari ponsel. Templatenya mulai dari nomor dada lomba sampai papan keberangkatan split-flap.',
     'f2.h': 'Tren yang bisa dibandingkan',
     'f2.p': 'Jarak mingguan selama 20 minggu terakhir, bulan-bulan tahun ini ditumpuk di atas tahun lalu, dan tabel ringkasan tahunan dengan perubahan di samping setiap angka.',
     'f3.h': 'Setiap jalan dalam satu peta',

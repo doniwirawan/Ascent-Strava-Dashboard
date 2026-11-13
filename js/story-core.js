@@ -209,6 +209,13 @@ const LAYOUTS = [
   { id: 'gauge', name: 'Gauge' },
   { id: 'zones', name: 'Zones' },
   { id: 'peaks', name: 'Peaks' },
+  { id: 'calendar', name: 'Calendar' },
+  { id: 'pixel', name: 'Pixel' },
+  { id: 'blueprint', name: 'Blueprint' },
+  { id: 'record', name: 'Record' },
+  { id: 'tank', name: 'Tank' },
+  { id: 'spread', name: 'Spread' },
+  { id: 'efforts', name: 'Efforts' },
   { id: 'bib', name: 'Bib' },
 
 ];
