@@ -23,8 +23,8 @@
 .sidebar::-webkit-scrollbar { display: none; }
 
 /* mobile drawer action footer (hidden on desktop) */
-.sidebar-actions { display: none; flex-direction: column; gap: 8px; padding: 14px; margin-top: auto; border-top: 1px solid var(--border); }
-.sidebar-controls { display: none; gap: 8px; padding: 12px 14px 0; }
+.sidebar-actions { display: flex; flex-direction: column; gap: 8px; padding: 14px; margin-top: auto; border-top: 1px solid var(--border); }
+.sidebar-controls { display: flex; gap: 8px; padding: 12px 14px 0; }
 .sidebar-controls .lang-toggle, .sidebar-controls .unit-toggle { flex: 1; }
 .sidebar-controls .lang-toggle button, .sidebar-controls .unit-toggle button { flex: 1; }
 .sidebar-act { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 600; padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; text-align: left; transition: background .15s, border-color .15s; }
@@ -156,3 +156,9 @@
 .sidebar-nav .nav-link:hover .nav-icon { opacity: .9; }
 .sidebar-nav .nav-link.active { background: var(--orange-dim); color: var(--orange); font-weight: 600; }
 .sidebar-nav .nav-link.active .nav-icon { opacity: 1; }
+
+/* Language, units and Disconnect live in the sidebar at every width, so the
+   top bar keeps only the sport filter, Refresh and the avatar. On desktop the
+   sidebar's own Refresh would duplicate the top-bar one, so it hides there. */
+#langToggleApp, #unitToggle, #logoutBtn { display: none !important; }
+@media (min-width: 769px) { .sidebar-actions .sidebar-act:not(.danger) { display: none; } }
