@@ -167,7 +167,7 @@
   margin-bottom: 5px;
 }
 
-.hero-box.hi .hero-label { color: rgba(252, 76, 2, .65); }
+.hero-box.hi .hero-label { color: var(--orange); }
 
 .hero-value {
   font-size: 22px;
