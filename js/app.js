@@ -121,32 +121,8 @@ if (!CONFIG.refreshToken) {
   });
 }
 
-/* ── LANDING: carousel + scroll-reveal animations ── */
+/* ── LANDING: GitHub star count + the sample-data demo ── */
 (function(){
-  const track=document.getElementById('lpTrack');
-  if(track){
-    const slides=[...track.children];
-    const dotsWrap=document.getElementById('lpDots');
-    const go=i=>{ i=Math.max(0,Math.min(slides.length-1,i)); track.scrollTo({left:slides[i].offsetLeft-track.offsetLeft,behavior:smoothB()}); };
-    let cur=0;
-    if(dotsWrap) slides.forEach((_,i)=>{ const b=document.createElement('button'); b.setAttribute('aria-label','Slide '+(i+1)); b.onclick=()=>go(i); dotsWrap.appendChild(b); });
-    const dots=dotsWrap?[...dotsWrap.children]:[];
-    const sync=()=>{ const w=track.clientWidth||1; cur=Math.round(track.scrollLeft/w); dots.forEach((d,i)=>d.classList.toggle('active',i===cur)); };
-    track.addEventListener('scroll',()=>requestAnimationFrame(sync));
-    const prev=document.getElementById('lpPrev'), next=document.getElementById('lpNext');
-    // autoplay — advance every 5s, pause on hover/touch, skip if reduced-motion
-    const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let timer=null;
-    const stop=()=>{ if(timer){clearInterval(timer);timer=null;} };
-    const play=()=>{ stop(); if(reduce||!track.offsetParent) return; timer=setInterval(()=>go((cur+1)%slides.length),5000); };
-    const bump=()=>{ stop(); play(); }; // restart the clock after a manual move
-    if(prev) prev.onclick=()=>{ go(cur-1); bump(); };
-    if(next) next.onclick=()=>{ go(cur+1); bump(); };
-    dots.forEach((d,i)=>{ const o=d.onclick; d.onclick=()=>{ o&&o(); bump(); }; });
-    track.addEventListener('pointerenter',stop);
-    track.addEventListener('pointerleave',play);
-    sync(); play();
-  }
   // GitHub star count — fetched live, fails silently (button still links out)
   const starEl=document.getElementById('ghStars');
   if(starEl){
@@ -155,12 +131,17 @@ if (!CONFIG.refreshToken) {
       .then(d=>{ const n=d.stargazers_count; if(typeof n==='number'){ starEl.textContent=n>=1000?(n/1000).toFixed(1)+'k':n; starEl.classList.add('show'); } })
       .catch(()=>{});
   }
-  const rev=document.querySelectorAll('.reveal');
-  if(rev.length && 'IntersectionObserver' in window){
-    const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }),{threshold:0.12});
-    rev.forEach(el=>io.observe(el));
-  } else { rev.forEach(el=>el.classList.add('in')); }
 })();
+
+// "Try it with sample data" on the landing page: show the app with loadDemo()'s
+// seeded activities. No Strava access is used; a reload returns here.
+function startDemo(){
+  document.body.classList.remove('logged-out');
+  const nav=document.getElementById('sidebarNav'); if(nav) nav.classList.remove('locked');
+  loadDemo();
+  navScrollTo('statRow', document.querySelector('.sidebar-nav .nav-link'));
+  window.scrollTo(0,0);
+}
 
 /* ── SERVICE WORKER ── */
 /* Auto-update: the SW skips waiting + claims clients, and on activating an

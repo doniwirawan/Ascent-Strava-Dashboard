@@ -265,5 +265,6 @@ function loadDemo() {
   renderAll();
   setStatus(trf('Demo mode, {0} sample activities', acts.length),'success');
   const btn=document.getElementById('mainBtn');
-  btn.textContent=tr('Refresh'); btn.disabled=false;
+  // logged-out visitors trying the demo: the button still leads to Strava sign-in
+  btn.textContent=tr(CONFIG.refreshToken?'Refresh':'Connect'); btn.disabled=false;
 }
