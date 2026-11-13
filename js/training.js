@@ -845,11 +845,18 @@ function renderTraining() {
       ${sub ? `<div class="tr-tile-sub">${sub}</div>` : ''}
     </div>`;
 
+  // a sticky jump bar: Training is ~20 cards long, so each group gets an anchor
+  const jump = [['zones', tr('Zones')], ['event', tr('Event')], ['load', tr('Load & form')], ['trends', tr('Trends')], ['latest', tr('Latest ride')]]
+    .map(([id, l]) => `<a href="#trj-${id}">${l}</a>`).join('');
   body.innerHTML = `
+    <nav class="tr-jump" aria-label="${tr('Training sections')}">${jump}</nav>
     ${_trIntroHTML(d)}
+    <span class="tr-anchor" id="trj-zones"></span>
     ${_trZonesHTML(d.ftpEst)}
     ${_trRunPredictHTML()}
+    <span class="tr-anchor" id="trj-event"></span>
     ${typeof _trEventReadyHTML === 'function' ? _trEventReadyHTML(d) : ''}
+    <span class="tr-anchor" id="trj-load"></span>
     <div class="tr-tiles">
       ${tile(Math.round(d.ctl), '', tr('Fitness · CTL'), 'var(--orange)', tr('42-day load'))}
       ${tile(Math.round(d.atl), '', tr('Fatigue · ATL'), '#a78bfa', tr('7-day load'))}
@@ -880,9 +887,11 @@ function renderTraining() {
     </div>
     ${_trNote('Performance Management Chart')}
 
+    <span class="tr-anchor" id="trj-trends"></span>
     ${_trConsistencyHTML()}
     ${_trNote('Consistency')}
     ${_trTrendsHTML()}
+    <span class="tr-anchor" id="trj-latest"></span>
     ${typeof _trHrDecouplingHTML === 'function' ? _trHrDecouplingHTML() : ''}
     ${typeof _trTimeLostHTML === 'function' ? _trTimeLostHTML() : ''}
     ${typeof _trWindHTML === 'function' ? _trWindHTML() : ''}

@@ -1289,6 +1289,7 @@ const TR_ID = {
   'Best 20-min HR': 'HR 20 menit tertinggi',
   'Best 60-min speed': 'Kecepatan 60 menit terbaik',
   'Latest ride': 'Gowes terakhir',
+  'Zones': 'Zona', 'Load & form': 'Beban & form', 'Training sections': 'Bagian latihan',
   'Burned': 'Terbakar',
   'Burned ≈ {0}': 'Terbakar ≈ {0}',
   'avg': 'rata-rata',
