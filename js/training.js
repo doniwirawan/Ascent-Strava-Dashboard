@@ -849,7 +849,7 @@ function renderTraining() {
   const jump = [['zones', tr('Zones')], ['event', tr('Event')], ['load', tr('Load & form')], ['trends', tr('Trends')], ['latest', tr('Latest ride')]]
     .map(([id, l]) => `<a href="#trj-${id}">${l}</a>`).join('');
   body.innerHTML = `
-    <nav class="tr-jump" aria-label="${tr('Training sections')}">${jump}</nav>
+    <div class="tr-jump" role="navigation" aria-label="${tr('Training sections')}">${jump}</div>
     ${_trIntroHTML(d)}
     <span class="tr-anchor" id="trj-zones"></span>
     ${_trZonesHTML(d.ftpEst)}

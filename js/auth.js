@@ -255,8 +255,8 @@ function loadDemo() {
       list.push(a);
     }
   }
-  // two GPS spikes (86-100 km/h) so the GPS Fix page has something to fix
-  list.filter(a=>a.type==='Ride').filter((_,i)=>i===6||i===40).forEach(a=>{a.max_speed=24+r()*4;});
+  // two GPS spikes (70-76 km/h, over the 65 km/h glitch ceiling) so the GPS Fix page has something to fix
+  list.filter(a=>a.type==='Ride').filter((_,i)=>i===6||i===40).forEach(a=>{a.max_speed=19.5+r()*1.6;});
   acts=list;
   renderAthlete({firstname:'Alex',lastname:'Rivera',weight:72,ftp:245,
     profile_medium:'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=160&h=160&fit=crop&crop=faces',
