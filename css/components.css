@@ -20,7 +20,7 @@
 @media (min-width: 761px) { .act-reg-tags { flex-wrap: wrap; overflow: visible; } }
 .act-reg-tag { flex-shrink: 0; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-2); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .act-reg-tag b { color: var(--muted); font-weight: 700; margin-left: 2px; }
-.act-reg-tag.on { background: var(--orange); border-color: var(--orange); color: #fff; }
+.act-reg-tag.on { background: var(--orange-fill); border-color: var(--orange); color: #fff; }
 .act-reg-tag.on b { color: #fff; }
 .act-search::placeholder { color: var(--text-3); }
 .act-search:focus { outline: none; border-color: var(--orange); }
@@ -147,7 +147,7 @@
 .actd-stream-title { display: flex; align-items: center; gap: 8px; }
 .actd-stream-modes { margin-left: auto; display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
 .actd-stream-modes button { background: var(--surface2); color: var(--muted); border: 0; font-size: 11px; font-weight: 600; padding: 4px 10px; cursor: pointer; text-transform: none; letter-spacing: 0; }
-.actd-stream-modes button.on { background: var(--orange); color: #fff; }
+.actd-stream-modes button.on { background: var(--orange-fill); color: #fff; }
 .actd-stream-overlay { padding: 12px; }
 .actd-stream-checks { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -2px 0 10px; font-size: 12px; color: var(--text-2); }
 .actd-stream-checks label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
@@ -296,7 +296,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 }
 .rb-field input#rb-dist { width: 90px; min-width: 0; }
 .rb-generate {
-  background: var(--orange); color: #fff; border: none; border-radius: 6px;
+  background: var(--orange-fill); color: #fff; border: none; border-radius: 6px;
   padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; height: 37px;
 }
 .rb-generate:disabled { opacity: .6; cursor: default; }
@@ -493,7 +493,7 @@ select.actd-bike-select:disabled { opacity: .6; cursor: wait; }
 .heat-mode button + button { border-left: 1px solid var(--border); }
 .heat-mode button { white-space: nowrap; }
 .heat-mode button:hover { color: var(--text); }
-.heat-mode button.on { background: var(--orange); color: #fff; }
+.heat-mode button.on { background: var(--orange-fill); color: #fff; }
 
 /* green → red speed scale under the activity map's Speed mode */
 .speed-legend {
@@ -710,7 +710,7 @@ body.map-fs-open { overflow: hidden; }
 .cai-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
 .cai-seg button { background: var(--surface2); color: var(--text-2); border: 0; padding: 7px 12px; font: 600 12.5px/1.2 inherit; cursor: pointer; }
 .cai-seg button + button { border-left: 1px solid var(--border); }
-.cai-seg button.on { background: var(--orange); color: #fff; }
+.cai-seg button.on { background: var(--orange-fill); color: #fff; }
 .cai-seg.small button { padding: 5px 9px; font-size: 11.5px; }
 .cai-se { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
 .cai-se input { width: 170px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; font: 13px inherit; }

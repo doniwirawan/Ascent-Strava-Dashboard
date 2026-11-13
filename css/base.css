@@ -8,6 +8,7 @@
   --orange-dim: rgba(252, 76, 2, 0.09);
   --orange-mid: rgba(252, 76, 2, 0.35);
   --orange-glow: rgba(252, 76, 2, 0.14);
+  --orange-fill: #D93F00;   /* orange behind white text: 4.5:1 (brand orange is 3.4:1) */
 
   /* Backgrounds */
   --bg: #090909;

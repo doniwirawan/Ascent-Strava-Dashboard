@@ -120,7 +120,7 @@
   font-size: 13px; font-weight: 700; min-width: 38px; padding: 6px 10px;
   border-radius: 7px; cursor: pointer; transition: background .15s, border-color .15s;
 }
-.story-toolbar button[data-act]:hover { background: var(--orange); border-color: var(--orange); color: #fff; }
+.story-toolbar button[data-act]:hover { background: var(--orange-fill); border-color: var(--orange); color: #fff; }
 .story-toolbar button[data-act]:active { transform: scale(.95); }
 .story-hinttext { font-size: 9px; color: var(--muted); line-height: 1.3; }
 

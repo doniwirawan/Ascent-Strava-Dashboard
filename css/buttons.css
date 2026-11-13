@@ -14,8 +14,8 @@
   white-space: nowrap;
 }
 
-.btn-primary { background: var(--orange); color: #fff; }
-.btn-primary:hover { opacity: .85; }
+.btn-primary { background: var(--orange-fill); color: #fff; }
+.btn-primary:hover { filter: brightness(.9); }
 .btn-primary:disabled { opacity: .3; cursor: not-allowed; }
 
 .btn-ghost {
