@@ -432,7 +432,7 @@ function openStoryModal(){
   };
   const sp=document.getElementById('schemePicker');
   sp.innerHTML=Object.keys(schemeSwatches).map(k=>`
-    <button data-scheme="${k}" title="${k}" style="width:28px;height:28px;border-radius:50%;background:${schemeSwatches[k]};border:2px solid ${k===activeScheme?'var(--orange)':'transparent'};cursor:pointer;outline:none;flex-shrink:0;transition:border-color .15s;"></button>
+    <button data-scheme="${k}" title="${k}" style="width:28px;height:28px;border-radius:50%;background:${schemeSwatches[k]};border:2px solid ${k===activeScheme?'var(--orange)':'transparent'};cursor:pointer;flex-shrink:0;transition:border-color .15s;"></button>
   `).join('');
   sp.querySelectorAll('button').forEach(btn=>{
     btn.onclick=()=>{

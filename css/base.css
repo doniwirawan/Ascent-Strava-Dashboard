@@ -64,6 +64,10 @@
 *::-webkit-scrollbar-thumb:hover { background: var(--orange-mid); }
 *::-webkit-scrollbar-corner { background: transparent; }
 
+/* one visible keyboard focus ring for every control (mouse clicks don't show it) */
+:focus-visible,
+input[type="date"]:focus { outline: 2px solid var(--orange); outline-offset: 2px; }   /* date fields focus an inner segment, so :focus-visible never matches */
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
   background: var(--bg);
