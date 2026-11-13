@@ -3,7 +3,7 @@
 ══════════════════════════════════════════ */
 
 @media (max-width: 968px) {
-  .stat-row { grid-template-columns: repeat(3, 1fr); }
+  .stat-row { grid-template-columns: repeat(6, 1fr); }   /* key: 2 per row, compact: 3 */
   .g2, .g3, .g13 { grid-template-columns: 1fr; }
   .cycling-hero { grid-template-columns: repeat(2, 1fr); }
   .cal-grid { grid-template-columns: repeat(6, 1fr); }
@@ -66,8 +66,10 @@
 
 @media (max-width: 600px) {
   main { padding: 12px 12px 140px; }   /* FAB row + the Install pill above it */
-  .stat-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .s-value { font-size: 22px; }
+  .stat-row { grid-template-columns: repeat(4, 1fr); gap: 8px; }   /* 2 per row, both tiers */
+  .stat-card, .stat-card.key { grid-column: span 2; }
+  .s-value { font-size: 20px; }
+  .stat-card.key .s-value { font-size: 26px; }
   .stat-card { padding: 14px 16px; }
   .card { padding: 14px; }
   .cycling-hero { grid-template-columns: 1fr 1fr; }

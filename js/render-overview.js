@@ -274,6 +274,11 @@ function renderOverviewInsights(){
   clearOld();
   el.innerHTML=''; // insights now live inside the main stat grid
   if(!grid) return;
+  // a heading row before them (same .ov-insight class, so clearOld and the
+  // Settings 'Fun stats' toggle treat it with the tiles)
+  // the static Calories tile (.fun) opens the group, so the heading goes before it
+  const funHead=`<div class="stat-card ov-insight ov-fun-head">${T('Fun facts')}</div>`, firstFun=grid.querySelector('.stat-card.fun');
+  if(firstFun) firstFun.insertAdjacentHTML('beforebegin', funHead); else grid.insertAdjacentHTML('beforeend', funHead);
   grid.insertAdjacentHTML('beforeend', cards.filter(Boolean).map(c=>`
         <div class="stat-card ov-insight${c.cls?' '+c.cls:''}"${c.act?` role="button" tabindex="0" style="cursor:pointer" onclick="openActivityModal('${c.act}')"`:c.click?` role="button" tabindex="0" style="cursor:pointer" onclick="${c.click}" onkeydown="if(event.key==='Enter'){${c.click}}"`:''}>
           <div class="s-label">${c.lbl}</div>

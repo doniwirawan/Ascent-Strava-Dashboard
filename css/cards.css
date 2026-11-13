@@ -2,20 +2,35 @@
    CARDS — stat cards, content cards, charts
 ══════════════════════════════════════════ */
 
+/* Two tiers so the Overview has a focal point: four key totals across the top
+   (.key, larger), then every other stat as a compact tile, six to a row. */
 .stat-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(12, 1fr);
   gap: 10px;
 }
 
 .stat-card {
+  grid-column: span 2;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 18px 20px;
+  padding: 14px 16px;
   transition: transform .2s ease, border-color .2s, box-shadow .2s;
   cursor: default;
 }
+.stat-card.key { grid-column: span 3; padding: 20px 22px; }
+/* the icon only repeats the label on small tiles; keep it on the key four */
+.stat-card:not(.key) .s-icon { display: none; }
+
+/* "Fun facts" divider before the novelty tiles, which sit a step quieter
+   (no fill) so they don't compete with the real totals */
+.stat-card.ov-fun-head {
+  grid-column: 1 / -1; background: none; border: 0; padding: 18px 0 0;
+  font-size: 13px; font-weight: 700; color: var(--text-2);
+}
+.stat-card.ov-fun-head:hover { transform: none; box-shadow: none; }
+.stat-card.ov-insight:not(.ov-fun-head), .stat-card.fun { background: transparent; }
 
 .stat-card:hover {
   transform: translateY(-2px);
@@ -70,13 +85,14 @@
 .stat-card.hi .s-icon { color: var(--orange); }
 
 .s-value {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: -1px;
   line-height: 1;
   color: var(--text);
 }
 
+.stat-card.key .s-value { font-size: 34px; }
 .stat-card.hi .s-value { color: var(--orange); }
 /* place names (Home base, Top destination…) are longer than numbers; min-width:0
    lets the grid cell shrink so they ellipsize instead of widening the page */
