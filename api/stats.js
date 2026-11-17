@@ -216,7 +216,7 @@ let rowMemo = { at: 0, data: null };
 // Read the owner's cache and compute the public payload. Returns { status, body };
 // shared with api/card.js so the README card shows exactly what this API exposes.
 // strava:false skips the Strava calls (bikes, all_time) for a faster response.
-async function loadStats({ strava = true } = {}) {
+async function loadStats({ strava = true, hideToday = true } = {}) {
   const url = (process.env.SUPABASE_URL || '').replace(/\s+/g, '').replace(/\/$/, '');
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').replace(/\s+/g, '');
   const owner = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
@@ -239,10 +239,10 @@ async function loadStats({ strava = true } = {}) {
     return { status: 502, body: { error: 'upstream_error', detail: String((e && e.message) || e) } };
   }
 
-  // Today's activities stay hidden until tomorrow, so the public site never
-  // shows that the owner is out riding right now.
+  // Public callers don't see today's activities until tomorrow, so the site never
+  // shows that the owner is out riding right now. The owner-only /api/v1 opts out.
   const acts = (row && Array.isArray(row.activities) ? row.activities : [])
-    .filter(a => a && (a.start_date_local || a.start_date) && dayKey(a) !== today());
+    .filter(a => a && (a.start_date_local || a.start_date) && !(hideToday && dayKey(a) === today()));
   if (!acts.length) return { status: 200, body: { error: 'no_data', synced_at: (row && row.synced_at) || null } };
 
   const now = Date.now();

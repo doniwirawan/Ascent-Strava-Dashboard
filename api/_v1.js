@@ -469,7 +469,7 @@ async function route(req, parts) {
     case '': return INDEX;
     case 'me': return strava('/athlete');
     case 'activities': return id ? activity(id, q) : activities(q);
-    case 'stats': { const { status, body } = await require('./stats.js').loadStats(); if (status !== 200) throw new HttpError(status, body.error || 'stats_unavailable'); return body; }
+    case 'stats': { const { status, body } = await require('./stats.js').loadStats({ hideToday: false }); if (status !== 200) throw new HttpError(status, body.error || 'stats_unavailable'); return body; }
     case 'strava-stats': return strava('/athletes/' + env('OWNER_ATHLETE_ID') + '/stats');
     case 'sleep': return sleep();
     case 'huawei': return huawei(id);
