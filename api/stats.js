@@ -96,7 +96,7 @@ const TZ = 'Asia/Makassar';                 // the owner rides in Bali (UTC+8)
 const EVEREST_M = 8849, EARTH_KM = 40075;
 const BABI_GULING_KCAL = 700;               // one plate of nasi babi guling, roughly
 const dayKey = a => (a.start_date_local || a.start_date).slice(0, 10);
-// Days (Bali time, YYYY-MM-DD) whose rides stay off the public stats until the next day.
+// Days (YYYY-MM-DD, local ride date) whose activities never appear in the public stats.
 const HIDE_DAYS = ['2026-11-17'];
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: TZ });
 const addDays = (key, n) => new Date(Date.parse(key + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
@@ -218,7 +218,7 @@ let rowMemo = { at: 0, data: null };
 // Read the owner's cache and compute the public payload. Returns { status, body };
 // shared with api/card.js so the README card shows exactly what this API exposes.
 // strava:false skips the Strava calls (bikes, all_time) for a faster response.
-async function loadStats({ strava = true, hideToday = true } = {}) {
+async function loadStats({ strava = true, hideDays = true } = {}) {
   const url = (process.env.SUPABASE_URL || '').replace(/\s+/g, '').replace(/\/$/, '');
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').replace(/\s+/g, '');
   const owner = (process.env.OWNER_ATHLETE_ID || '').replace(/\s+/g, '');
@@ -241,12 +241,10 @@ async function loadStats({ strava = true, hideToday = true } = {}) {
     return { status: 502, body: { error: 'upstream_error', detail: String((e && e.message) || e) } };
   }
 
-  // On the dates in HIDE_DAYS, public callers don't see that day's activities
-  // until the next day, so the site doesn't show the owner is out riding right
-  // now. The owner-only /api/v1 opts out.
-  const hidden = hideToday && HIDE_DAYS.includes(today()) ? today() : null;
+  // Activities on HIDE_DAYS never reach public callers. The owner-only /api/v1
+  // opts out, so they still show in the app.
   const acts = (row && Array.isArray(row.activities) ? row.activities : [])
-    .filter(a => a && (a.start_date_local || a.start_date) && dayKey(a) !== hidden);
+    .filter(a => a && (a.start_date_local || a.start_date) && !(hideDays && HIDE_DAYS.includes(dayKey(a))));
   if (!acts.length) return { status: 200, body: { error: 'no_data', synced_at: (row && row.synced_at) || null } };
 
   const now = Date.now();
