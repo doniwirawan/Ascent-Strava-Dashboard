@@ -239,8 +239,10 @@ async function loadStats({ strava = true } = {}) {
     return { status: 502, body: { error: 'upstream_error', detail: String((e && e.message) || e) } };
   }
 
+  // Today's activities stay hidden until tomorrow, so the public site never
+  // shows that the owner is out riding right now.
   const acts = (row && Array.isArray(row.activities) ? row.activities : [])
-    .filter(a => a && (a.start_date_local || a.start_date));
+    .filter(a => a && (a.start_date_local || a.start_date) && dayKey(a) !== today());
   if (!acts.length) return { status: 200, body: { error: 'no_data', synced_at: (row && row.synced_at) || null } };
 
   const now = Date.now();
