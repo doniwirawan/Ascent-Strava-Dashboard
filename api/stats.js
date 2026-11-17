@@ -96,6 +96,8 @@ const TZ = 'Asia/Makassar';                 // the owner rides in Bali (UTC+8)
 const EVEREST_M = 8849, EARTH_KM = 40075;
 const BABI_GULING_KCAL = 700;               // one plate of nasi babi guling, roughly
 const dayKey = a => (a.start_date_local || a.start_date).slice(0, 10);
+// Days (Bali time, YYYY-MM-DD) whose rides stay off the public stats until the next day.
+const HIDE_DAYS = ['2026-11-17'];
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: TZ });
 const addDays = (key, n) => new Date(Date.parse(key + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
 const monday = key => addDays(key, -((new Date(key + 'T00:00:00Z').getUTCDay() + 6) % 7));
@@ -239,10 +241,12 @@ async function loadStats({ strava = true, hideToday = true } = {}) {
     return { status: 502, body: { error: 'upstream_error', detail: String((e && e.message) || e) } };
   }
 
-  // Public callers don't see today's activities until tomorrow, so the site never
-  // shows that the owner is out riding right now. The owner-only /api/v1 opts out.
+  // On the dates in HIDE_DAYS, public callers don't see that day's activities
+  // until the next day, so the site doesn't show the owner is out riding right
+  // now. The owner-only /api/v1 opts out.
+  const hidden = hideToday && HIDE_DAYS.includes(today()) ? today() : null;
   const acts = (row && Array.isArray(row.activities) ? row.activities : [])
-    .filter(a => a && (a.start_date_local || a.start_date) && !(hideToday && dayKey(a) === today()));
+    .filter(a => a && (a.start_date_local || a.start_date) && dayKey(a) !== hidden);
   if (!acts.length) return { status: 200, body: { error: 'no_data', synced_at: (row && row.synced_at) || null } };
 
   const now = Date.now();
